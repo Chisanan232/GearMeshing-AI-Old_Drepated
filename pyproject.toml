@@ -30,7 +30,7 @@ classifiers = [
 ]
 dependencies = [
     "autogenstudio>=0.4.2.2",
-    "pyautogen>=0.2.19",
+    "ag2>=0.2.19",
     "python-dotenv>=1.0.0",
 ]
 
