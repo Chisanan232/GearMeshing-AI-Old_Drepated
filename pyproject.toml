@@ -47,7 +47,7 @@ dev = [
     "pytest-cov>=5.0.0,<6",
 #    "pytest-html>=4.1.1,<5",
     "pytest-rerunfailures~=14.0",
-    "coverage~=6.2",
+    "coverage~=7.10",
 ]
 pre-commit-ci = [
     "pre-commit>=3.5.0,<4",
