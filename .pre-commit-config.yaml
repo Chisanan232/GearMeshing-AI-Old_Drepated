@@ -2,7 +2,7 @@ exclude: '.github/|docs/'
 
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v5.0.0
+  rev: v6.0.0
   hooks:
     - id: check-yaml
       args: ['--unsafe']
@@ -11,7 +11,7 @@ repos:
     - id: trailing-whitespace
     - id: detect-private-key
 - repo: https://github.com/PyCQA/isort
-  rev: 6.0.1
+  rev: 7.0.0
   hooks:
     - id: isort
       args: # arguments to configure black
@@ -24,8 +24,8 @@ repos:
         - --remove-all-unused-imports
         - --ignore-init-module-imports
         - --in-place
-- repo: https://github.com/psf/black
-  rev: 25.1.0
+- repo: https://github.com/psf/black-pre-commit-mirror
+  rev: 25.9.0
   hooks:
     - id: black
       args: # arguments to configure black
@@ -42,14 +42,14 @@ repos:
           build|
           dist"""
 - repo: https://github.com/python-poetry/poetry
-  rev: 2.1.2
+  rev: 2.2.1
   hooks:
     - id: poetry-check
       # Please activate this hook in local development environment. In Pre-Commit CI, it would occur error like below:
       # HTTPSConnectionPool(host='pypi.org', port=443): Max retries exceeded with url ...
 #    - id: poetry-lock
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.15.0
+  rev: v1.18.2
   hooks:
     - id: mypy
       package: gearmeshing_ai,test
