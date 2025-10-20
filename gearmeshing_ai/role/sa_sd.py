@@ -1,13 +1,14 @@
-from __future__ import annotations           # PEP 563/649 future-proof
+from __future__ import annotations  # PEP 563/649 future-proof
+
+import json
 import os
 import pathlib
-import sys
-import json
 import re
-from typing import Final, TypedDict, List, Dict, Any
+import sys
+from typing import Any, Dict, Final, List, TypedDict
 
-from dotenv import load_dotenv
 from autogen import AssistantAgent, UserProxyAgent
+from dotenv import load_dotenv
 
 # ------- 常量設定 -------
 # Use absolute path for more reliable file operations
@@ -29,15 +30,17 @@ if "OPENAI_API_KEY" not in os.environ:
     print("[ERROR] OPENAI_API_KEY environment variable not found in .env file")
     sys.exit(1)
 
+
 # ---------- Domain model (PEP 484 / PEP 585) ----------
 class RequirementDoc(TypedDict):
     user_stories: List[str]
     acceptance_criteria: List[str]
     open_questions: List[str]
 
+
 # ---------- LLM config ----------
 LLM_CFG: Final[Dict[str, Any]] = {
-    "model": "gpt-4o-mini",                  # swap to your model
+    "model": "gpt-4o-mini",  # swap to your model
     "api_key": os.environ["OPENAI_API_KEY"],
     "temperature": 0.2,
 }
@@ -49,8 +52,8 @@ analyst = AssistantAgent(
     system_message=(
         "You are a senior systems analyst. "
         "Break any given requirement into:\n"
-        "• user_stories (max 7, using format: {\"as_a\": \"...\", \"i_want\": \"...\", \"so_that\": \"...\"})\n"
-        "• acceptance_criteria (using format: {\"given\": \"...\", \"when\": \"...\", \"then\": \"...\"})\n"
+        '• user_stories (max 7, using format: {"as_a": "...", "i_want": "...", "so_that": "..."})\n'
+        '• acceptance_criteria (using format: {"given": "...", "when": "...", "then": "..."})\n'
         "• open_questions (items needing stakeholder clarification)\n"
         "Return valid JSON matching the RequirementDoc TypedDict with these fields, without any markdown formatting."
     ),
@@ -58,8 +61,9 @@ analyst = AssistantAgent(
 
 user = UserProxyAgent(
     name="user",
-    human_input_mode="NEVER",     # fully automated POC
+    human_input_mode="NEVER",  # fully automated POC
 )
+
 
 # Function to clean response and extract JSON
 def extract_json_from_response(response: str) -> str:
@@ -67,10 +71,10 @@ def extract_json_from_response(response: str) -> str:
     # Remove markdown code block delimiters if present
     json_pattern = r"```(?:json)?\s*([\s\S]*?)```"
     match = re.search(json_pattern, response)
-    
+
     if match:
         return match.group(1).strip()
-    
+
     # If no markdown formatting, return the original response
     return response.strip()
 
