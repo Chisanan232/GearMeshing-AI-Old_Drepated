@@ -1,0 +1,60 @@
+# CODEOWNERS file for the gearmeshing-ai project
+# Format: file-pattern @owner
+# Order is important; the last matching pattern takes precedence.
+
+#######################################
+# Repository Default Owner
+#######################################
+*                                     @Chisanan232
+
+# Software license annotation
+/LICENSE                              @Chisanan232
+
+#######################################
+# Source Code
+#######################################
+/gearmeshing_ai/                      @Chisanan232
+*.py                                  @Chisanan232
+
+#######################################
+# Tests
+#######################################
+/test/                                @Chisanan232
+
+#######################################
+# Documentation
+#######################################
+/docs/                                @Chisanan232
+*.md                                  @Chisanan232
+*.mdx                                 @Chisanan232
+*.js                                  @Chisanan232
+*.ts                                  @Chisanan232
+*.tsx                                 @Chisanan232
+*.css                                 @Chisanan232
+*.html                                @Chisanan232
+*.json                                @Chisanan232
+*.yml                                 @Chisanan232
+*.yaml                                @Chisanan232
+
+#######################################
+# CI/CD Configuration
+#######################################
+/.github/                             @Chisanan232
+/.github/workflows/                   @Chisanan232
+
+#######################################
+# Build Configuration
+#######################################
+/pyproject.toml                       @Chisanan232
+/scripts/                             @Chisanan232
+
+#######################################
+# Code Quality and Testing
+#######################################
+/.pre-commit-config.yaml              @Chisanan232
+/pytest.ini                           @Chisanan232
+/.coveragerc                          @Chisanan232
+/mypy.ini                             @Chisanan232
+/.pylintrc                            @Chisanan232
+/sonar-project.properties             @Chisanan232
+/codecov.yml                          @Chisanan232
