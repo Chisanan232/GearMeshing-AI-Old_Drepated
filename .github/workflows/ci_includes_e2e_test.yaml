@@ -2,8 +2,8 @@ name: CI + E2E
 
 on:
   # ── Every Tuesday 19:33 UTC (= Wednesday 03:33 in Taipei, UTC+8) ──
-  schedule:
-    - cron: '33 19 * * 2'
+#  schedule:
+#    - cron: '33 19 * * 2'
   workflow_dispatch:        # Manually trigger（optional）
   push:
     branches:
