@@ -20,6 +20,9 @@ class MCPConfig:
     base_url: Optional[str] = None
     session_id: Optional[str] = None
     timeout: int = 30
+    policy_path: Optional[str] = None
+    transport: str = "http"  # "http" or "stdio"
+    stdio_cmd: Optional[str] = None  # command for stdio transport
 
     @staticmethod
     def from_env() -> "MCPConfig":
@@ -28,4 +31,7 @@ class MCPConfig:
             base_url=os.getenv("MCP_GATEWAY_URL"),
             session_id=os.getenv("MCP_SESSION_ID") or os.getenv("SLACK_BOT_TOKEN"),
             timeout=int(os.getenv("MCP_TIMEOUT", "30")),
+            policy_path=os.getenv("MCP_POLICY_PATH"),
+            transport=os.getenv("MCP_TRANSPORT", "http"),
+            stdio_cmd=os.getenv("MCP_STDIO_CMD"),
         )
