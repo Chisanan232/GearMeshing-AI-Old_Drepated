@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.13'",
@@ -755,7 +755,9 @@ version = "0.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "autogenstudio" },
+    { name = "httpx" },
     { name = "pyautogen" },
+    { name = "pydantic" },
     { name = "python-dotenv" },
 ]
 
@@ -775,7 +777,9 @@ pre-commit-ci = [
 [package.metadata]
 requires-dist = [
     { name = "autogenstudio", specifier = ">=0.4.2.2" },
+    { name = "httpx", specifier = ">=0.27.0" },
     { name = "pyautogen", specifier = ">=0.2.19" },
+    { name = "pydantic", specifier = ">=2.7.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
 ]
 
