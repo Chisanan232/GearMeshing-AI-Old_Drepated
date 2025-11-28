@@ -13,7 +13,7 @@ def test_client_constructs_with_defaults() -> None:
 
 def test_client_policy_blocks_call(monkeypatch: Any) -> None:
     class DenyAll(Policy):
-        def can_call(self, role: str, tool_name: str):  # type: ignore[override]
+        def can_call(self, role: str, tool_name: str):
             from gearmeshing_ai.mcp_client.policy import PolicyDecision
 
             return PolicyDecision(allowed=False, reason="denied")

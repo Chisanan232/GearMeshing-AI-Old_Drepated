@@ -9,7 +9,7 @@ from gearmeshing_ai.mcp_client.strategy.gateway import GatewayStrategy
 
 
 def _mock_transport() -> httpx.MockTransport:
-    def handler(request: httpx.Request) -> httpx.Response:  # type: ignore[override]
+    def handler(request: httpx.Request) -> httpx.Response:
         if request.method == "GET" and request.url.path.endswith("/mcp/"):
             data: Dict[str, Any] = {"tools": []}
             return httpx.Response(200, json=data)
