@@ -1,10 +1,10 @@
 from __future__ import annotations
-from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
+from pydantic import BaseModel
 
-@dataclass(frozen=True)
-class ToolMetadata:
+
+class ToolMetadata(BaseModel):
     """Describes a tool exposed by an MCP server/gateway."""
 
     name: str
@@ -12,8 +12,7 @@ class ToolMetadata:
     parameters: Optional[Dict[str, Any]] = None
 
 
-@dataclass(frozen=True)
-class ToolResult:
+class ToolResult(BaseModel):
     """The normalized result of calling a tool."""
 
     ok: bool
