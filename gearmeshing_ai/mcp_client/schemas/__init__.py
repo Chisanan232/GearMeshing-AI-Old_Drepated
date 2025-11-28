@@ -1,4 +1,4 @@
-from .core import ToolMetadata, ToolResult, JSONRPCRequest, JSONRPCError, JSONRPCResponse
+from .dto import ToolMetadata, ToolResult, JSONRPCRequest, JSONRPCError, JSONRPCResponse
 from .config import MCPConfig
 
 __all__ = [
