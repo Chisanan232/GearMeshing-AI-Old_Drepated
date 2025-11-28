@@ -1,6 +1,6 @@
 from typing import Any, Dict
 
-from gearmeshing_ai.mcp_client.models import ToolMetadata, ToolResult
+from gearmeshing_ai.mcp_client.schemas.core import ToolMetadata, ToolResult
 
 
 def test_toolmetadata_fields() -> None:
