@@ -4,7 +4,7 @@ from typing import Any, Dict, Iterable, Protocol, Sequence, Optional
 from .models import ToolMetadata, ToolResult
 from .config import MCPConfig
 from .policy import Policy, PolicyDecision
-from .strategies import GatewayStrategy, DirectStrategy
+from .strategy import GatewayStrategy, DirectStrategy
 
 
 class Strategy(Protocol):
