@@ -1,7 +1,8 @@
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import Dict, Iterable, Optional, Set
+
 import os
+from dataclasses import dataclass
+from typing import Dict, Optional, Set
 
 
 @dataclass(frozen=True)
@@ -22,7 +23,10 @@ class Policy:
         allowed_set = self._allow_by_role.get(role)
         if allowed_set is None:
             return PolicyDecision(allowed=self._default_allow)
-        return PolicyDecision(allowed=(tool_name in allowed_set), reason=None if tool_name in allowed_set else f"Tool '{tool_name}' not allowed for role '{role}'")
+        return PolicyDecision(
+            allowed=(tool_name in allowed_set),
+            reason=None if tool_name in allowed_set else f"Tool '{tool_name}' not allowed for role '{role}'",
+        )
 
     @staticmethod
     def from_env(default_allow: bool = True) -> "Policy":

@@ -1,9 +1,11 @@
 from __future__ import annotations
-from typing import Any, Dict, Iterable, List, Sequence, Optional
+
+from typing import Any, Dict, Iterable, List, Optional, Sequence
+
 import httpx
 
-from ..models import ToolMetadata, ToolResult
 from ..config import MCPConfig
+from ..models import ToolMetadata, ToolResult
 
 
 class GatewayStrategy:

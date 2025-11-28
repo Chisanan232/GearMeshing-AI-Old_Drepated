@@ -1,10 +1,11 @@
-from typing import List, Any, Dict
 import json as _json
+from typing import Any, Dict, List
+
 import httpx
 
-from gearmeshing_ai.mcp_client.strategy.gateway import GatewayStrategy
 from gearmeshing_ai.mcp_client.config import MCPConfig
 from gearmeshing_ai.mcp_client.models import ToolMetadata, ToolResult
+from gearmeshing_ai.mcp_client.strategy.gateway import GatewayStrategy
 
 
 def _mock_transport() -> httpx.MockTransport:

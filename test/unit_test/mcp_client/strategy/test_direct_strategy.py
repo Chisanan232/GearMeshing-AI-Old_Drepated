@@ -1,5 +1,5 @@
-from gearmeshing_ai.mcp_client.strategy.direct import DirectStrategy
 from gearmeshing_ai.mcp_client.config import MCPConfig
+from gearmeshing_ai.mcp_client.strategy.direct import DirectStrategy
 
 
 def test_direct_strategy_skeleton():

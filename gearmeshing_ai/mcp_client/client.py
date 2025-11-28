@@ -1,27 +1,27 @@
 from __future__ import annotations
-from typing import Any, Dict, Iterable, Protocol, Sequence, Optional
 
-from .models import ToolMetadata, ToolResult
+from typing import Any, Dict, Iterable, Optional, Protocol, Sequence
+
 from .config import MCPConfig
+from .models import ToolMetadata, ToolResult
 from .policy import Policy, PolicyDecision
-from .strategy import GatewayStrategy, DirectStrategy
+from .strategy import DirectStrategy, GatewayStrategy
 
 
 class Strategy(Protocol):
-    def list_tools(self) -> Sequence[ToolMetadata]:
-        ...
+    def list_tools(self) -> Sequence[ToolMetadata]: ...
 
-    def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> ToolResult:
-        ...
+    def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> ToolResult: ...
 
-    def stream_call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Iterable[ToolResult]:
-        ...
+    def stream_call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Iterable[ToolResult]: ...
 
 
 class MCPClient:
     """Entry-point client that applies policy and delegates to a transport strategy."""
 
-    def __init__(self, config: Optional[MCPConfig] = None, policy: Optional[Policy] = None, strategy: Optional[Strategy] = None) -> None:
+    def __init__(
+        self, config: Optional[MCPConfig] = None, policy: Optional[Policy] = None, strategy: Optional[Strategy] = None
+    ) -> None:
         self._config = config or MCPConfig.from_env()
         self._policy = policy or Policy.from_env()
         self._strategy: Strategy = strategy or self._make_strategy(self._config)

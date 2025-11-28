@@ -1,8 +1,9 @@
 from __future__ import annotations
-from typing import Any, Dict, Iterable, Sequence
 
-from ..models import ToolMetadata, ToolResult
+from typing import Any, Dict, Sequence
+
 from ..config import MCPConfig
+from ..models import ToolMetadata, ToolResult
 
 
 class DirectStrategy:
@@ -18,4 +19,6 @@ class DirectStrategy:
         return ToolResult(ok=True, data=None, error=None, raw={"direct": True, "tool": tool_name, "args": arguments})
 
     def stream_call_tool(self, tool_name: str, arguments: Dict[str, Any]):
-        yield ToolResult(ok=True, data=None, error=None, raw={"direct": True, "tool": tool_name, "args": arguments, "stream": True})
+        yield ToolResult(
+            ok=True, data=None, error=None, raw={"direct": True, "tool": tool_name, "args": arguments, "stream": True}
+        )

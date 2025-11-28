@@ -1,6 +1,7 @@
 from __future__ import annotations
-from typing import Any, Dict, List
+
 import json as _json
+from typing import Any, Dict, List
 
 import httpx
 
@@ -13,9 +14,7 @@ def _mock_transport() -> httpx.MockTransport:
     def handler(request: httpx.Request) -> httpx.Response:  # type: ignore[override]
         if request.method == "GET" and request.url.path.endswith("/mcp/"):
             data: Dict[str, Any] = {
-                "tools": [
-                    {"name": "echo", "description": "Echo tool", "parameters": {"text": {"type": "string"}}}
-                ]
+                "tools": [{"name": "echo", "description": "Echo tool", "parameters": {"text": {"type": "string"}}}]
             }
             return httpx.Response(200, json=data)
         if request.method == "POST" and request.url.path.endswith("/mcp/invoke/echo"):
