@@ -126,6 +126,18 @@ class GatewayMcpStrategy:
         body = r.json()
         ok = bool(body.get("ok", True)) if isinstance(body, dict) else True
         data: Dict[str, Any] = body if isinstance(body, dict) else {"result": body}
+        # Invalidate cache if mutating tool (prefer cached metadata if available)
+        cached = self._tools_cache.get(server_id)
+        is_mut = None
+        if cached:
+            for t in cached[0]:
+                if t.name == tool_name:
+                    is_mut = bool(getattr(t, "mutating", False))
+                    break
+        if is_mut is None:
+            is_mut = self._is_mutating_tool_name(tool_name)
+        if is_mut:
+            self._tools_cache.pop(server_id, None)
         return ToolCallResult(ok=ok, data=data)
 
     def _base_for(self, server_id: str) -> str:
