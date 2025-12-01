@@ -111,3 +111,10 @@ class McpClientConfig(BaseSchema):
         min_length=1,
         max_length=512,
     )
+    tools_cache_ttl_seconds: float = Field(
+        10.0,
+        description="TTL in seconds for per-server tools list caches in strategies.",
+        ge=0.0,
+        le=3600.0,
+        examples=[0.0, 10.0, 60.0],
+    )
