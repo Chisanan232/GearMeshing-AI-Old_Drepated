@@ -1,53 +1,151 @@
 from __future__ import annotations
+from typing import Any, Iterable, List, Optional
+import logging
 
-from typing import Any, Dict, Iterable, Optional, Protocol, Sequence
+from .schemas.core import McpServerRef, McpTool, ToolCallResult
+from .policy import PolicyMap, enforce_policy
+from .errors import ServerNotFoundError, ToolAccessDeniedError
+from .schemas.config import McpClientConfig
+from .strategy.direct import DirectMcpStrategy
+from .gateway_api.client import GatewayApiClient
+from .strategy.gateway import GatewayMcpStrategy
 
-from .config import MCPConfig
-from .models import ToolMetadata, ToolResult
-from .policy import Policy, PolicyDecision
-from .strategy import DirectStrategy, GatewayStrategy
+import httpx
 
-
-class Strategy(Protocol):
-    def list_tools(self) -> Sequence[ToolMetadata]: ...
-
-    def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> ToolResult: ...
-
-    def stream_call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Iterable[ToolResult]: ...
+logger = logging.getLogger(__name__)
 
 
-class MCPClient:
-    """Entry-point client that applies policy and delegates to a transport strategy."""
+class McpClient:
+    """
+    High-level MCP client facade that delegates to one or more strategies and
+    applies access policies.
+    """
 
     def __init__(
-        self, config: Optional[MCPConfig] = None, policy: Optional[Policy] = None, strategy: Optional[Strategy] = None
+        self,
+        *,
+        strategies: Iterable[object],
+        agent_policies: Optional[PolicyMap] = None,
     ) -> None:
-        self._config = config or MCPConfig.from_env()
-        self._policy = policy or Policy.from_env()
-        self._strategy: Strategy = strategy or self._make_strategy(self._config)
-        self._role = self._detect_role()
+        self._strategies: List[object] = list(strategies)
+        self._policies = agent_policies or {}
 
-    def _make_strategy(self, config: MCPConfig) -> Strategy:
-        if config.strategy == "direct":
-            return DirectStrategy(config)
-        return GatewayStrategy(config)
+    @classmethod
+    def from_config(
+        cls,
+        config: McpClientConfig,
+        *,
+        agent_policies: Optional[PolicyMap] = None,
+        direct_http_client: Optional[httpx.Client] = None,
+        gateway_mgmt_client: Optional[httpx.Client] = None,
+        gateway_http_client: Optional[httpx.Client] = None,
+    ) -> "McpClient":
+        strategies: List[object] = []
+        if config.servers:
+            strategies.append(DirectMcpStrategy(config.servers, client=direct_http_client))
+        if config.gateway is not None:
+            gw = GatewayApiClient(
+                config.gateway.base_url,
+                auth_token=config.gateway.auth_token,
+                client=gateway_mgmt_client,
+                timeout=config.gateway.request_timeout_seconds,
+            )
+            strategies.append(GatewayMcpStrategy(gw, client=gateway_http_client))
+        return cls(strategies=strategies, agent_policies=agent_policies)
 
-    def _detect_role(self) -> str:
-        # In real usage, derive from caller identity/session/context
-        return "dev"
+    def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]:
+        servers: List[McpServerRef] = []
+        for strat in self._strategies:
+            if hasattr(strat, "list_servers"):
+                try:
+                    logger.debug("McpClient.list_servers: using %s", type(strat).__name__)
+                    servers.extend(list(strat.list_servers()))  # type: ignore[call-arg]
+                except Exception as e:
+                    logger.debug("list_servers error from %s: %s", type(strat).__name__, e)
+        # Apply policy filter by servers if provided
+        if agent_id and agent_id in self._policies:
+            policy = self._policies[agent_id]
+            if policy.allowed_servers is not None:
+                before = len(servers)
+                servers = [s for s in servers if s.id in policy.allowed_servers]
+                logger.debug(
+                    "McpClient.list_servers: policy filtered servers for agent=%s from %d to %d",
+                    agent_id,
+                    before,
+                    len(servers),
+                )
+        return servers
 
-    def list_tools(self) -> Sequence[ToolMetadata]:
-        return self._strategy.list_tools()
+    def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]:
+        # Enforce server access policy first
+        if agent_id and agent_id in self._policies:
+            policy = self._policies[agent_id]
+            if policy.allowed_servers is not None and server_id not in policy.allowed_servers:
+                raise ToolAccessDeniedError(agent_id, server_id, "<list_tools>")
+        for strat in self._strategies:
+            if hasattr(strat, "list_tools"):
+                try:
+                    logger.debug("McpClient.list_tools: using %s for server_id=%s", type(strat).__name__, server_id)
+                    tools: List[McpTool] = list(strat.list_tools(server_id))  # type: ignore[call-arg]
+                    if tools:
+                        # Apply tool filter by policy if provided
+                        if agent_id and agent_id in self._policies:
+                            policy = self._policies[agent_id]
+                            if policy.allowed_tools is not None:
+                                before = len(tools)
+                                tools = [t for t in tools if t.name in policy.allowed_tools]
+                                logger.debug(
+                                    "McpClient.list_tools: policy filtered tools for agent=%s from %d to %d (allow-list)",
+                                    agent_id,
+                                    before,
+                                    len(tools),
+                                )
+                            if policy.read_only:
+                                before = len(tools)
+                                tools = [t for t in tools if not self._is_mutating_tool_name(t.name)]
+                                logger.debug(
+                                    "McpClient.list_tools: policy filtered tools for agent=%s from %d to %d (read-only)",
+                                    agent_id,
+                                    before,
+                                    len(tools),
+                                )
+                        return tools
+                except Exception as e:
+                    logger.debug("list_tools error from %s: %s", type(strat).__name__, e)
+        raise ServerNotFoundError(server_id)
 
-    def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> ToolResult:
-        decision: PolicyDecision = self._policy.can_call(self._role, tool_name)
-        if not decision.allowed:
-            return ToolResult(ok=False, error=decision.reason or "Blocked by policy")
-        return self._strategy.call_tool(tool_name, arguments)
+    def call_tool(
+        self,
+        server_id: str,
+        tool_name: str,
+        args: dict[str, Any],
+        *,
+        agent_id: str | None = None,
+    ) -> ToolCallResult:
+        enforce_policy(agent_id=agent_id, server_id=server_id, tool_name=tool_name, policies=self._policies)
+        # Enforce read-only: block mutating tools
+        if agent_id and agent_id in self._policies and self._policies[agent_id].read_only:
+            if self._is_mutating_tool_name(tool_name):
+                raise ToolAccessDeniedError(agent_id, server_id, tool_name)
+        for strat in self._strategies:
+            if hasattr(strat, "call_tool"):
+                try:
+                    logger.debug(
+                        "McpClient.call_tool: strategy=%s server_id=%s tool=%s agent=%s", 
+                        type(strat).__name__, server_id, tool_name, agent_id
+                    )
+                    return strat.call_tool(  # type: ignore[call-arg]
+                        server_id,
+                        tool_name,
+                        args,
+                        agent_id=agent_id,
+                    )
+                except Exception as e:
+                    logger.debug("call_tool error from %s: %s", type(strat).__name__, e)
+        raise ServerNotFoundError(server_id)
 
-    def stream_call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Iterable[ToolResult]:
-        decision: PolicyDecision = self._policy.can_call(self._role, tool_name)
-        if not decision.allowed:
-            yield ToolResult(ok=False, error=decision.reason or "Blocked by policy")
-            return
-        yield from self._strategy.stream_call_tool(tool_name, arguments)
+    @staticmethod
+    def _is_mutating_tool_name(name: str) -> bool:
+        n = name.lower()
+        prefixes = ("create", "update", "delete", "remove", "post_", "put_", "patch_", "write", "set_")
+        return n.startswith(prefixes)

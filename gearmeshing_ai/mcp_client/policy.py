@@ -1,44 +1,55 @@
 from __future__ import annotations
+from typing import Dict, Optional
 
-import os
-from dataclasses import dataclass
-from typing import Dict, Optional, Set
+from pydantic import Field
 
-
-@dataclass(frozen=True)
-class PolicyDecision:
-    allowed: bool
-    reason: Optional[str] = None
+from .schemas.base import BaseSchema
+from .errors import ToolAccessDeniedError
 
 
-class Policy:
-    """Simple policy engine to allow/deny tool calls based on role and tool name."""
+class ToolPolicy(BaseSchema):
+    """
+    Access policy for agents interacting with MCP servers and tools.
+    """
 
-    def __init__(self, allow_by_role: Optional[Dict[str, Set[str]]] = None, default_allow: bool = True) -> None:
-        # Map role -> allowed tool names (exact matches)
-        self._allow_by_role: Dict[str, Set[str]] = allow_by_role or {}
-        self._default_allow = default_allow
+    allowed_servers: Optional[set[str]] = Field(
+        default=None,
+        description=(
+            "If provided, agent may only access these server IDs. If None, all servers are allowed."
+        ),
+    )
+    allowed_tools: Optional[set[str]] = Field(
+        default=None,
+        description=(
+            "If provided, agent may only call tools whose names are included. If None, all tools are allowed."
+        ),
+    )
+    read_only: bool = Field(
+        default=False,
+        description=(
+            "If True, tool calls that are considered mutating should be blocked by the client layer."
+        ),
+    )
 
-    def can_call(self, role: str, tool_name: str) -> PolicyDecision:
-        allowed_set = self._allow_by_role.get(role)
-        if allowed_set is None:
-            return PolicyDecision(allowed=self._default_allow)
-        return PolicyDecision(
-            allowed=(tool_name in allowed_set),
-            reason=None if tool_name in allowed_set else f"Tool '{tool_name}' not allowed for role '{role}'",
-        )
 
-    @staticmethod
-    def from_env(default_allow: bool = True) -> "Policy":
-        # Optionally parse a CSV env var like MCP_ALLOWED_TOOLS=dev:tool_a|tool_b;prod:tool_c
-        mapping: Dict[str, Set[str]] = {}
-        raw = os.getenv("MCP_ALLOWED_TOOLS", "").strip()
-        if raw:
-            for part in raw.split(";"):
-                if not part:
-                    continue
-                role, _, tools = part.partition(":")
-                toolset = set(t for t in tools.split("|") if t)
-                if role:
-                    mapping[role] = toolset
-        return Policy(mapping, default_allow=default_allow)
+PolicyMap = Dict[str, ToolPolicy]
+
+
+def enforce_policy(
+    *, agent_id: Optional[str], server_id: str, tool_name: str, policies: Optional[PolicyMap]
+) -> None:
+    """Raise ToolAccessDeniedError if the policy prohibits access.
+
+    This function is intentionally simple for now; mutating vs read-only is left to the caller to enforce.
+    """
+    if not agent_id or not policies:
+        return
+    policy = policies.get(agent_id)
+    if policy is None:
+        return
+
+    if policy.allowed_servers is not None and server_id not in policy.allowed_servers:
+        raise ToolAccessDeniedError(agent_id, server_id, tool_name)
+
+    if policy.allowed_tools is not None and tool_name not in policy.allowed_tools:
+        raise ToolAccessDeniedError(agent_id, server_id, tool_name)

@@ -1,0 +1,16 @@
+from __future__ import annotations
+from typing import Any, Protocol
+
+
+class HttpStreamTransport(Protocol):
+    def send_request(self, payload: dict[str, Any]) -> dict[str, Any]: ...
+
+
+class SseTransport(Protocol):
+    def connect(self) -> None: ...
+    def close(self) -> None: ...
+
+
+class StdioTransport(Protocol):
+    def start(self) -> None: ...
+    def stop(self) -> None: ...
