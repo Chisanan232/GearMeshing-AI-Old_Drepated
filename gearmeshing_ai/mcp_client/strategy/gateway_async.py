@@ -9,10 +9,10 @@ import httpx
 from gearmeshing_ai.mcp_client.gateway_api.client import GatewayApiClient
 from gearmeshing_ai.mcp_client.schemas.core import (
     McpTool,
-    ToolArgument,
     ToolCallResult,
 )
-from .base import StrategyCommonMixin, AsyncStrategy
+
+from .base import AsyncStrategy, StrategyCommonMixin
 
 
 class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):

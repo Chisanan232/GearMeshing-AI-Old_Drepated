@@ -5,12 +5,12 @@ from typing import Any, Iterable, List, Optional
 
 import httpx
 
+from .base import ClientCommonMixin, SyncClientProtocol
 from .errors import ServerNotFoundError, ToolAccessDeniedError
 from .gateway_api.client import GatewayApiClient
 from .policy import PolicyMap, enforce_policy
 from .schemas.config import McpClientConfig
 from .schemas.core import McpServerRef, McpTool, ToolCallResult
-from .base import ClientCommonMixin, SyncClientProtocol
 from .strategy.base import SyncStrategy
 from .strategy.direct import DirectMcpStrategy
 from .strategy.gateway import GatewayMcpStrategy
@@ -33,7 +33,7 @@ class McpClient(ClientCommonMixin, SyncClientProtocol):
         self._strategies: List[SyncStrategy] = list(strategies)
         # runtime validation (optional)
         for s in self._strategies:
-            if not isinstance(s, SyncStrategy):  # type: ignore[arg-type]
+            if not isinstance(s, SyncStrategy):
                 raise TypeError(f"Strategy {type(s).__name__} does not conform to SyncStrategy protocol")
         self._policies = agent_policies or {}
 

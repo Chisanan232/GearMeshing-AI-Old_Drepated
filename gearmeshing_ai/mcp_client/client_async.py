@@ -5,12 +5,12 @@ from typing import Any, Iterable, List, Optional
 
 import httpx
 
+from .base import AsyncClientProtocol, ClientCommonMixin
 from .errors import ServerNotFoundError, ToolAccessDeniedError
 from .gateway_api.client import GatewayApiClient
 from .policy import PolicyMap, enforce_policy
 from .schemas.config import McpClientConfig
 from .schemas.core import McpTool, ToolCallResult
-from .base import ClientCommonMixin, AsyncClientProtocol
 from .strategy.base import AsyncStrategy, is_mutating_tool_name
 from .strategy.gateway_async import AsyncGatewayMcpStrategy
 
@@ -32,7 +32,7 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
     ) -> None:
         self._strategies: List[AsyncStrategy] = list(strategies)
         for s in self._strategies:
-            if not isinstance(s, AsyncStrategy):  # type: ignore[arg-type]
+            if not isinstance(s, AsyncStrategy):
                 raise TypeError(f"Strategy {type(s).__name__} does not conform to AsyncStrategy protocol")
         self._policies = agent_policies or {}
 
@@ -46,7 +46,7 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
         gateway_http_client: Optional[httpx.AsyncClient] = None,
         gateway_sse_client: Optional[httpx.AsyncClient] = None,
     ) -> "AsyncMcpClient":
-        strategies: List[object] = []
+        strategies: List[AsyncGatewayMcpStrategy] = []
         if config.gateway is not None:
             gw = GatewayApiClient(
                 config.gateway.base_url,
@@ -72,9 +72,7 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
                 raise ToolAccessDeniedError(agent_id, server_id, "<list_tools>")
         for strat in self._strategies:
             try:
-                logger.debug(
-                    "AsyncMcpClient.list_tools: using %s for server_id=%s", type(strat).__name__, server_id
-                )
+                logger.debug("AsyncMcpClient.list_tools: using %s for server_id=%s", type(strat).__name__, server_id)
                 tools: List[McpTool] = await strat.list_tools(server_id)
                 if tools:
                     if agent_id and agent_id in self._policies:
@@ -160,11 +158,7 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
             try:
                 listed = {t.name: t for t in await self.list_tools(server_id, agent_id=agent_id)}
                 t = listed.get(tool_name)
-                is_mut = (
-                    bool(getattr(t, "mutating", False))
-                    if t
-                    else is_mutating_tool_name(tool_name)
-                )
+                is_mut = bool(getattr(t, "mutating", False)) if t else is_mutating_tool_name(tool_name)
             except Exception:
                 is_mut = is_mutating_tool_name(tool_name)
             if is_mut:

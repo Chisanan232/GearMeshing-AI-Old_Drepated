@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from typing import Any, AsyncIterator, Dict, Iterable, List, Protocol, runtime_checkable
 
-from gearmeshing_ai.mcp_client.schemas.core import McpServerRef, McpTool, ToolArgument, ToolCallResult
+from gearmeshing_ai.mcp_client.schemas.core import (
+    McpServerRef,
+    McpTool,
+    ToolArgument,
+    ToolCallResult,
+)
 
 
 def is_mutating_tool_name(name: str) -> bool:

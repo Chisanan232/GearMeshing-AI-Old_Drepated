@@ -11,10 +11,10 @@ from gearmeshing_ai.mcp_client.schemas.core import (
     McpServerRef,
     McpTool,
     ServerKind,
-    ToolArgument,
     ToolCallResult,
     TransportType,
 )
+
 from .base import StrategyCommonMixin, SyncStrategy
 
 
@@ -151,4 +151,3 @@ class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
         if token:
             headers["Authorization"] = token
         return headers
-

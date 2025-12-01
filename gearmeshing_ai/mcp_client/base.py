@@ -1,10 +1,20 @@
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, Dict, Iterable, List, Optional, Protocol, runtime_checkable, Self
+from typing import (
+    Any,
+    AsyncIterator,
+    Dict,
+    List,
+    Optional,
+    Protocol,
+    Self,
+    runtime_checkable,
+)
 
 import httpx
 
-from gearmeshing_ai.mcp_client.policy import ToolPolicy
+from gearmeshing_ai.mcp_client.policy import PolicyMap, ToolPolicy
+from gearmeshing_ai.mcp_client.schemas.config import McpClientConfig
 from gearmeshing_ai.mcp_client.schemas.core import McpServerRef, McpTool, ToolCallResult
 from gearmeshing_ai.mcp_client.strategy.base import is_mutating_tool_name
 
@@ -14,9 +24,9 @@ class SyncClientProtocol(Protocol):
     @classmethod
     def from_config(
         cls,
-        config: "McpClientConfig",
+        config: McpClientConfig,
         *,
-        agent_policies: Optional["PolicyMap"] = None,
+        agent_policies: Optional[PolicyMap] = None,
         direct_http_client: Optional[httpx.Client] = None,
         gateway_mgmt_client: Optional[httpx.Client] = None,
         gateway_http_client: Optional[httpx.Client] = None,
@@ -41,9 +51,9 @@ class AsyncClientProtocol(Protocol):
     @classmethod
     async def from_config(
         cls,
-        config: "McpClientConfig",
+        config: McpClientConfig,
         *,
-        agent_policies: Optional["PolicyMap"] = None,
+        agent_policies: Optional[PolicyMap] = None,
         gateway_mgmt_client: Optional[httpx.Client] = None,
         gateway_http_client: Optional[httpx.AsyncClient] = None,
         gateway_sse_client: Optional[httpx.AsyncClient] = None,
@@ -92,11 +102,7 @@ class ClientCommonMixin:
         if policy.allowed_tools is not None:
             res = [t for t in res if t.name in policy.allowed_tools]
         if policy.read_only:
-            res = [
-                t
-                for t in res
-                if not (t.mutating or is_mutating_tool_name(t.name))
-            ]
+            res = [t for t in res if not (t.mutating or is_mutating_tool_name(t.name))]
         return res
 
     def _should_block_read_only(
