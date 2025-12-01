@@ -15,10 +15,10 @@ from gearmeshing_ai.mcp_client.schemas.core import (
     ToolCallResult,
     TransportType,
 )
-from .base import StrategyCommonMixin
+from .base import StrategyCommonMixin, SyncStrategy
 
 
-class DirectMcpStrategy(StrategyCommonMixin):
+class DirectMcpStrategy(StrategyCommonMixin, SyncStrategy):
     """
     Strategy for directly connecting to MCP servers.
 

@@ -15,10 +15,10 @@ from gearmeshing_ai.mcp_client.schemas.core import (
     ToolCallResult,
     TransportType,
 )
-from .base import StrategyCommonMixin
+from .base import StrategyCommonMixin, SyncStrategy
 
 
-class GatewayMcpStrategy(StrategyCommonMixin):
+class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
     """
     Strategy that discovers servers via the MCP Gateway management API and
     (optionally) interacts with their streamable HTTP endpoints.
