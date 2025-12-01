@@ -10,6 +10,7 @@ from .gateway_api.client import GatewayApiClient
 from .policy import PolicyMap, enforce_policy
 from .schemas.config import McpClientConfig
 from .schemas.core import McpServerRef, McpTool, ToolCallResult
+from .strategy.base import SyncStrategy
 from .strategy.direct import DirectMcpStrategy
 from .strategy.gateway import GatewayMcpStrategy
 
@@ -25,10 +26,14 @@ class McpClient:
     def __init__(
         self,
         *,
-        strategies: Iterable[object],
+        strategies: Iterable[SyncStrategy],
         agent_policies: Optional[PolicyMap] = None,
     ) -> None:
-        self._strategies: List[object] = list(strategies)
+        self._strategies: List[SyncStrategy] = list(strategies)
+        # runtime validation (optional)
+        for s in self._strategies:
+            if not isinstance(s, SyncStrategy):  # type: ignore[arg-type]
+                raise TypeError(f"Strategy {type(s).__name__} does not conform to SyncStrategy protocol")
         self._policies = agent_policies or {}
 
     @classmethod

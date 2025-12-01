@@ -10,6 +10,7 @@ from .gateway_api.client import GatewayApiClient
 from .policy import PolicyMap, enforce_policy
 from .schemas.config import McpClientConfig
 from .schemas.core import McpTool, ToolCallResult
+from .strategy.base import AsyncStrategy
 from .strategy.gateway_async import AsyncGatewayMcpStrategy
 
 logger = logging.getLogger(__name__)
@@ -25,10 +26,13 @@ class AsyncMcpClient:
     def __init__(
         self,
         *,
-        strategies: Iterable[object],
+        strategies: Iterable[AsyncStrategy],
         agent_policies: Optional[PolicyMap] = None,
     ) -> None:
-        self._strategies: List[object] = list(strategies)
+        self._strategies: List[AsyncStrategy] = list(strategies)
+        for s in self._strategies:
+            if not isinstance(s, AsyncStrategy):  # type: ignore[arg-type]
+                raise TypeError(f"Strategy {type(s).__name__} does not conform to AsyncStrategy protocol")
         self._policies = agent_policies or {}
 
     @classmethod
