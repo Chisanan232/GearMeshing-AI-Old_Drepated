@@ -47,7 +47,7 @@ class McpClient(ClientCommonMixin, SyncClientProtocol):
         gateway_mgmt_client: Optional[httpx.Client] = None,
         gateway_http_client: Optional[httpx.Client] = None,
     ) -> "McpClient":
-        strategies: List[object] = []
+        strategies: List[SyncStrategy] = []
         if config.servers:
             strategies.append(
                 DirectMcpStrategy(

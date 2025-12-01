@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Iterable, List, Optional
+from typing import Any, AsyncIterator, Dict, Iterable, List, Optional
 
 import httpx
 
@@ -100,9 +100,9 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
         backoff_initial: float = 0.5,
         backoff_factor: float = 2.0,
         backoff_max: float = 8.0,
-        idle_timeout: float | None = None,
-        max_total_seconds: float | None = None,
-    ):
+        idle_timeout: Optional[float] = None,
+        max_total_seconds: Optional[float] = None,
+    ) -> AsyncIterator[str]:
         for strat in self._strategies:
             return strat.stream_events(
                 server_id,
@@ -127,9 +127,9 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
         backoff_initial: float = 0.5,
         backoff_factor: float = 2.0,
         backoff_max: float = 8.0,
-        idle_timeout: float | None = None,
-        max_total_seconds: float | None = None,
-    ):
+        idle_timeout: Optional[float] = None,
+        max_total_seconds: Optional[float] = None,
+    ) -> AsyncIterator[Dict[str, Any]]:
         for strat in self._strategies:
             return strat.stream_events_parsed(
                 server_id,

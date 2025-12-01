@@ -70,13 +70,32 @@ class AsyncClientProtocol(Protocol):
         agent_id: str | None = None,
     ) -> ToolCallResult: ...
 
-    async def stream_events(self, server_id: str, path: str = "/sse", **kwargs: Any) -> AsyncIterator[str]: ...
+    async def stream_events(
+        self,
+        server_id: str,
+        path: str = "/sse",
+        *,
+        reconnect: bool = False,
+        max_retries: int = 3,
+        backoff_initial: float = 0.5,
+        backoff_factor: float = 2.0,
+        backoff_max: float = 8.0,
+        idle_timeout: Optional[float] = None,
+        max_total_seconds: Optional[float] = None,
+    ) -> AsyncIterator[str]: ...
 
     async def stream_events_parsed(
         self,
         server_id: str,
         path: str = "/sse",
-        **kwargs: Any,
+        *,
+        reconnect: bool = False,
+        max_retries: int = 3,
+        backoff_initial: float = 0.5,
+        backoff_factor: float = 2.0,
+        backoff_max: float = 8.0,
+        idle_timeout: Optional[float] = None,
+        max_total_seconds: Optional[float] = None,
     ) -> AsyncIterator[Dict[str, Any]]: ...
 
 

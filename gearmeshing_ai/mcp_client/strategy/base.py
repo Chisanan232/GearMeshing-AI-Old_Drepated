@@ -1,6 +1,15 @@
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, Dict, Iterable, List, Protocol, runtime_checkable
+from typing import (
+    Any,
+    AsyncIterator,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Protocol,
+    runtime_checkable,
+)
 
 from gearmeshing_ai.mcp_client.schemas.core import (
     McpServerRef,
@@ -43,9 +52,33 @@ class AsyncStrategy(Protocol):
         args: dict[str, Any],
     ) -> ToolCallResult: ...
 
-    async def stream_events(self, server_id: str, path: str = "/sse") -> AsyncIterator[str]: ...
+    async def stream_events(
+        self,
+        server_id: str,
+        path: str = "/sse",
+        *,
+        reconnect: bool = False,
+        max_retries: int = 3,
+        backoff_initial: float = 0.5,
+        backoff_factor: float = 2.0,
+        backoff_max: float = 8.0,
+        idle_timeout: Optional[float] = None,
+        max_total_seconds: Optional[float] = None,
+    ) -> AsyncIterator[str]: ...
 
-    async def stream_events_parsed(self, server_id: str, path: str = "/sse") -> AsyncIterator[Dict[str, Any]]: ...
+    async def stream_events_parsed(
+        self,
+        server_id: str,
+        path: str = "/sse",
+        *,
+        reconnect: bool = False,
+        max_retries: int = 3,
+        backoff_initial: float = 0.5,
+        backoff_factor: float = 2.0,
+        backoff_max: float = 8.0,
+        idle_timeout: Optional[float] = None,
+        max_total_seconds: Optional[float] = None,
+    ) -> AsyncIterator[Dict[str, Any]]: ...
 
 
 class StrategyCommonMixin:
