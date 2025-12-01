@@ -102,7 +102,10 @@ class McpClient:
                                 )
                             if policy.read_only:
                                 before = len(tools)
-                                tools = [t for t in tools if not self._is_mutating_tool_name(t.name)]
+                                def _is_mut(t: McpTool) -> bool:
+                                    # Prefer explicit metadata; fallback to heuristic for older servers
+                                    return bool(getattr(t, "mutating", False) or self._is_mutating_tool_name(t.name))
+                                tools = [t for t in tools if not _is_mut(t)]
                                 logger.debug(
                                     "McpClient.list_tools: policy filtered tools for agent=%s from %d to %d (read-only)",
                                     agent_id,
@@ -125,7 +128,14 @@ class McpClient:
         enforce_policy(agent_id=agent_id, server_id=server_id, tool_name=tool_name, policies=self._policies)
         # Enforce read-only: block mutating tools
         if agent_id and agent_id in self._policies and self._policies[agent_id].read_only:
-            if self._is_mutating_tool_name(tool_name):
+            # If we have metadata from listing, prefer it; otherwise fallback to heuristic
+            try:
+                listed = {t.name: t for t in self.list_tools(server_id, agent_id=agent_id)}
+                t = listed.get(tool_name)
+                is_mut = bool(getattr(t, "mutating", False)) if t else self._is_mutating_tool_name(tool_name)
+            except Exception:
+                is_mut = self._is_mutating_tool_name(tool_name)
+            if is_mut:
                 raise ToolAccessDeniedError(agent_id, server_id, tool_name)
         for strat in self._strategies:
             if hasattr(strat, "call_tool"):
