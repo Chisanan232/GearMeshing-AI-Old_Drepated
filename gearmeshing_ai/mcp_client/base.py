@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, Dict, Iterable, List, Optional, Protocol, runtime_checkable
+from typing import Any, AsyncIterator, Dict, Iterable, List, Optional, Protocol, runtime_checkable, Self
+
+import httpx
 
 from gearmeshing_ai.mcp_client.policy import ToolPolicy
 from gearmeshing_ai.mcp_client.schemas.core import McpServerRef, McpTool, ToolCallResult
@@ -9,6 +11,17 @@ from gearmeshing_ai.mcp_client.strategy.base import is_mutating_tool_name
 
 @runtime_checkable
 class SyncClientProtocol(Protocol):
+    @classmethod
+    def from_config(
+        cls,
+        config: "McpClientConfig",
+        *,
+        agent_policies: Optional["PolicyMap"] = None,
+        direct_http_client: Optional[httpx.Client] = None,
+        gateway_mgmt_client: Optional[httpx.Client] = None,
+        gateway_http_client: Optional[httpx.Client] = None,
+    ) -> Self: ...
+
     def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]: ...
 
     def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]: ...
@@ -25,6 +38,17 @@ class SyncClientProtocol(Protocol):
 
 @runtime_checkable
 class AsyncClientProtocol(Protocol):
+    @classmethod
+    async def from_config(
+        cls,
+        config: "McpClientConfig",
+        *,
+        agent_policies: Optional["PolicyMap"] = None,
+        gateway_mgmt_client: Optional[httpx.Client] = None,
+        gateway_http_client: Optional[httpx.AsyncClient] = None,
+        gateway_sse_client: Optional[httpx.AsyncClient] = None,
+    ) -> Self: ...
+
     async def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]: ...
 
     async def call_tool(
