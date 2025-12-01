@@ -12,9 +12,10 @@ from gearmeshing_ai.mcp_client.schemas.core import (
     ToolArgument,
     ToolCallResult,
 )
+from .base import StrategyCommonMixin
 
 
-class AsyncGatewayMcpStrategy:
+class AsyncGatewayMcpStrategy(StrategyCommonMixin):
     """
     Async variant of GatewayMcpStrategy for working with streamable HTTP MCP endpoints via the Gateway.
 

@@ -33,3 +33,32 @@ class AsyncStrategy(Protocol):
     async def stream_events(self, server_id: str, path: str = "/sse") -> AsyncIterator[str]: ...
 
     async def stream_events_parsed(self, server_id: str, path: str = "/sse") -> AsyncIterator[Dict[str, Any]]: ...
+
+
+class StrategyCommonMixin:
+
+    def _infer_arguments(self, input_schema: Dict[str, Any]) -> List[ToolArgument]:
+        args: List[ToolArgument] = []
+        props = input_schema.get("properties") if isinstance(input_schema, dict) else None
+        required = set(input_schema.get("required") or []) if isinstance(input_schema, dict) else set()
+        if isinstance(props, dict):
+            for k, v in props.items():
+                if not isinstance(v, dict):
+                    continue
+                typ = v.get("type") if isinstance(v.get("type"), str) else "string"
+                desc = v.get("description") if isinstance(v.get("description"), str) else None
+                args.append(
+                    ToolArgument(
+                        name=str(k),
+                        type=str(typ),
+                        required=str(k) in required,
+                        description=desc,
+                    )
+                )
+        return args
+
+    @staticmethod
+    def _is_mutating_tool_name(name: str) -> bool:
+        n = name.lower()
+        prefixes = ("create", "update", "delete", "remove", "post_", "put_", "patch_", "write", "set_")
+        return n.startswith(prefixes)

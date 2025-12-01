@@ -15,9 +15,10 @@ from gearmeshing_ai.mcp_client.schemas.core import (
     ToolCallResult,
     TransportType,
 )
+from .base import StrategyCommonMixin
 
 
-class GatewayMcpStrategy:
+class GatewayMcpStrategy(StrategyCommonMixin):
     """
     Strategy that discovers servers via the MCP Gateway management API and
     (optionally) interacts with their streamable HTTP endpoints.
@@ -144,26 +145,6 @@ class GatewayMcpStrategy:
         # Construct the streamable HTTP base under the gateway
         return f"{self._gateway.base_url}/servers/{server_id}/mcp"
 
-    def _infer_arguments(self, input_schema: Dict[str, Any]) -> List[ToolArgument]:
-        args: List[ToolArgument] = []
-        props = input_schema.get("properties") if isinstance(input_schema, dict) else None
-        required = set(input_schema.get("required") or []) if isinstance(input_schema, dict) else set()
-        if isinstance(props, dict):
-            for k, v in props.items():
-                if not isinstance(v, dict):
-                    continue
-                typ = v.get("type") if isinstance(v.get("type"), str) else "string"
-                desc = v.get("description") if isinstance(v.get("description"), str) else None
-                args.append(
-                    ToolArgument(
-                        name=str(k),
-                        type=str(typ),
-                        required=str(k) in required,
-                        description=desc,
-                    )
-                )
-        return args
-
     def _headers(self) -> Dict[str, str]:
         headers: Dict[str, str] = {"Content-Type": "application/json"}
         token = getattr(self._gateway, "auth_token", None)
@@ -171,8 +152,3 @@ class GatewayMcpStrategy:
             headers["Authorization"] = token
         return headers
 
-    @staticmethod
-    def _is_mutating_tool_name(name: str) -> bool:
-        n = name.lower()
-        prefixes = ("create", "update", "delete", "remove", "post_", "put_", "patch_", "write", "set_")
-        return n.startswith(prefixes)
