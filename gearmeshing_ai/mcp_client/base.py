@@ -70,6 +70,9 @@ class AsyncClientProtocol(Protocol):
         agent_id: str | None = None,
     ) -> ToolCallResult: ...
 
+    # Note: declared as async def returning AsyncIterator since concrete client methods are async wrappers
+    # around strategy generators. Strategy Protocol methods are regular def returning AsyncIterator to
+    # model async generators per MyPy guidance. Implementations should ensure compatibility.
     async def stream_events(
         self,
         server_id: str,
@@ -84,6 +87,7 @@ class AsyncClientProtocol(Protocol):
         max_total_seconds: Optional[float] = None,
     ) -> AsyncIterator[str]: ...
 
+    # Note: same rationale as stream_events; returns an AsyncIterator of parsed dict events.
     async def stream_events_parsed(
         self,
         server_id: str,

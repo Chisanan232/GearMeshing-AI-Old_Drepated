@@ -52,7 +52,9 @@ class AsyncStrategy(Protocol):
         args: dict[str, Any],
     ) -> ToolCallResult: ...
 
-    async def stream_events(
+    # Note: declared as regular def returning AsyncIterator to model async generators per MyPy.
+    # Implementations should use `async def` with `yield` and return AsyncIterator.
+    def stream_events(
         self,
         server_id: str,
         path: str = "/sse",
@@ -66,7 +68,9 @@ class AsyncStrategy(Protocol):
         max_total_seconds: Optional[float] = None,
     ) -> AsyncIterator[str]: ...
 
-    async def stream_events_parsed(
+    # Note: declared as regular def returning AsyncIterator to model async generators per MyPy.
+    # Implementations should use `async def` with `yield` and return AsyncIterator of parsed dict events.
+    def stream_events_parsed(
         self,
         server_id: str,
         path: str = "/sse",
