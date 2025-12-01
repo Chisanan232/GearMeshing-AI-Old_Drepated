@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -64,8 +65,7 @@ class McpServerRef(BaseSchema):
     auth_token: Optional[str] = Field(
         None,
         description=(
-            "Optional token that should be sent as an Authorization header "
-            "when talking to this MCP server."
+            "Optional token that should be sent as an Authorization header " "when talking to this MCP server."
         ),
         min_length=1,
         max_length=512,

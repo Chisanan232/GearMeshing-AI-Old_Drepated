@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 class MCPError(Exception):
     """Base class for MCP client errors."""
 

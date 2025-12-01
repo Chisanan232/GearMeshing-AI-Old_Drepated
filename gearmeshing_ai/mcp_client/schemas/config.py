@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 from typing import Optional
 
 from pydantic import Field
+
 from .base import BaseSchema
 
 
@@ -104,10 +106,7 @@ class McpClientConfig(BaseSchema):
     )
     auth_token: Optional[str] = Field(
         None,
-        description=(
-            "Optional bearer token to send as Authorization header when invoking"
-            " tools over HTTP."
-        ),
+        description=("Optional bearer token to send as Authorization header when invoking" " tools over HTTP."),
         examples=["Bearer hg_123e4567"],
         min_length=1,
         max_length=512,

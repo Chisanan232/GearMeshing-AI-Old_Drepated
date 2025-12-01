@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 from typing import Any, Dict, Optional
 
 from pydantic import Field
+
 from .base import BaseSchema
 
 
@@ -19,8 +21,7 @@ class ToolMetadata(BaseSchema):
     parameters: Dict[str, Any] = Field(
         default_factory=dict,
         description=(
-            "Parameters schema for the tool. When sourced from MCP servers, this"
-            " may be called 'inputSchema'."
+            "Parameters schema for the tool. When sourced from MCP servers, this" " may be called 'inputSchema'."
         ),
     )
 
@@ -31,6 +32,4 @@ class ToolResult(BaseSchema):
     """
 
     ok: bool = Field(True, description="Whether the tool invocation succeeded.")
-    data: Dict[str, Any] = Field(
-        default_factory=dict, description="Arbitrary JSON payload returned by the tool."
-    )
+    data: Dict[str, Any] = Field(default_factory=dict, description="Arbitrary JSON payload returned by the tool.")
