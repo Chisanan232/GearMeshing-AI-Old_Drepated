@@ -113,8 +113,8 @@ class DirectMcpStrategy:
         body = r.json()
         ok = bool(body.get("ok", True)) if isinstance(body, dict) else True
         data: Dict[str, Any] = body if isinstance(body, dict) else {"result": body}
-        # Invalidate cache if mutating tool
-        if self._is_mutating_tool_name(tool_name):
+        # Invalidate cache if mutating tool and call succeeded
+        if self._is_mutating_tool_name(tool_name) and ok:
             self._tools_cache.pop(server_id, None)
         return ToolCallResult(ok=ok, data=data)
 
