@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, Dict, Iterable, List, Protocol
+from typing import Any, AsyncIterator, Dict, Iterable, List, Protocol, runtime_checkable
 
 from gearmeshing_ai.mcp_client.schemas.core import McpServerRef, McpTool, ToolArgument, ToolCallResult
 
 
+@runtime_checkable
 class SyncStrategy(Protocol):
     def list_servers(self) -> Iterable[McpServerRef]: ...
 
@@ -20,6 +21,7 @@ class SyncStrategy(Protocol):
     ) -> ToolCallResult: ...
 
 
+@runtime_checkable
 class AsyncStrategy(Protocol):
     async def list_tools(self, server_id: str) -> List[McpTool]: ...
 
