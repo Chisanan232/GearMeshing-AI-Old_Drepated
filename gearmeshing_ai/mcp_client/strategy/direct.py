@@ -76,10 +76,12 @@ class DirectMcpStrategy:
                 input_schema: Dict[str, Any] = (
                     item.get("inputSchema") if isinstance(item.get("inputSchema"), dict) else {}
                 ) or {}
+                is_mut = self._is_mutating_tool_name(name)
                 tools.append(
                     McpTool(
                         name=name,
                         description=description,
+                        mutating=is_mut,
                         arguments=self._infer_arguments(input_schema),
                         raw_parameters_schema=input_schema,
                     )
@@ -145,3 +147,9 @@ class DirectMcpStrategy:
                     )
                 )
         return args
+
+    @staticmethod
+    def _is_mutating_tool_name(name: str) -> bool:
+        n = name.lower()
+        prefixes = ("create", "update", "delete", "remove", "post_", "put_", "patch_", "write", "set_")
+        return n.startswith(prefixes)
