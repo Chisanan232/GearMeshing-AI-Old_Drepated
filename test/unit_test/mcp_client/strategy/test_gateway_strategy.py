@@ -1,7 +1,8 @@
 from __future__ import annotations
-from typing import Any, Dict, List
 
 import json as _json
+from typing import Any, Dict, List
+
 import httpx
 
 from gearmeshing_ai.mcp_client.gateway_api.client import GatewayApiClient
@@ -9,7 +10,7 @@ from gearmeshing_ai.mcp_client.strategy.gateway import GatewayMcpStrategy
 
 
 def _mock_transport() -> httpx.MockTransport:
-    def handler(request: httpx.Request) -> httpx.Response:  # type: ignore[override]
+    def handler(request: httpx.Request) -> httpx.Response:
         # Management API
         if request.method == "GET" and request.url.path == "/servers":
             data = [
@@ -30,9 +31,7 @@ def _mock_transport() -> httpx.MockTransport:
                     "description": "Echo tool",
                     "inputSchema": {
                         "type": "object",
-                        "properties": {
-                            "text": {"type": "string", "description": "Text to echo"}
-                        },
+                        "properties": {"text": {"type": "string", "description": "Text to echo"}},
                         "required": ["text"],
                     },
                 }

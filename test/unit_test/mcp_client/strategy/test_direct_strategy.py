@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from typing import Any, Dict, List
 
 import httpx
@@ -8,7 +9,7 @@ from gearmeshing_ai.mcp_client.strategy.direct import DirectMcpStrategy
 
 
 def _mock_transport() -> httpx.MockTransport:
-    def handler(request: httpx.Request) -> httpx.Response:  # type: ignore[override]
+    def handler(request: httpx.Request) -> httpx.Response:
         # Expecting base_url http://mock and endpoint_url http://mock/mcp
         # So tools path -> /mcp/tools
         if request.method == "GET" and request.url.path == "/mcp/tools":
@@ -18,9 +19,7 @@ def _mock_transport() -> httpx.MockTransport:
                     "description": "Echo tool",
                     "inputSchema": {
                         "type": "object",
-                        "properties": {
-                            "text": {"type": "string", "description": "Text to echo"}
-                        },
+                        "properties": {"text": {"type": "string", "description": "Text to echo"}},
                         "required": ["text"],
                     },
                 }
@@ -30,10 +29,10 @@ def _mock_transport() -> httpx.MockTransport:
             body: Dict[str, Any] = {}
             if request.content:
                 try:
-                    body = httpx.RequestContent.decode(request).json()  # type: ignore[attr-defined]
+                    body = httpx.RequestContent.decode(request).json()
                 except Exception:
                     try:
-                        body = httpx._models.jsonlib.loads(request.content.decode("utf-8"))  # type: ignore[attr-defined]
+                        body = httpx._models.jsonlib.loads(request.content.decode("utf-8"))
                     except Exception:
                         body = {}
             params = (body or {}).get("parameters") or {}

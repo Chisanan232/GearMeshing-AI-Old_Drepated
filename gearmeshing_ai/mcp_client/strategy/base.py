@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from typing import Any, Iterable, Protocol
 
 from gearmeshing_ai.mcp_client.schemas.core import McpServerRef, McpTool, ToolCallResult

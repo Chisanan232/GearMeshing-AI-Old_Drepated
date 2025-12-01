@@ -1,8 +1,9 @@
 from __future__ import annotations
+
+import logging
 from typing import Any, Dict, Iterable, List, Optional
 
 import httpx
-import logging
 
 from gearmeshing_ai.mcp_client.gateway_api import GatewayApiClient
 from gearmeshing_ai.mcp_client.gateway_api.models import GatewayTransport
@@ -10,9 +11,9 @@ from gearmeshing_ai.mcp_client.schemas.core import (
     McpServerRef,
     McpTool,
     ServerKind,
+    ToolArgument,
     ToolCallResult,
     TransportType,
-    ToolArgument,
 )
 
 
@@ -65,7 +66,9 @@ class GatewayMcpStrategy:
                 if not isinstance(name, str) or not name:
                     continue
                 description = item.get("description") if isinstance(item.get("description"), str) else None
-                input_schema = item.get("inputSchema") if isinstance(item.get("inputSchema"), dict) else {}
+                input_schema: Dict[str, Any] = (
+                    item.get("inputSchema") if isinstance(item.get("inputSchema"), dict) else {}
+                ) or {}
                 tools.append(
                     McpTool(
                         name=name,
