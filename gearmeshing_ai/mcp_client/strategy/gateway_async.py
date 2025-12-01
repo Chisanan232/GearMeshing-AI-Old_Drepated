@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 import logging
 import time
 
@@ -32,12 +32,14 @@ class AsyncGatewayMcpStrategy:
         *,
         client: Optional[httpx.AsyncClient] = None,
         ttl_seconds: float = 10.0,
+        sse_client: Optional[httpx.AsyncClient] = None,
     ) -> None:
         self._gateway = gateway
         self._http = client or httpx.AsyncClient(timeout=10.0, follow_redirects=True)
         self._logger = logging.getLogger(__name__)
         self._ttl = ttl_seconds
         self._tools_cache: Dict[str, Tuple[List[McpTool], float]] = {}
+        self._sse_client = sse_client
 
     def _base_for(self, server_id: str) -> str:
         return f"{self._gateway.base_url}/servers/{server_id}/mcp"
@@ -153,3 +155,61 @@ class AsyncGatewayMcpStrategy:
             self._tools_cache.pop(server_id, None)
 
         return ToolCallResult(ok=ok, data=data)
+
+    async def stream_events(self, server_id: str, path: str = "/sse") -> AsyncIterator[str]:
+        from gearmeshing_ai.mcp_client.transport.sse import BasicSseTransport
+        base = self._base_for(server_id)
+        sse = BasicSseTransport(base, client=self._sse_client, auth_token=getattr(self._gateway, "auth_token", None))
+        await sse.connect(path)
+        try:
+            async for line in sse.aiter():
+                yield line
+        finally:
+            await sse.close()
+
+    async def stream_events_parsed(self, server_id: str, path: str = "/sse") -> AsyncIterator[Dict[str, Any]]:
+        """Yield parsed SSE events as dictionaries: {id, event, data}.
+
+        - Multiple data: lines are joined with \n
+        - Comments (lines starting with ":") are ignored
+        - Event boundary is a blank line
+        """
+        buf_id: Optional[str] = None
+        buf_event: Optional[str] = None
+        buf_data: List[str] = []
+        async for line in self.stream_events(server_id, path):
+            if not line.strip():
+                if buf_id is not None or buf_event is not None or buf_data:
+                    yield {
+                        "id": buf_id,
+                        "event": buf_event,
+                        "data": "\n".join(buf_data),
+                    }
+                    buf_id, buf_event, buf_data = None, None, []
+                continue
+            if line.startswith(":"):
+                # comment
+                continue
+            # field parsing: key: value (value may be empty)
+            if ":" in line:
+                key, val = line.split(":", 1)
+                val = val.lstrip(" ")
+            else:
+                key, val = line, ""
+            key = key.strip()
+            if key == "id":
+                buf_id = val
+            elif key == "event":
+                buf_event = val
+            elif key == "data":
+                buf_data.append(val)
+            else:
+                # ignore other fields for now
+                pass
+        # flush tail if stream ended without final blank line
+        if buf_id is not None or buf_event is not None or buf_data:
+            yield {
+                "id": buf_id,
+                "event": buf_event,
+                "data": "\n".join(buf_data),
+            }
