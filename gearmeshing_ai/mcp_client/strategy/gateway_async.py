@@ -158,7 +158,12 @@ class AsyncGatewayMcpStrategy:
         from gearmeshing_ai.mcp_client.transport.sse import BasicSseTransport
 
         base = self._base_for(server_id)
-        sse = BasicSseTransport(base, client=self._sse_client, auth_token=getattr(self._gateway, "auth_token", None))
+        sse = BasicSseTransport(
+            base,
+            client=self._sse_client,
+            auth_token=getattr(self._gateway, "auth_token", None),
+            include_blank_lines=True,
+        )
         await sse.connect(path)
         try:
             async for line in sse.aiter():

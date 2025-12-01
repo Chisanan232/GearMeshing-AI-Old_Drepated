@@ -15,12 +15,18 @@ class BasicSseTransport:
     """
 
     def __init__(
-        self, base_url: str, *, client: Optional[httpx.AsyncClient] = None, auth_token: Optional[str] = None
+        self,
+        base_url: str,
+        *,
+        client: Optional[httpx.AsyncClient] = None,
+        auth_token: Optional[str] = None,
+        include_blank_lines: bool = False,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._client = client or httpx.AsyncClient(timeout=10.0, follow_redirects=True)
         self._auth_token = auth_token
         self._response: Optional[httpx.Response] = None
+        self._include_blank = include_blank_lines
 
     def _headers(self) -> dict[str, str]:
         h = {"Accept": "text/event-stream"}
@@ -37,7 +43,7 @@ class BasicSseTransport:
         if self._response is None:
             raise RuntimeError("SSE not connected. Call connect() first.")
         async for line in self._response.aiter_lines():
-            if not line:
+            if (not line) and not self._include_blank:
                 continue
             yield line
 
