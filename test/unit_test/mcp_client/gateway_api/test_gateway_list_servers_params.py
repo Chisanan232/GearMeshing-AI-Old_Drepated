@@ -1,11 +1,12 @@
 from __future__ import annotations
+
 import httpx
 
 from gearmeshing_ai.mcp_client.gateway_api.client import GatewayApiClient
 
 
 def _mock_transport(expected_path: str, expected_query: dict[str, str]) -> httpx.MockTransport:
-    def handler(request: httpx.Request) -> httpx.Response:  # type: ignore[override]
+    def handler(request: httpx.Request) -> httpx.Response:
         assert request.method == "GET"
         assert request.url.path == expected_path
         # Verify query params

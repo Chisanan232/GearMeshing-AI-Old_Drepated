@@ -1,11 +1,12 @@
 from __future__ import annotations
+
+import logging
 from typing import List, Optional
 
 import httpx
-import logging
 
-from .models import GatewayServer, GatewayServerCreate
 from .errors import GatewayApiError, GatewayServerNotFoundError
+from .models import GatewayServer, GatewayServerCreate
 
 
 class GatewayApiClient:
@@ -113,7 +114,9 @@ class GatewayApiClient:
                 status_code=e.response.status_code,
                 details=e.response.text,
             ) from e
-        server = self._parse_server(r.json() if r.headers.get("content-type","application/json").startswith("application/json") else {})
+        server = self._parse_server(
+            r.json() if r.headers.get("content-type", "application/json").startswith("application/json") else {}
+        )
         self._logger.debug("GatewayApiClient.create_server: created id=%s name=%s", server.id, server.name)
         return server
 

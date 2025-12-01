@@ -1,17 +1,20 @@
 from __future__ import annotations
-from typing import Any, Dict, List
 
 import json as _json
+
 import httpx
 import pytest
 
 from gearmeshing_ai.mcp_client.gateway_api.client import GatewayApiClient
 from gearmeshing_ai.mcp_client.gateway_api.errors import GatewayServerNotFoundError
-from gearmeshing_ai.mcp_client.gateway_api.models import GatewayTransport, GatewayServerCreate
+from gearmeshing_ai.mcp_client.gateway_api.models import (
+    GatewayServerCreate,
+    GatewayTransport,
+)
 
 
 def _mock_transport() -> httpx.MockTransport:
-    def handler(request: httpx.Request) -> httpx.Response:  # type: ignore[override]
+    def handler(request: httpx.Request) -> httpx.Response:
         if request.method == "GET" and request.url.path == "/servers":
             data = [
                 {

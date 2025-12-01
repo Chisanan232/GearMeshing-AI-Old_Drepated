@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from enum import Enum
 from typing import Optional
 
@@ -39,9 +40,7 @@ class GatewayServer(BaseSchema):
     )
     transport: GatewayTransport = Field(
         ...,
-        description=(
-            "Transport type used by the Gateway when talking to the underlying MCP server."
-        ),
+        description=("Transport type used by the Gateway when talking to the underlying MCP server."),
         examples=[GatewayTransport.STREAMABLE_HTTP],
     )
 
