@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import httpx
 
@@ -26,11 +26,16 @@ class GatewayMcpStrategy:
     HTTP I/O later.
     """
 
-    def __init__(self, gateway: GatewayApiClient, *, client: Optional[httpx.Client] = None) -> None:
+    def __init__(
+        self, gateway: GatewayApiClient, *, client: Optional[httpx.Client] = None, ttl_seconds: float = 10.0
+    ) -> None:
         self._gateway = gateway
         # Sync client for streamable HTTP endpoints under the Gateway
         self._http = client or httpx.Client(timeout=10.0, follow_redirects=True)
         self._logger = logging.getLogger(__name__)
+        self._ttl = ttl_seconds
+        # cache: server_id -> (tools, expires_at)
+        self._tools_cache: Dict[str, Tuple[List[McpTool], float]] = {}
 
     def _map_transport(self, t: GatewayTransport) -> TransportType:
         if t == GatewayTransport.STREAMABLE_HTTP:
@@ -52,9 +57,17 @@ class GatewayMcpStrategy:
             )
 
     def list_tools(self, server_id: str) -> Iterable[McpTool]:
+        # serve from cache if valid
+        cached = self._tools_cache.get(server_id)
+        import time as _time
+
+        now = _time.monotonic()
+        if cached and cached[1] > now:
+            return list(cached[0])
+
         base = self._base_for(server_id).rstrip("/")
         self._logger.debug("GatewayMcpStrategy.list_tools: GET %s/tools", base)
-        r = self._http.get(f"{base}/tools")
+        r = self._http.get(f"{base}/tools", headers=self._headers())
         r.raise_for_status()
         data = r.json()
         tools: List[McpTool] = []
@@ -69,14 +82,27 @@ class GatewayMcpStrategy:
                 input_schema: Dict[str, Any] = (
                     item.get("inputSchema") if isinstance(item.get("inputSchema"), dict) else {}
                 ) or {}
+                # Prefer explicit metadata (x-mutating) from item or input schema; fallback to heuristic
+                explicit = item.get("x-mutating")
+                if explicit is None:
+                    explicit = input_schema.get("x-mutating") if isinstance(input_schema, dict) else None
+                if explicit is True:
+                    is_mut = True
+                elif explicit is False:
+                    is_mut = False
+                else:
+                    is_mut = self._is_mutating_tool_name(name)
                 tools.append(
                     McpTool(
                         name=name,
                         description=description,
+                        mutating=is_mut,
                         arguments=self._infer_arguments(input_schema),
                         raw_parameters_schema=input_schema,
                     )
                 )
+        # update cache
+        self._tools_cache[server_id] = (tools, now + self._ttl)
         return tools
 
     def call_tool(
@@ -95,7 +121,7 @@ class GatewayMcpStrategy:
             tool_name,
             list((args or {}).keys()),
         )
-        r = self._http.post(f"{base}/a2a/{tool_name}/invoke", json=payload)
+        r = self._http.post(f"{base}/a2a/{tool_name}/invoke", json=payload, headers=self._headers())
         r.raise_for_status()
         body = r.json()
         ok = bool(body.get("ok", True)) if isinstance(body, dict) else True
@@ -125,3 +151,16 @@ class GatewayMcpStrategy:
                     )
                 )
         return args
+
+    def _headers(self) -> Dict[str, str]:
+        headers: Dict[str, str] = {"Content-Type": "application/json"}
+        token = getattr(self._gateway, "auth_token", None)
+        if token:
+            headers["Authorization"] = token
+        return headers
+
+    @staticmethod
+    def _is_mutating_tool_name(name: str) -> bool:
+        n = name.lower()
+        prefixes = ("create", "update", "delete", "remove", "post_", "put_", "patch_", "write", "set_")
+        return n.startswith(prefixes)

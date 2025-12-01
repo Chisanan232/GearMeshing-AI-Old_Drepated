@@ -1,16 +1,17 @@
 from __future__ import annotations
-from typing import Any, Iterable, List, Optional
-import logging
 
-from .schemas.core import McpServerRef, McpTool, ToolCallResult
-from .policy import PolicyMap, enforce_policy
-from .errors import ServerNotFoundError, ToolAccessDeniedError
-from .schemas.config import McpClientConfig
-from .strategy.direct import DirectMcpStrategy
-from .gateway_api.client import GatewayApiClient
-from .strategy.gateway import GatewayMcpStrategy
+import logging
+from typing import Any, Iterable, List, Optional
 
 import httpx
+
+from .errors import ServerNotFoundError, ToolAccessDeniedError
+from .gateway_api.client import GatewayApiClient
+from .policy import PolicyMap, enforce_policy
+from .schemas.config import McpClientConfig
+from .schemas.core import McpServerRef, McpTool, ToolCallResult
+from .strategy.direct import DirectMcpStrategy
+from .strategy.gateway import GatewayMcpStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ class McpClient:
             if hasattr(strat, "list_servers"):
                 try:
                     logger.debug("McpClient.list_servers: using %s", type(strat).__name__)
-                    servers.extend(list(strat.list_servers()))  # type: ignore[call-arg]
+                    servers.extend(list(strat.list_servers()))
                 except Exception as e:
                     logger.debug("list_servers error from %s: %s", type(strat).__name__, e)
         # Apply policy filter by servers if provided
@@ -86,7 +87,7 @@ class McpClient:
             if hasattr(strat, "list_tools"):
                 try:
                     logger.debug("McpClient.list_tools: using %s for server_id=%s", type(strat).__name__, server_id)
-                    tools: List[McpTool] = list(strat.list_tools(server_id))  # type: ignore[call-arg]
+                    tools: List[McpTool] = list(strat.list_tools(server_id))
                     if tools:
                         # Apply tool filter by policy if provided
                         if agent_id and agent_id in self._policies:
@@ -102,7 +103,12 @@ class McpClient:
                                 )
                             if policy.read_only:
                                 before = len(tools)
-                                tools = [t for t in tools if not self._is_mutating_tool_name(t.name)]
+
+                                def _is_mut(t: McpTool) -> bool:
+                                    # Prefer explicit metadata; fallback to heuristic for older servers
+                                    return bool(getattr(t, "mutating", False) or self._is_mutating_tool_name(t.name))
+
+                                tools = [t for t in tools if not _is_mut(t)]
                                 logger.debug(
                                     "McpClient.list_tools: policy filtered tools for agent=%s from %d to %d (read-only)",
                                     agent_id,
@@ -125,16 +131,26 @@ class McpClient:
         enforce_policy(agent_id=agent_id, server_id=server_id, tool_name=tool_name, policies=self._policies)
         # Enforce read-only: block mutating tools
         if agent_id and agent_id in self._policies and self._policies[agent_id].read_only:
-            if self._is_mutating_tool_name(tool_name):
+            # If we have metadata from listing, prefer it; otherwise fallback to heuristic
+            try:
+                listed = {t.name: t for t in self.list_tools(server_id, agent_id=agent_id)}
+                t = listed.get(tool_name)
+                is_mut = bool(getattr(t, "mutating", False)) if t else self._is_mutating_tool_name(tool_name)
+            except Exception:
+                is_mut = self._is_mutating_tool_name(tool_name)
+            if is_mut:
                 raise ToolAccessDeniedError(agent_id, server_id, tool_name)
         for strat in self._strategies:
             if hasattr(strat, "call_tool"):
                 try:
                     logger.debug(
-                        "McpClient.call_tool: strategy=%s server_id=%s tool=%s agent=%s", 
-                        type(strat).__name__, server_id, tool_name, agent_id
+                        "McpClient.call_tool: strategy=%s server_id=%s tool=%s agent=%s",
+                        type(strat).__name__,
+                        server_id,
+                        tool_name,
+                        agent_id,
                     )
-                    return strat.call_tool(  # type: ignore[call-arg]
+                    return strat.call_tool(
                         server_id,
                         tool_name,
                         args,

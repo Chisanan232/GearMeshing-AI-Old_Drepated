@@ -1,14 +1,13 @@
 from __future__ import annotations
 
+
 class McpClientError(Exception):
     pass
 
 
 class ToolAccessDeniedError(McpClientError):
     def __init__(self, agent_id: str, server_id: str, tool_name: str) -> None:
-        super().__init__(
-            f"Agent '{agent_id}' is not permitted to call tool '{tool_name}' on server '{server_id}'"
-        )
+        super().__init__(f"Agent '{agent_id}' is not permitted to call tool '{tool_name}' on server '{server_id}'")
 
 
 class ServerNotFoundError(McpClientError):

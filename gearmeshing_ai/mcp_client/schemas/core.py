@@ -83,6 +83,10 @@ class ToolArgument(BaseSchema):
 class McpTool(BaseSchema):
     name: str = Field(..., description="Tool name.", min_length=1, max_length=128)
     description: Optional[str] = Field(None, description="Short description of what the tool does.")
+    mutating: bool = Field(
+        default=False,
+        description="Whether the tool is expected to mutate external state (used for read-only policies).",
+    )
     arguments: List[ToolArgument] = Field(
         default_factory=list,
         description="List of arguments as a simplified domain view derived from schemas.",

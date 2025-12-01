@@ -1,17 +1,21 @@
 from __future__ import annotations
+
 from typing import Any, Dict, List
 
 import httpx
 import pytest
 
 from gearmeshing_ai.mcp_client.client import McpClient
-from gearmeshing_ai.mcp_client.schemas.config import McpClientConfig, ServerConfig, GatewayConfig
-from gearmeshing_ai.mcp_client.policy import ToolPolicy
 from gearmeshing_ai.mcp_client.errors import ToolAccessDeniedError
+from gearmeshing_ai.mcp_client.policy import ToolPolicy
+from gearmeshing_ai.mcp_client.schemas.config import (
+    McpClientConfig,
+    ServerConfig,
+)
 
 
 def _mock_direct_transport() -> httpx.MockTransport:
-    def handler(request: httpx.Request) -> httpx.Response:  # type: ignore[override]
+    def handler(request: httpx.Request) -> httpx.Response:
         # Direct server expected at http://mock/mcp
         if request.method == "GET" and request.url.path == "/mcp/tools":
             data: List[Dict[str, Any]] = [
@@ -20,9 +24,7 @@ def _mock_direct_transport() -> httpx.MockTransport:
                     "description": "Echo tool",
                     "inputSchema": {
                         "type": "object",
-                        "properties": {
-                            "text": {"type": "string", "description": "Text to echo"}
-                        },
+                        "properties": {"text": {"type": "string", "description": "Text to echo"}},
                         "required": ["text"],
                     },
                 },
@@ -46,13 +48,9 @@ def test_client_from_config_list_servers_and_tools_with_policy() -> None:
     transport = _mock_direct_transport()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
 
-    cfg = McpClientConfig(
-        servers=[ServerConfig(name="direct1", endpoint_url="http://mock/mcp")]
-    )
+    cfg = McpClientConfig(servers=[ServerConfig(name="direct1", endpoint_url="http://mock/mcp")])
 
-    policies = {
-        "agent": ToolPolicy(allowed_servers={"direct1"}, allowed_tools={"echo"})
-    }
+    policies = {"agent": ToolPolicy(allowed_servers={"direct1"}, allowed_tools={"echo"})}
 
     client = McpClient.from_config(
         cfg,
@@ -74,13 +72,9 @@ def test_client_policy_denies_server_and_tool() -> None:
     transport = _mock_direct_transport()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
 
-    cfg = McpClientConfig(
-        servers=[ServerConfig(name="direct1", endpoint_url="http://mock/mcp")]
-    )
+    cfg = McpClientConfig(servers=[ServerConfig(name="direct1", endpoint_url="http://mock/mcp")])
 
-    policies = {
-        "agent": ToolPolicy(allowed_servers={"direct1"}, allowed_tools={"echo"})
-    }
+    policies = {"agent": ToolPolicy(allowed_servers={"direct1"}, allowed_tools={"echo"})}
 
     client = McpClient.from_config(
         cfg,
