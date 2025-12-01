@@ -10,8 +10,8 @@ from .gateway_api.client import GatewayApiClient
 from .policy import PolicyMap, enforce_policy
 from .schemas.config import McpClientConfig
 from .schemas.core import McpServerRef, McpTool, ToolCallResult
-from .clients.base import ClientCommonMixin, SyncClientProtocol
-from .strategy.base import SyncStrategy, is_mutating_tool_name
+from .base import ClientCommonMixin, SyncClientProtocol
+from .strategy.base import SyncStrategy
 from .strategy.direct import DirectMcpStrategy
 from .strategy.gateway import GatewayMcpStrategy
 
