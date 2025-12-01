@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Optional
 import logging
+from typing import Any, Iterable, List, Optional
 
 import httpx
 
@@ -68,7 +68,9 @@ class AsyncMcpClient:
         for strat in self._strategies:
             if hasattr(strat, "list_tools"):
                 try:
-                    logger.debug("AsyncMcpClient.list_tools: using %s for server_id=%s", type(strat).__name__, server_id)
+                    logger.debug(
+                        "AsyncMcpClient.list_tools: using %s for server_id=%s", type(strat).__name__, server_id
+                    )
                     tools: List[McpTool] = await strat.list_tools(server_id)  # type: ignore[attr-defined]
                     if tools:
                         if agent_id and agent_id in self._policies:
@@ -76,8 +78,10 @@ class AsyncMcpClient:
                             if policy.allowed_tools is not None:
                                 tools = [t for t in tools if t.name in policy.allowed_tools]
                             if policy.read_only:
+
                                 def _is_mut(t: McpTool) -> bool:
                                     return bool(getattr(t, "mutating", False) or self._is_mutating_tool_name(t.name))
+
                                 tools = [t for t in tools if not _is_mut(t)]
                         return tools
                 except Exception as e:

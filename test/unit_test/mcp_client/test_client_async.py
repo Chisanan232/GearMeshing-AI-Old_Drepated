@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List
-import json as _json
 
 import httpx
 import pytest
 
 from gearmeshing_ai.mcp_client.client_async import AsyncMcpClient
-from gearmeshing_ai.mcp_client.schemas.config import McpClientConfig, GatewayConfig
 from gearmeshing_ai.mcp_client.policy import ToolPolicy
+from gearmeshing_ai.mcp_client.schemas.config import GatewayConfig, McpClientConfig
 
 
 def _mock_transport(state: dict) -> httpx.MockTransport:

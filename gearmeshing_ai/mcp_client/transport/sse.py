@@ -14,7 +14,9 @@ class BasicSseTransport:
     - close(): closes the underlying response
     """
 
-    def __init__(self, base_url: str, *, client: Optional[httpx.AsyncClient] = None, auth_token: Optional[str] = None) -> None:
+    def __init__(
+        self, base_url: str, *, client: Optional[httpx.AsyncClient] = None, auth_token: Optional[str] = None
+    ) -> None:
         self._base_url = base_url.rstrip("/")
         self._client = client or httpx.AsyncClient(timeout=10.0, follow_redirects=True)
         self._auth_token = auth_token

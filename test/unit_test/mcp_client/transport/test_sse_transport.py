@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import asyncio
-
 import httpx
 import pytest
 
@@ -11,11 +9,7 @@ from gearmeshing_ai.mcp_client.transport.sse import BasicSseTransport
 def _mock_transport() -> httpx.MockTransport:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.method == "GET" and request.url.path == "/sse":
-            body = (
-                b"data: one\n\n"
-                b": comment line\n\n"
-                b"data: two\n\n"
-            )
+            body = b"data: one\n\n" b": comment line\n\n" b"data: two\n\n"
             headers = {"content-type": "text/event-stream"}
             return httpx.Response(200, headers=headers, content=body)
         return httpx.Response(404, json={"error": "not found"})

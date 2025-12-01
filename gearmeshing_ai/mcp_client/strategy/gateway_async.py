@@ -1,18 +1,16 @@
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 import logging
 import time
+from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
 import httpx
 
 from gearmeshing_ai.mcp_client.gateway_api.client import GatewayApiClient
-from gearmeshing_ai.mcp_client.gateway_api.models import GatewayTransport
 from gearmeshing_ai.mcp_client.schemas.core import (
     McpTool,
-    ToolCallResult,
     ToolArgument,
-    TransportType,
+    ToolCallResult,
 )
 
 
@@ -158,6 +156,7 @@ class AsyncGatewayMcpStrategy:
 
     async def stream_events(self, server_id: str, path: str = "/sse") -> AsyncIterator[str]:
         from gearmeshing_ai.mcp_client.transport.sse import BasicSseTransport
+
         base = self._base_for(server_id)
         sse = BasicSseTransport(base, client=self._sse_client, auth_token=getattr(self._gateway, "auth_token", None))
         await sse.connect(path)
