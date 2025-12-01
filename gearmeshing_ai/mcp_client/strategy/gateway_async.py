@@ -154,7 +154,17 @@ class AsyncGatewayMcpStrategy:
 
         return ToolCallResult(ok=ok, data=data)
 
-    async def stream_events(self, server_id: str, path: str = "/sse") -> AsyncIterator[str]:
+    async def stream_events(
+        self,
+        server_id: str,
+        path: str = "/sse",
+        *,
+        reconnect: bool = False,
+        max_retries: int = 3,
+        backoff_initial: float = 0.5,
+        backoff_factor: float = 2.0,
+        backoff_max: float = 8.0,
+    ) -> AsyncIterator[str]:
         from gearmeshing_ai.mcp_client.transport.sse import BasicSseTransport
 
         base = self._base_for(server_id)
@@ -163,15 +173,32 @@ class AsyncGatewayMcpStrategy:
             client=self._sse_client,
             auth_token=getattr(self._gateway, "auth_token", None),
             include_blank_lines=True,
+            reconnect=reconnect,
+            max_retries=max_retries,
+            backoff_initial=backoff_initial,
+            backoff_factor=backoff_factor,
+            backoff_max=backoff_max,
         )
         await sse.connect(path)
         try:
+            self._logger.debug("AsyncGatewayMcpStrategy.stream_events: start server_id=%s path=%s", server_id, path)
             async for line in sse.aiter():
                 yield line
         finally:
+            self._logger.debug("AsyncGatewayMcpStrategy.stream_events: stop server_id=%s path=%s", server_id, path)
             await sse.close()
 
-    async def stream_events_parsed(self, server_id: str, path: str = "/sse") -> AsyncIterator[Dict[str, Any]]:
+    async def stream_events_parsed(
+        self,
+        server_id: str,
+        path: str = "/sse",
+        *,
+        reconnect: bool = False,
+        max_retries: int = 3,
+        backoff_initial: float = 0.5,
+        backoff_factor: float = 2.0,
+        backoff_max: float = 8.0,
+    ) -> AsyncIterator[Dict[str, Any]]:
         """Yield parsed SSE events as dictionaries: {id, event, data}.
 
         - Multiple data: lines are joined with \n
@@ -181,7 +208,15 @@ class AsyncGatewayMcpStrategy:
         buf_id: Optional[str] = None
         buf_event: Optional[str] = None
         buf_data: List[str] = []
-        async for line in self.stream_events(server_id, path):
+        async for line in self.stream_events(
+            server_id,
+            path,
+            reconnect=reconnect,
+            max_retries=max_retries,
+            backoff_initial=backoff_initial,
+            backoff_factor=backoff_factor,
+            backoff_max=backoff_max,
+        ):
             if not line.strip():
                 if buf_id is not None or buf_event is not None or buf_data:
                     yield {
