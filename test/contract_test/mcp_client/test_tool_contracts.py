@@ -5,7 +5,7 @@ from typing import Any, Dict
 import pytest
 from pydantic import ValidationError
 
-from gearmeshing_ai.mcp_client.models import ToolMetadata, ToolResult
+from gearmeshing_ai.mcp_client.schemas.dto import ToolMetadata, ToolResult
 
 
 def test_toolmetadata_contract_shape() -> None:
