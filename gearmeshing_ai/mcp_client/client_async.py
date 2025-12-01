@@ -94,16 +94,52 @@ class AsyncMcpClient:
         prefixes = ("create", "update", "delete", "remove", "post_", "put_", "patch_", "write", "set_")
         return n.startswith(prefixes)
 
-    async def stream_events(self, server_id: str, path: str = "/sse"):
+    async def stream_events(
+        self,
+        server_id: str,
+        path: str = "/sse",
+        *,
+        reconnect: bool = False,
+        max_retries: int = 3,
+        backoff_initial: float = 0.5,
+        backoff_factor: float = 2.0,
+        backoff_max: float = 8.0,
+    ):
         for strat in self._strategies:
             if hasattr(strat, "stream_events"):
-                return strat.stream_events(server_id, path)
+                return strat.stream_events(
+                    server_id,
+                    path,
+                    reconnect=reconnect,
+                    max_retries=max_retries,
+                    backoff_initial=backoff_initial,
+                    backoff_factor=backoff_factor,
+                    backoff_max=backoff_max,
+                )
         raise ServerNotFoundError(server_id)
 
-    async def stream_events_parsed(self, server_id: str, path: str = "/sse"):
+    async def stream_events_parsed(
+        self,
+        server_id: str,
+        path: str = "/sse",
+        *,
+        reconnect: bool = False,
+        max_retries: int = 3,
+        backoff_initial: float = 0.5,
+        backoff_factor: float = 2.0,
+        backoff_max: float = 8.0,
+    ):
         for strat in self._strategies:
             if hasattr(strat, "stream_events_parsed"):
-                return strat.stream_events_parsed(server_id, path)
+                return strat.stream_events_parsed(
+                    server_id,
+                    path,
+                    reconnect=reconnect,
+                    max_retries=max_retries,
+                    backoff_initial=backoff_initial,
+                    backoff_factor=backoff_factor,
+                    backoff_max=backoff_max,
+                )
         raise ServerNotFoundError(server_id)
 
     async def call_tool(
