@@ -164,6 +164,8 @@ class AsyncGatewayMcpStrategy:
         backoff_initial: float = 0.5,
         backoff_factor: float = 2.0,
         backoff_max: float = 8.0,
+        idle_timeout: Optional[float] = None,
+        max_total_seconds: Optional[float] = None,
     ) -> AsyncIterator[str]:
         from gearmeshing_ai.mcp_client.transport.sse import BasicSseTransport
 
@@ -178,6 +180,8 @@ class AsyncGatewayMcpStrategy:
             backoff_initial=backoff_initial,
             backoff_factor=backoff_factor,
             backoff_max=backoff_max,
+            idle_timeout=idle_timeout,
+            max_total_seconds=max_total_seconds,
         )
         await sse.connect(path)
         try:
@@ -198,6 +202,8 @@ class AsyncGatewayMcpStrategy:
         backoff_initial: float = 0.5,
         backoff_factor: float = 2.0,
         backoff_max: float = 8.0,
+        idle_timeout: Optional[float] = None,
+        max_total_seconds: Optional[float] = None,
     ) -> AsyncIterator[Dict[str, Any]]:
         """Yield parsed SSE events as dictionaries: {id, event, data}.
 
@@ -216,6 +222,8 @@ class AsyncGatewayMcpStrategy:
             backoff_initial=backoff_initial,
             backoff_factor=backoff_factor,
             backoff_max=backoff_max,
+            idle_timeout=idle_timeout,
+            max_total_seconds=max_total_seconds,
         ):
             if not line.strip():
                 if buf_id is not None or buf_event is not None or buf_data:
