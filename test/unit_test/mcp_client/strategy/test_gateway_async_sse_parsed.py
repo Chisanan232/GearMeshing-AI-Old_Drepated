@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import asyncio
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 import httpx
 import pytest

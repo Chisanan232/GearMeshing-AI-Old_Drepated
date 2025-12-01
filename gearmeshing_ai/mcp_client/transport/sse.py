@@ -87,7 +87,7 @@ class BasicSseTransport:
                     except asyncio.TimeoutError:
                         if not self._reconnect or retries >= self._max_retries:
                             return
-                        sleep_s = min(self._backoff_initial * (self._backoff_factor ** retries), self._backoff_max)
+                        sleep_s = min(self._backoff_initial * (self._backoff_factor**retries), self._backoff_max)
                         self._logger.warning(
                             "SSE idle timeout; reconnecting in %ss (attempt %s/%s)",
                             sleep_s,
@@ -103,7 +103,7 @@ class BasicSseTransport:
                     yield line
                 if not self._reconnect or retries >= self._max_retries:
                     break
-                sleep_s = min(self._backoff_initial * (self._backoff_factor ** retries), self._backoff_max)
+                sleep_s = min(self._backoff_initial * (self._backoff_factor**retries), self._backoff_max)
                 self._logger.warning(
                     "SSE stream ended; reconnecting in %ss (attempt %s/%s)", sleep_s, retries + 1, self._max_retries
                 )
@@ -115,7 +115,7 @@ class BasicSseTransport:
                 if not self._reconnect or retries >= self._max_retries:
                     self._logger.error("SSE stream error; giving up", exc_info=True)
                     raise
-                sleep_s = min(self._backoff_initial * (self._backoff_factor ** retries), self._backoff_max)
+                sleep_s = min(self._backoff_initial * (self._backoff_factor**retries), self._backoff_max)
                 self._logger.warning(
                     "SSE error; reconnecting in %ss (attempt %s/%s)", sleep_s, retries + 1, self._max_retries
                 )

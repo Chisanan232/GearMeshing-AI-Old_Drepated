@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+
 import httpx
 import pytest
 
@@ -11,16 +12,16 @@ class SlowAsyncStream(httpx.AsyncByteStream):
     def __init__(self, parts: list[tuple[bytes, float]]) -> None:
         self._parts = parts
 
-    async def aiter_bytes(self):  # type: ignore[override]
+    async def aiter_bytes(self):
         for chunk, delay in self._parts:
             if delay:
                 await asyncio.sleep(delay)
             yield chunk
 
-    async def aclose(self) -> None:  # type: ignore[override]
+    async def aclose(self) -> None:
         return None
 
-    def __aiter__(self):  # type: ignore[override]
+    def __aiter__(self):
         return self.aiter_bytes()
 
 
@@ -29,10 +30,12 @@ async def test_basic_sse_transport_idle_timeout_triggers_stop_without_reconnect(
     # Stream yields one line, then delays longer than idle_timeout
     def handler(request: httpx.Request) -> httpx.Response:
         if request.method == "GET" and request.url.path == "/sse":
-            stream = SlowAsyncStream([
-                (b"data: first\n", 0.0),
-                (b"data: second\n", 0.2),  # long delay to exceed idle_timeout
-            ])
+            stream = SlowAsyncStream(
+                [
+                    (b"data: first\n", 0.0),
+                    (b"data: second\n", 0.2),  # long delay to exceed idle_timeout
+                ]
+            )
             headers = {"content-type": "text/event-stream"}
             return httpx.Response(200, headers=headers, stream=stream)
         return httpx.Response(404, json={"error": "not found"})
@@ -67,11 +70,13 @@ async def test_basic_sse_transport_max_total_seconds_stops_immediately() -> None
     def handler(request: httpx.Request) -> httpx.Response:
         if request.method == "GET" and request.url.path == "/sse":
             # Long stream but we'll cut it off via max_total_seconds
-            stream = SlowAsyncStream([
-                (b"data: a\n", 0.0),
-                (b"data: b\n", 0.0),
-                (b"data: c\n", 0.0),
-            ])
+            stream = SlowAsyncStream(
+                [
+                    (b"data: a\n", 0.0),
+                    (b"data: b\n", 0.0),
+                    (b"data: c\n", 0.0),
+                ]
+            )
             headers = {"content-type": "text/event-stream"}
             return httpx.Response(200, headers=headers, stream=stream)
         return httpx.Response(404, json={"error": "not found"})
