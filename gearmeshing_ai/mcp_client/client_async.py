@@ -71,7 +71,7 @@ class AsyncMcpClient:
                     logger.debug(
                         "AsyncMcpClient.list_tools: using %s for server_id=%s", type(strat).__name__, server_id
                     )
-                    tools: List[McpTool] = await strat.list_tools(server_id)  # type: ignore[attr-defined]
+                    tools: List[McpTool] = await strat.list_tools(server_id)
                     if tools:
                         if agent_id and agent_id in self._policies:
                             policy = self._policies[agent_id]
@@ -97,13 +97,13 @@ class AsyncMcpClient:
     async def stream_events(self, server_id: str, path: str = "/sse"):
         for strat in self._strategies:
             if hasattr(strat, "stream_events"):
-                return strat.stream_events(server_id, path)  # type: ignore[attr-defined]
+                return strat.stream_events(server_id, path)
         raise ServerNotFoundError(server_id)
 
     async def stream_events_parsed(self, server_id: str, path: str = "/sse"):
         for strat in self._strategies:
             if hasattr(strat, "stream_events_parsed"):
-                return strat.stream_events_parsed(server_id, path)  # type: ignore[attr-defined]
+                return strat.stream_events_parsed(server_id, path)
         raise ServerNotFoundError(server_id)
 
     async def call_tool(
@@ -135,7 +135,7 @@ class AsyncMcpClient:
                         tool_name,
                         agent_id,
                     )
-                    return await strat.call_tool(  # type: ignore[attr-defined]
+                    return await strat.call_tool(
                         server_id,
                         tool_name,
                         args,
