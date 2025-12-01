@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 
 import httpx
 
-from gearmeshing_ai.mcp_client.client import McpClient
+from gearmeshing_ai.mcp_client.client_sync import McpClient
 from gearmeshing_ai.mcp_client.schemas.config import (
     GatewayConfig,
     McpClientConfig,
