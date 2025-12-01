@@ -1,4 +1,5 @@
-from .direct import DirectStrategy
-from .gateway import GatewayStrategy
+from .direct import DirectMcpStrategy
 
-__all__ = ["GatewayStrategy", "DirectStrategy"]
+__all__ = [
+    "DirectMcpStrategy",
+]
