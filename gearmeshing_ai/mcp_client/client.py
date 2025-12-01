@@ -43,7 +43,13 @@ class McpClient:
     ) -> "McpClient":
         strategies: List[object] = []
         if config.servers:
-            strategies.append(DirectMcpStrategy(config.servers, client=direct_http_client))
+            strategies.append(
+                DirectMcpStrategy(
+                    config.servers,
+                    client=direct_http_client,
+                    ttl_seconds=getattr(config, "tools_cache_ttl_seconds", 10.0),
+                )
+            )
         if config.gateway is not None:
             gw = GatewayApiClient(
                 config.gateway.base_url,
@@ -51,7 +57,13 @@ class McpClient:
                 client=gateway_mgmt_client,
                 timeout=config.gateway.request_timeout_seconds,
             )
-            strategies.append(GatewayMcpStrategy(gw, client=gateway_http_client))
+            strategies.append(
+                GatewayMcpStrategy(
+                    gw,
+                    client=gateway_http_client,
+                    ttl_seconds=getattr(config, "tools_cache_ttl_seconds", 10.0),
+                )
+            )
         return cls(strategies=strategies, agent_policies=agent_policies)
 
     def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]:

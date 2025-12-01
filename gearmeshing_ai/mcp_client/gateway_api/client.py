@@ -127,5 +127,12 @@ class GatewayApiClient:
             "name": item.get("name"),
             "url": item.get("url"),
             "transport": item.get("transport"),
+            # Optional fields (map both snake_case and camelCase keys where relevant)
+            "description": item.get("description"),
+            "tags": item.get("tags"),
+            "visibility": item.get("visibility"),
+            "team_id": item.get("team_id") or item.get("teamId"),
+            "is_active": item.get("is_active") or item.get("isActive"),
+            "metrics": item.get("metrics"),
         }
         return GatewayServer.model_validate(subset)

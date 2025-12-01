@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import AnyHttpUrl, Field
 
@@ -43,6 +43,32 @@ class GatewayServer(BaseSchema):
         description=("Transport type used by the Gateway when talking to the underlying MCP server."),
         examples=[GatewayTransport.STREAMABLE_HTTP],
     )
+    description: Optional[str] = Field(
+        None,
+        description="Optional description for the server as stored in the Gateway.",
+        max_length=1024,
+    )
+    tags: Optional[List[str]] = Field(
+        default=None,
+        description="Optional list of tags associated with the server in the Gateway.",
+    )
+    visibility: Optional[str] = Field(
+        default=None,
+        description="Visibility level of the server (e.g., public/team/private).",
+    )
+    team_id: Optional[str] = Field(
+        default=None,
+        description="Team identifier that owns or manages this server entry.",
+        max_length=128,
+    )
+    is_active: Optional[bool] = Field(
+        default=None,
+        description="Whether the server is currently active within the Gateway.",
+    )
+    metrics: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Optional metrics object reported by the Gateway for this server.",
+    )
 
 
 class GatewayServerCreate(BaseSchema):
@@ -69,4 +95,17 @@ class GatewayServerCreate(BaseSchema):
         min_length=1,
         max_length=512,
         examples=["Bearer ghp_exampletoken"],
+    )
+    tags: Optional[List[str]] = Field(
+        default=None,
+        description="Optional tags to associate with the server upon creation.",
+    )
+    visibility: Optional[str] = Field(
+        default=None,
+        description="Desired visibility (e.g., team/private).",
+    )
+    team_id: Optional[str] = Field(
+        default=None,
+        description="Team ID to associate with this server.",
+        max_length=128,
     )
