@@ -10,7 +10,7 @@ from .gateway_api.client import GatewayApiClient
 from .policy import PolicyMap, enforce_policy
 from .schemas.config import McpClientConfig
 from .schemas.core import McpTool, ToolCallResult
-from .strategy.base import AsyncStrategy, StrategyCommonMixin
+from .strategy.base import AsyncStrategy, is_mutating_tool_name
 from .strategy.gateway_async import AsyncGatewayMcpStrategy
 
 logger = logging.getLogger(__name__)
@@ -84,10 +84,7 @@ class AsyncMcpClient:
                             if policy.read_only:
 
                                 def _is_mut(t: McpTool) -> bool:
-                                    return bool(
-                                        getattr(t, "mutating", False)
-                                        or StrategyCommonMixin._is_mutating_tool_name(t.name)
-                                    )
+                                    return bool(getattr(t, "mutating", False) or is_mutating_tool_name(t.name))
 
                                 tools = [t for t in tools if not _is_mut(t)]
                         return tools
@@ -168,10 +165,10 @@ class AsyncMcpClient:
                 is_mut = (
                     bool(getattr(t, "mutating", False))
                     if t
-                    else StrategyCommonMixin._is_mutating_tool_name(tool_name)
+                    else is_mutating_tool_name(tool_name)
                 )
             except Exception:
-                is_mut = StrategyCommonMixin._is_mutating_tool_name(tool_name)
+                is_mut = is_mutating_tool_name(tool_name)
             if is_mut:
                 raise ToolAccessDeniedError(agent_id, server_id, tool_name)
         for strat in self._strategies:
