@@ -104,6 +104,8 @@ class AsyncMcpClient:
         backoff_initial: float = 0.5,
         backoff_factor: float = 2.0,
         backoff_max: float = 8.0,
+        idle_timeout: float | None = None,
+        max_total_seconds: float | None = None,
     ):
         for strat in self._strategies:
             if hasattr(strat, "stream_events"):
@@ -115,6 +117,8 @@ class AsyncMcpClient:
                     backoff_initial=backoff_initial,
                     backoff_factor=backoff_factor,
                     backoff_max=backoff_max,
+                    idle_timeout=idle_timeout,
+                    max_total_seconds=max_total_seconds,
                 )
         raise ServerNotFoundError(server_id)
 
@@ -128,6 +132,8 @@ class AsyncMcpClient:
         backoff_initial: float = 0.5,
         backoff_factor: float = 2.0,
         backoff_max: float = 8.0,
+        idle_timeout: float | None = None,
+        max_total_seconds: float | None = None,
     ):
         for strat in self._strategies:
             if hasattr(strat, "stream_events_parsed"):
@@ -139,6 +145,8 @@ class AsyncMcpClient:
                     backoff_initial=backoff_initial,
                     backoff_factor=backoff_factor,
                     backoff_max=backoff_max,
+                    idle_timeout=idle_timeout,
+                    max_total_seconds=max_total_seconds,
                 )
         raise ServerNotFoundError(server_id)
 
