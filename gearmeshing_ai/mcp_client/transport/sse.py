@@ -61,7 +61,8 @@ class BasicSseTransport:
         assert self._path is not None
         url = f"{self._base_url}/{self._path.lstrip('/')}"
         self._logger.debug("SSE connect: GET %s", url)
-        self._response = await self._client.get(url, headers=self._headers(), timeout=None)
+        req = self._client.build_request("GET", url, headers=self._headers())
+        self._response = await self._client.send(req, stream=True)
         self._response.raise_for_status()
 
     async def aiter(self) -> AsyncIterator[str]:
