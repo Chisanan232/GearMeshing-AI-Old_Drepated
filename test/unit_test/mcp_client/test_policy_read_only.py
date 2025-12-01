@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 import httpx
 import pytest
 
-from gearmeshing_ai.mcp_client.client import McpClient
+from gearmeshing_ai.mcp_client.sync import McpClient
 from gearmeshing_ai.mcp_client.errors import ToolAccessDeniedError
 from gearmeshing_ai.mcp_client.policy import ToolPolicy
 from gearmeshing_ai.mcp_client.schemas.config import McpClientConfig, ServerConfig
