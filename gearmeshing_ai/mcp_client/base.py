@@ -95,7 +95,7 @@ class ClientCommonMixin:
             res = [
                 t
                 for t in res
-                if not (getattr(t, "mutating", False) or is_mutating_tool_name(t.name))
+                if not (t.mutating or is_mutating_tool_name(t.name))
             ]
         return res
 
@@ -109,6 +109,6 @@ class ClientCommonMixin:
             return False
         if listed_lookup is not None:
             t = listed_lookup.get(tool_name)
-            if t is not None and bool(getattr(t, "mutating", False)):
+            if t is not None and t.mutating:
                 return True
         return is_mutating_tool_name(tool_name)

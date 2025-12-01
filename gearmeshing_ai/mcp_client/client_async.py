@@ -58,7 +58,7 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
                 AsyncGatewayMcpStrategy(
                     gw,
                     client=gateway_http_client,
-                    ttl_seconds=getattr(config, "tools_cache_ttl_seconds", 10.0),
+                    ttl_seconds=config.tools_cache_ttl_seconds,
                     sse_client=gateway_sse_client,
                 )
             )
@@ -71,26 +71,25 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
             if policy.allowed_servers is not None and server_id not in policy.allowed_servers:
                 raise ToolAccessDeniedError(agent_id, server_id, "<list_tools>")
         for strat in self._strategies:
-            if hasattr(strat, "list_tools"):
-                try:
-                    logger.debug(
-                        "AsyncMcpClient.list_tools: using %s for server_id=%s", type(strat).__name__, server_id
-                    )
-                    tools: List[McpTool] = await strat.list_tools(server_id)
-                    if tools:
-                        if agent_id and agent_id in self._policies:
-                            policy = self._policies[agent_id]
-                            if policy.allowed_tools is not None:
-                                tools = [t for t in tools if t.name in policy.allowed_tools]
-                            if policy.read_only:
+            try:
+                logger.debug(
+                    "AsyncMcpClient.list_tools: using %s for server_id=%s", type(strat).__name__, server_id
+                )
+                tools: List[McpTool] = await strat.list_tools(server_id)
+                if tools:
+                    if agent_id and agent_id in self._policies:
+                        policy = self._policies[agent_id]
+                        if policy.allowed_tools is not None:
+                            tools = [t for t in tools if t.name in policy.allowed_tools]
+                        if policy.read_only:
 
-                                def _is_mut(t: McpTool) -> bool:
-                                    return bool(getattr(t, "mutating", False) or is_mutating_tool_name(t.name))
+                            def _is_mut(t: McpTool) -> bool:
+                                return bool(getattr(t, "mutating", False) or is_mutating_tool_name(t.name))
 
-                                tools = [t for t in tools if not _is_mut(t)]
-                        return tools
-                except Exception as e:
-                    logger.debug("list_tools error from %s: %s", type(strat).__name__, e)
+                            tools = [t for t in tools if not _is_mut(t)]
+                    return tools
+            except Exception as e:
+                logger.debug("list_tools error from %s: %s", type(strat).__name__, e)
         raise ServerNotFoundError(server_id)
 
     async def stream_events(
@@ -107,18 +106,17 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
         max_total_seconds: float | None = None,
     ):
         for strat in self._strategies:
-            if hasattr(strat, "stream_events"):
-                return strat.stream_events(
-                    server_id,
-                    path,
-                    reconnect=reconnect,
-                    max_retries=max_retries,
-                    backoff_initial=backoff_initial,
-                    backoff_factor=backoff_factor,
-                    backoff_max=backoff_max,
-                    idle_timeout=idle_timeout,
-                    max_total_seconds=max_total_seconds,
-                )
+            return strat.stream_events(
+                server_id,
+                path,
+                reconnect=reconnect,
+                max_retries=max_retries,
+                backoff_initial=backoff_initial,
+                backoff_factor=backoff_factor,
+                backoff_max=backoff_max,
+                idle_timeout=idle_timeout,
+                max_total_seconds=max_total_seconds,
+            )
         raise ServerNotFoundError(server_id)
 
     async def stream_events_parsed(
@@ -135,18 +133,17 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
         max_total_seconds: float | None = None,
     ):
         for strat in self._strategies:
-            if hasattr(strat, "stream_events_parsed"):
-                return strat.stream_events_parsed(
-                    server_id,
-                    path,
-                    reconnect=reconnect,
-                    max_retries=max_retries,
-                    backoff_initial=backoff_initial,
-                    backoff_factor=backoff_factor,
-                    backoff_max=backoff_max,
-                    idle_timeout=idle_timeout,
-                    max_total_seconds=max_total_seconds,
-                )
+            return strat.stream_events_parsed(
+                server_id,
+                path,
+                reconnect=reconnect,
+                max_retries=max_retries,
+                backoff_initial=backoff_initial,
+                backoff_factor=backoff_factor,
+                backoff_max=backoff_max,
+                idle_timeout=idle_timeout,
+                max_total_seconds=max_total_seconds,
+            )
         raise ServerNotFoundError(server_id)
 
     async def call_tool(
@@ -173,20 +170,19 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
             if is_mut:
                 raise ToolAccessDeniedError(agent_id, server_id, tool_name)
         for strat in self._strategies:
-            if hasattr(strat, "call_tool"):
-                try:
-                    logger.debug(
-                        "AsyncMcpClient.call_tool: strategy=%s server_id=%s tool=%s agent=%s",
-                        type(strat).__name__,
-                        server_id,
-                        tool_name,
-                        agent_id,
-                    )
-                    return await strat.call_tool(
-                        server_id,
-                        tool_name,
-                        args,
-                    )
-                except Exception as e:
-                    logger.debug("call_tool error from %s: %s", type(strat).__name__, e)
+            try:
+                logger.debug(
+                    "AsyncMcpClient.call_tool: strategy=%s server_id=%s tool=%s agent=%s",
+                    type(strat).__name__,
+                    server_id,
+                    tool_name,
+                    agent_id,
+                )
+                return await strat.call_tool(
+                    server_id,
+                    tool_name,
+                    args,
+                )
+            except Exception as e:
+                logger.debug("call_tool error from %s: %s", type(strat).__name__, e)
         raise ServerNotFoundError(server_id)

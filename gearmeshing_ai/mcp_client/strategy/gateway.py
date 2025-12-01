@@ -133,7 +133,7 @@ class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
         if cached:
             for t in cached[0]:
                 if t.name == tool_name:
-                    is_mut = bool(getattr(t, "mutating", False))
+                    is_mut = t.mutating
                     break
         if is_mut is None:
             is_mut = self._is_mutating_tool_name(tool_name)
@@ -147,7 +147,7 @@ class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
 
     def _headers(self) -> Dict[str, str]:
         headers: Dict[str, str] = {"Content-Type": "application/json"}
-        token = getattr(self._gateway, "auth_token", None)
+        token = self._gateway.auth_token
         if token:
             headers["Authorization"] = token
         return headers

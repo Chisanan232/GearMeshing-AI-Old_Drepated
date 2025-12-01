@@ -45,7 +45,7 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
 
     def _headers(self) -> Dict[str, str]:
         headers: Dict[str, str] = {"Content-Type": "application/json"}
-        token = getattr(self._gateway, "auth_token", None)
+        token = self._gateway.auth_token
         if token:
             headers["Authorization"] = token
         return headers
@@ -120,7 +120,7 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         if cached:
             for t in cached[0]:
                 if t.name == tool_name:
-                    is_mut = bool(getattr(t, "mutating", False))
+                    is_mut = t.mutating
                     break
         if is_mut is None:
             is_mut = self._is_mutating_tool_name(tool_name)
@@ -148,7 +148,7 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         sse = BasicSseTransport(
             base,
             client=self._sse_client,
-            auth_token=getattr(self._gateway, "auth_token", None),
+            auth_token=self._gateway.auth_token,
             include_blank_lines=True,
             reconnect=reconnect,
             max_retries=max_retries,
