@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from typing import AsyncIterator, Optional
 
 import httpx
@@ -28,6 +29,8 @@ class BasicSseTransport:
         backoff_initial: float = 0.5,
         backoff_factor: float = 2.0,
         backoff_max: float = 8.0,
+        idle_timeout: Optional[float] = None,
+        max_total_seconds: Optional[float] = None,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._client = client or httpx.AsyncClient(timeout=10.0, follow_redirects=True)
@@ -41,6 +44,8 @@ class BasicSseTransport:
         self._backoff_max = backoff_max
         self._path: Optional[str] = None
         self._logger = logging.getLogger(__name__)
+        self._idle_timeout = idle_timeout
+        self._max_total = max_total_seconds
 
     def _headers(self) -> dict[str, str]:
         h = {"Accept": "text/event-stream"}
@@ -63,13 +68,38 @@ class BasicSseTransport:
         if self._response is None:
             raise RuntimeError("SSE not connected. Call connect() first.")
         retries = 0
+        start = time.monotonic()
         while True:
             try:
-                async for line in self._response.aiter_lines():
+                line_iter = self._response.aiter_lines()
+                while True:
+                    if self._max_total is not None and (time.monotonic() - start) >= self._max_total:
+                        return
+                    try:
+                        nxt = line_iter.__anext__()
+                        if self._idle_timeout is not None:
+                            line = await asyncio.wait_for(nxt, timeout=self._idle_timeout)
+                        else:
+                            line = await nxt
+                    except StopAsyncIteration:
+                        break
+                    except asyncio.TimeoutError:
+                        if not self._reconnect or retries >= self._max_retries:
+                            return
+                        sleep_s = min(self._backoff_initial * (self._backoff_factor ** retries), self._backoff_max)
+                        self._logger.warning(
+                            "SSE idle timeout; reconnecting in %ss (attempt %s/%s)",
+                            sleep_s,
+                            retries + 1,
+                            self._max_retries,
+                        )
+                        retries += 1
+                        await asyncio.sleep(sleep_s)
+                        await self._do_connect()
+                        break
                     if (not line) and not self._include_blank:
                         continue
                     yield line
-                # Stream ended gracefully
                 if not self._reconnect or retries >= self._max_retries:
                     break
                 sleep_s = min(self._backoff_initial * (self._backoff_factor ** retries), self._backoff_max)
