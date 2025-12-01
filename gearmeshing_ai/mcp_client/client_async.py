@@ -10,13 +10,14 @@ from .gateway_api.client import GatewayApiClient
 from .policy import PolicyMap, enforce_policy
 from .schemas.config import McpClientConfig
 from .schemas.core import McpTool, ToolCallResult
+from .clients.base import ClientCommonMixin, AsyncClientProtocol
 from .strategy.base import AsyncStrategy, is_mutating_tool_name
 from .strategy.gateway_async import AsyncGatewayMcpStrategy
 
 logger = logging.getLogger(__name__)
 
 
-class AsyncMcpClient:
+class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
     """
     Async facade for MCP client operations, focusing on Gateway-based HTTP usage.
 

@@ -10,6 +10,7 @@ from .gateway_api.client import GatewayApiClient
 from .policy import PolicyMap, enforce_policy
 from .schemas.config import McpClientConfig
 from .schemas.core import McpServerRef, McpTool, ToolCallResult
+from .clients.base import ClientCommonMixin, SyncClientProtocol
 from .strategy.base import SyncStrategy, is_mutating_tool_name
 from .strategy.direct import DirectMcpStrategy
 from .strategy.gateway import GatewayMcpStrategy
@@ -17,7 +18,7 @@ from .strategy.gateway import GatewayMcpStrategy
 logger = logging.getLogger(__name__)
 
 
-class McpClient:
+class McpClient(ClientCommonMixin, SyncClientProtocol):
     """
     High-level MCP client facade that delegates to one or more strategies and
     applies access policies.
@@ -80,12 +81,11 @@ class McpClient:
                     servers.extend(list(strat.list_servers()))
                 except Exception as e:
                     logger.debug("list_servers error from %s: %s", type(strat).__name__, e)
-        # Apply policy filter by servers if provided
         if agent_id and agent_id in self._policies:
             policy = self._policies[agent_id]
-            if policy.allowed_servers is not None:
-                before = len(servers)
-                servers = [s for s in servers if s.id in policy.allowed_servers]
+            before = len(servers)
+            servers = self._filter_servers_by_policy(servers, policy)
+            if before != len(servers):
                 logger.debug(
                     "McpClient.list_servers: policy filtered servers for agent=%s from %d to %d",
                     agent_id,
@@ -106,27 +106,13 @@ class McpClient:
                     logger.debug("McpClient.list_tools: using %s for server_id=%s", type(strat).__name__, server_id)
                     tools: List[McpTool] = list(strat.list_tools(server_id))
                     if tools:
-                        # Apply tool filter by policy if provided
                         if agent_id and agent_id in self._policies:
                             policy = self._policies[agent_id]
-                            if policy.allowed_tools is not None:
-                                before = len(tools)
-                                tools = [t for t in tools if t.name in policy.allowed_tools]
+                            before = len(tools)
+                            tools = self._filter_tools_by_policy(tools, policy)
+                            if before != len(tools):
                                 logger.debug(
-                                    "McpClient.list_tools: policy filtered tools for agent=%s from %d to %d (allow-list)",
-                                    agent_id,
-                                    before,
-                                    len(tools),
-                                )
-                            if policy.read_only:
-                                before = len(tools)
-
-                                def _is_mut(t: McpTool) -> bool:
-                                    return bool(getattr(t, "mutating", False) or is_mutating_tool_name(t.name))
-
-                                tools = [t for t in tools if not _is_mut(t)]
-                                logger.debug(
-                                    "McpClient.list_tools: policy filtered tools for agent=%s from %d to %d (read-only)",
+                                    "McpClient.list_tools: policy filtered tools for agent=%s from %d to %d",
                                     agent_id,
                                     before,
                                     len(tools),
@@ -145,16 +131,13 @@ class McpClient:
         agent_id: str | None = None,
     ) -> ToolCallResult:
         enforce_policy(agent_id=agent_id, server_id=server_id, tool_name=tool_name, policies=self._policies)
-        # Enforce read-only: block mutating tools
-        if agent_id and agent_id in self._policies and self._policies[agent_id].read_only:
-            # If we have metadata from listing, prefer it; otherwise fallback to heuristic
+        if agent_id and agent_id in self._policies:
+            policy = self._policies[agent_id]
             try:
                 listed = {t.name: t for t in self.list_tools(server_id, agent_id=agent_id)}
-                t = listed.get(tool_name)
-                is_mut = bool(getattr(t, "mutating", False)) if t else is_mutating_tool_name(tool_name)
             except Exception:
-                is_mut = is_mutating_tool_name(tool_name)
-            if is_mut:
+                listed = None
+            if self._should_block_read_only(policy, tool_name, listed):
                 raise ToolAccessDeniedError(agent_id, server_id, tool_name)
         for strat in self._strategies:
             if hasattr(strat, "call_tool"):
