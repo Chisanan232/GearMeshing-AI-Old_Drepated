@@ -26,7 +26,9 @@ class GatewayMcpStrategy:
     HTTP I/O later.
     """
 
-    def __init__(self, gateway: GatewayApiClient, *, client: Optional[httpx.Client] = None, ttl_seconds: float = 10.0) -> None:
+    def __init__(
+        self, gateway: GatewayApiClient, *, client: Optional[httpx.Client] = None, ttl_seconds: float = 10.0
+    ) -> None:
         self._gateway = gateway
         # Sync client for streamable HTTP endpoints under the Gateway
         self._http = client or httpx.Client(timeout=10.0, follow_redirects=True)
@@ -58,6 +60,7 @@ class GatewayMcpStrategy:
         # serve from cache if valid
         cached = self._tools_cache.get(server_id)
         import time as _time
+
         now = _time.monotonic()
         if cached and cached[1] > now:
             return list(cached[0])

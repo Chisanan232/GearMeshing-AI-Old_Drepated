@@ -1,17 +1,18 @@
 from __future__ import annotations
+
 from typing import Any, Dict, List
 
 import httpx
 import pytest
 
 from gearmeshing_ai.mcp_client.client import McpClient
-from gearmeshing_ai.mcp_client.schemas.config import McpClientConfig, ServerConfig
-from gearmeshing_ai.mcp_client.policy import ToolPolicy
 from gearmeshing_ai.mcp_client.errors import ToolAccessDeniedError
+from gearmeshing_ai.mcp_client.policy import ToolPolicy
+from gearmeshing_ai.mcp_client.schemas.config import McpClientConfig, ServerConfig
 
 
 def _mock_transport() -> httpx.MockTransport:
-    def handler(request: httpx.Request) -> httpx.Response:  # type: ignore[override]
+    def handler(request: httpx.Request) -> httpx.Response:
         # Direct server expected at http://mock/mcp
         if request.method == "GET" and request.url.path == "/mcp/tools":
             data: List[Dict[str, Any]] = [
@@ -34,9 +35,7 @@ def test_read_only_policy_filters_and_blocks_mutations() -> None:
 
     cfg = McpClientConfig(servers=[ServerConfig(name="direct1", endpoint_url="http://mock/mcp")])
 
-    policies = {
-        "agent": ToolPolicy(allowed_servers={"direct1"}, read_only=True)
-    }
+    policies = {"agent": ToolPolicy(allowed_servers={"direct1"}, read_only=True)}
 
     client = McpClient.from_config(
         cfg,

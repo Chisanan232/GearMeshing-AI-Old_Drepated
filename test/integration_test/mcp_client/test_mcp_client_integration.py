@@ -1,14 +1,19 @@
 from __future__ import annotations
+
 from typing import Any, Dict, List
 
 import httpx
 
 from gearmeshing_ai.mcp_client.client import McpClient
-from gearmeshing_ai.mcp_client.schemas.config import McpClientConfig, ServerConfig, GatewayConfig
+from gearmeshing_ai.mcp_client.schemas.config import (
+    GatewayConfig,
+    McpClientConfig,
+    ServerConfig,
+)
 
 
 def _mock_transport() -> httpx.MockTransport:
-    def handler(request: httpx.Request) -> httpx.Response:  # type: ignore[override]
+    def handler(request: httpx.Request) -> httpx.Response:
         # Gateway management API
         if request.method == "GET" and request.url.path == "/servers":
             data = [
@@ -36,7 +41,7 @@ def _mock_transport() -> httpx.MockTransport:
 
         # Direct server endpoints (expect endpoint_url http://mock/mcp)
         if request.method == "GET" and request.url.path == "/mcp/tools":
-            tools: List[Dict[str, Any]] = [
+            tools: List[Dict[str, Any]] = [  # type: ignore[no-redef]
                 {
                     "name": "d_echo",
                     "description": "Direct Echo",
