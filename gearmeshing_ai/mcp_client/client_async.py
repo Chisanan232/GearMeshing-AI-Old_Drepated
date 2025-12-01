@@ -10,7 +10,7 @@ from .gateway_api.client import GatewayApiClient
 from .policy import PolicyMap, enforce_policy
 from .schemas.config import McpClientConfig
 from .schemas.core import McpTool, ToolCallResult
-from .strategy.base import AsyncStrategy
+from .strategy.base import AsyncStrategy, StrategyCommonMixin
 from .strategy.gateway_async import AsyncGatewayMcpStrategy
 
 logger = logging.getLogger(__name__)
@@ -84,19 +84,16 @@ class AsyncMcpClient:
                             if policy.read_only:
 
                                 def _is_mut(t: McpTool) -> bool:
-                                    return bool(getattr(t, "mutating", False) or self._is_mutating_tool_name(t.name))
+                                    return bool(
+                                        getattr(t, "mutating", False)
+                                        or StrategyCommonMixin._is_mutating_tool_name(t.name)
+                                    )
 
                                 tools = [t for t in tools if not _is_mut(t)]
                         return tools
                 except Exception as e:
                     logger.debug("list_tools error from %s: %s", type(strat).__name__, e)
         raise ServerNotFoundError(server_id)
-
-    @staticmethod
-    def _is_mutating_tool_name(name: str) -> bool:
-        n = name.lower()
-        prefixes = ("create", "update", "delete", "remove", "post_", "put_", "patch_", "write", "set_")
-        return n.startswith(prefixes)
 
     async def stream_events(
         self,
@@ -168,9 +165,13 @@ class AsyncMcpClient:
             try:
                 listed = {t.name: t for t in await self.list_tools(server_id, agent_id=agent_id)}
                 t = listed.get(tool_name)
-                is_mut = bool(getattr(t, "mutating", False)) if t else self._is_mutating_tool_name(tool_name)
+                is_mut = (
+                    bool(getattr(t, "mutating", False))
+                    if t
+                    else StrategyCommonMixin._is_mutating_tool_name(tool_name)
+                )
             except Exception:
-                is_mut = self._is_mutating_tool_name(tool_name)
+                is_mut = StrategyCommonMixin._is_mutating_tool_name(tool_name)
             if is_mut:
                 raise ToolAccessDeniedError(agent_id, server_id, tool_name)
         for strat in self._strategies:

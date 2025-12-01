@@ -10,7 +10,7 @@ from .gateway_api.client import GatewayApiClient
 from .policy import PolicyMap, enforce_policy
 from .schemas.config import McpClientConfig
 from .schemas.core import McpServerRef, McpTool, ToolCallResult
-from .strategy.base import SyncStrategy
+from .strategy.base import SyncStrategy, StrategyCommonMixin
 from .strategy.direct import DirectMcpStrategy
 from .strategy.gateway import GatewayMcpStrategy
 
@@ -122,8 +122,10 @@ class McpClient:
                                 before = len(tools)
 
                                 def _is_mut(t: McpTool) -> bool:
-                                    # Prefer explicit metadata; fallback to heuristic for older servers
-                                    return bool(getattr(t, "mutating", False) or self._is_mutating_tool_name(t.name))
+                                    return bool(
+                                        getattr(t, "mutating", False)
+                                        or StrategyCommonMixin._is_mutating_tool_name(t.name)
+                                    )
 
                                 tools = [t for t in tools if not _is_mut(t)]
                                 logger.debug(
@@ -152,9 +154,13 @@ class McpClient:
             try:
                 listed = {t.name: t for t in self.list_tools(server_id, agent_id=agent_id)}
                 t = listed.get(tool_name)
-                is_mut = bool(getattr(t, "mutating", False)) if t else self._is_mutating_tool_name(tool_name)
+                is_mut = (
+                    bool(getattr(t, "mutating", False))
+                    if t
+                    else StrategyCommonMixin._is_mutating_tool_name(tool_name)
+                )
             except Exception:
-                is_mut = self._is_mutating_tool_name(tool_name)
+                is_mut = StrategyCommonMixin._is_mutating_tool_name(tool_name)
             if is_mut:
                 raise ToolAccessDeniedError(agent_id, server_id, tool_name)
         for strat in self._strategies:
@@ -176,9 +182,3 @@ class McpClient:
                 except Exception as e:
                     logger.debug("call_tool error from %s: %s", type(strat).__name__, e)
         raise ServerNotFoundError(server_id)
-
-    @staticmethod
-    def _is_mutating_tool_name(name: str) -> bool:
-        n = name.lower()
-        prefixes = ("create", "update", "delete", "remove", "post_", "put_", "patch_", "write", "set_")
-        return n.startswith(prefixes)
