@@ -5,6 +5,12 @@ from typing import Any, AsyncIterator, Dict, Iterable, List, Protocol, runtime_c
 from gearmeshing_ai.mcp_client.schemas.core import McpServerRef, McpTool, ToolArgument, ToolCallResult
 
 
+def is_mutating_tool_name(name: str) -> bool:
+    n = name.lower()
+    prefixes = ("create", "update", "delete", "remove", "post_", "put_", "patch_", "write", "set_")
+    return n.startswith(prefixes)
+
+
 @runtime_checkable
 class SyncStrategy(Protocol):
     def list_servers(self) -> Iterable[McpServerRef]: ...
@@ -61,6 +67,4 @@ class StrategyCommonMixin:
 
     @staticmethod
     def _is_mutating_tool_name(name: str) -> bool:
-        n = name.lower()
-        prefixes = ("create", "update", "delete", "remove", "post_", "put_", "patch_", "write", "set_")
-        return n.startswith(prefixes)
+        return is_mutating_tool_name(name)
