@@ -13,12 +13,34 @@ JSONValue = Any
 
 class ToolDescriptorDTO(BaseSchema):
     model_config = ConfigDict(extra="allow")
-    name: str
-    description: Optional[str] = None
-    title: Optional[str] = None
-    icons: Optional[List[Dict[str, JSONValue]]] = None
-    input_schema: Dict[str, JSONValue] = Field(default_factory=dict, alias="inputSchema")
-    x_mutating: Optional[bool] = Field(default=None, alias="x-mutating")
+    name: str = Field(
+        ..., description="Tool name as exposed by the MCP server (unique within a server).", examples=["get_issue"]
+    )
+    description: Optional[str] = Field(
+        default=None,
+        description="Human-readable description of what the tool does.",
+        examples=["Fetch an issue by ID from the tracker"],
+    )
+    title: Optional[str] = Field(
+        default=None, description="Optional short display title for the tool.", examples=["Get Issue"]
+    )
+    icons: Optional[List[Dict[str, JSONValue]]] = Field(
+        default=None,
+        description="Optional list of icon descriptors (vendor-defined schema).",
+        examples=[[{"type": "emoji", "value": "🛠️"}]],
+    )
+    input_schema: Dict[str, JSONValue] = Field(
+        default_factory=dict,
+        alias="inputSchema",
+        description="JSON Schema for tool input parameters (object with properties/required).",
+        examples=[{"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}],
+    )
+    x_mutating: Optional[bool] = Field(
+        default=None,
+        alias="x-mutating",
+        description="Vendor extension indicating tool mutates state. If omitted, inferred by name heuristic.",
+        examples=[True, False],
+    )
 
     def to_mcp_tool(
         self,
@@ -45,11 +67,17 @@ class ToolDescriptorDTO(BaseSchema):
 
 
 class ToolsListEnvelopeDTO(BaseSchema):
-    items: List[ToolDescriptorDTO]
+    items: List[ToolDescriptorDTO] = Field(
+        ..., description="List of tool descriptors under a generic 'items' envelope."
+    )
 
 
 class ToolInvokeRequestDTO(BaseSchema):
-    parameters: Dict[str, JSONValue] = Field(default_factory=dict)
+    parameters: Dict[str, JSONValue] = Field(
+        default_factory=dict,
+        description="Arguments to pass to the tool as per its inputSchema.",
+        examples=[{"id": "ISSUE-123"}],
+    )
 
 
 class FlexibleDTO(BaseModel):
@@ -57,12 +85,23 @@ class FlexibleDTO(BaseModel):
 
 
 class ToolInvokeResponseDTO(FlexibleDTO):
-    ok: Optional[bool] = None
+    ok: Optional[bool] = Field(
+        default=None,
+        description="Optional success flag returned by some servers. When absent, success is inferred upstream.",
+        examples=[True, False],
+    )
 
 
 class ToolsListResultDTO(BaseSchema):
-    tools: List[ToolDescriptorDTO]
-    next_cursor: Optional[str] = Field(default=None, alias="nextCursor")
+    tools: List[ToolDescriptorDTO] = Field(
+        ..., description="List of tool descriptors under a 'tools' result payload."
+    )
+    next_cursor: Optional[str] = Field(
+        default=None,
+        alias="nextCursor",
+        description="Opaque cursor for pagination to retrieve the next page of tools, if provided.",
+        examples=["abc123"],
+    )
 
 
 def extract_tool_descriptors(data: Any) -> List[ToolDescriptorDTO]:
@@ -96,8 +135,15 @@ def extract_tool_descriptors(data: Any) -> List[ToolDescriptorDTO]:
 
 
 class ToolsListPayloadDTO(BaseSchema):
-    tools: List[ToolDescriptorDTO]
-    next_cursor: Optional[str] = Field(default=None, alias="nextCursor")
+    tools: List[ToolDescriptorDTO] = Field(
+        ..., description="Normalized list of tools regardless of source response shape."
+    )
+    next_cursor: Optional[str] = Field(
+        default=None,
+        alias="nextCursor",
+        description="Pagination cursor if available.",
+        examples=["abc123"],
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -117,8 +163,16 @@ class ToolsListPayloadDTO(BaseSchema):
 
 
 class ToolInvokePayloadDTO(BaseSchema):
-    ok: Optional[bool] = None
-    data: Dict[str, JSONValue] = Field(default_factory=dict)
+    ok: Optional[bool] = Field(
+        default=None,
+        description="Optional success flag; if None, treated as success unless response indicates otherwise.",
+        examples=[True, False],
+    )
+    data: Dict[str, JSONValue] = Field(
+        default_factory=dict,
+        description="Normalized response payload. If raw body is a dict, preserved as-is under 'data'; otherwise wrapped as {'result': <value>}.",
+        examples=[{"result": {"title": "Example"}}],
+    )
 
     @model_validator(mode="before")
     @classmethod
