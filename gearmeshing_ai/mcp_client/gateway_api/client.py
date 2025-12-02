@@ -6,8 +6,8 @@ from typing import List, Optional
 import httpx
 
 from .errors import GatewayApiError, GatewayServerNotFoundError
-from .domain import GatewayServer, GatewayServerCreate
-from .dto import ListServersQuery, ServerReadDTO, ServersListPayloadDTO
+from gearmeshing_ai.mcp_client.gateway_api.models.domain import GatewayServer, GatewayServerCreate
+from gearmeshing_ai.mcp_client.gateway_api.models.dto import ListServersQuery, ServerReadDTO, ServersListPayloadDTO
 
 
 class GatewayApiClient:

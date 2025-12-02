@@ -4,9 +4,9 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import AnyHttpUrl, Field
-from ..schemas.core import McpServerRef, ServerKind, TransportType
+from gearmeshing_ai.mcp_client.schemas.core import McpServerRef, ServerKind, TransportType
 
-from ..schemas.base import BaseSchema
+from gearmeshing_ai.mcp_client.schemas.base import BaseSchema
 
 
 class GatewayTransport(str, Enum):

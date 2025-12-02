@@ -3,7 +3,7 @@ from __future__ import annotations
 import httpx
 
 from gearmeshing_ai.mcp_client.gateway_api.client import GatewayApiClient
-from gearmeshing_ai.mcp_client.gateway_api.domain import GatewayTransport
+from gearmeshing_ai.mcp_client.gateway_api.models.domain import GatewayTransport
 
 
 def _mock_transport() -> httpx.MockTransport:
