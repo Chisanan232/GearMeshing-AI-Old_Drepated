@@ -1,3 +1,9 @@
+"""Configuration models for the MCP client and strategies.
+
+Defines `GatewayConfig`, `ServerConfig`, and `McpClientConfig` for wiring the
+client and strategies. Field descriptions capture expected usage and examples.
+"""
+
 from __future__ import annotations
 
 from typing import Optional

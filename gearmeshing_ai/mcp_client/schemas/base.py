@@ -1,9 +1,16 @@
+"""Pydantic base schema utilities for MCP client models.
+
+Provides a common `BaseSchema` that enforces aliasing and extra-field policy
+for all DTOs and domain models under `gearmeshing_ai.mcp_client.schemas`.
+"""
+
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
 
 
 def _to_camel(s: str) -> str:
+    """Convert snake_case to camelCase for JSON aliasing."""
     parts = s.split("_")
     return parts[0] + "".join(p.capitalize() or "_" for p in parts[1:])
 
