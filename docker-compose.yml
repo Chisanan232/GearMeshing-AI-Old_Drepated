@@ -143,6 +143,12 @@ services:
     networks:
       - ai-dev-net
     environment:
+      # MCP server configuration
+      MCP_HOST: ${SLACK_MCP_HOST}
+      MCP_PORT: ${SLACK_MCP_PORT}
+      MCP_TRANSPORT: ${SLACK_MCP_TRANSPORT}
+      MCP_INTEGRATED: true
+      # For Slack configuration
       SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
       SLACK_SIGNING_SECRET: ${SLACK_SIGNING_SECRET}
       MQ_BACKEND: ${MQ_BACKEND}
@@ -150,6 +156,8 @@ services:
       KAFKA_TOPIC: ${SLACK_KAFKA_TOPIC}
     depends_on:
       - kafka
+    ports:
+      - ${SLACK_MCP_PORT}:${SLACK_MCP_PORT}
 
   # Project management tools
   # --------------------------
@@ -162,12 +170,19 @@ services:
     networks:
       - ai-dev-net
     environment:
+      # MCP server configuration
+      SERVER_HOST: ${CLICKUP_SERVER_HOST}
+      SERVER_PORT: ${CLICKUP_SERVER_PORT}
+      MCP_TRANSPORT: ${CLICKUP_MCP_TRANSPORT}
+      # For ClickUp configuration
       CLICKUP_API_TOKEN: ${CLICKUP_API_TOKEN}
       MQ_BACKEND: ${MQ_BACKEND}
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       KAFKA_TOPIC: ${CLICKUP_KAFKA_TOPIC}
     depends_on:
       - kafka
+    ports:
+      - ${CLICKUP_SERVER_PORT}:${CLICKUP_SERVER_PORT}
 
   # Atlassian / Jira MCP Server
 #  atlassian-mcp:
