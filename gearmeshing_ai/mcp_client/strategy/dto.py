@@ -1,0 +1,110 @@
+from __future__ import annotations
+
+from typing import Any, Dict, List, Optional, Union
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from ..schemas.base import BaseSchema
+
+
+# Use a descriptive alias without recursive typing to avoid Pydantic recursion issues
+JSONValue = Any
+
+
+class ToolDescriptorDTO(BaseSchema):
+    model_config = ConfigDict(extra="allow")
+    name: str
+    description: Optional[str] = None
+    title: Optional[str] = None
+    icons: Optional[List[Dict[str, JSONValue]]] = None
+    input_schema: Dict[str, JSONValue] = Field(default_factory=dict, alias="inputSchema")
+    x_mutating: Optional[bool] = Field(default=None, alias="x-mutating")
+
+
+class ToolsListEnvelopeDTO(BaseSchema):
+    items: List[ToolDescriptorDTO]
+
+
+class ToolInvokeRequestDTO(BaseSchema):
+    parameters: Dict[str, JSONValue] = Field(default_factory=dict)
+
+
+class FlexibleDTO(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+
+class ToolInvokeResponseDTO(FlexibleDTO):
+    ok: Optional[bool] = None
+
+
+class ToolsListResultDTO(BaseSchema):
+    tools: List[ToolDescriptorDTO]
+    next_cursor: Optional[str] = Field(default=None, alias="nextCursor")
+
+
+def extract_tool_descriptors(data: Any) -> List[ToolDescriptorDTO]:
+    items: List[ToolDescriptorDTO] = []
+    if isinstance(data, dict):
+        try:
+            env = ToolsListEnvelopeDTO.model_validate(data)
+            return list(env.items)
+        except Exception:
+            pass
+        try:
+            res = ToolsListResultDTO.model_validate(data)
+            return list(res.tools)
+        except Exception:
+            pass
+        raw = data.get("items") if isinstance(data.get("items"), list) else []
+        for x in raw:
+            if isinstance(x, dict):
+                try:
+                    items.append(ToolDescriptorDTO.model_validate(x))
+                except Exception:
+                    continue
+    elif isinstance(data, list):
+        for x in data:
+            if isinstance(x, dict):
+                try:
+                    items.append(ToolDescriptorDTO.model_validate(x))
+                except Exception:
+                    continue
+    return items
+
+
+class ToolsListPayloadDTO(BaseSchema):
+    tools: List[ToolDescriptorDTO]
+    next_cursor: Optional[str] = Field(default=None, alias="nextCursor")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce(cls, v: Any):
+        if isinstance(v, list):
+            return {"tools": v}
+        if isinstance(v, dict):
+            if isinstance(v.get("tools"), list):
+                return v
+            items = v.get("items")
+            if isinstance(items, list):
+                nv = dict(v)
+                nv["tools"] = items
+                nv.pop("items", None)
+                return nv
+        return v
+
+
+class ToolInvokePayloadDTO(BaseSchema):
+    ok: Optional[bool] = None
+    data: Dict[str, JSONValue] = Field(default_factory=dict)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce(cls, v: Any):
+        if isinstance(v, dict):
+            # Preserve full dict in data; propagate ok if present
+            nv = {"data": v}
+            if "ok" in v:
+                nv["ok"] = v.get("ok")
+            return nv
+        # Non-dict body -> wrap under result
+        return {"ok": True, "data": {"result": v}}
