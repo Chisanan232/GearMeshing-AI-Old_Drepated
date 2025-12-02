@@ -1,3 +1,9 @@
+"""Core domain models for the MCP client.
+
+Defines enums and Pydantic domain types used across strategies and clients,
+including server references, tools, invocation results, and pagination.
+"""
+
 from __future__ import annotations
 
 from enum import Enum

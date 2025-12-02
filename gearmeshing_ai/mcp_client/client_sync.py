@@ -1,3 +1,16 @@
+"""Synchronous MCP client facade.
+
+Provides a high-level API for listing servers/tools and invoking tools using one
+or more underlying strategies (direct and/or gateway). Applies optional policy
+enforcement (server/tool allow-lists and read-only constraints).
+
+Typical usage:
+    cfg = McpClientConfig(...)
+    client = McpClient.from_config(cfg)
+    tools = client.list_tools("server-id")
+    res = client.call_tool("server-id", "echo", {"text": "hi"})
+"""
+
 from __future__ import annotations
 
 import logging
@@ -19,9 +32,10 @@ logger = logging.getLogger(__name__)
 
 
 class McpClient(ClientCommonMixin, SyncClientProtocol):
-    """
-    High-level MCP client facade that delegates to one or more strategies and
-    applies access policies.
+    """High-level MCP client facade.
+
+    Delegates operations to one or more `SyncStrategy` implementations and
+    applies access policies when provided.
     """
 
     def __init__(
@@ -47,6 +61,22 @@ class McpClient(ClientCommonMixin, SyncClientProtocol):
         gateway_mgmt_client: Optional[httpx.Client] = None,
         gateway_http_client: Optional[httpx.Client] = None,
     ) -> "McpClient":
+        """Construct a client from `McpClientConfig`.
+
+        - Enables Direct strategy when `servers` are configured.
+        - Enables Gateway strategy when `gateway` config is present.
+        - Custom httpx clients may be provided for advanced settings.
+
+        Args:
+            config: The high-level MCP client configuration.
+            agent_policies: Optional per-agent access policies.
+            direct_http_client: Optional httpx.Client for direct strategy.
+            gateway_mgmt_client: Optional httpx.Client for Gateway management API.
+            gateway_http_client: Optional httpx.Client for Gateway HTTP endpoints.
+
+        Returns:
+            An initialized `McpClient`.
+        """
         strategies: List[SyncStrategy] = []
         if config.servers:
             strategies.append(
@@ -73,6 +103,17 @@ class McpClient(ClientCommonMixin, SyncClientProtocol):
         return cls(strategies=strategies, agent_policies=agent_policies)
 
     def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]:
+        """Return discovered servers across strategies, honoring policy.
+
+        If `agent_id` is provided and policies are configured, filters servers by
+        the agent's allowed server list (if present).
+
+        Args:
+            agent_id: Optional agent identifier used for policy filtering.
+
+        Returns:
+            A list of `McpServerRef` discovered across strategies after filtering.
+        """
         servers: List[McpServerRef] = []
         for strat in self._strategies:
             try:
@@ -94,6 +135,23 @@ class McpClient(ClientCommonMixin, SyncClientProtocol):
         return servers
 
     def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]:
+        """List tools for a specific server, applying policy filters.
+
+        Raises `ToolAccessDeniedError` if the agent is not permitted to access
+        the server per policy. If tools are found from a strategy, returns the
+        first non-empty result.
+
+        Args:
+            server_id: Target server identifier.
+            agent_id: Optional agent identifier used for policy enforcement.
+
+        Returns:
+            A list of `McpTool`.
+
+        Raises:
+            ToolAccessDeniedError: If access is blocked by policy.
+            ServerNotFoundError: If no strategy can serve the server.
+        """
         # Enforce server access policy first
         if agent_id and agent_id in self._policies:
             policy = self._policies[agent_id]
@@ -128,6 +186,24 @@ class McpClient(ClientCommonMixin, SyncClientProtocol):
         limit: Optional[int] = None,
         agent_id: str | None = None,
     ) -> ToolsPage:
+        """List tools with pagination when supported by the strategy/backend.
+
+        Applies server/tool filters based on policy when `agent_id` is provided.
+        Falls back to non-paginated `list_tools` when pagination is unavailable.
+
+        Args:
+            server_id: Target server identifier.
+            cursor: Cursor from a previous page.
+            limit: Max items per page.
+            agent_id: Optional agent identifier used for policy enforcement.
+
+        Returns:
+            A `ToolsPage` with `items` and optional `next_cursor`.
+
+        Raises:
+            ToolAccessDeniedError: If access is blocked by policy.
+            ServerNotFoundError: If pagination unsupported and no tools found.
+        """
         if agent_id and agent_id in self._policies:
             policy = self._policies[agent_id]
             if policy.allowed_servers is not None and server_id not in policy.allowed_servers:
@@ -155,6 +231,23 @@ class McpClient(ClientCommonMixin, SyncClientProtocol):
         *,
         agent_id: str | None = None,
     ) -> ToolCallResult:
+        """Invoke a tool through the first responding strategy.
+
+        Enforces policy (server access, tool allow-list, and read-only).
+
+        Args:
+            server_id: Target server identifier.
+            tool_name: Tool identifier to invoke.
+            args: Tool arguments.
+            agent_id: Optional agent identifier used for policy enforcement.
+
+        Returns:
+            A `ToolCallResult` describing the outcome.
+
+        Raises:
+            ToolAccessDeniedError: If access is blocked by policy.
+            ServerNotFoundError: If no strategy can handle the server.
+        """
         enforce_policy(agent_id=agent_id, server_id=server_id, tool_name=tool_name, policies=self._policies)
         if agent_id and agent_id in self._policies:
             policy = self._policies[agent_id]

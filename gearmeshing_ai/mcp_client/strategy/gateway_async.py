@@ -1,3 +1,19 @@
+"""Async Gateway MCP strategy
+
+Async strategy that discovers MCP servers via a Gateway management API and
+interacts with their streamable HTTP endpoints.
+
+Targets and use-cases:
+- Centralized discovery/management via a Gateway service.
+- Environments where auth and transport selection are delegated to Gateway.
+
+Highlights:
+- Per-server tools caching with TTL.
+- Tool invocation through Gateway endpoints.
+- Optional pagination for tools listing.
+- SSE streaming helpers (raw and parsed events).
+"""
+
 from __future__ import annotations
 
 import logging
@@ -23,13 +39,12 @@ from .models.dto import (
 
 
 class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
-    """
-    Async variant of GatewayMcpStrategy for working with streamable HTTP MCP endpoints via the Gateway.
+    """Async variant of the Gateway strategy for streamable HTTP MCP endpoints.
 
-    - Discovers base via GatewayApiClient.base_url
-    - Uses httpx.AsyncClient for HTTP
-    - Per-server tools cache with TTL
-    - Propagates Authorization header from GatewayApiClient
+    - Discovers base via `GatewayApiClient.base_url`.
+    - Uses `httpx.AsyncClient` for HTTP operations.
+    - Maintains a per-server tools cache with TTL.
+    - Propagates Authorization header from `GatewayApiClient`.
     """
 
     def __init__(
@@ -48,9 +63,22 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         self._sse_client = sse_client
 
     def _base_for(self, server_id: str) -> str:
+        """Build the Gateway streamable HTTP base URL for a server.
+
+        Args:
+            server_id: The Gateway server identifier.
+
+        Returns:
+            The base URL where MCP endpoints for the server are exposed.
+        """
         return f"{self._gateway.base_url}/servers/{server_id}/mcp"
 
     def _headers(self) -> Dict[str, str]:
+        """Build JSON headers, propagating Gateway auth if configured.
+
+        Returns:
+            A dictionary with `Content-Type` and optional `Authorization` header.
+        """
         headers: Dict[str, str] = {"Content-Type": "application/json"}
         token = self._gateway.auth_token
         if token:
@@ -58,6 +86,19 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         return headers
 
     async def list_tools(self, server_id: str) -> List[McpTool]:
+        """Return tools for a Gateway server, honoring the per-server cache.
+
+        Args:
+            server_id: The Gateway server identifier.
+
+        Returns:
+            A list of `McpTool`.
+
+        Raises:
+            httpx.HTTPStatusError: If the HTTP response indicates an error.
+            httpx.TransportError: For transport-level HTTP issues.
+            pydantic.ValidationError: If the tools payload fails validation.
+        """
         cached = self._tools_cache.get(server_id)
         now = time.monotonic()
         if cached and cached[1] > now:
@@ -81,6 +122,26 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         tool_name: str,
         args: Dict[str, Any],
     ) -> ToolCallResult:
+        """Invoke a tool via the Gateway streamable HTTP endpoint.
+
+        - POST `{gateway}/servers/{server_id}/mcp/a2a/{tool}/invoke`
+        - Payload is `ToolInvokeRequestDTO(parameters=args)`
+        - Normalized to `ToolCallResult` via `ToolInvokePayloadDTO`
+        - Invalidates cache on success when tool is mutating
+
+        Args:
+            server_id: The Gateway server identifier.
+            tool_name: The tool identifier to invoke.
+            args: The tool parameters to send.
+
+        Returns:
+            A `ToolCallResult` describing the outcome.
+
+        Raises:
+            httpx.HTTPStatusError: If the HTTP response indicates an error.
+            httpx.TransportError: For transport-level HTTP issues.
+            pydantic.ValidationError: If the invocation payload fails validation.
+        """
         base = self._base_for(server_id).rstrip("/")
         payload = ToolInvokeRequestDTO(parameters=args or {})
         self._logger.debug(
@@ -121,18 +182,24 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
     ) -> ToolsPage:
-        """
-        Return a page of tools for a server, if the backend supports pagination.
+        """Return a page of tools for a server when pagination is supported.
 
-        - cursor: opaque string from a previous response's next_cursor
-        - limit: page size hint
+        - Query built via `ToolsListQuery(cursor, limit).to_params()`
+        - Returns `ToolsPage(items, next_cursor)`
+        - Updates cache only for non-paginated requests
 
-        Example:
-            page = await strategy.list_tools_page("s1", limit=50)
-            tools = list(page.items)
-            while page.next_cursor:
-                page = await strategy.list_tools_page("s1", cursor=page.next_cursor, limit=50)
-                tools.extend(page.items)
+        Args:
+            server_id: The Gateway server identifier.
+            cursor: Cursor returned from a previous page.
+            limit: Max number of items to request per page.
+
+        Returns:
+            A `ToolsPage` with `items` and optional `next_cursor`.
+
+        Raises:
+            httpx.HTTPStatusError: If the HTTP response indicates an error.
+            httpx.TransportError: For transport-level HTTP issues.
+            pydantic.ValidationError: If the tools payload fails validation.
         """
         base = self._base_for(server_id).rstrip("/")
         q = ToolsListQuery(cursor=cursor, limit=limit)
@@ -166,6 +233,26 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         idle_timeout: Optional[float] = None,
         max_total_seconds: Optional[float] = None,
     ) -> AsyncIterator[str]:
+        """Yield raw SSE lines from the Gateway-connected server.
+
+        Args:
+            server_id: The Gateway server identifier.
+            path: The SSE path relative to the server's MCP base.
+            reconnect: Whether to reconnect automatically on errors.
+            max_retries: Max reconnection attempts when `reconnect` is True.
+            backoff_initial: Initial backoff delay in seconds.
+            backoff_factor: Exponential backoff factor.
+            backoff_max: Maximum backoff delay in seconds.
+            idle_timeout: Optional idle-timeout for the connection.
+            max_total_seconds: Optional max total streaming time.
+
+        Returns:
+            An async iterator of raw SSE lines (decoded strings).
+
+        Raises:
+            httpx.HTTPStatusError: If initial or subsequent connections fail.
+            httpx.TransportError: For transport-level HTTP issues.
+        """
         from gearmeshing_ai.mcp_client.transport.sse import BasicSseTransport
 
         base = self._base_for(server_id)
@@ -206,9 +293,27 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
     ) -> AsyncIterator[Dict[str, Any]]:
         """Yield parsed SSE events as dictionaries: {id, event, data}.
 
-        - Multiple data: lines are joined with \n
-        - Comments (lines starting with ":") are ignored
-        - Event boundary is a blank line
+        - Multiple data lines are joined with `\n`.
+        - Comments (lines starting with `:`) are ignored.
+        - Event boundary is a blank line.
+
+        Args:
+            server_id: The Gateway server identifier.
+            path: The SSE path relative to the server's MCP base.
+            reconnect: Whether to reconnect automatically on errors.
+            max_retries: Max reconnection attempts when `reconnect` is True.
+            backoff_initial: Initial backoff delay in seconds.
+            backoff_factor: Exponential backoff factor.
+            backoff_max: Maximum backoff delay in seconds.
+            idle_timeout: Optional idle-timeout for the connection.
+            max_total_seconds: Optional max total streaming time.
+
+        Returns:
+            An async iterator of parsed SSE event dictionaries.
+
+        Raises:
+            httpx.HTTPStatusError: If initial or subsequent connections fail.
+            httpx.TransportError: For transport-level HTTP issues.
         """
         buf_id: Optional[str] = None
         buf_event: Optional[str] = None

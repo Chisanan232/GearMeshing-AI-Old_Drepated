@@ -1,3 +1,10 @@
+"""Gateway management API client.
+
+Thin, focused HTTP client for interacting with the MCP Gateway's management API
+(list/get/create servers). This client does not perform tool invocations; it is
+used by strategies to discover or register servers and propagate auth.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -17,8 +24,7 @@ from .errors import GatewayApiError, GatewayServerNotFoundError
 
 
 class GatewayApiClient:
-    """
-    Thin HTTP client for the IBM Context Forge MCP Gateway management API.
+    """Thin HTTP client for the MCP Gateway management API.
 
     Responsibilities:
     - list_servers
@@ -42,6 +48,11 @@ class GatewayApiClient:
         self._logger = logging.getLogger(__name__)
 
     def _headers(self) -> dict[str, str]:
+        """Build standard JSON headers and include Authorization when provided.
+
+        Returns:
+            A dictionary with `Content-Type` and optional `Authorization` header.
+        """
         headers: dict[str, str] = {"Content-Type": "application/json"}
         if self.auth_token:
             headers["Authorization"] = self.auth_token
@@ -55,6 +66,23 @@ class GatewayApiClient:
         team_id: Optional[str] = None,
         visibility: Optional[str] = None,
     ) -> List[GatewayServer]:
+        """List servers from the Gateway, returning normalized domain models.
+
+        Arguments map to `ListServersQuery`; booleans are serialized as lowercase
+        strings per HTTP query conventions.
+
+        Args:
+            include_inactive: Include inactive servers if True.
+            tags: Optional tags filter string.
+            team_id: Optional team filter.
+            visibility: Optional visibility filter.
+
+        Returns:
+            A list of `GatewayServer` domain objects.
+
+        Raises:
+            GatewayApiError: When the Gateway responds with non-success status.
+        """
         try:
             q = ListServersQuery(
                 include_inactive=include_inactive,
@@ -81,6 +109,18 @@ class GatewayApiClient:
         return servers
 
     def get_server(self, server_id: str) -> GatewayServer:
+        """Get a single server by ID, mapping the DTO to the domain model.
+
+        Args:
+            server_id: The Gateway server resource ID.
+
+        Returns:
+            The `GatewayServer` domain object.
+
+        Raises:
+            GatewayServerNotFoundError: When the server responds with 404.
+            GatewayApiError: When a non-404 error occurs.
+        """
         try:
             self._logger.debug("GatewayApiClient.get_server: GET %s/servers/%s", self.base_url, server_id)
             r = self._client.get(f"{self.base_url}/servers/{server_id}", headers=self._headers())
@@ -104,6 +144,17 @@ class GatewayApiClient:
         return server
 
     def create_server(self, payload: GatewayServerCreate) -> GatewayServer:
+        """Create/register a server in the Gateway and return the created resource.
+
+        Args:
+            payload: The request payload describing the server to create.
+
+        Returns:
+            The created `GatewayServer` resource as a domain object.
+
+        Raises:
+            GatewayApiError: When the Gateway responds with non-success status.
+        """
         try:
             self._logger.debug("GatewayApiClient.create_server: POST %s/servers name=%s", self.base_url, payload.name)
             r = self._client.post(

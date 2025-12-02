@@ -1,3 +1,10 @@
+"""Gateway API models.
+
+Re-exports domain models (e.g., `GatewayServer`, `GatewayTransport`) and
+DTOs (e.g., `GatewayServerCreate`, `ListServersQuery`, `ServerReadDTO`,
+`ServersListPayloadDTO`) consumed by `GatewayApiClient` and strategy layers.
+"""
+
 from gearmeshing_ai.mcp_client.gateway_api.models.domain import (
     GatewayServer,
     GatewayTransport,
