@@ -1,12 +1,15 @@
 [run]
 parallel = True
 relative_files = True
-include=./fake_api_server
-
+#source=./gearmeshing_ai/
+include=./gearmeshing_ai/
 omit =
 #    */__init__.py
-    ./fake_api_server/__main__.py
+    */__main__.py
 
+[paths]
+source =
+    ./gearmeshing_ai/
 
 [report]
 # Regexes for lines to exclude from consideration
@@ -27,6 +30,9 @@ exclude_lines =
 
     # Don't complain about abstract methods, they aren't run:
     @(abc\.)?abstractmethod
+
+    # Don't complain about Protocol ellipsis lines that aren't meant to be executed:
+    \.\.\.
 
     # Don't complain about the exceptions catching of ImportError and ModuleNotFoundError, they aren't run:
     except ImportError:
