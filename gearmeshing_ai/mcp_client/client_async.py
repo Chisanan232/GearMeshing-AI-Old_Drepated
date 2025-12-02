@@ -13,6 +13,7 @@ from .schemas.config import McpClientConfig
 from .schemas.core import McpTool, ToolCallResult, ToolsPage
 from .strategy.base import AsyncStrategy, is_mutating_tool_name
 from .strategy.gateway_async import AsyncGatewayMcpStrategy
+from .strategy.direct_async import AsyncDirectMcpStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,14 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
         gateway_http_client: Optional[httpx.AsyncClient] = None,
         gateway_sse_client: Optional[httpx.AsyncClient] = None,
     ) -> "AsyncMcpClient":
-        strategies: List[AsyncGatewayMcpStrategy] = []
+        strategies: List[AsyncStrategy] = []
+        if config.servers:
+            strategies.append(
+                AsyncDirectMcpStrategy(
+                    list(config.servers),
+                    ttl_seconds=config.tools_cache_ttl_seconds,
+                )
+            )
         if config.gateway is not None:
             gw = GatewayApiClient(
                 config.gateway.base_url,
