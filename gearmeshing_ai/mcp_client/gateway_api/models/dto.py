@@ -1,3 +1,15 @@
+"""Gateway API DTO models
+
+Pydantic models that define the request/response contracts for the Gateway
+management API. These DTOs centralize serialization/deserialization and provide
+helpers to map into domain models used by the client/strategy layers.
+
+Guidelines:
+- Keep alias mappings aligned with the Gateway OpenAPI spec (e.g., teamId, isActive).
+- Normalize flexible wire formats into a single structured model (e.g., servers list).
+- Prefer validators over ad-hoc parsing in strategies.
+"""
+
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
@@ -10,6 +22,10 @@ from .domain import GatewayServer, GatewayTransport
 
 
 class ListServersQuery(BaseSchema):
+    """Query params for listing servers from the Gateway.
+
+    Use `to_params()` to serialize to HTTP query parameters (booleans are lowercased strings).
+    """
     include_inactive: Optional[bool] = Field(
         default=None,
         description="If true, include inactive servers in results. If false, only active servers. If omitted, server default applies.",
@@ -32,6 +48,7 @@ class ListServersQuery(BaseSchema):
     )
 
     def to_params(self) -> dict[str, str]:
+        """Serialize the query into HTTP params, excluding None values."""
         data = self.model_dump(exclude_none=True)
         params: dict[str, str] = {}
         for k, v in data.items():
@@ -43,6 +60,11 @@ class ListServersQuery(BaseSchema):
 
 
 class ServerReadDTO(BaseSchema):
+    """Server resource returned by the Gateway.
+
+    Includes alias mappings for `teamId` → `team_id` and `isActive` → `is_active`.
+    Use `to_gateway_server()` to map to the domain model consumed by strategies.
+    """
     id: str = Field(
         ..., description="Unique identifier of the server within the Gateway.", examples=["s1", "created-123"]
     )
@@ -85,6 +107,7 @@ class ServerReadDTO(BaseSchema):
     )
 
     def to_gateway_server(self) -> GatewayServer:
+        """Map this DTO to the `GatewayServer` domain model."""
         return GatewayServer(
             id=self.id,
             name=self.name,
@@ -100,6 +123,13 @@ class ServerReadDTO(BaseSchema):
 
 
 class ServersListPayloadDTO(BaseSchema):
+    """Normalized list payload for Gateway servers.
+
+    Accepts multiple wire shapes and normalizes to `{items: [...]}`:
+    - list → `{items: [...]}`
+    - `{items: [...]}` preserved
+    - `{servers: [...]}` → `{items: [...]}`
+    """
     items: List[ServerReadDTO] = Field(
         ..., description="Normalized list of servers returned by the Gateway list endpoints."
     )
@@ -107,6 +137,7 @@ class ServersListPayloadDTO(BaseSchema):
     @model_validator(mode="before")
     @classmethod
     def _coerce(cls, v):
+        """Coerce supported wire shapes into the normalized `{items: [...]}` form."""
         if isinstance(v, list):
             return {"items": v}
         if isinstance(v, dict):
@@ -120,6 +151,7 @@ class ServersListPayloadDTO(BaseSchema):
 
 
 class GatewayServerCreate(BaseSchema):
+    """DTO for creating/registering a server in the Gateway."""
     name: str = Field(
         ...,
         description="Desired human-readable name for the server inside the Gateway.",

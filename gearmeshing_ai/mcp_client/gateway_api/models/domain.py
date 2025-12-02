@@ -1,3 +1,10 @@
+"""Gateway domain models consumed by strategies.
+
+Defines `GatewayServer` and `GatewayTransport` used by the Gateway API client
+and strategies. Includes a helper to convert to the core `McpServerRef` used
+by higher-level clients.
+"""
+
 from __future__ import annotations
 
 from enum import Enum
@@ -14,12 +21,14 @@ from gearmeshing_ai.mcp_client.schemas.core import (
 
 
 class GatewayTransport(str, Enum):
+    """Transport types exposed by the Gateway for underlying server connectivity."""
     SSE = "SSE"
     STREAMABLE_HTTP = "STREAMABLEHTTP"
     STDIO = "STDIO"
 
 
 class GatewayServer(BaseSchema):
+    """Domain model representing a server entry managed by the Gateway."""
     id: str = Field(
         ...,
         description=(
@@ -76,6 +85,18 @@ class GatewayServer(BaseSchema):
     )
 
     def to_server_ref(self, base_url: str) -> McpServerRef:
+        """Map this Gateway resource to a `McpServerRef` for client usage.
+
+        The returned `endpoint_url` points to the Gateway streamable HTTP base
+        under `/servers/{id}/mcp/` so that strategies can call `/tools`, `/a2a`,
+        or `/sse` as appropriate.
+
+        Args:
+            base_url: Base Gateway URL used to construct streamable MCP endpoints.
+
+        Returns:
+            A `McpServerRef` pointing to the Gateway-managed MCP base for this server.
+        """
         if self.transport == GatewayTransport.STREAMABLE_HTTP:
             t = TransportType.STREAMABLE_HTTP
         elif self.transport == GatewayTransport.SSE:
