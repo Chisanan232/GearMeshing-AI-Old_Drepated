@@ -11,8 +11,8 @@ from gearmeshing_ai.mcp_client.schemas.core import (
     McpServerRef,
     McpTool,
     ToolCallResult,
-    TransportType,
     ToolsPage,
+    TransportType,
 )
 
 from .base import StrategyCommonMixin, SyncStrategy

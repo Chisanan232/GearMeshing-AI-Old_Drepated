@@ -95,9 +95,6 @@ class ToolsListQuery(BaseSchema):
         return params
 
 
- 
-
-
 class ToolsListPayloadDTO(BaseSchema):
     tools: List[ToolDescriptorDTO] = Field(
         ..., description="Normalized list of tools regardless of source response shape."
