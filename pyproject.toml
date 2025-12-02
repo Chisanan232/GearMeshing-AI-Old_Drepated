@@ -44,6 +44,7 @@ Repository = "https://github.com/Chisanan232/GearMeshing-AI"
 "Project Management" = "https://app.clickup.com/9018752317/v/f/90185307863/90182761188"
 
 [dependency-groups]
+# Dependencies for the development
 dev = [
     "pytest>=8.1.1,<10",
     "pytest-cov>=5.0.0,<8",
@@ -52,10 +53,36 @@ dev = [
     "pytest-rerunfailures~=16.0",
     "coverage~=7.10",
 ]
+# Dependencies for the pre-commit CI in development environment
 pre-commit-ci = [
     "pre-commit>=3.5.0,<5",
     "pylint>=3.1.0,<5",
     "mypy>=1.2.0,<2",
+]
+
+# Optional group for contract tests with external AI agent frameworks.
+# These are heavy optional dependencies and are not enabled by default.
+contract-test-with-ai-frameworks = [
+    # OpenAI client for function/tool schemas and Assistants
+    "openai>=1.52.0",
+    # AG2 (AutoGen v2)
+    "ag2>=0.4.0",
+    # AutoGen AgentChat and extensions
+    "autogen-agentchat>=0.4.0",
+    "autogen-ext[openai]>=0.4.0",
+    # LangChain core + LangGraph
+    "langchain>=0.3.0",
+    "langchain-core>=0.3.0",
+    "langgraph>=0.2.0",
+    # CrewAI and tools
+    "crewai>=0.56.0",
+    "crewai-tools>=0.13.0",
+    # Semantic Kernel (Python)
+    "semantic-kernel>=0.9.0b1",
+    # LlamaIndex
+    "llama-index>=0.11.0",
+    # Phidata
+    "phidata>=2.5.0",
 ]
 
 [tool.uv]
