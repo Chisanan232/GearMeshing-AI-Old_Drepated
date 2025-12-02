@@ -11,6 +11,7 @@ from .gateway_api.client import GatewayApiClient
 from .policy import PolicyMap, enforce_policy
 from .schemas.config import McpClientConfig
 from .schemas.core import McpServerRef, McpTool, ToolCallResult
+from .schemas.dto import ToolsPage
 from .strategy.base import SyncStrategy
 from .strategy.direct import DirectMcpStrategy
 from .strategy.gateway import GatewayMcpStrategy
@@ -119,6 +120,33 @@ class McpClient(ClientCommonMixin, SyncClientProtocol):
             except Exception as e:
                 logger.debug("list_tools error from %s: %s", type(strat).__name__, e)
         raise ServerNotFoundError(server_id)
+
+    def list_tools_page(
+        self,
+        server_id: str,
+        *,
+        cursor: Optional[str] = None,
+        limit: Optional[int] = None,
+        agent_id: str | None = None,
+    ) -> ToolsPage:
+        if agent_id and agent_id in self._policies:
+            policy = self._policies[agent_id]
+            if policy.allowed_servers is not None and server_id not in policy.allowed_servers:
+                raise ToolAccessDeniedError(agent_id, server_id, "<list_tools_page>")
+        for strat in self._strategies:
+            try:
+                fn = getattr(strat, "list_tools_page", None)
+                if fn is not None:
+                    page: ToolsPage = fn(server_id, cursor=cursor, limit=limit)
+                    if agent_id and agent_id in self._policies:
+                        policy = self._policies[agent_id]
+                        items = self._filter_tools_by_policy(page.items, policy)
+                        return ToolsPage(items=items, next_cursor=page.next_cursor)
+                    return page
+            except Exception as e:
+                logger.debug("list_tools_page error from %s: %s", type(strat).__name__, e)
+        tools = self.list_tools(server_id, agent_id=agent_id)
+        return ToolsPage(items=tools, next_cursor=None)
 
     def call_tool(
         self,
