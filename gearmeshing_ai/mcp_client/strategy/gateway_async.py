@@ -13,6 +13,7 @@ from gearmeshing_ai.mcp_client.schemas.core import (
 )
 
 from .base import AsyncStrategy, StrategyCommonMixin
+from .dto import ToolInvokePayloadDTO, ToolInvokeRequestDTO, ToolsListPayloadDTO
 
 
 class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
@@ -61,36 +62,10 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         r = await self._http.get(f"{base}/tools", headers=self._headers())
         r.raise_for_status()
         data = r.json()
+        payload = ToolsListPayloadDTO.model_validate(data)
         tools: List[McpTool] = []
-        if isinstance(data, list):
-            for item in data:
-                if not isinstance(item, dict):
-                    continue
-                name = item.get("name")
-                if not isinstance(name, str) or not name:
-                    continue
-                description = item.get("description") if isinstance(item.get("description"), str) else None
-                input_schema: Dict[str, Any] = (
-                    item.get("inputSchema") if isinstance(item.get("inputSchema"), dict) else {}
-                ) or {}
-                explicit = item.get("x-mutating")
-                if explicit is None:
-                    explicit = input_schema.get("x-mutating") if isinstance(input_schema, dict) else None
-                if explicit is True:
-                    is_mut = True
-                elif explicit is False:
-                    is_mut = False
-                else:
-                    is_mut = self._is_mutating_tool_name(name)
-                tools.append(
-                    McpTool(
-                        name=name,
-                        description=description,
-                        mutating=is_mut,
-                        arguments=self._infer_arguments(input_schema),
-                        raw_parameters_schema=input_schema,
-                    )
-                )
+        for td in payload.tools:
+            tools.append(td.to_mcp_tool(self._infer_arguments, self._is_mutating_tool_name))
         self._tools_cache[server_id] = (tools, now + self._ttl)
         return tools
 
@@ -101,18 +76,22 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         args: Dict[str, Any],
     ) -> ToolCallResult:
         base = self._base_for(server_id).rstrip("/")
-        payload: Dict[str, Any] = {"parameters": args or {}}
+        payload = ToolInvokeRequestDTO(parameters=args or {})
         self._logger.debug(
             "AsyncGatewayMcpStrategy.call_tool: POST %s/a2a/%s/invoke args_keys=%s",
             base,
             tool_name,
             list((args or {}).keys()),
         )
-        r = await self._http.post(f"{base}/a2a/{tool_name}/invoke", headers=self._headers(), json=payload)
+        r = await self._http.post(
+            f"{base}/a2a/{tool_name}/invoke",
+            headers=self._headers(),
+            json=payload.model_dump(by_alias=True, mode="json"),
+        )
         r.raise_for_status()
         body = r.json()
-        ok = bool(body.get("ok", True)) if isinstance(body, dict) else True
-        data: Dict[str, Any] = body if isinstance(body, dict) else {"result": body}
+        inv = ToolInvokePayloadDTO.model_validate(body)
+        result = inv.to_tool_call_result()
 
         # Invalidate cache if mutating tool (prefer cached metadata if available)
         cached = self._tools_cache.get(server_id)
@@ -127,7 +106,7 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         if is_mut:
             self._tools_cache.pop(server_id, None)
 
-        return ToolCallResult(ok=ok, data=data)
+        return result
 
     async def stream_events(
         self,

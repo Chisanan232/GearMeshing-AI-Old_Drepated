@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from gearmeshing_ai.mcp_client.base import SyncClientProtocol, AsyncClientProtocol
-from gearmeshing_ai.mcp_client.client_sync import McpClient
+from gearmeshing_ai.mcp_client.base import AsyncClientProtocol, SyncClientProtocol
 from gearmeshing_ai.mcp_client.client_async import AsyncMcpClient
+from gearmeshing_ai.mcp_client.client_sync import McpClient
 
 
 def test_sync_client_conforms_runtime_protocol() -> None:

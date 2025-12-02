@@ -1,0 +1,192 @@
+from __future__ import annotations
+
+from typing import Any, Callable, Dict, List, Optional, cast
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from ..schemas.base import BaseSchema
+from ..schemas.core import McpTool, ToolArgument, ToolCallResult
+
+# Use a descriptive alias without recursive typing to avoid Pydantic recursion issues
+JSONValue = Any
+
+
+class ToolDescriptorDTO(BaseSchema):
+    model_config = ConfigDict(extra="allow")
+    name: str = Field(
+        ..., description="Tool name as exposed by the MCP server (unique within a server).", examples=["get_issue"]
+    )
+    description: Optional[str] = Field(
+        default=None,
+        description="Human-readable description of what the tool does.",
+        examples=["Fetch an issue by ID from the tracker"],
+    )
+    title: Optional[str] = Field(
+        default=None, description="Optional short display title for the tool.", examples=["Get Issue"]
+    )
+    icons: Optional[List[Dict[str, JSONValue]]] = Field(
+        default=None,
+        description="Optional list of icon descriptors (vendor-defined schema).",
+        examples=[[{"type": "emoji", "value": "🛠️"}]],
+    )
+    input_schema: Dict[str, JSONValue] = Field(
+        default_factory=dict,
+        alias="inputSchema",
+        description="JSON Schema for tool input parameters (object with properties/required).",
+        examples=[{"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}],
+    )
+    x_mutating: Optional[bool] = Field(
+        default=None,
+        alias="x-mutating",
+        description="Vendor extension indicating tool mutates state. If omitted, inferred by name heuristic.",
+        examples=[True, False],
+    )
+
+    def to_mcp_tool(
+        self,
+        infer_arguments: Callable[[Dict[str, Any]], List[ToolArgument]],
+        is_mutating_tool_name: Callable[[str], bool],
+    ) -> McpTool:
+        schema: Dict[str, Any] = dict(self.input_schema or {})
+        explicit = self.x_mutating
+        if explicit is None and isinstance(schema, dict):
+            explicit = schema.get("x-mutating")
+        if explicit is True:
+            is_mut = True
+        elif explicit is False:
+            is_mut = False
+        else:
+            is_mut = is_mutating_tool_name(self.name)
+        return McpTool(
+            name=self.name,
+            description=self.description,
+            mutating=is_mut,
+            arguments=infer_arguments(schema),
+            raw_parameters_schema=schema,
+        )
+
+
+class ToolsListEnvelopeDTO(BaseSchema):
+    items: List[ToolDescriptorDTO] = Field(
+        ..., description="List of tool descriptors under a generic 'items' envelope."
+    )
+
+
+class ToolInvokeRequestDTO(BaseSchema):
+    parameters: Dict[str, JSONValue] = Field(
+        default_factory=dict,
+        description="Arguments to pass to the tool as per its inputSchema.",
+        examples=[{"id": "ISSUE-123"}],
+    )
+
+
+class FlexibleDTO(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+
+class ToolInvokeResponseDTO(FlexibleDTO):
+    ok: Optional[bool] = Field(
+        default=None,
+        description="Optional success flag returned by some servers. When absent, success is inferred upstream.",
+        examples=[True, False],
+    )
+
+
+class ToolsListResultDTO(BaseSchema):
+    tools: List[ToolDescriptorDTO] = Field(
+        ..., description="List of tool descriptors under a 'tools' result payload."
+    )
+    next_cursor: Optional[str] = Field(
+        default=None,
+        alias="nextCursor",
+        description="Opaque cursor for pagination to retrieve the next page of tools, if provided.",
+        examples=["abc123"],
+    )
+
+
+def extract_tool_descriptors(data: Any) -> List[ToolDescriptorDTO]:
+    items: List[ToolDescriptorDTO] = []
+    if isinstance(data, dict):
+        try:
+            env = ToolsListEnvelopeDTO.model_validate(data)
+            return list(env.items)
+        except Exception:
+            pass
+        try:
+            res = ToolsListResultDTO.model_validate(data)
+            return list(res.tools)
+        except Exception:
+            pass
+        raw = data.get("items") if isinstance(data.get("items"), list) else []
+        for x in raw or []:
+            if isinstance(x, dict):
+                try:
+                    items.append(ToolDescriptorDTO.model_validate(x))
+                except Exception:
+                    continue
+    elif isinstance(data, list):
+        for x in data:
+            if isinstance(x, dict):
+                try:
+                    items.append(ToolDescriptorDTO.model_validate(x))
+                except Exception:
+                    continue
+    return items
+
+
+class ToolsListPayloadDTO(BaseSchema):
+    tools: List[ToolDescriptorDTO] = Field(
+        ..., description="Normalized list of tools regardless of source response shape."
+    )
+    next_cursor: Optional[str] = Field(
+        default=None,
+        alias="nextCursor",
+        description="Pagination cursor if available.",
+        examples=["abc123"],
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce(cls, v: Any):
+        if isinstance(v, list):
+            return {"tools": v}
+        if isinstance(v, dict):
+            if isinstance(v.get("tools"), list):
+                return v
+            items = v.get("items")
+            if isinstance(items, list):
+                nv: Dict[str, Any] = dict(v)
+                nv["tools"] = items
+                nv.pop("items", None)
+                return nv
+        return v
+
+
+class ToolInvokePayloadDTO(BaseSchema):
+    ok: Optional[bool] = Field(
+        default=None,
+        description="Optional success flag; if None, treated as success unless response indicates otherwise.",
+        examples=[True, False],
+    )
+    data: Dict[str, JSONValue] = Field(
+        default_factory=dict,
+        description="Normalized response payload. If raw body is a dict, preserved as-is under 'data'; otherwise wrapped as {'result': <value>}.",
+        examples=[{"result": {"title": "Example"}}],
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce(cls, v: Any):
+        if isinstance(v, dict):
+            # Preserve full dict in data; propagate ok if present
+            nv: Dict[str, Any] = {"data": cast(Dict[str, Any], v)}
+            ok_val = v.get("ok")
+            if isinstance(ok_val, bool):
+                nv["ok"] = ok_val
+            return nv
+        # Non-dict body -> wrap under result
+        return {"ok": True, "data": {"result": v}}
+
+    def to_tool_call_result(self) -> ToolCallResult:
+        ok = True if self.ok is None else bool(self.ok)
+        return ToolCallResult(ok=ok, data=self.data)

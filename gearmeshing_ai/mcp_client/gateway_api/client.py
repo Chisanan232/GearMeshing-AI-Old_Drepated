@@ -5,8 +5,15 @@ from typing import List, Optional
 
 import httpx
 
+from gearmeshing_ai.mcp_client.gateway_api.models import (
+    GatewayServer,
+    GatewayServerCreate,
+    ListServersQuery,
+    ServerReadDTO,
+    ServersListPayloadDTO,
+)
+
 from .errors import GatewayApiError, GatewayServerNotFoundError
-from .models import GatewayServer, GatewayServerCreate
 
 
 class GatewayApiClient:
@@ -49,15 +56,13 @@ class GatewayApiClient:
         visibility: Optional[str] = None,
     ) -> List[GatewayServer]:
         try:
-            params: dict[str, str] = {}
-            if include_inactive is not None:
-                params["include_inactive"] = str(include_inactive).lower()
-            if tags is not None:
-                params["tags"] = tags
-            if team_id is not None:
-                params["team_id"] = team_id
-            if visibility is not None:
-                params["visibility"] = visibility
+            q = ListServersQuery(
+                include_inactive=include_inactive,
+                tags=tags,
+                team_id=team_id,
+                visibility=visibility,
+            )
+            params: dict[str, str] = q.to_params()
             self._logger.debug("GatewayApiClient.list_servers: GET %s/servers params=%s", self.base_url, params)
             r = self._client.get(f"{self.base_url}/servers", headers=self._headers(), params=params or None)
             r.raise_for_status()
@@ -68,12 +73,10 @@ class GatewayApiClient:
                 details=e.response.text,
             ) from e
         data = r.json()
-        items = data if isinstance(data, list) else data.get("items", []) if isinstance(data, dict) else []
+        payload = ServersListPayloadDTO.model_validate(data)
         servers: List[GatewayServer] = []
-        for item in items:
-            if not isinstance(item, dict):
-                continue
-            servers.append(self._parse_server(item))
+        for dto in payload.items:
+            servers.append(dto.to_gateway_server())
         self._logger.debug("GatewayApiClient.list_servers: got %d servers", len(servers))
         return servers
 
@@ -95,7 +98,8 @@ class GatewayApiClient:
         data = r.json()
         if not isinstance(data, dict):
             raise GatewayApiError("Unexpected response shape from get_server", status_code=r.status_code, details=data)
-        server = self._parse_server(data)
+        dto = ServerReadDTO.model_validate(data)
+        server = dto.to_gateway_server()
         self._logger.debug("GatewayApiClient.get_server: resolved id=%s name=%s", server.id, server.name)
         return server
 
@@ -114,25 +118,8 @@ class GatewayApiClient:
                 status_code=e.response.status_code,
                 details=e.response.text,
             ) from e
-        server = self._parse_server(
-            r.json() if r.headers.get("content-type", "application/json").startswith("application/json") else {}
-        )
+        raw = r.json() if r.headers.get("content-type", "application/json").startswith("application/json") else {}
+        dto = ServerReadDTO.model_validate(raw if isinstance(raw, dict) else {})
+        server = dto.to_gateway_server()
         self._logger.debug("GatewayApiClient.create_server: created id=%s name=%s", server.id, server.name)
         return server
-
-    def _parse_server(self, item: dict) -> GatewayServer:
-        # Map only fields we care about; ignore extra fields from ServerRead schema
-        subset = {
-            "id": item.get("id"),
-            "name": item.get("name"),
-            "url": item.get("url"),
-            "transport": item.get("transport"),
-            # Optional fields (map both snake_case and camelCase keys where relevant)
-            "description": item.get("description"),
-            "tags": item.get("tags"),
-            "visibility": item.get("visibility"),
-            "team_id": item.get("team_id") or item.get("teamId"),
-            "is_active": item.get("is_active") or item.get("isActive"),
-            "metrics": item.get("metrics"),
-        }
-        return GatewayServer.model_validate(subset)
