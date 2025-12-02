@@ -1,4 +1,27 @@
+"""Async Direct MCP strategy
+
+Async strategy for directly connecting to MCP servers over HTTP without going
+through the Gateway management API. Supports:
+
+- Listing tools with a per-server TTL cache
+- Paginated tools listing when server supports `cursor`/`limit`
+- SSE streaming helpers for server-sent events
+
+Typical usage:
+    from gearmeshing_ai.mcp_client.schemas.config import ServerConfig
+    from gearmeshing_ai.mcp_client.strategy.direct_async import AsyncDirectMcpStrategy
+
+    strat = AsyncDirectMcpStrategy([
+        ServerConfig(name="s1", endpoint_url="http://localhost:8000/mcp/"),
+    ])
+
+    tools = await strat.list_tools("s1")
+    page = await strat.list_tools_page("s1", limit=50)
+    res = await strat.call_tool("s1", "echo", {"text": "hi"})
+"""
+
 from __future__ import annotations
+from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
 import logging
 import time
@@ -19,6 +42,16 @@ from .models.dto import (
 
 
 class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
+    """Async strategy for direct HTTP access to MCP servers.
+
+    - Discovers servers from provided `ServerConfig` entries.
+    - Uses `httpx.AsyncClient` for HTTP calls and maintains a per-server tools cache.
+    - Exposes basic SSE streaming helpers using `BasicSseTransport`.
+
+    Configure `ttl_seconds` to balance cache freshness and performance.
+    Provide custom clients when you need custom timeouts/proxies.
+    """
+
     def __init__(
         self,
         servers: List[ServerConfig],
@@ -35,18 +68,54 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         self._sse_client = sse_client
 
     def _get_server(self, server_id: str) -> ServerConfig:
+        """Lookup a configured server by name.
+
+        Args:
+            server_id: The `ServerConfig.name` of the target server.
+
+        Returns:
+            The matching `ServerConfig`.
+
+        Raises:
+            ValueError: If no configured server matches `server_id`.
+        """
         for s in self._servers:
             if s.name == server_id:
                 return s
         raise ValueError(f"Unknown server_id: {server_id}")
 
     def _headers(self, cfg: ServerConfig) -> Dict[str, str]:
+        """Build HTTP headers for direct requests.
+
+        Args:
+            cfg: The server configuration providing optional `auth_token`.
+
+        Returns:
+            A dictionary of headers including `Content-Type: application/json` and
+            `Authorization` when an auth token is configured.
+        """
         headers: Dict[str, str] = {"Content-Type": "application/json"}
         if cfg.auth_token:
             headers["Authorization"] = cfg.auth_token
         return headers
 
     async def list_tools(self, server_id: str) -> List[McpTool]:
+        """Return the list of tools for a server.
+
+        - Honors a TTL cache keyed by server name.
+        - Performs GET `<endpoint>/tools` and normalizes via `ToolsListPayloadDTO`.
+
+        Args:
+            server_id: The configured `ServerConfig.name` for the server.
+
+        Returns:
+            A list of `McpTool`.
+
+        Raises:
+            httpx.HTTPStatusError: If the HTTP response indicates an error.
+            httpx.TransportError: For transport-level HTTP issues.
+            pydantic.ValidationError: If the tools payload fails validation.
+        """
         cached = self._tools_cache.get(server_id)
         now = time.monotonic()
         if cached and cached[1] > now:
@@ -71,6 +140,25 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         tool_name: str,
         args: dict[str, Any],
     ) -> ToolCallResult:
+        """Invoke a tool by POSTing to `/a2a/{tool}/invoke`.
+
+        - Body: `{ "parameters": args }`.
+        - Response normalized by `ToolInvokePayloadDTO` to `ToolCallResult`.
+        - Invalidates cache on success for mutating tools (heuristic).
+
+        Args:
+            server_id: The configured `ServerConfig.name` for the server.
+            tool_name: The tool identifier to invoke.
+            args: The tool parameters to send.
+
+        Returns:
+            A `ToolCallResult` describing the outcome.
+
+        Raises:
+            httpx.HTTPStatusError: If the HTTP response indicates an error.
+            httpx.TransportError: For transport-level HTTP issues.
+            pydantic.ValidationError: If the invocation payload fails validation.
+        """
         cfg = self._get_server(server_id)
         base = cfg.endpoint_url.rstrip("/")
         payload = ToolInvokeRequestDTO(parameters=args or {})
@@ -99,6 +187,25 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
     ) -> ToolsPage:
+        """Return a single page of tools for a server.
+
+        - Query params built via `ToolsListQuery(cursor, limit).to_params()`.
+        - Returns a `ToolsPage` with `items` and an optional `next_cursor`.
+        - Updates cache only for non-paginated calls (no cursor/limit).
+
+        Args:
+            server_id: The configured `ServerConfig.name` for the server.
+            cursor: Cursor returned from a previous page.
+            limit: Max number of items to request per page.
+
+        Returns:
+            A `ToolsPage` with `items` and optional `next_cursor`.
+
+        Raises:
+            httpx.HTTPStatusError: If the HTTP response indicates an error.
+            httpx.TransportError: For transport-level HTTP issues.
+            pydantic.ValidationError: If the tools payload fails validation.
+        """
         cfg = self._get_server(server_id)
         base = cfg.endpoint_url.rstrip("/")
         q = ToolsListQuery(cursor=cursor, limit=limit)
@@ -129,6 +236,29 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         idle_timeout: Optional[float] = None,
         max_total_seconds: Optional[float] = None,
     ) -> AsyncIterator[str]:
+        """Yield raw SSE lines from the server.
+
+        Uses `BasicSseTransport` to connect and handle retries/backoff.
+        Yields lines including blank ones (event boundary markers).
+
+        Args:
+            server_id: The configured `ServerConfig.name` for the server.
+            path: The SSE path relative to the server's endpoint base.
+            reconnect: Whether to reconnect automatically on errors.
+            max_retries: Max reconnection attempts when `reconnect` is True.
+            backoff_initial: Initial backoff delay in seconds.
+            backoff_factor: Exponential backoff factor.
+            backoff_max: Maximum backoff delay in seconds.
+            idle_timeout: Optional idle-timeout for the connection.
+            max_total_seconds: Optional max total streaming time.
+
+        Returns:
+            An async iterator of raw SSE lines (decoded strings).
+
+        Raises:
+            httpx.HTTPStatusError: If initial or subsequent connections fail.
+            httpx.TransportError: For transport-level HTTP issues.
+        """
         from gearmeshing_ai.mcp_client.transport.sse import BasicSseTransport
 
         cfg = self._get_server(server_id)
@@ -168,6 +298,30 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         idle_timeout: Optional[float] = None,
         max_total_seconds: Optional[float] = None,
     ) -> AsyncIterator[Dict[str, Any]]:
+        """Yield parsed SSE events as dicts: `{id, event, data}`.
+
+        - Multiple data lines are joined with `\n`.
+        - Comments (lines starting with `:`) are ignored.
+        - Blank line denotes event boundary.
+
+        Args:
+            server_id: The configured `ServerConfig.name` for the server.
+            path: The SSE path relative to the server's endpoint base.
+            reconnect: Whether to reconnect automatically on errors.
+            max_retries: Max reconnection attempts when `reconnect` is True.
+            backoff_initial: Initial backoff delay in seconds.
+            backoff_factor: Exponential backoff factor.
+            backoff_max: Maximum backoff delay in seconds.
+            idle_timeout: Optional idle-timeout for the connection.
+            max_total_seconds: Optional max total streaming time.
+
+        Returns:
+            An async iterator of parsed SSE event dictionaries.
+
+        Raises:
+            httpx.HTTPStatusError: If initial or subsequent connections fail.
+            httpx.TransportError: For transport-level HTTP issues.
+        """
         buf_id: Optional[str] = None
         buf_event: Optional[str] = None
         buf_data: List[str] = []
