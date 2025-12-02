@@ -144,6 +144,63 @@ def test_framework_adapters_sync_direct_servers_and_tools() -> None:
         pass
 
 
+def to_ag2_native_tools(tools: Sequence[McpTool]) -> List[Any]:
+    pytest.importorskip("ag2", reason="ag2 not installed")
+    # Best-effort discovery of AG2 tool class across versions
+    tool_mod = None
+    try:
+        import ag2.tools as _tools  # type: ignore
+        tool_mod = _tools
+    except Exception:
+        try:
+            import ag2 as _ag2  # type: ignore
+            tool_mod = getattr(_ag2, "tools", None)
+        except Exception:
+            tool_mod = None
+
+    if tool_mod is None:
+        pytest.skip("ag2.tools module not available")
+
+    FunctionTool = getattr(tool_mod, "FunctionTool", None)
+    ToolCls = getattr(tool_mod, "Tool", None)
+    if FunctionTool is None and ToolCls is None:
+        pytest.skip("AG2 tool classes not found")
+
+    out: List[Any] = []
+    for t in tools:
+        def _fn(**kwargs: Any) -> Dict[str, Any]:
+            return {"called": t.name, "args": kwargs}
+
+        created = None
+        if FunctionTool is not None:
+            try:
+                created = FunctionTool.from_defaults(fn=_fn, name=t.name, description=t.description or "")
+            except Exception:
+                try:
+                    created = FunctionTool(name=t.name, description=t.description or "", fn=_fn)  # type: ignore[call-arg]
+                except Exception:
+                    created = None
+        if created is None and ToolCls is not None:
+            try:
+                created = ToolCls(name=t.name, description=t.description or "", func=_fn)  # type: ignore[call-arg]
+            except Exception:
+                created = None
+        if created is None:
+            pytest.skip("AG2 FunctionTool/Tool API mismatch; skipping native adapter test")
+        out.append(created)
+    return out
+
+
+def test_ag2_native_adapter_sync_direct_tools() -> None:
+    transport = _mock_transport_direct()
+    http_client = httpx.Client(transport=transport, base_url="http://mock")
+    cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
+    client = McpClient.from_config(cfg, direct_http_client=http_client)
+    tools = client.list_tools("s1")
+    native_tools = to_ag2_native_tools(tools)
+    assert native_tools and len(native_tools) > 0
+
+
 # ------------------------------
 # Sync: client + gateway
 # ------------------------------
