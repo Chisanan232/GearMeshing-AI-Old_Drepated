@@ -6,7 +6,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 import httpx
 
 from gearmeshing_ai.mcp_client.gateway_api import GatewayApiClient
-from gearmeshing_ai.mcp_client.gateway_api.models import GatewayTransport
+from gearmeshing_ai.mcp_client.gateway_api.domain import GatewayTransport
 from .dto import (
     ToolInvokeRequestDTO,
     ToolsListPayloadDTO,

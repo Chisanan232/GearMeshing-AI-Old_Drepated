@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import AnyHttpUrl, Field, model_validator
 
 from ..schemas.base import BaseSchema
-from .models import GatewayServer
+from .domain import GatewayServer
 
 
 class ListServersQuery(BaseSchema):

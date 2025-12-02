@@ -6,7 +6,7 @@ from typing import List, Optional
 import httpx
 
 from .errors import GatewayApiError, GatewayServerNotFoundError
-from .models import GatewayServer, GatewayServerCreate
+from .domain import GatewayServer, GatewayServerCreate
 from .dto import ListServersQuery, ServerReadDTO, ServersListPayloadDTO
 
 
