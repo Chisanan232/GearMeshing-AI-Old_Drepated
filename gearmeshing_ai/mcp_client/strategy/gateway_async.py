@@ -14,7 +14,7 @@ from gearmeshing_ai.mcp_client.schemas.core import (
 )
 
 from .base import AsyncStrategy, StrategyCommonMixin
-from .dto import (
+from .models.dto import (
     ToolInvokePayloadDTO,
     ToolInvokeRequestDTO,
     ToolsListPayloadDTO,

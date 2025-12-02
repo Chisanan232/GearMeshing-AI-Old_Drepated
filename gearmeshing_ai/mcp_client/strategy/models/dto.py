@@ -4,8 +4,8 @@ from typing import Any, Callable, Dict, List, Optional, cast
 
 from pydantic import ConfigDict, Field, model_validator
 
-from ..schemas.base import BaseSchema
-from ..schemas.core import McpTool, ToolArgument, ToolCallResult
+from gearmeshing_ai.mcp_client.schemas.base import BaseSchema
+from gearmeshing_ai.mcp_client.schemas.core import McpTool, ToolArgument, ToolCallResult
 
 # Use a descriptive alias without recursive typing to avoid Pydantic recursion issues
 JSONValue = Any
