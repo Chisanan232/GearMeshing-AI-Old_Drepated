@@ -80,6 +80,27 @@ class ToolInvokeRequestDTO(BaseSchema):
     )
 
 
+class ToolsListQuery(BaseSchema):
+    cursor: Optional[str] = Field(
+        default=None,
+        description="Opaque pagination cursor returned by a previous tools list response.",
+        examples=["abc123"],
+    )
+    limit: Optional[int] = Field(
+        default=None,
+        description="Maximum number of tools to return for this page, if supported by server.",
+        ge=1,
+        examples=[50],
+    )
+
+    def to_params(self) -> Dict[str, str]:
+        data = self.model_dump(exclude_none=True, by_alias=True)
+        params: Dict[str, str] = {}
+        for k, v in data.items():
+            params[k] = str(v)
+        return params
+
+
 class FlexibleDTO(BaseModel):
     model_config = ConfigDict(extra="allow")
 
