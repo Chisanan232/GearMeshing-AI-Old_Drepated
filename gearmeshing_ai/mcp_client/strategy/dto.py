@@ -5,6 +5,8 @@ from typing import Any, Dict, List, Optional, Union
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..schemas.base import BaseSchema
+from ..schemas.core import McpTool, ToolArgument, ToolCallResult
+from typing import Callable
 
 
 # Use a descriptive alias without recursive typing to avoid Pydantic recursion issues
@@ -19,6 +21,29 @@ class ToolDescriptorDTO(BaseSchema):
     icons: Optional[List[Dict[str, JSONValue]]] = None
     input_schema: Dict[str, JSONValue] = Field(default_factory=dict, alias="inputSchema")
     x_mutating: Optional[bool] = Field(default=None, alias="x-mutating")
+
+    def to_mcp_tool(
+        self,
+        infer_arguments: Callable[[Dict[str, Any]], List[ToolArgument]],
+        is_mutating_tool_name: Callable[[str], bool],
+    ) -> McpTool:
+        schema: Dict[str, Any] = dict(self.input_schema or {})
+        explicit = self.x_mutating
+        if explicit is None and isinstance(schema, dict):
+            explicit = schema.get("x-mutating")
+        if explicit is True:
+            is_mut = True
+        elif explicit is False:
+            is_mut = False
+        else:
+            is_mut = is_mutating_tool_name(self.name)
+        return McpTool(
+            name=self.name,
+            description=self.description,
+            mutating=is_mut,
+            arguments=infer_arguments(schema),
+            raw_parameters_schema=schema,
+        )
 
 
 class ToolsListEnvelopeDTO(BaseSchema):
@@ -108,3 +133,7 @@ class ToolInvokePayloadDTO(BaseSchema):
             return nv
         # Non-dict body -> wrap under result
         return {"ok": True, "data": {"result": v}}
+
+    def to_tool_call_result(self) -> ToolCallResult:
+        ok = True if self.ok is None else bool(self.ok)
+        return ToolCallResult(ok=ok, data=self.data)

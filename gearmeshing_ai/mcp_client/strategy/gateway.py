@@ -53,14 +53,8 @@ class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
     def list_servers(self) -> Iterable[McpServerRef]:
         servers = self._gateway.list_servers()
         for s in servers:
-            yield McpServerRef(
-                id=s.id,
-                display_name=s.name,
-                kind=ServerKind.GATEWAY,
-                transport=self._map_transport(s.transport),
-                # Per spec, the Gateway exposes /servers/{id}/mcp/ for streamable HTTP
-                endpoint_url=f"{self._gateway.base_url}/servers/{s.id}/mcp/",
-            )
+            # Use model conversion to centralize mapping to domain ref
+            yield s.to_server_ref(self._gateway.base_url)
 
     def list_tools(self, server_id: str) -> Iterable[McpTool]:
         # serve from cache if valid
@@ -79,26 +73,7 @@ class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
         payload = ToolsListPayloadDTO.model_validate(data)
         tools: List[McpTool] = []
         for td in payload.tools:
-            name = td.name
-            input_schema: Dict[str, Any] = dict(td.input_schema or {})
-            explicit = td.x_mutating
-            if explicit is None:
-                explicit = input_schema.get("x-mutating") if isinstance(input_schema, dict) else None
-            if explicit is True:
-                is_mut = True
-            elif explicit is False:
-                is_mut = False
-            else:
-                is_mut = self._is_mutating_tool_name(name)
-            tools.append(
-                McpTool(
-                    name=name,
-                    description=td.description,
-                    mutating=is_mut,
-                    arguments=self._infer_arguments(input_schema),
-                    raw_parameters_schema=input_schema,
-                )
-            )
+            tools.append(td.to_mcp_tool(self._infer_arguments, self._is_mutating_tool_name))
         # update cache
         self._tools_cache[server_id] = (tools, now + self._ttl)
         return tools
@@ -127,8 +102,7 @@ class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
         r.raise_for_status()
         body = r.json()
         inv = ToolInvokePayloadDTO.model_validate(body)
-        ok = inv.ok
-        data: Dict[str, Any] = inv.data
+        result = inv.to_tool_call_result()
         # Invalidate cache if mutating tool and call succeeded (prefer cached metadata if available)
         cached = self._tools_cache.get(server_id)
         is_mut = None
@@ -139,9 +113,9 @@ class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
                     break
         if is_mut is None:
             is_mut = self._is_mutating_tool_name(tool_name)
-        if is_mut and ok:
+        if is_mut and result.ok:
             self._tools_cache.pop(server_id, None)
-        return ToolCallResult(ok=ok, data=data)
+        return result
 
     def _base_for(self, server_id: str) -> str:
         # Construct the streamable HTTP base under the gateway

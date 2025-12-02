@@ -65,26 +65,7 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         payload = ToolsListPayloadDTO.model_validate(data)
         tools: List[McpTool] = []
         for td in payload.tools:
-            name = td.name
-            input_schema: Dict[str, Any] = dict(td.input_schema or {})
-            explicit = td.x_mutating
-            if explicit is None:
-                explicit = input_schema.get("x-mutating") if isinstance(input_schema, dict) else None
-            if explicit is True:
-                is_mut = True
-            elif explicit is False:
-                is_mut = False
-            else:
-                is_mut = self._is_mutating_tool_name(name)
-            tools.append(
-                McpTool(
-                    name=name,
-                    description=td.description,
-                    mutating=is_mut,
-                    arguments=self._infer_arguments(input_schema),
-                    raw_parameters_schema=input_schema,
-                )
-            )
+            tools.append(td.to_mcp_tool(self._infer_arguments, self._is_mutating_tool_name))
         self._tools_cache[server_id] = (tools, now + self._ttl)
         return tools
 
@@ -110,8 +91,7 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         r.raise_for_status()
         body = r.json()
         inv = ToolInvokePayloadDTO.model_validate(body)
-        ok = inv.ok
-        data: Dict[str, Any] = inv.data
+        result = inv.to_tool_call_result()
 
         # Invalidate cache if mutating tool (prefer cached metadata if available)
         cached = self._tools_cache.get(server_id)
@@ -126,7 +106,7 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         if is_mut:
             self._tools_cache.pop(server_id, None)
 
-        return ToolCallResult(ok=ok, data=data)
+        return result
 
     async def stream_events(
         self,

@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import AnyHttpUrl, Field
+from ..schemas.core import McpServerRef, ServerKind, TransportType
 
 from ..schemas.base import BaseSchema
 
@@ -69,6 +70,21 @@ class GatewayServer(BaseSchema):
         default=None,
         description="Optional metrics object reported by the Gateway for this server.",
     )
+
+    def to_server_ref(self, base_url: str) -> McpServerRef:
+        if self.transport == GatewayTransport.STREAMABLE_HTTP:
+            t = TransportType.STREAMABLE_HTTP
+        elif self.transport == GatewayTransport.SSE:
+            t = TransportType.SSE
+        else:
+            t = TransportType.STDIO
+        return McpServerRef(
+            id=self.id,
+            display_name=self.name,
+            kind=ServerKind.GATEWAY,
+            transport=t,
+            endpoint_url=f"{base_url}/servers/{self.id}/mcp/",
+        )
 
 
 class GatewayServerCreate(BaseSchema):
