@@ -108,7 +108,7 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
             try:
                 fn = getattr(strat, "list_tools_page", None)
                 if fn is not None:
-                    page: ToolsPage = await fn(server_id, cursor=cursor, limit=limit)  # type: ignore[misc]
+                    page: ToolsPage = await fn(server_id, cursor=cursor, limit=limit)
                     if agent_id and agent_id in self._policies:
                         policy = self._policies[agent_id]
                         items = page.items

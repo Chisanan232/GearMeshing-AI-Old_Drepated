@@ -114,9 +114,7 @@ class ToolInvokeResponseDTO(FlexibleDTO):
 
 
 class ToolsListResultDTO(BaseSchema):
-    tools: List[ToolDescriptorDTO] = Field(
-        ..., description="List of tool descriptors under a 'tools' result payload."
-    )
+    tools: List[ToolDescriptorDTO] = Field(..., description="List of tool descriptors under a 'tools' result payload.")
     next_cursor: Optional[str] = Field(
         default=None,
         alias="nextCursor",

@@ -148,6 +148,7 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         # Only update cache for unpaginated fetches
         if cursor is None and limit is None:
             import time as _time
+
             now = _time.monotonic()
             self._tools_cache[server_id] = (tools, now + self._ttl)
         return ToolsPage(items=tools, next_cursor=payload.next_cursor)
