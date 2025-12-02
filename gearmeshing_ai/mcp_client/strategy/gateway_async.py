@@ -11,9 +11,9 @@ from gearmeshing_ai.mcp_client.schemas.core import (
     McpTool,
     ToolCallResult,
 )
-from .dto import ToolInvokeRequestDTO, ToolsListPayloadDTO, ToolInvokePayloadDTO
 
 from .base import AsyncStrategy, StrategyCommonMixin
+from .dto import ToolInvokePayloadDTO, ToolInvokeRequestDTO, ToolsListPayloadDTO
 
 
 class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):

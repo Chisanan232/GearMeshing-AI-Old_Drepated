@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import AnyHttpUrl, Field, model_validator
 
 from gearmeshing_ai.mcp_client.schemas.base import BaseSchema
+
 from .domain import GatewayServer
 
 

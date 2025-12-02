@@ -5,9 +5,17 @@ from typing import List, Optional
 
 import httpx
 
+from gearmeshing_ai.mcp_client.gateway_api.models.domain import (
+    GatewayServer,
+    GatewayServerCreate,
+)
+from gearmeshing_ai.mcp_client.gateway_api.models.dto import (
+    ListServersQuery,
+    ServerReadDTO,
+    ServersListPayloadDTO,
+)
+
 from .errors import GatewayApiError, GatewayServerNotFoundError
-from gearmeshing_ai.mcp_client.gateway_api.models.domain import GatewayServer, GatewayServerCreate
-from gearmeshing_ai.mcp_client.gateway_api.models.dto import ListServersQuery, ServerReadDTO, ServersListPayloadDTO
 
 
 class GatewayApiClient:
@@ -117,4 +125,3 @@ class GatewayApiClient:
         server = dto.to_gateway_server()
         self._logger.debug("GatewayApiClient.create_server: created id=%s name=%s", server.id, server.name)
         return server
-

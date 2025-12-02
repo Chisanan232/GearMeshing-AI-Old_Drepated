@@ -7,11 +7,6 @@ import httpx
 
 from gearmeshing_ai.mcp_client.gateway_api import GatewayApiClient
 from gearmeshing_ai.mcp_client.gateway_api.models.domain import GatewayTransport
-from .dto import (
-    ToolInvokeRequestDTO,
-    ToolsListPayloadDTO,
-    ToolInvokePayloadDTO,
-)
 from gearmeshing_ai.mcp_client.schemas.core import (
     McpServerRef,
     McpTool,
@@ -20,6 +15,11 @@ from gearmeshing_ai.mcp_client.schemas.core import (
 )
 
 from .base import StrategyCommonMixin, SyncStrategy
+from .dto import (
+    ToolInvokePayloadDTO,
+    ToolInvokeRequestDTO,
+    ToolsListPayloadDTO,
+)
 
 
 class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):

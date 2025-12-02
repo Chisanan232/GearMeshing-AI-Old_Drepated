@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..schemas.base import BaseSchema
 from ..schemas.core import McpTool, ToolArgument, ToolCallResult
-from typing import Callable
-
 
 # Use a descriptive alias without recursive typing to avoid Pydantic recursion issues
 JSONValue = Any
@@ -81,7 +79,7 @@ def extract_tool_descriptors(data: Any) -> List[ToolDescriptorDTO]:
         except Exception:
             pass
         raw = data.get("items") if isinstance(data.get("items"), list) else []
-        for x in raw:
+        for x in raw or []:
             if isinstance(x, dict):
                 try:
                     items.append(ToolDescriptorDTO.model_validate(x))
