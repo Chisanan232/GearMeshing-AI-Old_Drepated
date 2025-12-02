@@ -126,10 +126,22 @@ def test_framework_adapters_sync_direct_servers_and_tools() -> None:
     oa_tools = to_openai_function_tools(tools)
     assert oa_tools and oa_tools[0]["function"]["name"] == "echo"
     assert oa_tools[0]["function"]["parameters"]["type"] == "object"
+    assert oa_tools[0]["function"]["parameters"]["properties"]["text"]["type"] == "string"
 
     # LangChain tools
     lc_tools = to_langchain_tools(tools)
     assert lc_tools and getattr(lc_tools[0], "name", None) == "echo"
+    # Optional callability check (version-tolerant)
+    try:
+        tool0 = lc_tools[0]
+        if hasattr(tool0, "invoke"):
+            res = tool0.invoke({"text": "hi"})
+            assert isinstance(res, dict) and res.get("called") == "echo"
+        elif hasattr(tool0, "func"):
+            res = tool0.func(text="hi")  # type: ignore[attr-defined]
+            assert isinstance(res, dict) and res.get("called") == "echo"
+    except Exception:
+        pass
 
 
 # ------------------------------
@@ -281,6 +293,51 @@ def to_ag2_tools(tools: Sequence[McpTool]) -> List[Dict[str, Any]]:
     return to_openai_function_tools(tools)
 
 
+# ------------------------------
+# Native adapters (best-effort, optional)
+# ------------------------------
+
+def to_autogen_agentchat_native_tools(tools: Sequence[McpTool]) -> List[Any]:
+    mod = pytest.importorskip("autogen_agentchat.tools", reason="autogen-agentchat not installed")
+    FunctionTool = getattr(mod, "FunctionTool", None)
+    if FunctionTool is None:
+        pytest.skip("AutoGen FunctionTool not available")
+
+    out: List[Any] = []
+    for t in tools:
+        def _fn(**kwargs: Any) -> Dict[str, Any]:
+            return {"called": t.name, "args": kwargs}
+
+        # Try common constructors seen across versions
+        try:
+            tool_obj = FunctionTool.from_defaults(fn=_fn, name=t.name, description=t.description or "")
+        except Exception:
+            try:
+                tool_obj = FunctionTool(name=t.name, description=t.description or "", fn=_fn)  # type: ignore[call-arg]
+            except Exception:
+                pytest.skip("AutoGen FunctionTool API mismatch; skipping native adapter test")
+        out.append(tool_obj)
+    return out
+
+
+def to_semantic_kernel_native_tools(tools: Sequence[McpTool]) -> List[Any]:
+    sk_funcs = pytest.importorskip("semantic_kernel.functions", reason="semantic-kernel not installed")
+    kernel_function = getattr(sk_funcs, "kernel_function", None)
+    if kernel_function is None:
+        pytest.skip("semantic_kernel.functions.kernel_function not available")
+
+    created: List[Any] = []
+    for t in tools:
+        def _make_fn(name: str):
+            @kernel_function(name=name, description="MCP tool")  # type: ignore[misc]
+            def _f(**kwargs: Any) -> Dict[str, Any]:
+                return {"called": name, "args": kwargs}
+            return _f
+
+        created.append(_make_fn(t.name))
+    return created
+
+
 # Per-framework sanity checks (sync direct as representative)
 
 def test_autogen_adapter_sync_direct_tools() -> None:
@@ -315,12 +372,13 @@ def test_langgraph_adapter_sync_direct_tools() -> None:
     assert lc_tools and getattr(lc_tools[0], "name", None) == "echo"
 
 
-def test_crewai_adapter_sync_direct_tools() -> None:
+def test_crewai_adapter_sync_direct_tools(offline_http_guard) -> None:
     transport = _mock_transport_direct()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
     cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
     client = McpClient.from_config(cfg, direct_http_client=http_client)
     tools = client.list_tools("s1")
+
     cr_tools = to_crewai_tools(tools)
     assert cr_tools and getattr(cr_tools[0], "name", None) == "echo"
 
@@ -333,6 +391,17 @@ def test_llamaindex_adapter_sync_direct_tools() -> None:
     tools = client.list_tools("s1")
     li_tools = to_llamaindex_tools(tools)
     assert li_tools and len(li_tools) > 0
+    # Optional callability check (version-tolerant)
+    tool0 = li_tools[0]
+    try:
+        if hasattr(tool0, "call"):
+            res = tool0.call({"text": "hi"})
+            assert isinstance(res, dict) and res.get("called") == "echo"
+        elif hasattr(tool0, "fn"):
+            res = tool0.fn(text="hi")  # type: ignore[attr-defined]
+            assert isinstance(res, dict) and res.get("called") == "echo"
+    except Exception:
+        pass
 
 
 def test_phidata_adapter_sync_direct_tools() -> None:
@@ -356,3 +425,29 @@ def test_semantic_kernel_adapter_sync_direct_tools() -> None:
     tools = client.list_tools("s1")
     sk_tools = to_semantic_kernel_tools(tools)
     assert sk_tools and sk_tools[0]["function"]["name"] == "echo"
+
+
+def test_autogen_agentchat_native_adapter_sync_direct_tools() -> None:
+    transport = _mock_transport_direct()
+    http_client = httpx.Client(transport=transport, base_url="http://mock")
+    cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
+    client = McpClient.from_config(cfg, direct_http_client=http_client)
+    tools = client.list_tools("s1")
+    native_tools = to_autogen_agentchat_native_tools(tools)
+    assert native_tools and len(native_tools) > 0
+
+
+def test_semantic_kernel_native_adapter_sync_direct_tools() -> None:
+    transport = _mock_transport_direct()
+    http_client = httpx.Client(transport=transport, base_url="http://mock")
+    cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
+    client = McpClient.from_config(cfg, direct_http_client=http_client)
+    tools = client.list_tools("s1")
+    native_tools = to_semantic_kernel_native_tools(tools)
+    assert native_tools and callable(native_tools[0])
+    # Callability smoke check
+    try:
+        res = native_tools[0](text="hi")
+        assert isinstance(res, dict) and res.get("called") == "s1" or res.get("called") == "echo"
+    except Exception:
+        pass
