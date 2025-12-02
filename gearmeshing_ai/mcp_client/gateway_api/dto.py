@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import AnyHttpUrl, Field, model_validator
 
 from ..schemas.base import BaseSchema
+from .models import GatewayServer
 
 
 class ListServersQuery(BaseSchema):
@@ -35,6 +36,20 @@ class ServerReadDTO(BaseSchema):
     team_id: Optional[str] = Field(default=None, alias="teamId")
     is_active: Optional[bool] = Field(default=None, alias="isActive")
     metrics: Optional[Dict[str, Any]] = None
+
+    def to_gateway_server(self) -> GatewayServer:
+        return GatewayServer(
+            id=self.id,
+            name=self.name,
+            url=self.url,
+            transport=self.transport,
+            description=self.description,
+            tags=self.tags,
+            visibility=self.visibility,
+            team_id=self.team_id,
+            is_active=self.is_active,
+            metrics=self.metrics,
+        )
 
 
 class ServerCreateDTO(BaseSchema):

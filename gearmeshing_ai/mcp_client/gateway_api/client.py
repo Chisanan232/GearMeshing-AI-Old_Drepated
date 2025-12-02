@@ -70,7 +70,7 @@ class GatewayApiClient:
         payload = ServersListPayloadDTO.model_validate(data)
         servers: List[GatewayServer] = []
         for dto in payload.items:
-            servers.append(self._parse_server(dto.model_dump(by_alias=False)))
+            servers.append(dto.to_gateway_server())
         self._logger.debug("GatewayApiClient.list_servers: got %d servers", len(servers))
         return servers
 
@@ -93,7 +93,7 @@ class GatewayApiClient:
         if not isinstance(data, dict):
             raise GatewayApiError("Unexpected response shape from get_server", status_code=r.status_code, details=data)
         dto = ServerReadDTO.model_validate(data)
-        server = self._parse_server(dto.model_dump(by_alias=False))
+        server = dto.to_gateway_server()
         self._logger.debug("GatewayApiClient.get_server: resolved id=%s name=%s", server.id, server.name)
         return server
 
@@ -114,23 +114,7 @@ class GatewayApiClient:
             ) from e
         raw = r.json() if r.headers.get("content-type", "application/json").startswith("application/json") else {}
         dto = ServerReadDTO.model_validate(raw if isinstance(raw, dict) else {})
-        server = self._parse_server(dto.model_dump(by_alias=False))
+        server = dto.to_gateway_server()
         self._logger.debug("GatewayApiClient.create_server: created id=%s name=%s", server.id, server.name)
         return server
 
-    def _parse_server(self, item: dict) -> GatewayServer:
-        # Map only fields we care about; ignore extra fields from ServerRead schema
-        subset = {
-            "id": item.get("id"),
-            "name": item.get("name"),
-            "url": item.get("url"),
-            "transport": item.get("transport"),
-            # Optional fields (map both snake_case and camelCase keys where relevant)
-            "description": item.get("description"),
-            "tags": item.get("tags"),
-            "visibility": item.get("visibility"),
-            "team_id": item.get("team_id") or item.get("teamId"),
-            "is_active": item.get("is_active") or item.get("isActive"),
-            "metrics": item.get("metrics"),
-        }
-        return GatewayServer.model_validate(subset)
