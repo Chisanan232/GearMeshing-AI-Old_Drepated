@@ -1,3 +1,15 @@
+"""DTO models used by MCP strategies (Gateway/Direct).
+
+These Pydantic models centralize serialization/deserialization for strategy
+HTTP interactions so that strategies remain thin. They also provide helpers to
+map DTOs into core domain models used by the client layer.
+
+Guidelines:
+- Prefer adding validators here instead of ad-hoc parsing in strategies.
+- Keep aliasing and coercions explicit to match MCP server behaviors.
+- Provide small, focused helpers (e.g., `to_mcp_tool`, `to_params`).
+"""
+
 from __future__ import annotations
 
 from typing import Any, Callable, Dict, List, Optional, cast
@@ -12,6 +24,16 @@ JSONValue = Any
 
 
 class ToolDescriptorDTO(BaseSchema):
+    """Descriptor of a tool returned by an MCP server.
+
+    Purpose:
+    - Capture raw tool metadata including JSON Schema for inputs.
+    - Provide mapping to domain `McpTool` via `to_mcp_tool`.
+
+    Usage:
+    - Parsed from server responses via `ToolsListPayloadDTO`.
+    - Call `to_mcp_tool(infer_arguments, is_mutating_tool_name)` to convert.
+    """
     model_config = ConfigDict(extra="allow")
     name: str = Field(
         ..., description="Tool name as exposed by the MCP server (unique within a server).", examples=["get_issue"]
@@ -47,6 +69,11 @@ class ToolDescriptorDTO(BaseSchema):
         infer_arguments: Callable[[Dict[str, Any]], List[ToolArgument]],
         is_mutating_tool_name: Callable[[str], bool],
     ) -> McpTool:
+        """Map this descriptor to the `McpTool` domain model.
+
+        - Arguments are inferred from `input_schema` via the provided `infer_arguments` callback.
+        - Mutating flag is decided with precedence: explicit `x-mutating` → schema `x-mutating` → heuristic name.
+        """
         schema: Dict[str, Any] = dict(self.input_schema or {})
         explicit = self.x_mutating
         if explicit is None and isinstance(schema, dict):
@@ -67,6 +94,10 @@ class ToolDescriptorDTO(BaseSchema):
 
 
 class ToolInvokeRequestDTO(BaseSchema):
+    """Payload for invoking a tool: `{parameters: {...}}`.
+
+    Build using keyword args or dict literal; dump via `model_dump(by_alias=True, mode="json")` when sending.
+    """
     parameters: Dict[str, JSONValue] = Field(
         default_factory=dict,
         description="Arguments to pass to the tool as per its inputSchema.",
@@ -75,6 +106,7 @@ class ToolInvokeRequestDTO(BaseSchema):
 
 
 class ToolsListQuery(BaseSchema):
+    """Query parameters for listing tools with optional pagination."""
     cursor: Optional[str] = Field(
         default=None,
         description="Opaque pagination cursor returned by a previous tools list response.",
@@ -88,6 +120,10 @@ class ToolsListQuery(BaseSchema):
     )
 
     def to_params(self) -> Dict[str, str]:
+        """Serialize to HTTP query params, excluding None values.
+
+        Values are stringified to be safe for `httpx`/requests.
+        """
         data = self.model_dump(exclude_none=True, by_alias=True)
         params: Dict[str, str] = {}
         for k, v in data.items():
@@ -96,6 +132,13 @@ class ToolsListQuery(BaseSchema):
 
 
 class ToolsListPayloadDTO(BaseSchema):
+    """Normalized payload for a tools listing response.
+
+    Accepts multiple wire shapes:
+    - List of tool descriptors → `{tools: [...]}`
+    - `{items: [...]}` → `{tools: [...]}`
+    - `{tools: [...]}` preserved
+    """
     tools: List[ToolDescriptorDTO] = Field(
         ..., description="Normalized list of tools regardless of source response shape."
     )
@@ -109,6 +152,7 @@ class ToolsListPayloadDTO(BaseSchema):
     @model_validator(mode="before")
     @classmethod
     def _coerce(cls, v: Any):
+        """Coerce supported wire shapes into the normalized model structure."""
         if isinstance(v, list):
             return {"tools": v}
         if isinstance(v, dict):
@@ -124,6 +168,12 @@ class ToolsListPayloadDTO(BaseSchema):
 
 
 class ToolInvokePayloadDTO(BaseSchema):
+    """Normalized envelope for a tool invocation response.
+
+    Accepts:
+    - Dict bodies, preserving keys in `data` and lifting a top-level `ok` if present.
+    - Non-dict bodies, wrapped under `data={"result": ...}` with implicit `ok=True`.
+    """
     ok: Optional[bool] = Field(
         default=None,
         description="Optional success flag; if None, treated as success unless response indicates otherwise.",
@@ -138,10 +188,15 @@ class ToolInvokePayloadDTO(BaseSchema):
     @model_validator(mode="before")
     @classmethod
     def _coerce(cls, v: Any):
+        """Coerce raw response into `{ok?, data}` while excluding `ok` from `data`."""
         if isinstance(v, dict):
-            # Preserve full dict in data; propagate ok if present
-            nv: Dict[str, Any] = {"data": cast(Dict[str, Any], v)}
-            ok_val = v.get("ok")
+            # Preserve dict in data but do not carry 'ok' inside data payload
+            raw = cast(Dict[str, Any], v)
+            data_only: Dict[str, Any] = dict(raw)
+            if "ok" in data_only:
+                data_only = {k: val for k, val in data_only.items() if k != "ok"}
+            nv: Dict[str, Any] = {"data": data_only}
+            ok_val = raw.get("ok")
             if isinstance(ok_val, bool):
                 nv["ok"] = ok_val
             return nv
@@ -149,5 +204,6 @@ class ToolInvokePayloadDTO(BaseSchema):
         return {"ok": True, "data": {"result": v}}
 
     def to_tool_call_result(self) -> ToolCallResult:
+        """Convert normalized envelope into a `ToolCallResult` domain object."""
         ok = True if self.ok is None else bool(self.ok)
         return ToolCallResult(ok=ok, data=self.data)
