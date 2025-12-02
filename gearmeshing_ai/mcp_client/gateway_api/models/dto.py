@@ -6,7 +6,7 @@ from pydantic import AnyHttpUrl, Field, model_validator
 
 from gearmeshing_ai.mcp_client.schemas.base import BaseSchema
 
-from .domain import GatewayServer
+from .domain import GatewayServer, GatewayTransport
 
 
 class ListServersQuery(BaseSchema):
@@ -69,3 +69,43 @@ class ServersListPayloadDTO(BaseSchema):
                 nv["items"] = nv.pop("servers")
                 return nv
         return v
+
+
+class GatewayServerCreate(BaseSchema):
+    name: str = Field(
+        ...,
+        description="Desired human-readable name for the server inside the Gateway.",
+        min_length=1,
+        max_length=128,
+        examples=["clickup-mcp"],
+    )
+    url: AnyHttpUrl = Field(
+        ...,
+        description="Base URL of the MCP server to be registered in the Gateway.",
+        examples=["http://clickup-mcp:8000/mcp/"],
+    )
+    transport: GatewayTransport = Field(
+        ...,
+        description="Transport used to connect the Gateway to the underlying MCP server.",
+        examples=[GatewayTransport.STREAMABLE_HTTP],
+    )
+    auth_token: Optional[str] = Field(
+        None,
+        description="Optional token the Gateway should use when calling the underlying server.",
+        min_length=1,
+        max_length=512,
+        examples=["Bearer ghp_exampletoken"],
+    )
+    tags: Optional[List[str]] = Field(
+        default=None,
+        description="Optional tags to associate with the server upon creation.",
+    )
+    visibility: Optional[str] = Field(
+        default=None,
+        description="Desired visibility (e.g., team/private).",
+    )
+    team_id: Optional[str] = Field(
+        default=None,
+        description="Team ID to associate with this server.",
+        max_length=128,
+    )

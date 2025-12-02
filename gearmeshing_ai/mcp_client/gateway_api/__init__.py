@@ -1,4 +1,4 @@
-from gearmeshing_ai.mcp_client.gateway_api.models.domain import (
+from gearmeshing_ai.mcp_client.gateway_api.models import (
     GatewayServer,
     GatewayServerCreate,
     GatewayTransport,

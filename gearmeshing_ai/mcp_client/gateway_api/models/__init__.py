@@ -1,9 +1,9 @@
 from gearmeshing_ai.mcp_client.gateway_api.models.domain import (
     GatewayServer,
-    GatewayServerCreate,
     GatewayTransport,
 )
 from gearmeshing_ai.mcp_client.gateway_api.models.dto import (
+    GatewayServerCreate,
     ListServersQuery,
     ServerReadDTO,
     ServersListPayloadDTO,

@@ -5,11 +5,9 @@ from typing import List, Optional
 
 import httpx
 
-from gearmeshing_ai.mcp_client.gateway_api.models.domain import (
+from gearmeshing_ai.mcp_client.gateway_api.models import (
     GatewayServer,
     GatewayServerCreate,
-)
-from gearmeshing_ai.mcp_client.gateway_api.models.dto import (
     ListServersQuery,
     ServerReadDTO,
     ServersListPayloadDTO,
