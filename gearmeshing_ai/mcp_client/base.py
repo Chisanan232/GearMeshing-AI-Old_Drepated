@@ -1,3 +1,13 @@
+"""Client protocols and shared helpers for the MCP client facade.
+
+Defines the sync/async client protocols that concrete clients must satisfy,
+and a `ClientCommonMixin` with helpers for policy-based filtering.
+
+Usage:
+- `McpClient` and `AsyncMcpClient` implement these protocols.
+- Strategies focus on transport; clients focus on policy and composition.
+"""
+
 from __future__ import annotations
 
 from typing import (
@@ -26,6 +36,11 @@ from gearmeshing_ai.mcp_client.strategy.base import is_mutating_tool_name
 
 @runtime_checkable
 class SyncClientProtocol(Protocol):
+    """Protocol for synchronous MCP clients.
+
+    Concrete implementations should provide discovery, listing, pagination,
+    and tool invocation through one or more underlying `SyncStrategy`s.
+    """
     @classmethod
     def from_config(
         cls,
@@ -62,6 +77,11 @@ class SyncClientProtocol(Protocol):
 
 @runtime_checkable
 class AsyncClientProtocol(Protocol):
+    """Protocol for asynchronous MCP clients.
+
+    Concrete implementations should provide async listing, pagination, tool
+    invocation, and SSE streaming helpers.
+    """
     @classmethod
     async def from_config(
         cls,
@@ -127,11 +147,22 @@ class AsyncClientProtocol(Protocol):
 
 
 class ClientCommonMixin:
+    """Shared policy helpers for sync/async client facades."""
+
     def _filter_servers_by_policy(
         self,
         servers: List[McpServerRef],
         policy: Optional[ToolPolicy],
     ) -> List[McpServerRef]:
+        """Filter servers by `policy.allowed_servers` if configured.
+
+        Args:
+            servers: The list of discovered `McpServerRef`.
+            policy: Optional `ToolPolicy` to apply.
+
+        Returns:
+            The filtered list of servers. If no policy or no allow-list is set, returns the original list.
+        """
         if not policy or policy.allowed_servers is None:
             return servers
         allowed = policy.allowed_servers
@@ -142,6 +173,15 @@ class ClientCommonMixin:
         tools: List[McpTool],
         policy: Optional[ToolPolicy],
     ) -> List[McpTool]:
+        """Apply allowed_tools and read-only filtering to a tool list.
+
+        Args:
+            tools: The tool list to filter.
+            policy: Optional `ToolPolicy` whose `allowed_tools` and `read_only` fields are honored.
+
+        Returns:
+            The filtered tool list.
+        """
         if not policy:
             return tools
         res = tools
@@ -157,6 +197,16 @@ class ClientCommonMixin:
         tool_name: str,
         listed_lookup: Optional[Dict[str, McpTool]] = None,
     ) -> bool:
+        """Return True if a call to `tool_name` should be blocked by read-only policy.
+
+        Args:
+            policy: Optional `ToolPolicy` to check.
+            tool_name: The tool name being invoked.
+            listed_lookup: Optional mapping of tool name to `McpTool` metadata to improve mutating detection.
+
+        Returns:
+            True if the call should be blocked due to read-only policy; otherwise False.
+        """
         if not policy or not policy.read_only:
             return False
         if listed_lookup is not None:

@@ -1,3 +1,10 @@
+"""Asynchronous MCP client facade.
+
+Provides a high-level async API for listing tools, invoking tools, and
+optionally streaming events using one or more underlying async strategies
+(direct and/or gateway). Applies optional policy enforcement.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -19,10 +26,10 @@ logger = logging.getLogger(__name__)
 
 
 class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
-    """
-    Async facade for MCP client operations, focusing on Gateway-based HTTP usage.
+    """Async facade for MCP client operations.
 
-    Provides async list_tools/call_tool via AsyncGatewayMcpStrategy and enforces policies.
+    Delegates to one or more `AsyncStrategy` implementations (direct/gateway)
+    and enforces optional access policies.
     """
 
     def __init__(
@@ -47,6 +54,22 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
         gateway_http_client: Optional[httpx.AsyncClient] = None,
         gateway_sse_client: Optional[httpx.AsyncClient] = None,
     ) -> "AsyncMcpClient":
+        """Construct an async client from `McpClientConfig`.
+
+        - Enables AsyncDirect strategy when `servers` are configured.
+        - Enables AsyncGateway strategy when `gateway` config is present.
+        - Allows providing custom httpx clients for tuning timeouts/proxies.
+
+        Args:
+            config: The high-level MCP client configuration.
+            agent_policies: Optional per-agent access policies.
+            gateway_mgmt_client: Optional sync httpx.Client for Gateway management API.
+            gateway_http_client: Optional async httpx.AsyncClient for Gateway HTTP endpoints.
+            gateway_sse_client: Optional async httpx.AsyncClient for Gateway SSE endpoints.
+
+        Returns:
+            An initialized `AsyncMcpClient`.
+        """
         strategies: List[AsyncStrategy] = []
         if config.servers:
             strategies.append(
@@ -73,6 +96,19 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
         return cls(strategies=strategies, agent_policies=agent_policies)
 
     async def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]:
+        """List tools for a specific server, applying policy filters.
+
+        Args:
+            server_id: Target server identifier.
+            agent_id: Optional agent identifier used for policy enforcement.
+
+        Returns:
+            A list of `McpTool`.
+
+        Raises:
+            ToolAccessDeniedError: If access is blocked by policy.
+            ServerNotFoundError: If no strategy can serve the server.
+        """
         # Enforce server access policy first
         if agent_id and agent_id in self._policies:
             policy = self._policies[agent_id]
@@ -106,6 +142,24 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
         limit: Optional[int] = None,
         agent_id: str | None = None,
     ) -> ToolsPage:
+        """List tools with pagination when supported by the strategy/backend.
+
+        Applies filters based on policy when `agent_id` is provided. Falls back
+        to non-paginated `list_tools` when pagination is unavailable.
+
+        Args:
+            server_id: Target server identifier.
+            cursor: Cursor from a previous page.
+            limit: Max items per page.
+            agent_id: Optional agent identifier used for policy enforcement.
+
+        Returns:
+            A `ToolsPage` with `items` and optional `next_cursor`.
+
+        Raises:
+            ToolAccessDeniedError: If access is blocked by policy.
+            ServerNotFoundError: If pagination unsupported and no tools found.
+        """
         # Enforce server access policy first
         if agent_id and agent_id in self._policies:
             policy = self._policies[agent_id]
@@ -143,6 +197,25 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
         idle_timeout: Optional[float] = None,
         max_total_seconds: Optional[float] = None,
     ) -> AsyncIterator[str]:
+        """Yield raw SSE lines by delegating to the first strategy that supports it.
+
+        Args:
+            server_id: Target server identifier.
+            path: SSE path relative to the server base.
+            reconnect: Whether to reconnect automatically.
+            max_retries: Max reconnection attempts.
+            backoff_initial: Initial backoff in seconds.
+            backoff_factor: Exponential backoff factor.
+            backoff_max: Max backoff in seconds.
+            idle_timeout: Optional idle-timeout for the connection.
+            max_total_seconds: Optional cap on total streaming time.
+
+        Returns:
+            An async iterator of raw SSE lines (decoded strings).
+
+        Raises:
+            ServerNotFoundError: If no strategy is available.
+        """
         for strat in self._strategies:
             return strat.stream_events(
                 server_id,
@@ -170,6 +243,25 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
         idle_timeout: Optional[float] = None,
         max_total_seconds: Optional[float] = None,
     ) -> AsyncIterator[Dict[str, Any]]:
+        """Yield parsed SSE events as dictionaries by delegating to a strategy.
+
+        Args:
+            server_id: Target server identifier.
+            path: SSE path relative to the server base.
+            reconnect: Whether to reconnect automatically.
+            max_retries: Max reconnection attempts.
+            backoff_initial: Initial backoff in seconds.
+            backoff_factor: Exponential backoff factor.
+            backoff_max: Max backoff in seconds.
+            idle_timeout: Optional idle-timeout for the connection.
+            max_total_seconds: Optional cap on total streaming time.
+
+        Returns:
+            An async iterator of parsed event dictionaries.
+
+        Raises:
+            ServerNotFoundError: If no strategy is available.
+        """
         for strat in self._strategies:
             return strat.stream_events_parsed(
                 server_id,
@@ -192,6 +284,23 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
         *,
         agent_id: str | None = None,
     ) -> ToolCallResult:
+        """Invoke a tool through the first async strategy that succeeds.
+
+        Enforces policy checks (read-only, allow-lists).
+
+        Args:
+            server_id: Target server identifier.
+            tool_name: Tool identifier to invoke.
+            args: Tool arguments.
+            agent_id: Optional agent identifier used for policy enforcement.
+
+        Returns:
+            A `ToolCallResult` describing the outcome.
+
+        Raises:
+            ToolAccessDeniedError: If access is blocked by policy.
+            ServerNotFoundError: If no strategy can serve the server.
+        """
         enforce_policy(agent_id=agent_id, server_id=server_id, tool_name=tool_name, policies=self._policies)
         if agent_id and agent_id in self._policies and self._policies[agent_id].read_only:
             # Prefer metadata from list_tools if available

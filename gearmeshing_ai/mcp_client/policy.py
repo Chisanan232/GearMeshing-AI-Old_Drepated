@@ -1,3 +1,10 @@
+"""Policy models and enforcement helpers for MCP client.
+
+Defines `ToolPolicy` for per-agent access policies and `enforce_policy` for
+basic server/tool allow-list checks. Read-only enforcement is performed by the
+client facades using additional context from listed tools and name heuristics.
+"""
+
 from __future__ import annotations
 
 from typing import Dict, Optional
@@ -9,8 +16,12 @@ from .schemas.base import BaseSchema
 
 
 class ToolPolicy(BaseSchema):
-    """
-    Access policy for agents interacting with MCP servers and tools.
+    """Access policy for agents interacting with MCP servers and tools.
+
+    Usage guidelines:
+    - `allowed_servers`: If set, the agent can only access those server IDs.
+    - `allowed_tools`: If set, the agent can only call tools in this set.
+    - `read_only`: When True, mutating tool calls should be blocked by clients.
     """
 
     allowed_servers: Optional[set[str]] = Field(
@@ -33,9 +44,23 @@ PolicyMap = Dict[str, ToolPolicy]
 
 
 def enforce_policy(*, agent_id: Optional[str], server_id: str, tool_name: str, policies: Optional[PolicyMap]) -> None:
-    """Raise ToolAccessDeniedError if the policy prohibits access.
+    """Raise `ToolAccessDeniedError` if agent's policy disallows the operation.
 
-    This function is intentionally simple for now; mutating vs read-only is left to the caller to enforce.
+    Performs allow-list checks for server and tool names. Enforcement of
+    read-only semantics (i.e., blocking mutating tools) is deliberately left to
+    the caller because it may require tool metadata or heuristics.
+
+    Args:
+        agent_id: Optional agent identifier whose policy should be applied.
+        server_id: Target server identifier.
+        tool_name: Tool identifier (used for tool allow-list checks).
+        policies: Optional map of agent IDs to `ToolPolicy`.
+
+    Returns:
+        None. This function either returns normally or raises an error.
+
+    Raises:
+        ToolAccessDeniedError: If the agent's policy disallows the server or tool.
     """
     if not agent_id or not policies:
         return
