@@ -1,3 +1,10 @@
+"""Server-Sent Events (SSE) transport utilities.
+
+Provides a minimal SSE transport built on `httpx.AsyncClient` with optional
+reconnect, backoff, idle timeout, and maximum total time controls. Used by
+async strategies to implement streaming APIs.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -9,12 +16,16 @@ import httpx
 
 
 class BasicSseTransport:
-    """
-    Minimal SSE transport using httpx.AsyncClient.
+    """Minimal SSE transport using httpx.AsyncClient.
 
-    - connect(path): starts a streamed GET request
-    - aiter(): yields raw SSE lines (already decoded)
-    - close(): closes the underlying response
+    - connect(path): start a streamed GET request
+    - aiter(): yield raw SSE lines (already decoded)
+    - close(): close the underlying response and client
+
+    Usage guidelines:
+    - Set `include_blank_lines=True` when you need explicit event boundaries.
+    - Use reconnect/backoff parameters to handle flaky networks.
+    - Prefer a caller-provided AsyncClient when you need custom timeouts/proxies.
     """
 
     def __init__(
@@ -48,16 +59,42 @@ class BasicSseTransport:
         self._max_total = max_total_seconds
 
     def _headers(self) -> dict[str, str]:
+        """Build headers for SSE requests.
+
+        Returns:
+            A dictionary with `Accept: text/event-stream` and optional `Authorization`.
+        """
         h = {"Accept": "text/event-stream"}
         if self._auth_token:
             h["Authorization"] = self._auth_token
         return h
 
     async def connect(self, path: str) -> None:
+        """Establish the streaming connection to the given path (relative).
+
+        Args:
+            path: Relative path under the base URL (e.g., "/sse").
+
+        Returns:
+            None.
+
+        Raises:
+            httpx.HTTPStatusError: If the initial request returns a non-2xx response.
+            httpx.TransportError: For transport-level HTTP issues.
+        """
         self._path = path
         await self._do_connect()
 
     async def _do_connect(self) -> None:
+        """Internal helper to (re)connect the streaming HTTP request.
+
+        Returns:
+            None.
+
+        Raises:
+            httpx.HTTPStatusError: If the request returns a non-2xx response.
+            httpx.TransportError: For transport-level HTTP issues.
+        """
         assert self._path is not None
         url = f"{self._base_url}/{self._path.lstrip('/')}"
         self._logger.debug("SSE connect: GET %s", url)
@@ -66,6 +103,17 @@ class BasicSseTransport:
         self._response.raise_for_status()
 
     async def aiter(self) -> AsyncIterator[str]:
+        """Iterate over raw SSE lines with optional reconnect/backoff behavior.
+
+        Returns:
+            An async iterator of decoded SSE lines. When `include_blank_lines` is False,
+            blank lines (event boundaries) are skipped.
+
+        Raises:
+            RuntimeError: If `connect()` was not called before iteration.
+            httpx.HTTPStatusError: If a reconnect attempt fails with non-2xx.
+            httpx.TransportError: For transport-level HTTP issues during reads/reconnects.
+        """
         if self._response is None:
             raise RuntimeError("SSE not connected. Call connect() first.")
         retries = 0
@@ -125,6 +173,11 @@ class BasicSseTransport:
                 continue
 
     async def close(self) -> None:
+        """Close the current SSE response (if any) and underlying client.
+
+        Returns:
+            None.
+        """
         if self._response is not None:
             await self._response.aclose()
             self._response = None
