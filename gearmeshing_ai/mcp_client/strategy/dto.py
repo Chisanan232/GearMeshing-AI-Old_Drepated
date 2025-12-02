@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, cast
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -109,7 +109,7 @@ class ToolsListPayloadDTO(BaseSchema):
                 return v
             items = v.get("items")
             if isinstance(items, list):
-                nv = dict(v)
+                nv: Dict[str, Any] = dict(v)
                 nv["tools"] = items
                 nv.pop("items", None)
                 return nv
@@ -125,9 +125,10 @@ class ToolInvokePayloadDTO(BaseSchema):
     def _coerce(cls, v: Any):
         if isinstance(v, dict):
             # Preserve full dict in data; propagate ok if present
-            nv = {"data": v}
-            if "ok" in v:
-                nv["ok"] = v.get("ok")
+            nv: Dict[str, Any] = {"data": cast(Dict[str, Any], v)}
+            ok_val = v.get("ok")
+            if isinstance(ok_val, bool):
+                nv["ok"] = ok_val
             return nv
         # Non-dict body -> wrap under result
         return {"ok": True, "data": {"result": v}}
