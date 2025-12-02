@@ -50,11 +50,13 @@ class ServerReadDTO(BaseSchema):
         ..., description="Human-readable name for the server entry.", examples=["github-mcp", "clickup-mcp"]
     )
     url: AnyHttpUrl = Field(
-        ..., description="Base URL of the underlying MCP server (source server, not Gateway endpoint).",
+        ...,
+        description="Base URL of the underlying MCP server (source server, not Gateway endpoint).",
         examples=["http://underlying/mcp/"],
     )
     transport: str = Field(
-        ..., description="Transport type used by the Gateway to reach the server. One of 'STREAMABLEHTTP', 'SSE', 'STDIO'.",
+        ...,
+        description="Transport type used by the Gateway to reach the server. One of 'STREAMABLEHTTP', 'SSE', 'STDIO'.",
         examples=["STREAMABLEHTTP"],
     )
     description: Optional[str] = Field(
@@ -73,7 +75,10 @@ class ServerReadDTO(BaseSchema):
         examples=["team-123"],
     )
     is_active: Optional[bool] = Field(
-        default=None, alias="isActive", description="Whether the server is currently active in the Gateway.", examples=[True]
+        default=None,
+        alias="isActive",
+        description="Whether the server is currently active in the Gateway.",
+        examples=[True],
     )
     metrics: Optional[Dict[str, Any]] = Field(
         default=None, description="Optional metrics object reported by the Gateway for this server."

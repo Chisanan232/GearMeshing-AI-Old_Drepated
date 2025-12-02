@@ -11,6 +11,7 @@ from .gateway_api.client import GatewayApiClient
 from .policy import PolicyMap, enforce_policy
 from .schemas.config import McpClientConfig
 from .schemas.core import McpTool, ToolCallResult
+from .schemas.dto import ToolsPage
 from .strategy.base import AsyncStrategy, is_mutating_tool_name
 from .strategy.gateway_async import AsyncGatewayMcpStrategy
 
@@ -89,6 +90,38 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
             except Exception as e:
                 logger.debug("list_tools error from %s: %s", type(strat).__name__, e)
         raise ServerNotFoundError(server_id)
+
+    async def list_tools_page(
+        self,
+        server_id: str,
+        *,
+        cursor: Optional[str] = None,
+        limit: Optional[int] = None,
+        agent_id: str | None = None,
+    ) -> ToolsPage:
+        # Enforce server access policy first
+        if agent_id and agent_id in self._policies:
+            policy = self._policies[agent_id]
+            if policy.allowed_servers is not None and server_id not in policy.allowed_servers:
+                raise ToolAccessDeniedError(agent_id, server_id, "<list_tools_page>")
+        for strat in self._strategies:
+            try:
+                fn = getattr(strat, "list_tools_page", None)
+                if fn is not None:
+                    page: ToolsPage = await fn(server_id, cursor=cursor, limit=limit)
+                    if agent_id and agent_id in self._policies:
+                        policy = self._policies[agent_id]
+                        items = page.items
+                        if policy.allowed_tools is not None:
+                            items = [t for t in items if t.name in policy.allowed_tools]
+                        if policy.read_only:
+                            items = [t for t in items if not (getattr(t, "mutating", False))]
+                        return ToolsPage(items=items, next_cursor=page.next_cursor)
+                    return page
+            except Exception as e:
+                logger.debug("list_tools_page error from %s: %s", type(strat).__name__, e)
+        tools = await self.list_tools(server_id, agent_id=agent_id)
+        return ToolsPage(items=tools, next_cursor=None)
 
     async def stream_events(
         self,

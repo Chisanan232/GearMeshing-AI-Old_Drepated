@@ -16,6 +16,7 @@ import httpx
 from gearmeshing_ai.mcp_client.policy import PolicyMap, ToolPolicy
 from gearmeshing_ai.mcp_client.schemas.config import McpClientConfig
 from gearmeshing_ai.mcp_client.schemas.core import McpServerRef, McpTool, ToolCallResult
+from gearmeshing_ai.mcp_client.schemas.dto import ToolsPage
 from gearmeshing_ai.mcp_client.strategy.base import is_mutating_tool_name
 
 
@@ -35,6 +36,15 @@ class SyncClientProtocol(Protocol):
     def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]: ...
 
     def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]: ...
+
+    def list_tools_page(
+        self,
+        server_id: str,
+        *,
+        cursor: Optional[str] = None,
+        limit: Optional[int] = None,
+        agent_id: str | None = None,
+    ) -> ToolsPage: ...
 
     def call_tool(
         self,
@@ -60,6 +70,15 @@ class AsyncClientProtocol(Protocol):
     ) -> Self: ...
 
     async def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]: ...
+
+    async def list_tools_page(
+        self,
+        server_id: str,
+        *,
+        cursor: Optional[str] = None,
+        limit: Optional[int] = None,
+        agent_id: str | None = None,
+    ) -> ToolsPage: ...
 
     async def call_tool(
         self,
