@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, List, Optional, cast
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, model_validator
 
 from ..schemas.base import BaseSchema
 from ..schemas.core import McpTool, ToolArgument, ToolCallResult
@@ -66,12 +66,6 @@ class ToolDescriptorDTO(BaseSchema):
         )
 
 
-class ToolsListEnvelopeDTO(BaseSchema):
-    items: List[ToolDescriptorDTO] = Field(
-        ..., description="List of tool descriptors under a generic 'items' envelope."
-    )
-
-
 class ToolInvokeRequestDTO(BaseSchema):
     parameters: Dict[str, JSONValue] = Field(
         default_factory=dict,
@@ -101,56 +95,7 @@ class ToolsListQuery(BaseSchema):
         return params
 
 
-class FlexibleDTO(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-
-class ToolInvokeResponseDTO(FlexibleDTO):
-    ok: Optional[bool] = Field(
-        default=None,
-        description="Optional success flag returned by some servers. When absent, success is inferred upstream.",
-        examples=[True, False],
-    )
-
-
-class ToolsListResultDTO(BaseSchema):
-    tools: List[ToolDescriptorDTO] = Field(..., description="List of tool descriptors under a 'tools' result payload.")
-    next_cursor: Optional[str] = Field(
-        default=None,
-        alias="nextCursor",
-        description="Opaque cursor for pagination to retrieve the next page of tools, if provided.",
-        examples=["abc123"],
-    )
-
-
-def extract_tool_descriptors(data: Any) -> List[ToolDescriptorDTO]:
-    items: List[ToolDescriptorDTO] = []
-    if isinstance(data, dict):
-        try:
-            env = ToolsListEnvelopeDTO.model_validate(data)
-            return list(env.items)
-        except Exception:
-            pass
-        try:
-            res = ToolsListResultDTO.model_validate(data)
-            return list(res.tools)
-        except Exception:
-            pass
-        raw = data.get("items") if isinstance(data.get("items"), list) else []
-        for x in raw or []:
-            if isinstance(x, dict):
-                try:
-                    items.append(ToolDescriptorDTO.model_validate(x))
-                except Exception:
-                    continue
-    elif isinstance(data, list):
-        for x in data:
-            if isinstance(x, dict):
-                try:
-                    items.append(ToolDescriptorDTO.model_validate(x))
-                except Exception:
-                    continue
-    return items
+ 
 
 
 class ToolsListPayloadDTO(BaseSchema):
