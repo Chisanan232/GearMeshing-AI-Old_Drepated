@@ -10,8 +10,8 @@ from gearmeshing_ai.mcp_client.gateway_api.client import GatewayApiClient
 from gearmeshing_ai.mcp_client.schemas.core import (
     McpTool,
     ToolCallResult,
+    ToolsPage,
 )
-from gearmeshing_ai.mcp_client.schemas.dto import ToolsPage
 
 from .base import AsyncStrategy, StrategyCommonMixin
 from .dto import (

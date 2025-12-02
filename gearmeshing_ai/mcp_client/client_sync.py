@@ -10,8 +10,7 @@ from .errors import ServerNotFoundError, ToolAccessDeniedError
 from .gateway_api.client import GatewayApiClient
 from .policy import PolicyMap, enforce_policy
 from .schemas.config import McpClientConfig
-from .schemas.core import McpServerRef, McpTool, ToolCallResult
-from .schemas.dto import ToolsPage
+from .schemas.core import McpServerRef, McpTool, ToolCallResult, ToolsPage
 from .strategy.base import SyncStrategy
 from .strategy.direct import DirectMcpStrategy
 from .strategy.gateway import GatewayMcpStrategy

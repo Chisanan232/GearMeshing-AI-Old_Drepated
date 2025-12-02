@@ -12,8 +12,8 @@ from gearmeshing_ai.mcp_client.schemas.core import (
     McpTool,
     ToolCallResult,
     TransportType,
+    ToolsPage,
 )
-from gearmeshing_ai.mcp_client.schemas.dto import ToolsPage
 
 from .base import StrategyCommonMixin, SyncStrategy
 from .dto import (
