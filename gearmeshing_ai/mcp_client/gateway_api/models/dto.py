@@ -25,6 +25,17 @@ class ListServersQuery(BaseSchema):
     """Query params for listing servers from the Gateway.
 
     Use `to_params()` to serialize to HTTP query parameters (booleans are lowercased strings).
+
+    Examples:
+        Build and serialize query params for the Gateway list endpoint.
+
+        >>> q = ListServersQuery(include_inactive=True, tags="prod,search", team_id="team-123", visibility="team")
+        >>> q.to_params()
+        {'includeInactive': 'true', 'tags': 'prod,search', 'teamId': 'team-123', 'visibility': 'team'}
+
+    References:
+        - GatewayApiClient.list_servers uses this model's `to_params()` when making requests.
+        - OpenAPI: GET /servers (see docs/openapi_spec/mcp_gateway.json)
     """
     include_inactive: Optional[bool] = Field(
         default=None,
@@ -64,6 +75,27 @@ class ServerReadDTO(BaseSchema):
 
     Includes alias mappings for `teamId` → `team_id` and `isActive` → `is_active`.
     Use `to_gateway_server()` to map to the domain model consumed by strategies.
+
+    Examples:
+        A typical server object returned by the Gateway API:
+
+        {
+            'id': 's1',
+            'name': 'github-mcp',
+            'url': 'http://underlying/mcp/',
+            'transport': 'STREAMABLEHTTP',
+            'description': 'Team search MCP server',
+            'tags': ['prod', 'search'],
+            'visibility': 'team',
+            'teamId': 'team-123',
+            'isActive': true,
+            'metrics': {'latencyMsP50': 30}
+        }
+
+    References:
+        - Mapped to domain via `ServerReadDTO.to_gateway_server()`.
+        - Consumed by `GatewayApiClient.list_servers` and `GatewayApiClient.get_server`.
+        - OpenAPI: GET /servers/{serverId} (see docs/openapi_spec/mcp_gateway.json)
     """
     id: str = Field(
         ..., description="Unique identifier of the server within the Gateway.", examples=["s1", "created-123"]
@@ -129,6 +161,25 @@ class ServersListPayloadDTO(BaseSchema):
     - list → `{items: [...]}`
     - `{items: [...]}` preserved
     - `{servers: [...]}` → `{items: [...]}`
+
+    Examples:
+        Input variants accepted and the resulting normalized structure:
+
+        - Raw list:
+          [ {'id': 's1', 'name': 'a', 'url': 'http://u', 'transport': 'SSE'}, ... ]
+          → { 'items': [ {'id': 's1', 'name': 'a', 'url': 'http://u', 'transport': 'SSE'}, ... ] }
+
+        - Object with items:
+          { 'items': [ {'id': 's1', 'name': 'a', 'url': 'http://u', 'transport': 'SSE'} ] }
+          → preserved
+
+        - Object with servers:
+          { 'servers': [ {'id': 's1', 'name': 'a', 'url': 'http://u', 'transport': 'SSE'} ] }
+          → { 'items': [ {'id': 's1', 'name': 'a', 'url': 'http://u', 'transport': 'SSE'} ] }
+
+    References:
+        - Used by `GatewayApiClient.list_servers` to normalize responses.
+        - OpenAPI: GET /servers (see docs/openapi_spec/mcp_gateway.json)
     """
     items: List[ServerReadDTO] = Field(
         ..., description="Normalized list of servers returned by the Gateway list endpoints."
@@ -151,7 +202,25 @@ class ServersListPayloadDTO(BaseSchema):
 
 
 class GatewayServerCreate(BaseSchema):
-    """DTO for creating/registering a server in the Gateway."""
+    """DTO for creating/registering a server in the Gateway.
+
+    Examples:
+        JSON payload for creating a server:
+
+        {
+            'name': 'clickup-mcp',
+            'url': 'http://clickup-mcp:8000/mcp/',
+            'transport': 'STREAMABLEHTTP',
+            'authToken': 'Bearer ghp_exampletoken',
+            'tags': ['prod', 'tasks'],
+            'visibility': 'team',
+            'teamId': 'team-123'
+        }
+
+    References:
+        - Sent by `GatewayApiClient.create_server` to the Gateway API.
+        - OpenAPI: POST /servers (see docs/openapi_spec/mcp_gateway.json)
+    """
     name: str = Field(
         ...,
         description="Desired human-readable name for the server inside the Gateway.",

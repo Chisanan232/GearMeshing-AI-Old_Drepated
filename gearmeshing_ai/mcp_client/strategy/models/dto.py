@@ -8,6 +8,9 @@ Guidelines:
 - Prefer adding validators here instead of ad-hoc parsing in strategies.
 - Keep aliasing and coercions explicit to match MCP server behaviors.
 - Provide small, focused helpers (e.g., `to_mcp_tool`, `to_params`).
+
+References:
+    - MCP Spec: https://modelcontextprotocol.io/specification/latest/server
 """
 
 from __future__ import annotations
@@ -33,6 +36,27 @@ class ToolDescriptorDTO(BaseSchema):
     Usage:
     - Parsed from server responses via `ToolsListPayloadDTO`.
     - Call `to_mcp_tool(infer_arguments, is_mutating_tool_name)` to convert.
+
+    Examples:
+        A typical tool descriptor as returned by an MCP server:
+
+        {
+            'name': 'get_issue',
+            'title': 'Get Issue',
+            'description': 'Fetch an issue by ID from the tracker',
+            'icons': [ {'type': 'emoji', 'value': '🛠️'} ],
+            'inputSchema': {
+                'type': 'object',
+                'properties': {'id': {'type': 'string', 'description': 'Issue ID'}},
+                'required': ['id'],
+                'x-mutating': false
+            }
+        }
+
+    References:
+        - JSON Schema (tool input): https://json-schema.org/draft/2020-12/json-schema-core
+        - MCP Spec (tools): https://modelcontextprotocol.io/specification/latest/server/tools
+        - Conversion: `ToolDescriptorDTO.to_mcp_tool()`
     """
     model_config = ConfigDict(extra="allow")
     name: str = Field(
@@ -97,6 +121,15 @@ class ToolInvokeRequestDTO(BaseSchema):
     """Payload for invoking a tool: `{parameters: {...}}`.
 
     Build using keyword args or dict literal; dump via `model_dump(by_alias=True, mode="json")` when sending.
+
+    Examples:
+        JSON body sent to a direct/gateway strategy when calling a tool:
+
+        { 'parameters': { 'id': 'ISSUE-123' } }
+
+    References:
+        - Emitted by strategies during `call_tool(server_id, tool_name, args)`.
+        - MCP Spec (tools): https://modelcontextprotocol.io/specification/latest/server/tools
     """
     parameters: Dict[str, JSONValue] = Field(
         default_factory=dict,
@@ -106,7 +139,19 @@ class ToolInvokeRequestDTO(BaseSchema):
 
 
 class ToolsListQuery(BaseSchema):
-    """Query parameters for listing tools with optional pagination."""
+    """Query parameters for listing tools with optional pagination.
+
+    Examples:
+        Build and serialize HTTP query params for pagination:
+
+        >>> q = ToolsListQuery(cursor="abc123", limit=50)
+        >>> q.to_params()
+        {'cursor': 'abc123', 'limit': '50'}
+
+    References:
+        - Used by strategies to call list endpoints that support pagination.
+        - MCP Spec (tools): https://modelcontextprotocol.io/specification/latest/server/tools
+    """
     cursor: Optional[str] = Field(
         default=None,
         description="Opaque pagination cursor returned by a previous tools list response.",
@@ -138,6 +183,28 @@ class ToolsListPayloadDTO(BaseSchema):
     - List of tool descriptors → `{tools: [...]}`
     - `{items: [...]}` → `{tools: [...]}`
     - `{tools: [...]}` preserved
+
+    Examples:
+        Input variants accepted and the resulting normalized structure:
+
+        - Raw list:
+          [ {'name': 'get_issue', 'inputSchema': {...}}, ... ]
+          → { 'tools': [ {'name': 'get_issue', 'inputSchema': {...}}, ... ] }
+
+        - Object with items:
+          { 'items': [ {'name': 'get_issue', 'inputSchema': {...}} ] }
+          → { 'tools': [ {'name': 'get_issue', 'inputSchema': {...}} ] }
+
+        - Object with tools (already normalized):
+          { 'tools': [ {'name': 'get_issue', 'inputSchema': {...}} ] }
+          → preserved
+
+        - With pagination cursor:
+          { 'tools': [...], 'nextCursor': 'abc123' }
+
+    References:
+        - Consumed by strategies implementing `list_tools` / `list_tools_page`.
+        - MCP Spec (tools): https://modelcontextprotocol.io/specification/latest/server/tools
     """
     tools: List[ToolDescriptorDTO] = Field(
         ..., description="Normalized list of tools regardless of source response shape."
@@ -173,6 +240,21 @@ class ToolInvokePayloadDTO(BaseSchema):
     Accepts:
     - Dict bodies, preserving keys in `data` and lifting a top-level `ok` if present.
     - Non-dict bodies, wrapped under `data={"result": ...}` with implicit `ok=True`.
+
+    Examples:
+        - Dict body with explicit ok:
+
+          { 'ok': true, 'result': {'title': 'Example'} }
+          → ok: true, data: {'result': {'title': 'Example'}}
+
+        - Non-dict body:
+
+          'created-123'
+          → ok: true, data: {'result': 'created-123'}
+
+    References:
+        - Conversion to domain: `ToolInvokePayloadDTO.to_tool_call_result()`.
+        - MCP Spec (tools): https://modelcontextprotocol.io/specification/latest/server/tools
     """
     ok: Optional[bool] = Field(
         default=None,
