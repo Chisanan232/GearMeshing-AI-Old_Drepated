@@ -56,9 +56,7 @@ class GatewayApiClient:
                 team_id=team_id,
                 visibility=visibility,
             )
-            params: dict[str, str] = {
-                k: (str(v).lower() if isinstance(v, bool) else str(v)) for k, v in q.model_dump(exclude_none=True).items()
-            }
+            params: dict[str, str] = q.to_params()
             self._logger.debug("GatewayApiClient.list_servers: GET %s/servers params=%s", self.base_url, params)
             r = self._client.get(f"{self.base_url}/servers", headers=self._headers(), params=params or None)
             r.raise_for_status()

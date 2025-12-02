@@ -13,6 +13,16 @@ class ListServersQuery(BaseSchema):
     team_id: Optional[str] = None
     visibility: Optional[str] = None
 
+    def to_params(self) -> dict[str, str]:
+        data = self.model_dump(exclude_none=True)
+        params: dict[str, str] = {}
+        for k, v in data.items():
+            if isinstance(v, bool):
+                params[k] = str(v).lower()
+            else:
+                params[k] = str(v)
+        return params
+
 
 class ServerReadDTO(BaseSchema):
     id: str
