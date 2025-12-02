@@ -53,24 +53,6 @@ class ServerReadDTO(BaseSchema):
         )
 
 
-class ServerCreateDTO(BaseSchema):
-    name: str
-    url: AnyHttpUrl
-    transport: str
-    auth_token: Optional[str] = None
-    tags: Optional[List[str]] = None
-    visibility: Optional[str] = None
-    team_id: Optional[str] = Field(default=None, alias="teamId")
-
-
-class ServerCreateResponseDTO(ServerReadDTO):
-    pass
-
-
-class GetServerResponseDTO(ServerReadDTO):
-    pass
-
-
 class ServersListPayloadDTO(BaseSchema):
     items: List[ServerReadDTO]
 
