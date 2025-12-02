@@ -7,6 +7,11 @@ import httpx
 
 from gearmeshing_ai.mcp_client.gateway_api import GatewayApiClient
 from gearmeshing_ai.mcp_client.gateway_api.models import GatewayTransport
+from .dto import (
+    ToolInvokeRequestDTO,
+    ToolsListPayloadDTO,
+    ToolInvokePayloadDTO,
+)
 from gearmeshing_ai.mcp_client.schemas.core import (
     McpServerRef,
     McpTool,
@@ -71,37 +76,29 @@ class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
         r = self._http.get(f"{base}/tools", headers=self._headers())
         r.raise_for_status()
         data = r.json()
+        payload = ToolsListPayloadDTO.model_validate(data)
         tools: List[McpTool] = []
-        if isinstance(data, list):
-            for item in data:
-                if not isinstance(item, dict):
-                    continue
-                name = item.get("name")
-                if not isinstance(name, str) or not name:
-                    continue
-                description = item.get("description") if isinstance(item.get("description"), str) else None
-                input_schema: Dict[str, Any] = (
-                    item.get("inputSchema") if isinstance(item.get("inputSchema"), dict) else {}
-                ) or {}
-                # Prefer explicit metadata (x-mutating) from item or input schema; fallback to heuristic
-                explicit = item.get("x-mutating")
-                if explicit is None:
-                    explicit = input_schema.get("x-mutating") if isinstance(input_schema, dict) else None
-                if explicit is True:
-                    is_mut = True
-                elif explicit is False:
-                    is_mut = False
-                else:
-                    is_mut = self._is_mutating_tool_name(name)
-                tools.append(
-                    McpTool(
-                        name=name,
-                        description=description,
-                        mutating=is_mut,
-                        arguments=self._infer_arguments(input_schema),
-                        raw_parameters_schema=input_schema,
-                    )
+        for td in payload.tools:
+            name = td.name
+            input_schema: Dict[str, Any] = dict(td.input_schema or {})
+            explicit = td.x_mutating
+            if explicit is None:
+                explicit = input_schema.get("x-mutating") if isinstance(input_schema, dict) else None
+            if explicit is True:
+                is_mut = True
+            elif explicit is False:
+                is_mut = False
+            else:
+                is_mut = self._is_mutating_tool_name(name)
+            tools.append(
+                McpTool(
+                    name=name,
+                    description=td.description,
+                    mutating=is_mut,
+                    arguments=self._infer_arguments(input_schema),
+                    raw_parameters_schema=input_schema,
                 )
+            )
         # update cache
         self._tools_cache[server_id] = (tools, now + self._ttl)
         return tools
@@ -115,18 +112,23 @@ class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
         agent_id: str | None = None,  # noqa: ARG002
     ) -> ToolCallResult:
         base = self._base_for(server_id).rstrip("/")
-        payload: Dict[str, Any] = {"parameters": args or {}}
+        payload = ToolInvokeRequestDTO(parameters=args or {})
         self._logger.debug(
             "GatewayMcpStrategy.call_tool: POST %s/a2a/%s/invoke args_keys=%s",
             base,
             tool_name,
             list((args or {}).keys()),
         )
-        r = self._http.post(f"{base}/a2a/{tool_name}/invoke", json=payload, headers=self._headers())
+        r = self._http.post(
+            f"{base}/a2a/{tool_name}/invoke",
+            json=payload.model_dump(by_alias=True, mode="json"),
+            headers=self._headers(),
+        )
         r.raise_for_status()
         body = r.json()
-        ok = bool(body.get("ok", True)) if isinstance(body, dict) else True
-        data: Dict[str, Any] = body if isinstance(body, dict) else {"result": body}
+        inv = ToolInvokePayloadDTO.model_validate(body)
+        ok = inv.ok
+        data: Dict[str, Any] = inv.data
         # Invalidate cache if mutating tool and call succeeded (prefer cached metadata if available)
         cached = self._tools_cache.get(server_id)
         is_mut = None
