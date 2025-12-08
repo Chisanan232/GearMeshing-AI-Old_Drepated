@@ -68,6 +68,8 @@ pre-commit-ci = [
 contract-test-with-ai-frameworks = [
     # OpenAI client for function/tool schemas and Assistants
     "openai>=1.52.0,<2.0",
+    # NOTE: The Microsoft provider AI agent framework should only select one: AG2 or AutoGen. In recommended, it should
+    # use AG2 because it's in migration of the AI agent frameworks
     # AG2 (AutoGen v2)
     "ag2>=0.4.0",
     # AutoGen AgentChat and extensions
