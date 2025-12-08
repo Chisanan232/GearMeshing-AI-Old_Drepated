@@ -67,27 +67,27 @@ pre-commit-ci = [
 # These are heavy optional dependencies and are not enabled by default.
 contract-test-with-ai-frameworks = [
     # OpenAI client for function/tool schemas and Assistants
-    "openai>=1.52.0,<2.0",
+    "openai>=1.52.0,<=2.9.0",
     # NOTE: The Microsoft provider AI agent framework should only select one: AG2 or AutoGen. In recommended, it should
     # use AG2 because it's in migration of the AI agent frameworks
     # AG2 (AutoGen v2)
-    "ag2>=0.4.0",
+    "ag2>=0.10.2",
     # AutoGen AgentChat and extensions
-    "autogen-agentchat>=0.4.0,<0.5.0",
-    "autogen-ext[openai]>=0.4.0,<0.5.0",
+    "autogen-agentchat>=0.7.5",
+    "autogen-ext[openai]>=0.7.5",
     # LangChain core + LangGraph
-    "langchain>=0.3.0,<0.4.0",
-    "langchain-core>=0.3.0,<0.4.0",
-    "langgraph>=0.2.0,<0.3.0",
+    "langchain>=1.1.2",
+    "langchain-core>=1.1.1",
+    "langgraph>=1.0.4",
     # CrewAI and tools (broad min versions to avoid resolver conflicts)
-    "crewai>=0.56.0",
-    "crewai-tools>=0.13.0",
+    "crewai>=1.6.1",
+    "crewai-tools>=1.6.1",
     # Semantic Kernel (Python)
-    "semantic-kernel>=0.9.0b1",
+    "semantic-kernel>=1.35.0",
     # LlamaIndex
-    "llama-index>=0.11.0,<0.12.0",
+    "llama-index>=0.14.10",
     # Phidata
-    "phidata>=2.5.0,<3.0.0",
+    "phidata>=2.7.10,<3.0.0",
     # Google AI agent SDK
     # Pydantic AI by FastAPI Pydantic team
     # Testcontainers for real contract tests
