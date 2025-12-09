@@ -1,9 +1,22 @@
 from __future__ import annotations
 
+import os
+from pathlib import Path
 from typing import Iterable
 
 import httpx
 import pytest
+
+# Load dotenv files early so test fixtures can read secrets via os.getenv
+try:  # pragma: no cover
+    from dotenv import load_dotenv  # type: ignore
+
+    TEST_ROOT = Path(__file__).resolve().parent
+    # Load test/.env first, then fallback to test/.env.example for defaults
+    load_dotenv(TEST_ROOT / ".env", override=False)
+    load_dotenv(TEST_ROOT / ".env.example", override=False)
+except Exception:
+    pass
 
 
 @pytest.fixture(autouse=True)
@@ -13,6 +26,7 @@ def _global_offline_http_guard(monkeypatch: pytest.MonkeyPatch):
         "https://mock",
         "http://localhost",
         "http://127.0.0.1",
+        "http://0.0.0.0",
     )
     litellm_prices_prefix = "https://raw.githubusercontent.com/BerriAI/litellm/"
 
