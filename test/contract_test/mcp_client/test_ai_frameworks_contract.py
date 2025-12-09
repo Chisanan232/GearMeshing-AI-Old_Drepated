@@ -133,6 +133,16 @@ def _test_framework_adapters_sync_direct_servers_and_tools_impl() -> None:
     assert lc_tools and getattr(lc_tools[0], "name", None) == "echo"
 
 
+def _test_langchain_adapter_sync_direct_tools_impl() -> None:
+    transport = _mock_transport_direct()
+    http_client = httpx.Client(transport=transport, base_url="http://mock")
+    cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
+    client = McpClient.from_config(cfg, direct_http_client=http_client)
+    tools = client.list_tools("s1")
+    lc_tools = to_langchain_tools(tools)
+    assert lc_tools and getattr(lc_tools[0], "name", None) == "echo"
+
+
 # ------------------------------
 # Additional gateway variants (per-framework, sync)
 # ------------------------------
@@ -329,6 +339,74 @@ def _test_pydantic_ai_adapter_sync_gateway_tools_impl() -> None:
     except Exception:
         pass
 
+
+def _test_autogen_adapter_sync_gateway_tools_impl() -> None:
+    transport = _mock_transport_gateway()
+    mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
+    http_client = httpx.Client(transport=transport, base_url="http://mock")
+
+    cfg = McpClientConfig(gateway=GatewayConfig(base_url="http://mock"))
+    client = McpClient.from_config(
+        cfg,
+        gateway_mgmt_client=mgmt_client,
+        gateway_http_client=http_client,
+    )
+
+    tools = client.list_tools("s1")
+    oa_tools = to_autogen_tools(tools)
+    assert oa_tools and oa_tools[0]["function"]["name"] == "echo"
+
+
+def _test_ag2_adapter_sync_gateway_tools_impl() -> None:
+    transport = _mock_transport_gateway()
+    mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
+    http_client = httpx.Client(transport=transport, base_url="http://mock")
+
+    cfg = McpClientConfig(gateway=GatewayConfig(base_url="http://mock"))
+    client = McpClient.from_config(
+        cfg,
+        gateway_mgmt_client=mgmt_client,
+        gateway_http_client=http_client,
+    )
+
+    tools = client.list_tools("s1")
+    ag2_tools = to_ag2_tools(tools)
+    assert ag2_tools and ag2_tools[0]["function"]["name"] == "echo"
+
+
+def _test_langgraph_adapter_sync_gateway_tools_impl() -> None:
+    pytest.importorskip("langgraph")
+    transport = _mock_transport_gateway()
+    mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
+    http_client = httpx.Client(transport=transport, base_url="http://mock")
+
+    cfg = McpClientConfig(gateway=GatewayConfig(base_url="http://mock"))
+    client = McpClient.from_config(
+        cfg,
+        gateway_mgmt_client=mgmt_client,
+        gateway_http_client=http_client,
+    )
+
+    tools = client.list_tools("s1")
+    lc_tools = to_langchain_tools(tools)
+    assert lc_tools and getattr(lc_tools[0], "name", None) == "echo"
+
+
+def _test_crewai_adapter_sync_gateway_tools_impl(offline_http_guard) -> None:
+    transport = _mock_transport_gateway()
+    mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
+    http_client = httpx.Client(transport=transport, base_url="http://mock")
+
+    cfg = McpClientConfig(gateway=GatewayConfig(base_url="http://mock"))
+    client = McpClient.from_config(
+        cfg,
+        gateway_mgmt_client=mgmt_client,
+        gateway_http_client=http_client,
+    )
+
+    tools = client.list_tools("s1")
+    cr_tools = to_crewai_tools(tools)
+    assert cr_tools and getattr(cr_tools[0], "name", None) == "echo"
 
 # ------------------------------
 # Sync: client + gateway
@@ -982,6 +1060,18 @@ class TestSyncWithGateway:
     def test_semantic_kernel(self) -> None:
         _test_semantic_kernel_adapter_sync_gateway_tools_impl()
 
+    def test_autogen(self) -> None:
+        _test_autogen_adapter_sync_gateway_tools_impl()
+
+    def test_ag2(self) -> None:
+        _test_ag2_adapter_sync_gateway_tools_impl()
+
+    def test_langgraph(self) -> None:
+        _test_langgraph_adapter_sync_gateway_tools_impl()
+
+    def test_crewai(self, offline_http_guard) -> None:
+        _test_crewai_adapter_sync_gateway_tools_impl(offline_http_guard)
+
     def test_autogen_native(self) -> None:
         _test_autogen_agentchat_native_adapter_sync_gateway_tools_impl()
 
@@ -1032,6 +1122,9 @@ class TestSyncWithDirect:
 
     def test_ag2(self) -> None:
         _test_ag2_adapter_sync_direct_tools_impl()
+
+    def test_langchain(self) -> None:
+        _test_langchain_adapter_sync_direct_tools_impl()
 
     def test_langgraph(self) -> None:
         _test_langgraph_adapter_sync_direct_tools_impl()
