@@ -91,6 +91,7 @@ contract-test-with-ai-frameworks = [
     # Google AI agent SDK (ADK)
     "google-adk>=1.20.0",
     # Pydantic AI by FastAPI Pydantic team
+    "pydantic-ai>=1.27.0",
     # Testcontainers for real contract tests
     "testcontainers>=4.7.2",
 ]
