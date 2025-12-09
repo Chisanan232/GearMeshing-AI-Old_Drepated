@@ -419,13 +419,13 @@ async def _test_framework_adapters_async_gateway_tools_impl() -> None:
 
 class TestAsyncWithDirect:
     @pytest.mark.asyncio
-    async def test_framework_adapters_async_direct_tools(self) -> None:
+    async def test_adapters(self) -> None:
         await _test_framework_adapters_async_direct_tools_impl()
 
 
 class TestAsyncWithGateway:
     @pytest.mark.asyncio
-    async def test_framework_adapters_async_gateway_tools(self) -> None:
+    async def test_adapters(self) -> None:
         await _test_framework_adapters_async_gateway_tools_impl()
 
 
@@ -967,55 +967,55 @@ def _test_google_adk_agent_binding_sync_direct_tools_impl() -> None:
 # ------------------------------
 
 class TestSyncWithGateway:
-    def test_framework_adapters_sync_gateway_servers_and_tools(self) -> None:
+    def test_servers_and_tools(self) -> None:
         _test_framework_adapters_sync_gateway_servers_and_tools_impl()
 
-    def test_langchain_adapter_sync_gateway_tools(self) -> None:
+    def test_langchain(self) -> None:
         _test_langchain_adapter_sync_gateway_tools_impl()
 
-    def test_llamaindex_adapter_sync_gateway_tools(self) -> None:
+    def test_llamaindex(self) -> None:
         _test_llamaindex_adapter_sync_gateway_tools_impl()
 
-    def test_phidata_adapter_sync_gateway_tools(self) -> None:
+    def test_phidata(self) -> None:
         _test_phidata_adapter_sync_gateway_tools_impl()
 
-    def test_semantic_kernel_adapter_sync_gateway_tools(self) -> None:
+    def test_semantic_kernel(self) -> None:
         _test_semantic_kernel_adapter_sync_gateway_tools_impl()
 
-    def test_autogen_agentchat_native_adapter_sync_gateway_tools(self) -> None:
+    def test_autogen_native(self) -> None:
         _test_autogen_agentchat_native_adapter_sync_gateway_tools_impl()
 
-    def test_ag2_native_adapter_sync_gateway_tools(self) -> None:
+    def test_ag2_native(self) -> None:
         _test_ag2_native_adapter_sync_gateway_tools_impl()
 
-    def test_semantic_kernel_native_adapter_sync_gateway_tools(self) -> None:
+    def test_semantic_kernel_native(self) -> None:
         _test_semantic_kernel_native_adapter_sync_gateway_tools_impl()
 
-    def test_crewai_native_adapter_sync_gateway_tools(self, offline_http_guard) -> None:
+    def test_crewai_native(self, offline_http_guard) -> None:
         _test_crewai_native_adapter_sync_gateway_tools_impl(offline_http_guard)
 
-    def test_langgraph_native_node_sync_gateway_tools(self) -> None:
+    def test_langgraph_native(self) -> None:
         _test_langgraph_native_node_sync_gateway_tools_impl()
 
-    def test_google_adk_adapter_sync_gateway_tools(self) -> None:
+    def test_google_adk(self) -> None:
         _test_google_adk_adapter_sync_gateway_tools_impl()
 
-    def test_pydantic_ai_adapter_sync_gateway_tools(self) -> None:
+    def test_pydantic_ai(self) -> None:
         _test_pydantic_ai_adapter_sync_gateway_tools_impl()
 
-    def test_autogen_agent_binding_sync_gateway_tools(self) -> None:
+    def test_autogen_binding(self) -> None:
         _test_autogen_agent_binding_sync_gateway_tools_impl()
 
-    def test_crewai_agent_binding_sync_gateway_tools(self, offline_http_guard) -> None:
+    def test_crewai_binding(self, offline_http_guard) -> None:
         _test_crewai_agent_binding_sync_gateway_tools_impl(offline_http_guard)
 
-    def test_semantic_kernel_kernel_binding_sync_gateway_tools(self) -> None:
+    def test_semantic_kernel_binding(self) -> None:
         _test_semantic_kernel_kernel_binding_sync_gateway_tools_impl()
 
-    def test_pydantic_ai_agent_binding_sync_gateway_tools(self) -> None:
+    def test_pydantic_ai_binding(self) -> None:
         _test_pydantic_ai_agent_binding_sync_gateway_tools_impl()
 
-    def test_google_adk_agent_binding_sync_gateway_tools(self) -> None:
+    def test_google_adk_binding(self) -> None:
         _test_google_adk_agent_binding_sync_gateway_tools_impl()
 
 
@@ -1024,64 +1024,64 @@ class TestSyncWithGateway:
 # ------------------------------
 
 class TestSyncWithDirect:
-    def test_framework_adapters_sync_direct_servers_and_tools(self) -> None:
+    def test_servers_and_tools(self) -> None:
         _test_framework_adapters_sync_direct_servers_and_tools_impl()
 
-    def test_autogen_adapter_sync_direct_tools(self) -> None:
+    def test_autogen(self) -> None:
         _test_autogen_adapter_sync_direct_tools_impl()
 
-    def test_ag2_adapter_sync_direct_tools(self) -> None:
+    def test_ag2(self) -> None:
         _test_ag2_adapter_sync_direct_tools_impl()
 
-    def test_langgraph_adapter_sync_direct_tools(self) -> None:
+    def test_langgraph(self) -> None:
         _test_langgraph_adapter_sync_direct_tools_impl()
 
-    def test_crewai_adapter_sync_direct_tools(self, offline_http_guard) -> None:
+    def test_crewai(self, offline_http_guard) -> None:
         _test_crewai_adapter_sync_direct_tools_impl(offline_http_guard)
 
-    def test_llamaindex_adapter_sync_direct_tools(self) -> None:
+    def test_llamaindex(self) -> None:
         _test_llamaindex_adapter_sync_direct_tools_impl()
 
-    def test_phidata_adapter_sync_direct_tools(self) -> None:
+    def test_phidata(self) -> None:
         _test_phidata_adapter_sync_direct_tools_impl()
 
-    def test_semantic_kernel_adapter_sync_direct_tools(self) -> None:
+    def test_semantic_kernel(self) -> None:
         _test_semantic_kernel_adapter_sync_direct_tools_impl()
 
-    def test_google_adk_adapter_sync_direct_tools(self) -> None:
+    def test_google_adk(self) -> None:
         _test_google_adk_adapter_sync_direct_tools_impl()
 
-    def test_pydantic_ai_adapter_sync_direct_tools(self) -> None:
+    def test_pydantic_ai(self) -> None:
         _test_pydantic_ai_adapter_sync_direct_tools_impl()
 
-    def test_autogen_agentchat_native_adapter_sync_direct_tools(self) -> None:
+    def test_autogen_native(self) -> None:
         _test_autogen_agentchat_native_adapter_sync_direct_tools_impl()
 
-    def test_ag2_native_adapter_sync_direct_tools(self) -> None:
+    def test_ag2_native(self) -> None:
         _test_ag2_native_adapter_sync_direct_tools_impl()
 
-    def test_semantic_kernel_native_adapter_sync_direct_tools(self) -> None:
+    def test_semantic_kernel_native(self) -> None:
         _test_semantic_kernel_native_adapter_sync_direct_tools_impl()
 
-    def test_crewai_native_adapter_sync_direct_tools(self, offline_http_guard) -> None:
+    def test_crewai_native(self, offline_http_guard) -> None:
         _test_crewai_native_adapter_sync_direct_tools_impl(offline_http_guard)
 
-    def test_langgraph_native_node_sync_direct_tools(self) -> None:
+    def test_langgraph_native(self) -> None:
         _test_langgraph_native_node_sync_direct_tools_impl()
 
-    def test_autogen_agent_binding_sync_direct_tools(self) -> None:
+    def test_autogen_binding(self) -> None:
         _test_autogen_agent_binding_sync_direct_tools_impl()
 
-    def test_crewai_agent_binding_sync_direct_tools(self, offline_http_guard) -> None:
+    def test_crewai_binding(self, offline_http_guard) -> None:
         _test_crewai_agent_binding_sync_direct_tools_impl(offline_http_guard)
 
-    def test_semantic_kernel_kernel_binding_sync_direct_tools(self) -> None:
+    def test_semantic_kernel_binding(self) -> None:
         _test_semantic_kernel_kernel_binding_sync_direct_tools_impl()
 
-    def test_pydantic_ai_agent_binding_sync_direct_tools(self) -> None:
+    def test_pydantic_ai_binding(self) -> None:
         _test_pydantic_ai_agent_binding_sync_direct_tools_impl()
 
-    def test_google_adk_agent_binding_sync_direct_tools(self) -> None:
+    def test_google_adk_binding(self) -> None:
         _test_google_adk_agent_binding_sync_direct_tools_impl()
 # Agent binding: gateway variants (sync)
 # ------------------------------
