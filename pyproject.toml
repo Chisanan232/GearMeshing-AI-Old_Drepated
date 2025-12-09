@@ -88,7 +88,8 @@ contract-test-with-ai-frameworks = [
     "llama-index>=0.14.10",
     # Phidata
     "phidata>=2.7.10,<3.0.0",
-    # Google AI agent SDK
+    # Google AI agent SDK (ADK)
+    "google-adk>=1.20.0",
     # Pydantic AI by FastAPI Pydantic team
     # Testcontainers for real contract tests
     "testcontainers>=4.7.2",
