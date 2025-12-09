@@ -108,7 +108,7 @@ def to_langchain_tools(tools: Sequence[McpTool]) -> List[Any]:
 # Sync: client + direct
 # ------------------------------
 
-def test_framework_adapters_sync_direct_servers_and_tools() -> None:
+def _test_framework_adapters_sync_direct_servers_and_tools_impl() -> None:
     transport = _mock_transport_direct()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
 
@@ -137,7 +137,7 @@ def test_framework_adapters_sync_direct_servers_and_tools() -> None:
 # Additional gateway variants (per-framework, sync)
 # ------------------------------
 
-def test_langchain_adapter_sync_gateway_tools() -> None:
+def _test_langchain_adapter_sync_gateway_tools_impl() -> None:
     transport = _mock_transport_gateway()
     mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
     http_client = httpx.Client(transport=transport, base_url="http://mock")
@@ -154,7 +154,7 @@ def test_langchain_adapter_sync_gateway_tools() -> None:
     assert lc_tools and getattr(lc_tools[0], "name", None) == "echo"
 
 
-def test_llamaindex_adapter_sync_gateway_tools() -> None:
+def _test_llamaindex_adapter_sync_gateway_tools_impl() -> None:
     transport = _mock_transport_gateway()
     mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
     http_client = httpx.Client(transport=transport, base_url="http://mock")
@@ -171,7 +171,7 @@ def test_llamaindex_adapter_sync_gateway_tools() -> None:
     assert li_tools and len(li_tools) > 0
 
 
-def test_phidata_adapter_sync_gateway_tools() -> None:
+def _test_phidata_adapter_sync_gateway_tools_impl() -> None:
     transport = _mock_transport_gateway()
     mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
     http_client = httpx.Client(transport=transport, base_url="http://mock")
@@ -188,7 +188,7 @@ def test_phidata_adapter_sync_gateway_tools() -> None:
     assert pd_tools and pd_tools[0].type == "function"
 
 
-def test_semantic_kernel_adapter_sync_gateway_tools() -> None:
+def _test_semantic_kernel_adapter_sync_gateway_tools_impl() -> None:
     transport = _mock_transport_gateway()
     mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
     http_client = httpx.Client(transport=transport, base_url="http://mock")
@@ -205,7 +205,7 @@ def test_semantic_kernel_adapter_sync_gateway_tools() -> None:
     assert sk_tools and sk_tools[0]["function"]["name"] == "echo"
 
 
-def test_autogen_agentchat_native_adapter_sync_gateway_tools() -> None:
+def _test_autogen_agentchat_native_adapter_sync_gateway_tools_impl() -> None:
     transport = _mock_transport_gateway()
     mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
     http_client = httpx.Client(transport=transport, base_url="http://mock")
@@ -222,7 +222,7 @@ def test_autogen_agentchat_native_adapter_sync_gateway_tools() -> None:
     assert native_tools and len(native_tools) > 0
 
 
-def test_ag2_native_adapter_sync_gateway_tools() -> None:
+def _test_ag2_native_adapter_sync_gateway_tools_impl() -> None:
     transport = _mock_transport_gateway()
     mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
     http_client = httpx.Client(transport=transport, base_url="http://mock")
@@ -239,7 +239,7 @@ def test_ag2_native_adapter_sync_gateway_tools() -> None:
     assert native_tools and len(native_tools) > 0
 
 
-def test_semantic_kernel_native_adapter_sync_gateway_tools() -> None:
+def _test_semantic_kernel_native_adapter_sync_gateway_tools_impl() -> None:
     transport = _mock_transport_gateway()
     mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
     http_client = httpx.Client(transport=transport, base_url="http://mock")
@@ -256,7 +256,7 @@ def test_semantic_kernel_native_adapter_sync_gateway_tools() -> None:
     assert native_tools and callable(native_tools[0])
 
 
-def test_crewai_native_adapter_sync_gateway_tools(offline_http_guard) -> None:
+def _test_crewai_native_adapter_sync_gateway_tools_impl(offline_http_guard) -> None:
     transport = _mock_transport_gateway()
     mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
     http_client = httpx.Client(transport=transport, base_url="http://mock")
@@ -273,7 +273,7 @@ def test_crewai_native_adapter_sync_gateway_tools(offline_http_guard) -> None:
     assert native and len(native) > 0
 
 
-def test_langgraph_native_node_sync_gateway_tools() -> None:
+def _test_langgraph_native_node_sync_gateway_tools_impl() -> None:
     transport = _mock_transport_gateway()
     mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
     http_client = httpx.Client(transport=transport, base_url="http://mock")
@@ -290,7 +290,7 @@ def test_langgraph_native_node_sync_gateway_tools() -> None:
     assert node is not None
 
 
-def test_google_adk_adapter_sync_gateway_tools() -> None:
+def _test_google_adk_adapter_sync_gateway_tools_impl() -> None:
     transport = _mock_transport_gateway()
     mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
     http_client = httpx.Client(transport=transport, base_url="http://mock")
@@ -307,7 +307,7 @@ def test_google_adk_adapter_sync_gateway_tools() -> None:
     assert adk_tools and callable(adk_tools[0])
 
 
-def test_pydantic_ai_adapter_sync_gateway_tools() -> None:
+def _test_pydantic_ai_adapter_sync_gateway_tools_impl() -> None:
     transport = _mock_transport_gateway()
     mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
     http_client = httpx.Client(transport=transport, base_url="http://mock")
@@ -334,7 +334,7 @@ def test_pydantic_ai_adapter_sync_gateway_tools() -> None:
 # Sync: client + gateway
 # ------------------------------
 
-def test_framework_adapters_sync_gateway_servers_and_tools() -> None:
+def _test_framework_adapters_sync_gateway_servers_and_tools_impl() -> None:
     transport = _mock_transport_gateway()
     mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
     http_client = httpx.Client(transport=transport, base_url="http://mock")
@@ -364,8 +364,7 @@ def test_framework_adapters_sync_gateway_servers_and_tools() -> None:
 # ------------------------------
 # Async: async client + async direct
 # ------------------------------
-@pytest.mark.asyncio
-async def test_framework_adapters_async_direct_tools() -> None:
+async def _test_framework_adapters_async_direct_tools_impl() -> None:
     # Build AsyncMcpClient with AsyncDirectMcpStrategy using Mock AsyncClient
     from gearmeshing_ai.mcp_client.strategy.direct_async import AsyncDirectMcpStrategy
 
@@ -390,8 +389,7 @@ async def test_framework_adapters_async_direct_tools() -> None:
 # ------------------------------
 # Async: async client + async gateway
 # ------------------------------
-@pytest.mark.asyncio
-async def test_framework_adapters_async_gateway_tools() -> None:
+async def _test_framework_adapters_async_gateway_tools_impl() -> None:
     atransport = _mock_transport_gateway()
     mgmt_client = httpx.Client(transport=atransport, base_url="http://mock")
     http_client = httpx.AsyncClient(transport=atransport, base_url="http://mock")
@@ -417,6 +415,18 @@ async def test_framework_adapters_async_gateway_tools() -> None:
 
     await http_client.aclose()
     await sse_client.aclose()
+
+
+class TestAsyncWithDirect:
+    @pytest.mark.asyncio
+    async def test_framework_adapters_async_direct_tools(self) -> None:
+        await _test_framework_adapters_async_direct_tools_impl()
+
+
+class TestAsyncWithGateway:
+    @pytest.mark.asyncio
+    async def test_framework_adapters_async_gateway_tools(self) -> None:
+        await _test_framework_adapters_async_gateway_tools_impl()
 
 
 # ------------------------------
@@ -725,7 +735,7 @@ def _google_adk_make_agent_with_tools(tools: Sequence[McpTool]) -> Any:
 
 # Per-framework sanity checks (sync direct as representative)
 
-def test_autogen_adapter_sync_direct_tools() -> None:
+def _test_autogen_adapter_sync_direct_tools_impl() -> None:
     transport = _mock_transport_direct()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
     cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
@@ -735,7 +745,7 @@ def test_autogen_adapter_sync_direct_tools() -> None:
     assert oa_tools and oa_tools[0]["function"]["name"] == "echo"
 
 
-def test_ag2_adapter_sync_direct_tools() -> None:
+def _test_ag2_adapter_sync_direct_tools_impl() -> None:
     transport = _mock_transport_direct()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
     cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
@@ -745,7 +755,7 @@ def test_ag2_adapter_sync_direct_tools() -> None:
     assert oa_tools and oa_tools[0]["function"]["name"] == "echo"
 
 
-def test_langgraph_adapter_sync_direct_tools() -> None:
+def _test_langgraph_adapter_sync_direct_tools_impl() -> None:
     pytest.importorskip("langgraph")
     # Use LangChain tool mapping as underlying representation for LangGraph nodes.
     transport = _mock_transport_direct()
@@ -757,7 +767,7 @@ def test_langgraph_adapter_sync_direct_tools() -> None:
     assert lc_tools and getattr(lc_tools[0], "name", None) == "echo"
 
 
-def test_crewai_adapter_sync_direct_tools(offline_http_guard) -> None:
+def _test_crewai_adapter_sync_direct_tools_impl(offline_http_guard) -> None:
     transport = _mock_transport_direct()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
     cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
@@ -768,7 +778,7 @@ def test_crewai_adapter_sync_direct_tools(offline_http_guard) -> None:
     assert cr_tools and getattr(cr_tools[0], "name", None) == "echo"
 
 
-def test_llamaindex_adapter_sync_direct_tools() -> None:
+def _test_llamaindex_adapter_sync_direct_tools_impl() -> None:
     transport = _mock_transport_direct()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
     cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
@@ -789,7 +799,7 @@ def test_llamaindex_adapter_sync_direct_tools() -> None:
         pass
 
 
-def test_phidata_adapter_sync_direct_tools() -> None:
+def _test_phidata_adapter_sync_direct_tools_impl() -> None:
     transport = _mock_transport_direct()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
     cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
@@ -801,7 +811,7 @@ def test_phidata_adapter_sync_direct_tools() -> None:
     assert pd_tools[0].type == "function"
 
 
-def test_semantic_kernel_adapter_sync_direct_tools() -> None:
+def _test_semantic_kernel_adapter_sync_direct_tools_impl() -> None:
     transport = _mock_transport_direct()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
     cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
@@ -811,7 +821,7 @@ def test_semantic_kernel_adapter_sync_direct_tools() -> None:
     assert sk_tools and sk_tools[0]["function"]["name"] == "echo"
 
 
-def test_google_adk_adapter_sync_direct_tools() -> None:
+def _test_google_adk_adapter_sync_direct_tools_impl() -> None:
     transport = _mock_transport_direct()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
     cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
@@ -831,7 +841,7 @@ def test_google_adk_adapter_sync_direct_tools() -> None:
     assert name == "echo"
 
 
-def test_pydantic_ai_adapter_sync_direct_tools() -> None:
+def _test_pydantic_ai_adapter_sync_direct_tools_impl() -> None:
     transport = _mock_transport_direct()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
     cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
@@ -846,7 +856,7 @@ def test_pydantic_ai_adapter_sync_direct_tools() -> None:
         pass
 
 
-def test_autogen_agentchat_native_adapter_sync_direct_tools() -> None:
+def _test_autogen_agentchat_native_adapter_sync_direct_tools_impl() -> None:
     transport = _mock_transport_direct()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
     cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
@@ -856,7 +866,7 @@ def test_autogen_agentchat_native_adapter_sync_direct_tools() -> None:
     assert native_tools and len(native_tools) > 0
 
 
-def test_ag2_native_adapter_sync_direct_tools() -> None:
+def _test_ag2_native_adapter_sync_direct_tools_impl() -> None:
     transport = _mock_transport_direct()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
     cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
@@ -866,7 +876,7 @@ def test_ag2_native_adapter_sync_direct_tools() -> None:
     assert native_tools and len(native_tools) > 0
 
 
-def test_semantic_kernel_native_adapter_sync_direct_tools() -> None:
+def _test_semantic_kernel_native_adapter_sync_direct_tools_impl() -> None:
     transport = _mock_transport_direct()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
     cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
@@ -882,7 +892,7 @@ def test_semantic_kernel_native_adapter_sync_direct_tools() -> None:
         pass
 
 
-def test_crewai_native_adapter_sync_direct_tools(offline_http_guard) -> None:
+def _test_crewai_native_adapter_sync_direct_tools_impl(offline_http_guard) -> None:
     transport = _mock_transport_direct()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
     cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
@@ -892,7 +902,7 @@ def test_crewai_native_adapter_sync_direct_tools(offline_http_guard) -> None:
     assert native and len(native) > 0
 
 
-def test_langgraph_native_node_sync_direct_tools() -> None:
+def _test_langgraph_native_node_sync_direct_tools_impl() -> None:
     transport = _mock_transport_direct()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
     cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
@@ -902,7 +912,7 @@ def test_langgraph_native_node_sync_direct_tools() -> None:
     assert node is not None
 
 
-def test_autogen_agent_binding_sync_direct_tools() -> None:
+def _test_autogen_agent_binding_sync_direct_tools_impl() -> None:
     transport = _mock_transport_direct()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
     cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
@@ -912,7 +922,7 @@ def test_autogen_agent_binding_sync_direct_tools() -> None:
     assert agent is not None
 
 
-def test_crewai_agent_binding_sync_direct_tools(offline_http_guard) -> None:
+def _test_crewai_agent_binding_sync_direct_tools_impl(offline_http_guard) -> None:
     transport = _mock_transport_direct()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
     cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
@@ -922,7 +932,7 @@ def test_crewai_agent_binding_sync_direct_tools(offline_http_guard) -> None:
     assert agent is not None
 
 
-def test_semantic_kernel_kernel_binding_sync_direct_tools() -> None:
+def _test_semantic_kernel_kernel_binding_sync_direct_tools_impl() -> None:
     transport = _mock_transport_direct()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
     cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
@@ -932,7 +942,7 @@ def test_semantic_kernel_kernel_binding_sync_direct_tools() -> None:
     assert kernel is not None
 
 
-def test_pydantic_ai_agent_binding_sync_direct_tools() -> None:
+def _test_pydantic_ai_agent_binding_sync_direct_tools_impl() -> None:
     transport = _mock_transport_direct()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
     cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
@@ -942,7 +952,7 @@ def test_pydantic_ai_agent_binding_sync_direct_tools() -> None:
     assert agent is not None
 
 
-def test_google_adk_agent_binding_sync_direct_tools() -> None:
+def _test_google_adk_agent_binding_sync_direct_tools_impl() -> None:
     transport = _mock_transport_direct()
     http_client = httpx.Client(transport=transport, base_url="http://mock")
     cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
@@ -953,10 +963,130 @@ def test_google_adk_agent_binding_sync_direct_tools() -> None:
 
 
 # ------------------------------
+# Test suites: Sync + Gateway
+# ------------------------------
+
+class TestSyncWithGateway:
+    def test_framework_adapters_sync_gateway_servers_and_tools(self) -> None:
+        _test_framework_adapters_sync_gateway_servers_and_tools_impl()
+
+    def test_langchain_adapter_sync_gateway_tools(self) -> None:
+        _test_langchain_adapter_sync_gateway_tools_impl()
+
+    def test_llamaindex_adapter_sync_gateway_tools(self) -> None:
+        _test_llamaindex_adapter_sync_gateway_tools_impl()
+
+    def test_phidata_adapter_sync_gateway_tools(self) -> None:
+        _test_phidata_adapter_sync_gateway_tools_impl()
+
+    def test_semantic_kernel_adapter_sync_gateway_tools(self) -> None:
+        _test_semantic_kernel_adapter_sync_gateway_tools_impl()
+
+    def test_autogen_agentchat_native_adapter_sync_gateway_tools(self) -> None:
+        _test_autogen_agentchat_native_adapter_sync_gateway_tools_impl()
+
+    def test_ag2_native_adapter_sync_gateway_tools(self) -> None:
+        _test_ag2_native_adapter_sync_gateway_tools_impl()
+
+    def test_semantic_kernel_native_adapter_sync_gateway_tools(self) -> None:
+        _test_semantic_kernel_native_adapter_sync_gateway_tools_impl()
+
+    def test_crewai_native_adapter_sync_gateway_tools(self, offline_http_guard) -> None:
+        _test_crewai_native_adapter_sync_gateway_tools_impl(offline_http_guard)
+
+    def test_langgraph_native_node_sync_gateway_tools(self) -> None:
+        _test_langgraph_native_node_sync_gateway_tools_impl()
+
+    def test_google_adk_adapter_sync_gateway_tools(self) -> None:
+        _test_google_adk_adapter_sync_gateway_tools_impl()
+
+    def test_pydantic_ai_adapter_sync_gateway_tools(self) -> None:
+        _test_pydantic_ai_adapter_sync_gateway_tools_impl()
+
+    def test_autogen_agent_binding_sync_gateway_tools(self) -> None:
+        _test_autogen_agent_binding_sync_gateway_tools_impl()
+
+    def test_crewai_agent_binding_sync_gateway_tools(self, offline_http_guard) -> None:
+        _test_crewai_agent_binding_sync_gateway_tools_impl(offline_http_guard)
+
+    def test_semantic_kernel_kernel_binding_sync_gateway_tools(self) -> None:
+        _test_semantic_kernel_kernel_binding_sync_gateway_tools_impl()
+
+    def test_pydantic_ai_agent_binding_sync_gateway_tools(self) -> None:
+        _test_pydantic_ai_agent_binding_sync_gateway_tools_impl()
+
+    def test_google_adk_agent_binding_sync_gateway_tools(self) -> None:
+        _test_google_adk_agent_binding_sync_gateway_tools_impl()
+
+
+# ------------------------------
+# Test suites: Sync + Direct
+# ------------------------------
+
+class TestSyncWithDirect:
+    def test_framework_adapters_sync_direct_servers_and_tools(self) -> None:
+        _test_framework_adapters_sync_direct_servers_and_tools_impl()
+
+    def test_autogen_adapter_sync_direct_tools(self) -> None:
+        _test_autogen_adapter_sync_direct_tools_impl()
+
+    def test_ag2_adapter_sync_direct_tools(self) -> None:
+        _test_ag2_adapter_sync_direct_tools_impl()
+
+    def test_langgraph_adapter_sync_direct_tools(self) -> None:
+        _test_langgraph_adapter_sync_direct_tools_impl()
+
+    def test_crewai_adapter_sync_direct_tools(self, offline_http_guard) -> None:
+        _test_crewai_adapter_sync_direct_tools_impl(offline_http_guard)
+
+    def test_llamaindex_adapter_sync_direct_tools(self) -> None:
+        _test_llamaindex_adapter_sync_direct_tools_impl()
+
+    def test_phidata_adapter_sync_direct_tools(self) -> None:
+        _test_phidata_adapter_sync_direct_tools_impl()
+
+    def test_semantic_kernel_adapter_sync_direct_tools(self) -> None:
+        _test_semantic_kernel_adapter_sync_direct_tools_impl()
+
+    def test_google_adk_adapter_sync_direct_tools(self) -> None:
+        _test_google_adk_adapter_sync_direct_tools_impl()
+
+    def test_pydantic_ai_adapter_sync_direct_tools(self) -> None:
+        _test_pydantic_ai_adapter_sync_direct_tools_impl()
+
+    def test_autogen_agentchat_native_adapter_sync_direct_tools(self) -> None:
+        _test_autogen_agentchat_native_adapter_sync_direct_tools_impl()
+
+    def test_ag2_native_adapter_sync_direct_tools(self) -> None:
+        _test_ag2_native_adapter_sync_direct_tools_impl()
+
+    def test_semantic_kernel_native_adapter_sync_direct_tools(self) -> None:
+        _test_semantic_kernel_native_adapter_sync_direct_tools_impl()
+
+    def test_crewai_native_adapter_sync_direct_tools(self, offline_http_guard) -> None:
+        _test_crewai_native_adapter_sync_direct_tools_impl(offline_http_guard)
+
+    def test_langgraph_native_node_sync_direct_tools(self) -> None:
+        _test_langgraph_native_node_sync_direct_tools_impl()
+
+    def test_autogen_agent_binding_sync_direct_tools(self) -> None:
+        _test_autogen_agent_binding_sync_direct_tools_impl()
+
+    def test_crewai_agent_binding_sync_direct_tools(self, offline_http_guard) -> None:
+        _test_crewai_agent_binding_sync_direct_tools_impl(offline_http_guard)
+
+    def test_semantic_kernel_kernel_binding_sync_direct_tools(self) -> None:
+        _test_semantic_kernel_kernel_binding_sync_direct_tools_impl()
+
+    def test_pydantic_ai_agent_binding_sync_direct_tools(self) -> None:
+        _test_pydantic_ai_agent_binding_sync_direct_tools_impl()
+
+    def test_google_adk_agent_binding_sync_direct_tools(self) -> None:
+        _test_google_adk_agent_binding_sync_direct_tools_impl()
 # Agent binding: gateway variants (sync)
 # ------------------------------
 
-def test_autogen_agent_binding_sync_gateway_tools() -> None:
+def _test_autogen_agent_binding_sync_gateway_tools_impl() -> None:
     transport = _mock_transport_gateway()
     mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
     http_client = httpx.Client(transport=transport, base_url="http://mock")
@@ -973,7 +1103,7 @@ def test_autogen_agent_binding_sync_gateway_tools() -> None:
     assert agent is not None
 
 
-def test_crewai_agent_binding_sync_gateway_tools(offline_http_guard) -> None:
+def _test_crewai_agent_binding_sync_gateway_tools_impl(offline_http_guard) -> None:
     transport = _mock_transport_gateway()
     mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
     http_client = httpx.Client(transport=transport, base_url="http://mock")
@@ -990,7 +1120,7 @@ def test_crewai_agent_binding_sync_gateway_tools(offline_http_guard) -> None:
     assert agent is not None
 
 
-def test_semantic_kernel_kernel_binding_sync_gateway_tools() -> None:
+def _test_semantic_kernel_kernel_binding_sync_gateway_tools_impl() -> None:
     transport = _mock_transport_gateway()
     mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
     http_client = httpx.Client(transport=transport, base_url="http://mock")
@@ -1007,7 +1137,7 @@ def test_semantic_kernel_kernel_binding_sync_gateway_tools() -> None:
     assert kernel is not None
 
 
-def test_pydantic_ai_agent_binding_sync_gateway_tools() -> None:
+def _test_pydantic_ai_agent_binding_sync_gateway_tools_impl() -> None:
     transport = _mock_transport_gateway()
     mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
     http_client = httpx.Client(transport=transport, base_url="http://mock")
@@ -1024,7 +1154,7 @@ def test_pydantic_ai_agent_binding_sync_gateway_tools() -> None:
     assert agent is not None
 
 
-def test_google_adk_agent_binding_sync_gateway_tools() -> None:
+def _test_google_adk_agent_binding_sync_gateway_tools_impl() -> None:
     transport = _mock_transport_gateway()
     mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
     http_client = httpx.Client(transport=transport, base_url="http://mock")
