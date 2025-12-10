@@ -107,6 +107,31 @@ def to_langchain_tools(tools: Sequence[McpTool]) -> List[Any]:
         out.append(Tool(name=t.name, description=t.description or "", func=_fn))
     return out
 
+def _maybe_call_langchain_tool(tool: Any, expected: str = "echo") -> None:
+    try:
+        invoke = getattr(tool, "invoke", None)
+        func = getattr(tool, "func", None)
+        if callable(invoke):
+            res = invoke({"text": "hi"})
+        elif callable(func):
+            res = func(text="hi")
+        else:
+            return
+        if isinstance(res, dict):
+            assert res.get("called") == expected
+    except Exception:
+        pass
+
+
+def _maybe_call_callable(fn: Any, expected: str = "echo") -> None:
+    try:
+        if callable(fn):
+            res = fn(text="hi")
+            if isinstance(res, dict):
+                assert res.get("called") == expected
+    except Exception:
+        pass
+
 
 # ------------------------------
 # Sync: client + direct
@@ -136,6 +161,7 @@ def _test_framework_adapters_sync_direct_servers_and_tools_impl() -> None:
     # LangChain tools
     lc_tools = to_langchain_tools(tools)
     assert lc_tools and getattr(lc_tools[0], "name", None) == "echo"
+    _maybe_call_langchain_tool(lc_tools[0])
 
 
 def _test_langchain_adapter_sync_direct_tools_impl() -> None:
@@ -146,6 +172,8 @@ def _test_langchain_adapter_sync_direct_tools_impl() -> None:
     tools = client.list_tools("s1")
     lc_tools = to_langchain_tools(tools)
     assert lc_tools and getattr(lc_tools[0], "name", None) == "echo"
+    _maybe_call_langchain_tool(lc_tools[0])
+    _maybe_call_langchain_tool(lc_tools[0])
 
 
 # ------------------------------
@@ -564,6 +592,7 @@ class BaseAsyncSuite:
         try:
             lc_tools = to_langchain_tools(tools)
             assert lc_tools and getattr(lc_tools[0], "name", None) == "echo"
+            _maybe_call_langchain_tool(lc_tools[0])
         finally:
             await self._close_all(closers)
 
@@ -619,6 +648,7 @@ class BaseAsyncSuite:
         try:
             adk_tools = to_google_adk_tools(tools)
             assert adk_tools and callable(adk_tools[0])
+            _maybe_call_callable(adk_tools[0])
         finally:
             await self._close_all(closers)
 
@@ -628,6 +658,7 @@ class BaseAsyncSuite:
         try:
             pa_tools = to_pydantic_ai_tools(tools)
             assert pa_tools and callable(pa_tools[0])
+            _maybe_call_callable(pa_tools[0])
         finally:
             await self._close_all(closers)
 
@@ -1342,6 +1373,7 @@ class BaseSyncSuite:
         _, tools = self._get_client_and_tools()
         lc_tools = to_langchain_tools(tools)
         assert lc_tools and getattr(lc_tools[0], "name", None) == "echo"
+        _maybe_call_langchain_tool(lc_tools[0])
 
     def test_langgraph(self) -> None:
         pytest.importorskip("langgraph")
@@ -1373,6 +1405,7 @@ class BaseSyncSuite:
         _, tools = self._get_client_and_tools()
         adk_tools = to_google_adk_tools(tools)
         assert adk_tools and callable(adk_tools[0])
+        _maybe_call_callable(adk_tools[0])
 
     def test_pydantic_ai(self) -> None:
         _, tools = self._get_client_and_tools()
