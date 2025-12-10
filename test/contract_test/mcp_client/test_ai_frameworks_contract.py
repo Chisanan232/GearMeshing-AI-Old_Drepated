@@ -123,6 +123,22 @@ def _maybe_call_langchain_tool(tool: Any, expected: str = "echo") -> None:
         pass
 
 
+def _maybe_call_llamaindex_tool(tool: Any, expected: str = "echo") -> None:
+    try:
+        caller = getattr(tool, "call", None)
+        fn = getattr(tool, "fn", None)
+        if callable(caller):
+            res = caller({"text": "hi"})
+        elif callable(fn):
+            res = fn(text="hi")
+        else:
+            return
+        if isinstance(res, dict):
+            assert res.get("called") == expected
+    except Exception:
+        pass
+
+
 def _maybe_call_callable(fn: Any, expected: str = "echo") -> None:
     try:
         if callable(fn):
@@ -132,6 +148,20 @@ def _maybe_call_callable(fn: Any, expected: str = "echo") -> None:
     except Exception:
         pass
 
+
+def _maybe_call_phidata_tool(tool: Any, expected: str = "echo") -> None:
+    try:
+        runner = getattr(tool, "run", None)
+        if callable(runner):
+            res = runner(text="hi")
+        elif callable(tool):
+            res = tool(text="hi")
+        else:
+            return
+        if isinstance(res, dict):
+            assert res.get("called") == expected
+    except Exception:
+        pass
 
 # ------------------------------
 # Sync: client + direct
@@ -196,6 +226,7 @@ def _test_langchain_adapter_sync_gateway_tools_impl() -> None:
     tools = client.list_tools("s1")
     lc_tools = to_langchain_tools(tools)
     assert lc_tools and getattr(lc_tools[0], "name", None) == "echo"
+    _maybe_call_langchain_tool(lc_tools[0])
 
 
 def _test_llamaindex_adapter_sync_gateway_tools_impl() -> None:
@@ -213,6 +244,7 @@ def _test_llamaindex_adapter_sync_gateway_tools_impl() -> None:
     tools = client.list_tools("s1")
     li_tools = to_llamaindex_tools(tools)
     assert li_tools and len(li_tools) > 0
+    _maybe_call_llamaindex_tool(li_tools[0])
 
 
 def _test_phidata_adapter_sync_gateway_tools_impl() -> None:
@@ -621,6 +653,7 @@ class BaseAsyncSuite:
         try:
             li_tools = to_llamaindex_tools(tools)
             assert li_tools and len(li_tools) > 0
+            _maybe_call_llamaindex_tool(li_tools[0])
         finally:
             await self._close_all(closers)
 
@@ -630,6 +663,7 @@ class BaseAsyncSuite:
         try:
             pd_tools = to_phidata_tools(tools)
             assert pd_tools and pd_tools[0].type == "function"
+            _maybe_call_phidata_tool(pd_tools[0])
         finally:
             await self._close_all(closers)
 
@@ -1395,6 +1429,7 @@ class BaseSyncSuite:
         _, tools = self._get_client_and_tools()
         pd_tools = to_phidata_tools(tools)
         assert pd_tools and pd_tools[0].type == "function"
+        _maybe_call_phidata_tool(pd_tools[0])
 
     def test_semantic_kernel(self) -> None:
         _, tools = self._get_client_and_tools()
