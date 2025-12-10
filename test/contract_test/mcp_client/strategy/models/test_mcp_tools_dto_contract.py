@@ -8,7 +8,6 @@ from gearmeshing_ai.mcp_client.schemas.core import McpTool, ToolCallResult, Tool
 from gearmeshing_ai.mcp_client.strategy.models.dto import (
     ToolDescriptorDTO,
     ToolInvokePayloadDTO,
-    ToolInvokeRequestDTO,
     ToolsListPayloadDTO,
     ToolsListQuery,
 )
@@ -28,6 +27,7 @@ def test_tool_descriptor_dto_contract_alias_and_mapping() -> None:
     dto = ToolDescriptorDTO.model_validate(raw)
     assert dto.name == "get_issue"
     assert dto.input_schema["type"] == "object"
+
     # Mapping to domain
     def _infer(schema: Dict[str, Any]) -> List[Dict[str, Any]]:
         props = (schema or {}).get("properties") or {}
@@ -77,7 +77,9 @@ essential_cases = [
 
 
 @pytest.mark.parametrize("body, expected_ok, expected_data", essential_cases)
-def test_tool_invoke_payload_dto_coercion_and_result(body: Any, expected_ok: bool, expected_data: Dict[str, Any]) -> None:
+def test_tool_invoke_payload_dto_coercion_and_result(
+    body: Any, expected_ok: bool, expected_data: Dict[str, Any]
+) -> None:
     inv = ToolInvokePayloadDTO.model_validate(body)
     res: ToolCallResult = inv.to_tool_call_result()
     assert res.ok == expected_ok
@@ -85,6 +87,9 @@ def test_tool_invoke_payload_dto_coercion_and_result(body: Any, expected_ok: boo
 
 
 def test_tools_page_alias_dump_contract() -> None:
-    page = ToolsPage(items=[McpTool(name="a", description=None, mutating=False, arguments=[], raw_parameters_schema={})], next_cursor="next")
+    page = ToolsPage(
+        items=[McpTool(name="a", description=None, mutating=False, arguments=[], raw_parameters_schema={})],
+        next_cursor="next",
+    )
     dumped = page.model_dump(by_alias=True, mode="json")
     assert dumped.get("nextCursor") == "next"

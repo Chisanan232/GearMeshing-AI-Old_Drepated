@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Iterable
 
@@ -9,7 +8,7 @@ import pytest
 
 # Load dotenv files early so test fixtures can read secrets via os.getenv
 try:  # pragma: no cover
-    from dotenv import load_dotenv  # type: ignore
+    from dotenv import load_dotenv
 
     TEST_ROOT = Path(__file__).resolve().parent
     # Load test/.env first, then fallback to test/.env.example for defaults
@@ -39,7 +38,7 @@ def _global_offline_http_guard(monkeypatch: pytest.MonkeyPatch):
     def _should_stub_empty(url_str: str) -> bool:
         return url_str.startswith(litellm_prices_prefix)
 
-    def offline_sync(self, method, url, *args, **kwargs):  # type: ignore[no-redef]
+    def offline_sync(self, method, url, *args, **kwargs):
         url_str = str(url)
         if _is_allowed(url_str):
             return orig_sync(self, method, url, *args, **kwargs)
@@ -47,7 +46,7 @@ def _global_offline_http_guard(monkeypatch: pytest.MonkeyPatch):
             return httpx.Response(200, json={})
         raise RuntimeError(f"External HTTP blocked by global offline guard: {url_str}")
 
-    async def offline_async(self, method, url, *args, **kwargs):  # type: ignore[no-redef]
+    async def offline_async(self, method, url, *args, **kwargs):
         url_str = str(url)
         if _is_allowed(url_str):
             return await orig_async(self, method, url, *args, **kwargs)

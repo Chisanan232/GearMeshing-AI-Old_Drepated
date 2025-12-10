@@ -27,7 +27,7 @@ def offline_http_guard(monkeypatch: pytest.MonkeyPatch):
     def _should_stub_empty(url_str: str) -> bool:
         return url_str.startswith(litellm_prices_prefix)
 
-    def offline_sync(self, method, url, *args, **kwargs):  # type: ignore[no-redef]
+    def offline_sync(self, method, url, *args, **kwargs):
         url_str = str(url)
         if _is_allowed(url_str):
             return orig_sync(self, method, url, *args, **kwargs)
@@ -35,7 +35,7 @@ def offline_http_guard(monkeypatch: pytest.MonkeyPatch):
             return httpx.Response(200, json={})
         raise RuntimeError(f"External HTTP blocked by offline_http_guard: {url_str}")
 
-    async def offline_async(self, method, url, *args, **kwargs):  # type: ignore[no-redef]
+    async def offline_async(self, method, url, *args, **kwargs):
         url_str = str(url)
         if _is_allowed(url_str):
             return await orig_async(self, method, url, *args, **kwargs)

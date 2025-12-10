@@ -5,19 +5,19 @@ from typing import Any, AsyncIterator, Dict, Iterable, List
 
 import pytest
 
+from gearmeshing_ai.mcp_client.schemas.core import (
+    McpServerRef,
+    McpTool,
+    ServerKind,
+    ToolArgument,
+    ToolCallResult,
+    TransportType,
+)
 from gearmeshing_ai.mcp_client.strategy.base import (
     AsyncStrategy,
     StrategyCommonMixin,
     SyncStrategy,
     is_mutating_tool_name,
-)
-from gearmeshing_ai.mcp_client.schemas.core import (
-    McpServerRef,
-    McpTool,
-    ServerKind,
-    ToolCallResult,
-    ToolArgument,
-    TransportType,
 )
 
 
@@ -113,6 +113,7 @@ class DummyAsyncStrategy(StrategyCommonMixin):
             yield ""
             await asyncio.sleep(0)
             yield "data: done"
+
         return _gen()
 
     def stream_events_parsed(
@@ -130,12 +131,14 @@ class DummyAsyncStrategy(StrategyCommonMixin):
     ) -> AsyncIterator[Dict[str, Any]]:
         async def _gen() -> AsyncIterator[Dict[str, Any]]:
             yield {"id": "1", "event": "message", "data": "hello"}
+
         return _gen()
 
 
 # ------------------------------
 # SyncStrategy contracts
 # ------------------------------
+
 
 def test_sync_strategy_runtime_protocol_conformance() -> None:
     s = DummySyncStrategy()
@@ -162,6 +165,7 @@ def test_sync_strategy_basic_contract() -> None:
 # ------------------------------
 # AsyncStrategy contracts
 # ------------------------------
+
 
 def test_async_strategy_runtime_protocol_conformance() -> None:
     s = DummyAsyncStrategy()
@@ -196,6 +200,7 @@ async def test_async_strategy_basic_contract() -> None:
 # ------------------------------
 # StrategyCommonMixin helpers
 # ------------------------------
+
 
 def test_mutating_heuristic_global_and_mixin() -> None:
     mixin = StrategyCommonMixin()

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import pytest
 from pydantic_core._pydantic_core import ValidationError
@@ -84,9 +84,12 @@ def test_gateway_server_create_validation_and_dump_contract() -> None:
         GatewayServerCreate(name="x", url="not-a-url", transport=GatewayTransport.SSE)
 
 
-@pytest.mark.parametrize("schema_key, expected_fields", [
-    ("ServerRead", {"id", "name", "teamId", "isActive"}),
-])
+@pytest.mark.parametrize(
+    "schema_key, expected_fields",
+    [
+        ("ServerRead", {"id", "name", "teamId", "isActive"}),
+    ],
+)
 def test_openapi_contains_expected_gateway_schemas(schema_key: str, expected_fields: set[str]) -> None:
     spec_path = Path(__file__).parents[5] / "docs" / "openapi_spec" / "mcp_gateway.json"
     with spec_path.open("r", encoding="utf-8") as f:
@@ -159,9 +162,12 @@ def test_servers_list_payload_dto_coercions_contract() -> None:
     assert len(p3.items) == 1 and p3.items[0].name == "n1"
 
 
-@pytest.mark.parametrize("schema_key, expected_fields", [
-    ("ServerRead", {"id", "name", "teamId", "isActive"}),
-])
+@pytest.mark.parametrize(
+    "schema_key, expected_fields",
+    [
+        ("ServerRead", {"id", "name", "teamId", "isActive"}),
+    ],
+)
 def test_openapi_contains_expected_gateway_schemas(schema_key: str, expected_fields: set[str]) -> None:
     # Parse OpenAPI spec to ensure presence of known schemas/fields.
     spec_path = Path(__file__).parents[5] / "docs" / "openapi_spec" / "mcp_gateway.json"
@@ -180,4 +186,6 @@ def test_openapi_contains_expected_gateway_schemas(schema_key: str, expected_fie
             return
     # If not found, show candidates for debugging
     detail = {name: set(((schema or {}).get("properties") or {}).keys()) for name, schema in candidates.items()}
-    raise AssertionError(f"None of the candidate schemas for {schema_key} contain fields {expected_fields}. Candidates: {detail}")
+    raise AssertionError(
+        f"None of the candidate schemas for {schema_key} contain fields {expected_fields}. Candidates: {detail}"
+    )

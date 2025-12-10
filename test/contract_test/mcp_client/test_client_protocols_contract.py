@@ -49,7 +49,11 @@ class _DummySyncClient(ClientCommonMixin):
                 description="Create",
                 mutating=True,
                 arguments=[ToolArgument(name="title", type="string", required=True)],
-                raw_parameters_schema={"type": "object", "properties": {"title": {"type": "string"}}, "required": ["title"]},
+                raw_parameters_schema={
+                    "type": "object",
+                    "properties": {"title": {"type": "string"}},
+                    "required": ["title"],
+                },
             ),
         ]
 
@@ -172,6 +176,7 @@ class _DummyAsyncClient(ClientCommonMixin):
             yield "id: 1"
             await asyncio.sleep(0)
             yield "data: ok"
+
         return _gen()
 
     async def stream_events_parsed(
@@ -189,12 +194,14 @@ class _DummyAsyncClient(ClientCommonMixin):
     ) -> AsyncIterator[Dict[str, Any]]:
         async def _gen() -> AsyncIterator[Dict[str, Any]]:
             yield {"id": "1", "event": "message", "data": "ok"}
+
         return _gen()
 
 
 # ------------------------------
 # Runtime conformance
 # ------------------------------
+
 
 def test_sync_client_runtime_protocol_conformance() -> None:
     c = _DummySyncClient()
@@ -203,13 +210,14 @@ def test_sync_client_runtime_protocol_conformance() -> None:
 
 @pytest.mark.asyncio
 async def test_async_client_runtime_protocol_conformance() -> None:
-    c = await _DummyAsyncClient.from_config(McpClientConfig())  # type: ignore[arg-type]
+    c = await _DummyAsyncClient.from_config(McpClientConfig())
     assert isinstance(c, AsyncClientProtocol)
 
 
 # ------------------------------
 # Basic contracts
 # ------------------------------
+
 
 def test_sync_client_basic_contract() -> None:
     c = _DummySyncClient()
@@ -228,7 +236,7 @@ def test_sync_client_basic_contract() -> None:
 
 @pytest.mark.asyncio
 async def test_async_client_basic_contract() -> None:
-    c = await _DummyAsyncClient.from_config(McpClientConfig())  # type: ignore[arg-type]
+    c = await _DummyAsyncClient.from_config(McpClientConfig())
     tools = await c.list_tools("s1")
     assert tools and tools[0].name == "get_issue"
 
@@ -257,6 +265,7 @@ async def test_async_client_basic_contract() -> None:
 # ------------------------------
 # ClientCommonMixin contracts
 # ------------------------------
+
 
 def test_client_common_mixin_filters_and_blocking_contract() -> None:
     mixin = ClientCommonMixin()

@@ -37,6 +37,7 @@ class ListServersQuery(BaseSchema):
         - GatewayApiClient.list_servers uses this model's `to_params()` when making requests.
         - OpenAPI: GET /servers (see docs/openapi_spec/mcp_gateway.json)
     """
+
     include_inactive: Optional[bool] = Field(
         default=None,
         description="If true, include inactive servers in results. If false, only active servers. If omitted, server default applies.",
@@ -97,6 +98,7 @@ class ServerReadDTO(BaseSchema):
         - Consumed by `GatewayApiClient.list_servers` and `GatewayApiClient.get_server`.
         - OpenAPI: GET /servers/{serverId} (see docs/openapi_spec/mcp_gateway.json)
     """
+
     id: str = Field(
         ..., description="Unique identifier of the server within the Gateway.", examples=["s1", "created-123"]
     )
@@ -181,6 +183,7 @@ class ServersListPayloadDTO(BaseSchema):
         - Used by `GatewayApiClient.list_servers` to normalize responses.
         - OpenAPI: GET /servers (see docs/openapi_spec/mcp_gateway.json)
     """
+
     items: List[ServerReadDTO] = Field(
         ..., description="Normalized list of servers returned by the Gateway list endpoints."
     )
@@ -221,6 +224,7 @@ class GatewayServerCreate(BaseSchema):
         - Sent by `GatewayApiClient.create_server` to the Gateway API.
         - OpenAPI: POST /servers (see docs/openapi_spec/mcp_gateway.json)
     """
+
     name: str = Field(
         ...,
         description="Desired human-readable name for the server inside the Gateway.",

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from typing import Any, Dict, List, Sequence
 
 import httpx
@@ -8,14 +7,17 @@ import pytest
 
 from gearmeshing_ai.mcp_client.client_async import AsyncMcpClient
 from gearmeshing_ai.mcp_client.client_sync import McpClient
-from gearmeshing_ai.mcp_client.gateway_api.client import GatewayApiClient
-from gearmeshing_ai.mcp_client.schemas.config import GatewayConfig, McpClientConfig, ServerConfig
+from gearmeshing_ai.mcp_client.schemas.config import (
+    GatewayConfig,
+    McpClientConfig,
+    ServerConfig,
+)
 from gearmeshing_ai.mcp_client.schemas.core import McpTool
-
 
 # ------------------------------
 # Mock transports for Direct and Gateway
 # ------------------------------
+
 
 def _mock_transport_direct() -> httpx.MockTransport:
     def handler(request: httpx.Request) -> httpx.Response:
@@ -75,6 +77,7 @@ def _mock_transport_gateway() -> httpx.MockTransport:
 # Adapters to framework-friendly tool descriptors
 # ------------------------------
 
+
 def to_openai_function_tools(tools: Sequence[McpTool]) -> List[Dict[str, Any]]:
     out: List[Dict[str, Any]] = []
     for t in tools:
@@ -93,10 +96,11 @@ def to_openai_function_tools(tools: Sequence[McpTool]) -> List[Dict[str, Any]]:
 
 def to_langchain_tools(tools: Sequence[McpTool]) -> List[Any]:
     pytest.importorskip("langchain")
-    from langchain_core.tools import Tool  # type: ignore
+    from langchain_core.tools import Tool
 
     out: List[Any] = []
     for t in tools:
+
         def _fn(**kwargs: Any) -> Dict[str, Any]:
             return {"called": t.name, "args": kwargs}
 
@@ -107,6 +111,7 @@ def to_langchain_tools(tools: Sequence[McpTool]) -> List[Any]:
 # ------------------------------
 # Sync: client + direct
 # ------------------------------
+
 
 def _test_framework_adapters_sync_direct_servers_and_tools_impl() -> None:
     transport = _mock_transport_direct()
@@ -146,6 +151,7 @@ def _test_langchain_adapter_sync_direct_tools_impl() -> None:
 # ------------------------------
 # Additional gateway variants (per-framework, sync)
 # ------------------------------
+
 
 def _test_langchain_adapter_sync_gateway_tools_impl() -> None:
     transport = _mock_transport_gateway()
@@ -408,9 +414,11 @@ def _test_crewai_adapter_sync_gateway_tools_impl(offline_http_guard) -> None:
     cr_tools = to_crewai_tools(tools)
     assert cr_tools and getattr(cr_tools[0], "name", None) == "echo"
 
+
 # ------------------------------
 # Sync: client + gateway
 # ------------------------------
+
 
 def _test_framework_adapters_sync_gateway_servers_and_tools_impl() -> None:
     transport = _mock_transport_gateway()
@@ -498,6 +506,7 @@ async def _test_framework_adapters_async_gateway_tools_impl() -> None:
 # ------------------------------
 # Base suite: shared async tests (override _make_client_async)
 # ------------------------------
+
 
 class BaseAsyncSuite:
     async def _make_client_async(self):  # returns (client, closers)
@@ -715,7 +724,10 @@ class BaseAsyncSuite:
 
 class TestAsyncWithDirect(BaseAsyncSuite):
     async def _make_client_async(self):
-        from gearmeshing_ai.mcp_client.strategy.direct_async import AsyncDirectMcpStrategy
+        from gearmeshing_ai.mcp_client.strategy.direct_async import (
+            AsyncDirectMcpStrategy,
+        )
+
         atransport = _mock_transport_direct()
         async_client = httpx.AsyncClient(transport=atransport, base_url="http://mock")
         strat = AsyncDirectMcpStrategy([ServerConfig(name="s1", endpoint_url="http://mock/mcp")], client=async_client)
@@ -743,6 +755,7 @@ class TestAsyncWithGateway(BaseAsyncSuite):
 # Framework-specific adapters (best-effort, import-or-skip)
 # ------------------------------
 
+
 def to_crewai_tools(tools: Sequence[McpTool]) -> List[Any]:
     pytest.importorskip("crewai")
     # CrewAI commonly interoperates with LangChain tools; reuse LC mapping.
@@ -751,10 +764,11 @@ def to_crewai_tools(tools: Sequence[McpTool]) -> List[Any]:
 
 def to_llamaindex_tools(tools: Sequence[McpTool]) -> List[Any]:
     pytest.importorskip("llama_index")
-    from llama_index.core.tools import FunctionTool  # type: ignore
+    from llama_index.core.tools import FunctionTool
 
     out: List[Any] = []
     for t in tools:
+
         def _fn(**kwargs: Any) -> Dict[str, Any]:
             return {"called": t.name, "args": kwargs}
 
@@ -764,10 +778,11 @@ def to_llamaindex_tools(tools: Sequence[McpTool]) -> List[Any]:
 
 def to_phidata_tools(tools: Sequence[McpTool]) -> List[Any]:
     pytest.importorskip("phi")
-    from phi.tools import Tool  # type: ignore
+    from phi.tools import Tool
 
     out: List[Any] = []
     for t in tools:
+
         def _run(**kwargs: Any) -> Dict[str, Any]:
             return {"called": t.name, "args": kwargs}
 
@@ -797,14 +812,16 @@ def to_ag2_tools(tools: Sequence[McpTool]) -> List[Dict[str, Any]]:
 def to_google_adk_tools(tools: Sequence[McpTool]) -> List[Any]:
     pytest.importorskip("google.adk")
     try:
-        import google.adk as adk  # type: ignore
+        pass
     except Exception:
         pytest.skip("google-adk import mismatch; skipping adapter test")
     # For contract purposes, return simple callables (many SDKs accept callables or wrappers around them)
     created: List[Any] = []
     for t in tools:
+
         def _fn(**kwargs: Any) -> Dict[str, Any]:
             return {"called": t.name, "args": kwargs}
+
         created.append(_fn)
     return created
 
@@ -815,8 +832,10 @@ def to_pydantic_ai_tools(tools: Sequence[McpTool]) -> List[Any]:
     # return simple callables that accept **kwargs and echo back the call shape.
     created: List[Any] = []
     for t in tools:
+
         def _fn(**kwargs: Any) -> Dict[str, Any]:
             return {"called": t.name, "args": kwargs}
+
         created.append(_fn)
     return created
 
@@ -825,13 +844,16 @@ def to_pydantic_ai_tools(tools: Sequence[McpTool]) -> List[Any]:
 # Native adapters (best-effort, optional)
 # ------------------------------
 
+
 def to_autogen_agentchat_native_tools(tools: Sequence[McpTool]) -> List[Any]:
     pytest.importorskip("autogen_agentchat")
     # AG2 accepts callables directly; we'll wrap them
     out: List[Any] = []
     for t in tools:
+
         def _fn(**kwargs: Any) -> Dict[str, Any]:
             return {"called": t.name, "args": kwargs}
+
         out.append(_fn)
     return out
 
@@ -841,25 +863,28 @@ def to_ag2_native_tools(tools: Sequence[McpTool]) -> List[Any]:
     # AG2 accepts callables directly
     out: List[Any] = []
     for t in tools:
+
         def _fn(**kwargs: Any) -> Dict[str, Any]:
             return {"called": t.name, "args": kwargs}
+
         out.append(_fn)
     return out
 
 
 def to_semantic_kernel_native_tools(tools: Sequence[McpTool]) -> List[Any]:
     try:
-        import semantic_kernel as sk  # type: ignore
-        from semantic_kernel.functions import kernel_function  # type: ignore
+        from semantic_kernel.functions import kernel_function
     except ImportError as e:
         pytest.skip(f"semantic_kernel import failed (likely Pydantic v2 incompatibility): {e}")
 
     created: List[Any] = []
     for t in tools:
+
         def _make_fn(name: str):
-            @kernel_function(name=name, description="MCP tool")  # type: ignore[misc]
+            @kernel_function(name=name, description="MCP tool")
             def _f(**kwargs: Any) -> Dict[str, Any]:
                 return {"called": name, "args": kwargs}
+
             return _f
 
         created.append(_make_fn(t.name))
@@ -868,18 +893,18 @@ def to_semantic_kernel_native_tools(tools: Sequence[McpTool]) -> List[Any]:
 
 def to_crewai_native_tools(tools: Sequence[McpTool]) -> List[Any]:
     pytest.importorskip("crewai")
-    import crewai  # type: ignore
-    from crewai.tools import tool  # type: ignore
+    from crewai.tools import tool
 
     out: List[Any] = []
     for t in tools:
+
         def _fn(**kwargs: Any) -> Dict[str, Any]:
             """MCP tool wrapper."""
             return {"called": t.name, "args": kwargs}
 
         try:
             # CrewAI @tool decorator requires docstring
-            wrapped = tool(_fn)  # type: ignore[call-arg]
+            wrapped = tool(_fn)
         except Exception as e:
             pytest.skip(f"CrewAI native tool API mismatch: {e}")
         out.append(wrapped)
@@ -888,12 +913,11 @@ def to_crewai_native_tools(tools: Sequence[McpTool]) -> List[Any]:
 
 def to_langgraph_native_node(tools: Sequence[McpTool]) -> Any:
     pytest.importorskip("langgraph")
-    import langgraph  # type: ignore
-    from langgraph.prebuilt import ToolNode  # type: ignore
+    from langgraph.prebuilt import ToolNode
 
     lc_tools = to_langchain_tools(tools)
     try:
-        return ToolNode(lc_tools)  # type: ignore[misc]
+        return ToolNode(lc_tools)
     except Exception:
         pytest.skip("LangGraph tool node constructor mismatch; skipping native adapter test")
 
@@ -902,47 +926,53 @@ def to_langgraph_native_node(tools: Sequence[McpTool]) -> Any:
 # Native agent binding helpers (best-effort)
 # ------------------------------
 
+
 def _autogen_make_agent_with_tools(tools: Sequence[McpTool]) -> Any:
     pytest.importorskip("autogen_agentchat")
-    from autogen_agentchat.agents import AssistantAgent  # type: ignore
-    from autogen_core.models import ChatCompletionClient, ModelCapabilities  # type: ignore
-    from autogen_core.model_context import ChatCompletionContext  # type: ignore
-    
+    from autogen_agentchat.agents import AssistantAgent
+    from autogen_core.models import (
+        ChatCompletionClient,
+        ModelCapabilities,
+    )
+
     # Create a mock model client (required by AG2)
     class MockModelClient(ChatCompletionClient):
         @property
         def model_info(self):
             return {"model": "mock"}
-        
+
         @property
         def capabilities(self) -> ModelCapabilities:
-            return ModelCapabilities(vision=False, function_calling=True, vision_detail=None, function_calling_in_system_message=True)
-        
+            return ModelCapabilities(
+                vision=False, function_calling=True, vision_detail=None, function_calling_in_system_message=True
+            )
+
         async def create(self, **kwargs):
             from autogen_core.models import AssistantMessage
+
             return AssistantMessage(content="mock response")
-        
+
         async def create_stream(self, **kwargs):
             raise NotImplementedError()
-        
+
         def count_tokens(self, **kwargs):
             return 0
-        
+
         async def close(self):
             pass
-        
+
         @property
         def actual_usage(self):
             return None
-        
+
         @property
         def total_usage(self):
             return None
-        
+
         @property
         def remaining_tokens(self):
             return None
-    
+
     native_tools = to_autogen_agentchat_native_tools(tools)
     try:
         model_client = MockModelClient()
@@ -961,8 +991,7 @@ def _autogen_make_agent_with_tools(tools: Sequence[McpTool]) -> Any:
 
 def _crewai_make_agent_with_tools(tools: Sequence[McpTool]) -> Any:
     pytest.importorskip("crewai")
-    import crewai  # type: ignore
-    from crewai import Agent  # type: ignore
+    from crewai import Agent
 
     native_tools = to_crewai_native_tools(tools)
     try:
@@ -985,11 +1014,11 @@ def _crewai_make_agent_with_tools(tools: Sequence[McpTool]) -> Any:
 
 def _sk_make_kernel_with_tools(tools: Sequence[McpTool]) -> Any:
     pytest.importorskip("semantic_kernel")
-    import semantic_kernel as sk  # type: ignore
+    import semantic_kernel as sk
 
     native_functions = to_semantic_kernel_native_tools(tools)
     try:
-        kernel = sk.Kernel()  # type: ignore[attr-defined]
+        kernel = sk.Kernel()
     except Exception:
         pytest.skip("semantic-kernel Kernel not constructible")
     # Best-effort registration
@@ -997,7 +1026,7 @@ def _sk_make_kernel_with_tools(tools: Sequence[McpTool]) -> Any:
         for ns in ("mcp", "tools", "functions"):
             try:
                 if hasattr(kernel, "add_function"):
-                    kernel.add_function(ns, fn)  # type: ignore[misc]
+                    kernel.add_function(ns, fn)
                     break
             except Exception:
                 continue
@@ -1006,7 +1035,7 @@ def _sk_make_kernel_with_tools(tools: Sequence[McpTool]) -> Any:
 
 def _pydantic_ai_make_agent_with_tools(tools: Sequence[McpTool]) -> Any:
     pytest.importorskip("pydantic_ai")
-    from pydantic_ai.agent import Agent  # type: ignore
+    from pydantic_ai.agent import Agent
 
     native_tools = to_pydantic_ai_tools(tools)
     try:
@@ -1024,26 +1053,27 @@ def _pydantic_ai_make_agent_with_tools(tools: Sequence[McpTool]) -> Any:
 def _google_adk_make_agent_with_tools(tools: Sequence[McpTool]) -> Any:
     pytest.importorskip("google.adk")
     try:
-        from google.adk import Agent as GAgent  # type: ignore
+        from google.adk import Agent as GAgent
     except Exception:
         try:
-            from google.adk.agents import Agent as GAgent  # type: ignore
+            from google.adk.agents import Agent as GAgent
         except Exception as e:
             pytest.skip(f"google-adk Agent not importable: {e}")
 
     native_tools = to_google_adk_tools(tools)
     try:
-        agent = GAgent(name="assistant", tools=native_tools)  # type: ignore[call-arg]
+        agent = GAgent(name="assistant", tools=native_tools)
         return agent
     except Exception:
         try:
-            agent = GAgent(name="assistant")  # type: ignore[call-arg]
+            agent = GAgent(name="assistant")
             return agent
         except Exception as e:
             pytest.skip(f"google-adk Agent constructor mismatch: {e}")
 
 
 # Per-framework sanity checks (sync direct as representative)
+
 
 def _test_autogen_adapter_sync_direct_tools_impl() -> None:
     transport = _mock_transport_direct()
@@ -1103,7 +1133,7 @@ def _test_llamaindex_adapter_sync_direct_tools_impl() -> None:
             res = tool0.call({"text": "hi"})
             assert isinstance(res, dict) and res.get("called") == "echo"
         elif hasattr(tool0, "fn"):
-            res = tool0.fn(text="hi")  # type: ignore[attr-defined]
+            res = tool0.fn(text="hi")
             assert isinstance(res, dict) and res.get("called") == "echo"
     except Exception:
         pass
@@ -1276,6 +1306,7 @@ def _test_google_adk_agent_binding_sync_direct_tools_impl() -> None:
 # Base suite: shared sync tests (override _make_client in subclasses)
 # ------------------------------
 
+
 class BaseSyncSuite:
     def _make_client(self) -> McpClient:  # pragma: no cover - must be implemented in subclasses
         raise NotImplementedError
@@ -1408,6 +1439,7 @@ class BaseSyncSuite:
 # Test suites: Sync + Gateway
 # ------------------------------
 
+
 class TestSyncWithGateway(BaseSyncSuite):
     def _make_client(self) -> McpClient:
         transport = _mock_transport_gateway()
@@ -1425,14 +1457,18 @@ class TestSyncWithGateway(BaseSyncSuite):
 # Test suites: Sync + Direct
 # ------------------------------
 
+
 class TestSyncWithDirect(BaseSyncSuite):
     def _make_client(self) -> McpClient:
         transport = _mock_transport_direct()
         http_client = httpx.Client(transport=transport, base_url="http://mock")
         cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
         return McpClient.from_config(cfg, direct_http_client=http_client)
+
+
 # Agent binding: gateway variants (sync)
 # ------------------------------
+
 
 def _test_autogen_agent_binding_sync_gateway_tools_impl() -> None:
     transport = _mock_transport_gateway()

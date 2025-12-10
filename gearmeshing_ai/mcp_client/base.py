@@ -41,6 +41,7 @@ class SyncClientProtocol(Protocol):
     Concrete implementations should provide discovery, listing, pagination,
     and tool invocation through one or more underlying `SyncStrategy`s.
     """
+
     @classmethod
     def from_config(
         cls,
@@ -82,6 +83,7 @@ class AsyncClientProtocol(Protocol):
     Concrete implementations should provide async listing, pagination, tool
     invocation, and SSE streaming helpers.
     """
+
     @classmethod
     async def from_config(
         cls,

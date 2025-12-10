@@ -17,7 +17,14 @@ from .errors import ServerNotFoundError, ToolAccessDeniedError
 from .gateway_api.client import GatewayApiClient
 from .policy import PolicyMap, enforce_policy
 from .schemas.config import McpClientConfig
-from .schemas.core import McpTool, ToolCallResult, ToolsPage
+from .schemas.core import (
+    McpServerRef,
+    McpTool,
+    ServerKind,
+    ToolCallResult,
+    ToolsPage,
+    TransportType,
+)
 from .strategy.base import AsyncStrategy, is_mutating_tool_name
 from .strategy.direct_async import AsyncDirectMcpStrategy
 from .strategy.gateway_async import AsyncGatewayMcpStrategy
@@ -133,6 +140,54 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
             except Exception as e:
                 logger.debug("list_tools error from %s: %s", type(strat).__name__, e)
         raise ServerNotFoundError(server_id)
+
+    async def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]:
+        """Return discovered servers across async strategies, honoring policy.
+
+        Aggregates servers from configured async strategies. For Direct strategies,
+        reads configured ServerConfig entries. For Gateway strategies, uses the
+        Gateway management client to list servers.
+        """
+        servers: List[McpServerRef] = []
+        for strat in self._strategies:
+            try:
+                # Direct: introspect configured ServerConfig entries
+                if isinstance(strat, AsyncDirectMcpStrategy):
+                    for sc in getattr(strat, "_servers", []) or []:
+                        servers.append(
+                            McpServerRef(
+                                id=sc.name,
+                                display_name=sc.name,
+                                kind=ServerKind.DIRECT,
+                                transport=TransportType.STREAMABLE_HTTP,
+                                endpoint_url=sc.endpoint_url,
+                                auth_token=sc.auth_token,
+                            )
+                        )
+                # Gateway: use GatewayApiClient to discover servers
+                elif isinstance(strat, AsyncGatewayMcpStrategy):
+                    gw = getattr(strat, "_gateway", None)
+                    if gw is not None:
+                        for srv in gw.list_servers():
+                            servers.append(
+                                McpServerRef(
+                                    id=srv.id,
+                                    display_name=srv.name,
+                                    kind=ServerKind.GATEWAY,
+                                    transport=TransportType.STREAMABLE_HTTP,
+                                    endpoint_url=f"{gw.base_url}/servers/{srv.id}/mcp",
+                                    auth_token=gw.auth_token,
+                                )
+                            )
+            except Exception as e:
+                logger.debug("list_servers error from %s: %s", type(strat).__name__, e)
+
+        if agent_id and agent_id in self._policies:
+            policy = self._policies[agent_id]
+            if policy.allowed_servers is not None:
+                servers = [s for s in servers if s.id in policy.allowed_servers]
+
+        return servers
 
     async def list_tools_page(
         self,
