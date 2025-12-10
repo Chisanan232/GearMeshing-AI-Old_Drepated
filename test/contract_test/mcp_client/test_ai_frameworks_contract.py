@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List, Sequence
+import os
 
 import httpx
 import pytest
@@ -119,7 +120,9 @@ def _maybe_call_langchain_tool(tool: Any, expected: str = "echo") -> None:
             return
         if isinstance(res, dict):
             assert res.get("called") == expected
-    except Exception:
+    except Exception as e:
+        if _strict():
+            raise
         pass
 
 
@@ -135,7 +138,9 @@ def _maybe_call_llamaindex_tool(tool: Any, expected: str = "echo") -> None:
             return
         if isinstance(res, dict):
             assert res.get("called") == expected
-    except Exception:
+    except Exception as e:
+        if _strict():
+            raise
         pass
 
 
@@ -145,7 +150,9 @@ def _maybe_call_callable(fn: Any, expected: str = "echo") -> None:
             res = fn(text="hi")
             if isinstance(res, dict):
                 assert res.get("called") == expected
-    except Exception:
+    except Exception as e:
+        if _strict():
+            raise
         pass
 
 
@@ -160,8 +167,23 @@ def _maybe_call_phidata_tool(tool: Any, expected: str = "echo") -> None:
             return
         if isinstance(res, dict):
             assert res.get("called") == expected
-    except Exception:
+    except Exception as e:
+        if _strict():
+            raise
         pass
+
+_STRICT_ENV_KEYS: Sequence[str] = ("GM_STRICT_BINDINGS", "GM_STRICT_CONTRACTS")
+
+def _strict() -> bool:
+    val: str | None = None
+    for k in _STRICT_ENV_KEYS:
+        v = os.getenv(k)
+        if v:
+            val = v
+            break
+    if not val:
+        return False
+    return val.strip().lower() in ("1", "true", "yes", "on")
 
 # ------------------------------
 # Sync: client + direct
@@ -1045,6 +1067,8 @@ def _autogen_make_agent_with_tools(tools: Sequence[McpTool]) -> Any:
         agent = AssistantAgent(name="assistant", model_client=model_client, tools=native_tools)
         return agent
     except Exception:
+        if _strict():
+            raise
         # Fallback: construct without tools to satisfy binding contract
         try:
             model_client = MockModelClient()
@@ -1074,6 +1098,8 @@ def _crewai_make_agent_with_tools(tools: Sequence[McpTool]) -> Any:
         )
         return agent
     except Exception as e:
+        if _strict():
+            raise
         pytest.skip(f"CrewAI Agent constructor mismatch: {e}")
 
 
@@ -1108,6 +1134,8 @@ def _pydantic_ai_make_agent_with_tools(tools: Sequence[McpTool]) -> Any:
         agent = Agent(defer_model_check=True, tools=tuple(native_tools))
         return agent
     except Exception:
+        if _strict():
+            raise
         try:
             agent = Agent(defer_model_check=True)
             return agent
@@ -1130,6 +1158,8 @@ def _google_adk_make_agent_with_tools(tools: Sequence[McpTool]) -> Any:
         agent = GAgent(name="assistant", tools=native_tools)
         return agent
     except Exception:
+        if _strict():
+            raise
         try:
             agent = GAgent(name="assistant")
             return agent
@@ -1424,6 +1454,7 @@ class BaseSyncSuite:
         _, tools = self._get_client_and_tools()
         li_tools = to_llamaindex_tools(tools)
         assert li_tools and len(li_tools) > 0
+        _maybe_call_llamaindex_tool(li_tools[0])
 
     def test_phidata(self) -> None:
         _, tools = self._get_client_and_tools()
