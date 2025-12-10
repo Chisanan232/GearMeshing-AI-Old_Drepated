@@ -1041,141 +1041,164 @@ def _test_google_adk_agent_binding_sync_direct_tools_impl() -> None:
 
 
 # ------------------------------
+# Base suite: shared sync tests (override _make_client in subclasses)
+# ------------------------------
+
+class BaseSyncSuite:
+    def _make_client(self) -> McpClient:  # pragma: no cover - must be implemented in subclasses
+        raise NotImplementedError
+
+    def _get_client_and_tools(self):
+        client = self._make_client()
+        tools = client.list_tools("s1")
+        return client, tools
+
+    def test_servers_and_tools(self) -> None:
+        client, tools = self._get_client_and_tools()
+        servers = client.list_servers()
+        assert [s.id for s in servers] == ["s1"]
+        assert tools and tools[0].name == "echo"
+
+        oa_tools = to_openai_function_tools(tools)
+        assert oa_tools and oa_tools[0]["function"]["name"] == "echo"
+
+        lc_tools = to_langchain_tools(tools)
+        assert lc_tools and getattr(lc_tools[0], "name", None) == "echo"
+
+    def test_autogen(self) -> None:
+        _, tools = self._get_client_and_tools()
+        oa_tools = to_autogen_tools(tools)
+        assert oa_tools and oa_tools[0]["function"]["name"] == "echo"
+
+    def test_ag2(self) -> None:
+        _, tools = self._get_client_and_tools()
+        ag2_tools = to_ag2_tools(tools)
+        assert ag2_tools and ag2_tools[0]["function"]["name"] == "echo"
+
+    def test_langchain(self) -> None:
+        _, tools = self._get_client_and_tools()
+        lc_tools = to_langchain_tools(tools)
+        assert lc_tools and getattr(lc_tools[0], "name", None) == "echo"
+
+    def test_langgraph(self) -> None:
+        pytest.importorskip("langgraph")
+        _, tools = self._get_client_and_tools()
+        lc_tools = to_langchain_tools(tools)
+        assert lc_tools and getattr(lc_tools[0], "name", None) == "echo"
+
+    def test_crewai(self, offline_http_guard) -> None:
+        _, tools = self._get_client_and_tools()
+        cr_tools = to_crewai_tools(tools)
+        assert cr_tools and getattr(cr_tools[0], "name", None) == "echo"
+
+    def test_llamaindex(self) -> None:
+        _, tools = self._get_client_and_tools()
+        li_tools = to_llamaindex_tools(tools)
+        assert li_tools and len(li_tools) > 0
+
+    def test_phidata(self) -> None:
+        _, tools = self._get_client_and_tools()
+        pd_tools = to_phidata_tools(tools)
+        assert pd_tools and pd_tools[0].type == "function"
+
+    def test_semantic_kernel(self) -> None:
+        _, tools = self._get_client_and_tools()
+        sk_tools = to_semantic_kernel_tools(tools)
+        assert sk_tools and sk_tools[0]["function"]["name"] == "echo"
+
+    def test_google_adk(self) -> None:
+        _, tools = self._get_client_and_tools()
+        adk_tools = to_google_adk_tools(tools)
+        assert adk_tools and callable(adk_tools[0])
+
+    def test_pydantic_ai(self) -> None:
+        _, tools = self._get_client_and_tools()
+        pa_tools = to_pydantic_ai_tools(tools)
+        assert pa_tools and callable(pa_tools[0])
+        try:
+            res = pa_tools[0](text="hi")
+            assert isinstance(res, dict) and res.get("called") == "echo"
+        except Exception:
+            pass
+
+    def test_autogen_native(self) -> None:
+        _, tools = self._get_client_and_tools()
+        native_tools = to_autogen_agentchat_native_tools(tools)
+        assert native_tools and len(native_tools) > 0
+
+    def test_ag2_native(self) -> None:
+        _, tools = self._get_client_and_tools()
+        native_tools = to_ag2_native_tools(tools)
+        assert native_tools and len(native_tools) > 0
+
+    def test_semantic_kernel_native(self) -> None:
+        _, tools = self._get_client_and_tools()
+        native_tools = to_semantic_kernel_native_tools(tools)
+        assert native_tools and callable(native_tools[0])
+
+    def test_crewai_native(self, offline_http_guard) -> None:
+        _, tools = self._get_client_and_tools()
+        native = to_crewai_native_tools(tools)
+        assert native and len(native) > 0
+
+    def test_langgraph_native(self) -> None:
+        _, tools = self._get_client_and_tools()
+        node = to_langgraph_native_node(tools)
+        assert node is not None
+
+    def test_autogen_binding(self) -> None:
+        _, tools = self._get_client_and_tools()
+        agent = _autogen_make_agent_with_tools(tools)
+        assert agent is not None
+
+    def test_crewai_binding(self, offline_http_guard) -> None:
+        _, tools = self._get_client_and_tools()
+        agent = _crewai_make_agent_with_tools(tools)
+        assert agent is not None
+
+    def test_semantic_kernel_binding(self) -> None:
+        _, tools = self._get_client_and_tools()
+        kernel = _sk_make_kernel_with_tools(tools)
+        assert kernel is not None
+
+    def test_pydantic_ai_binding(self) -> None:
+        _, tools = self._get_client_and_tools()
+        agent = _pydantic_ai_make_agent_with_tools(tools)
+        assert agent is not None
+
+    def test_google_adk_binding(self) -> None:
+        _, tools = self._get_client_and_tools()
+        agent = _google_adk_make_agent_with_tools(tools)
+        assert agent is not None
+
+
+# ------------------------------
 # Test suites: Sync + Gateway
 # ------------------------------
 
-class TestSyncWithGateway:
-    def test_servers_and_tools(self) -> None:
-        _test_framework_adapters_sync_gateway_servers_and_tools_impl()
-
-    def test_langchain(self) -> None:
-        _test_langchain_adapter_sync_gateway_tools_impl()
-
-    def test_llamaindex(self) -> None:
-        _test_llamaindex_adapter_sync_gateway_tools_impl()
-
-    def test_phidata(self) -> None:
-        _test_phidata_adapter_sync_gateway_tools_impl()
-
-    def test_semantic_kernel(self) -> None:
-        _test_semantic_kernel_adapter_sync_gateway_tools_impl()
-
-    def test_autogen(self) -> None:
-        _test_autogen_adapter_sync_gateway_tools_impl()
-
-    def test_ag2(self) -> None:
-        _test_ag2_adapter_sync_gateway_tools_impl()
-
-    def test_langgraph(self) -> None:
-        _test_langgraph_adapter_sync_gateway_tools_impl()
-
-    def test_crewai(self, offline_http_guard) -> None:
-        _test_crewai_adapter_sync_gateway_tools_impl(offline_http_guard)
-
-    def test_autogen_native(self) -> None:
-        _test_autogen_agentchat_native_adapter_sync_gateway_tools_impl()
-
-    def test_ag2_native(self) -> None:
-        _test_ag2_native_adapter_sync_gateway_tools_impl()
-
-    def test_semantic_kernel_native(self) -> None:
-        _test_semantic_kernel_native_adapter_sync_gateway_tools_impl()
-
-    def test_crewai_native(self, offline_http_guard) -> None:
-        _test_crewai_native_adapter_sync_gateway_tools_impl(offline_http_guard)
-
-    def test_langgraph_native(self) -> None:
-        _test_langgraph_native_node_sync_gateway_tools_impl()
-
-    def test_google_adk(self) -> None:
-        _test_google_adk_adapter_sync_gateway_tools_impl()
-
-    def test_pydantic_ai(self) -> None:
-        _test_pydantic_ai_adapter_sync_gateway_tools_impl()
-
-    def test_autogen_binding(self) -> None:
-        _test_autogen_agent_binding_sync_gateway_tools_impl()
-
-    def test_crewai_binding(self, offline_http_guard) -> None:
-        _test_crewai_agent_binding_sync_gateway_tools_impl(offline_http_guard)
-
-    def test_semantic_kernel_binding(self) -> None:
-        _test_semantic_kernel_kernel_binding_sync_gateway_tools_impl()
-
-    def test_pydantic_ai_binding(self) -> None:
-        _test_pydantic_ai_agent_binding_sync_gateway_tools_impl()
-
-    def test_google_adk_binding(self) -> None:
-        _test_google_adk_agent_binding_sync_gateway_tools_impl()
+class TestSyncWithGateway(BaseSyncSuite):
+    def _make_client(self) -> McpClient:
+        transport = _mock_transport_gateway()
+        mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
+        http_client = httpx.Client(transport=transport, base_url="http://mock")
+        cfg = McpClientConfig(gateway=GatewayConfig(base_url="http://mock"))
+        return McpClient.from_config(
+            cfg,
+            gateway_mgmt_client=mgmt_client,
+            gateway_http_client=http_client,
+        )
 
 
 # ------------------------------
 # Test suites: Sync + Direct
 # ------------------------------
 
-class TestSyncWithDirect:
-    def test_servers_and_tools(self) -> None:
-        _test_framework_adapters_sync_direct_servers_and_tools_impl()
-
-    def test_autogen(self) -> None:
-        _test_autogen_adapter_sync_direct_tools_impl()
-
-    def test_ag2(self) -> None:
-        _test_ag2_adapter_sync_direct_tools_impl()
-
-    def test_langchain(self) -> None:
-        _test_langchain_adapter_sync_direct_tools_impl()
-
-    def test_langgraph(self) -> None:
-        _test_langgraph_adapter_sync_direct_tools_impl()
-
-    def test_crewai(self, offline_http_guard) -> None:
-        _test_crewai_adapter_sync_direct_tools_impl(offline_http_guard)
-
-    def test_llamaindex(self) -> None:
-        _test_llamaindex_adapter_sync_direct_tools_impl()
-
-    def test_phidata(self) -> None:
-        _test_phidata_adapter_sync_direct_tools_impl()
-
-    def test_semantic_kernel(self) -> None:
-        _test_semantic_kernel_adapter_sync_direct_tools_impl()
-
-    def test_google_adk(self) -> None:
-        _test_google_adk_adapter_sync_direct_tools_impl()
-
-    def test_pydantic_ai(self) -> None:
-        _test_pydantic_ai_adapter_sync_direct_tools_impl()
-
-    def test_autogen_native(self) -> None:
-        _test_autogen_agentchat_native_adapter_sync_direct_tools_impl()
-
-    def test_ag2_native(self) -> None:
-        _test_ag2_native_adapter_sync_direct_tools_impl()
-
-    def test_semantic_kernel_native(self) -> None:
-        _test_semantic_kernel_native_adapter_sync_direct_tools_impl()
-
-    def test_crewai_native(self, offline_http_guard) -> None:
-        _test_crewai_native_adapter_sync_direct_tools_impl(offline_http_guard)
-
-    def test_langgraph_native(self) -> None:
-        _test_langgraph_native_node_sync_direct_tools_impl()
-
-    def test_autogen_binding(self) -> None:
-        _test_autogen_agent_binding_sync_direct_tools_impl()
-
-    def test_crewai_binding(self, offline_http_guard) -> None:
-        _test_crewai_agent_binding_sync_direct_tools_impl(offline_http_guard)
-
-    def test_semantic_kernel_binding(self) -> None:
-        _test_semantic_kernel_kernel_binding_sync_direct_tools_impl()
-
-    def test_pydantic_ai_binding(self) -> None:
-        _test_pydantic_ai_agent_binding_sync_direct_tools_impl()
-
-    def test_google_adk_binding(self) -> None:
-        _test_google_adk_agent_binding_sync_direct_tools_impl()
+class TestSyncWithDirect(BaseSyncSuite):
+    def _make_client(self) -> McpClient:
+        transport = _mock_transport_direct()
+        http_client = httpx.Client(transport=transport, base_url="http://mock")
+        cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
+        return McpClient.from_config(cfg, direct_http_client=http_client)
 # Agent binding: gateway variants (sync)
 # ------------------------------
 
