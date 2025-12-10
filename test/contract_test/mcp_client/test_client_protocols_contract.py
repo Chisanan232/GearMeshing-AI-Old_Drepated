@@ -120,6 +120,17 @@ class _DummyAsyncClient(ClientCommonMixin):
     ) -> "_DummyAsyncClient":
         return cls()
 
+    async def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # noqa: ARG002
+        return [
+            McpServerRef(
+                id="s1",
+                display_name="Local",
+                kind=ServerKind.DIRECT,
+                transport=TransportType.STREAMABLE_HTTP,
+                endpoint_url="http://mock/mcp/",
+            )
+        ]
+
     async def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]:  # noqa: ARG002
         return list(self._tools)
 
