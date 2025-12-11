@@ -1,20 +1,18 @@
-"""Synchronous and asynchronous MCP client facade.
+"""Synchronous and asynchronous MCP info provider facades.
 
-For asynchronous MCP client facade, please see `AsyncMcpClient`.
-Provides a high-level async API for listing tools, invoking tools, and
-optionally streaming events using one or more underlying async strategies
-(direct and/or gateway). Applies optional policy enforcement.
+This module defines the concrete sync/async MCP info provider classes that
+implement the :mod:`gearmeshing_ai.info_provider.mcp.base` protocols.
 
-For synchronous MCP client facade, please see `McpClient`.
-Provides a high-level API for listing servers/tools and invoking tools using one
-or more underlying strategies (direct and/or gateway). Applies optional policy
-enforcement (server/tool allow-lists and read-only constraints).
+* :class:`MCPInfoProvider` – sync facade for listing MCP endpoints/tools and
+  invoking tools over one or more underlying sync strategies (direct/gateway).
+* :class:`AsyncMCPInfoProvider` – async counterpart that also supports
+  streaming SSE events.
 
 Typical usage:
     cfg = McpClientConfig(...)
-    client = McpClient.from_config(cfg)
-    tools = client.list_tools("server-id")
-    res = client.call_tool("server-id", "echo", {"text": "hi"})
+    provider = MCPInfoProvider.from_config(cfg)
+    tools = provider.list_tools("server-id")
+    res = provider.call_tool("server-id", "echo", {"text": "hi"})
 
 Ad an AI agent, in generally, it would initial a MCP connection object with MCP server endpoint, and instantiate the MCP
 connection object to build connection with MCP servers and list all the MCP tools. And would use the MCP tools to set to
@@ -68,7 +66,6 @@ import httpx
 
 from .base import BaseAsyncMCPInfoProvider, BaseMCPInfoProvider, ClientCommonMixin
 from .errors import ServerNotFoundError, ToolAccessDeniedError
-from .gateway_api import GatewayApiClient
 from .gateway_api.client import GatewayApiClient
 from .policy import PolicyMap, enforce_policy
 from .schemas.config import McpClientConfig
@@ -89,10 +86,10 @@ logger = logging.getLogger(__name__)
 
 
 class AsyncMCPInfoProvider(ClientCommonMixin, BaseAsyncMCPInfoProvider):
-    """Async facade for MCP client operations.
+    """Async MCP info provider facade.
 
-    Delegates to one or more `AsyncStrategy` implementations (direct/gateway)
-    and enforces optional access policies.
+    Delegates to one or more :class:`AsyncStrategy` implementations
+    (direct/gateway) and enforces optional access policies.
     """
 
     def __init__(
@@ -117,7 +114,7 @@ class AsyncMCPInfoProvider(ClientCommonMixin, BaseAsyncMCPInfoProvider):
         gateway_http_client: Optional[httpx.AsyncClient] = None,
         gateway_sse_client: Optional[httpx.AsyncClient] = None,
     ) -> "AsyncMCPInfoProvider":
-        """Construct an async client from `McpClientConfig`.
+        """Construct an async info provider from ``McpClientConfig``.
 
         - Enables AsyncDirect strategy when `servers` are configured.
         - Enables AsyncGateway strategy when `gateway` config is present.
@@ -131,7 +128,7 @@ class AsyncMCPInfoProvider(ClientCommonMixin, BaseAsyncMCPInfoProvider):
             gateway_sse_client: Optional async httpx.AsyncClient for Gateway SSE endpoints.
 
         Returns:
-            An initialized `AsyncMcpClient`.
+            An initialized :class:`AsyncMCPInfoProvider`.
         """
         strategies: List[AsyncStrategy] = []
         if config.servers:
@@ -449,10 +446,10 @@ class AsyncMCPInfoProvider(ClientCommonMixin, BaseAsyncMCPInfoProvider):
 
 
 class MCPInfoProvider(ClientCommonMixin, BaseMCPInfoProvider):
-    """High-level MCP client facade.
+    """High-level MCP info provider facade.
 
-    Delegates operations to one or more `SyncStrategy` implementations and
-    applies access policies when provided.
+    Delegates operations to one or more :class:`SyncStrategy` implementations
+    and applies access policies when provided.
     """
 
     def __init__(
@@ -478,7 +475,7 @@ class MCPInfoProvider(ClientCommonMixin, BaseMCPInfoProvider):
         gateway_mgmt_client: Optional[httpx.Client] = None,
         gateway_http_client: Optional[httpx.Client] = None,
     ) -> "MCPInfoProvider":
-        """Construct a client from `McpClientConfig`.
+        """Construct a sync info provider from ``McpClientConfig``.
 
         - Enables Direct strategy when `servers` are configured.
         - Enables Gateway strategy when `gateway` config is present.
@@ -492,7 +489,7 @@ class MCPInfoProvider(ClientCommonMixin, BaseMCPInfoProvider):
             gateway_http_client: Optional httpx.Client for Gateway HTTP endpoints.
 
         Returns:
-            An initialized `McpClient`.
+            An initialized :class:`MCPInfoProvider`.
         """
         strategies: List[SyncStrategy] = []
         if config.servers:

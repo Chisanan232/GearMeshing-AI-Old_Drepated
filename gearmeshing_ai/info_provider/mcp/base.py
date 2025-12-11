@@ -1,11 +1,12 @@
-"""Client protocols and shared helpers for the MCP client facade.
+"""Protocols and shared helpers for the MCP info provider facade.
 
-Defines the sync/async client protocols that concrete clients must satisfy,
-and a `ClientCommonMixin` with helpers for policy-based filtering.
+Defines the sync/async provider protocols that concrete MCP info providers
+must satisfy, and a `ClientCommonMixin` with helpers for policy-based
+filtering.
 
-Usage:
-- `McpClient` and `AsyncMcpClient` implement these protocols.
-- Strategies focus on transport; clients focus on policy and composition.
+Typical usage:
+- `MCPInfoProvider` and `AsyncMCPInfoProvider` implement these protocols.
+- Strategies focus on transport; providers focus on policy and composition.
 """
 
 from __future__ import annotations
@@ -75,10 +76,11 @@ class BaseMCPInfoProvider(Protocol):
 class BaseAsyncMCPInfoProvider(Protocol):
     """Protocol for asynchronous MCP info providers.
 
-    Async counterpart to `MCPInfoProvider`, exposing endpoint and tool
-    discovery APIs only. Concrete facades such as `AsyncMcpClient` may
-    offer additional capabilities (tool invocation, streaming), but those
-    are not part of this minimal info-provider contract.
+    Async counterpart to :class:`BaseMCPInfoProvider`, exposing endpoint and
+    tool discovery APIs only. Concrete facades such as
+    :class:`AsyncMCPInfoProvider` may offer additional capabilities (tool
+    invocation, streaming), but those are not part of this minimal
+    info-provider contract.
     """
 
     @classmethod
@@ -107,7 +109,7 @@ class BaseAsyncMCPInfoProvider(Protocol):
 
 
 class ClientCommonMixin:
-    """Shared policy helpers for sync/async client facades."""
+    """Shared policy helpers for sync/async MCP info provider facades."""
 
     def _filter_servers_by_policy(
         self,
