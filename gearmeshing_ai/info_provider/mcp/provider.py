@@ -66,7 +66,7 @@ from typing import Any, AsyncIterator, Dict, Iterable, List, Optional
 
 import httpx
 
-from .base import AsyncMCPInfoProvider, ClientCommonMixin, MCPInfoProvider
+from .base import BaseAsyncMCPInfoProvider, ClientCommonMixin, BaseMCPInfoProvider
 from .errors import ServerNotFoundError, ToolAccessDeniedError
 from .gateway_api import GatewayApiClient
 from .gateway_api.client import GatewayApiClient
@@ -88,7 +88,7 @@ from .strategy.gateway_async import AsyncGatewayMcpStrategy
 logger = logging.getLogger(__name__)
 
 
-class AsyncMcpClient(ClientCommonMixin, AsyncMCPInfoProvider):
+class AsyncMcpClient(ClientCommonMixin, BaseAsyncMCPInfoProvider):
     """Async facade for MCP client operations.
 
     Delegates to one or more `AsyncStrategy` implementations (direct/gateway)
@@ -448,7 +448,7 @@ class AsyncMcpClient(ClientCommonMixin, AsyncMCPInfoProvider):
         raise ServerNotFoundError(server_id)
 
 
-class McpClient(ClientCommonMixin, MCPInfoProvider):
+class McpClient(ClientCommonMixin, BaseMCPInfoProvider):
     """High-level MCP client facade.
 
     Delegates operations to one or more `SyncStrategy` implementations and

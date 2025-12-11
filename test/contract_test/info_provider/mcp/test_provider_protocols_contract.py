@@ -6,9 +6,9 @@ from typing import Any, AsyncIterator, Dict, List, Optional
 import pytest
 
 from gearmeshing_ai.info_provider.mcp.base import (
-    AsyncMCPInfoProvider,
+    BaseAsyncMCPInfoProvider,
     ClientCommonMixin,
-    MCPInfoProvider,
+    BaseMCPInfoProvider,
 )
 from gearmeshing_ai.info_provider.mcp.policy import ToolPolicy
 from gearmeshing_ai.info_provider.mcp.schemas.config import McpClientConfig
@@ -213,13 +213,13 @@ class _DummyAsyncClient(ClientCommonMixin):
 
 def test_sync_client_runtime_protocol_conformance() -> None:
     c = _DummySyncClient()
-    assert isinstance(c, MCPInfoProvider)
+    assert isinstance(c, BaseMCPInfoProvider)
 
 
 @pytest.mark.asyncio
 async def test_async_client_runtime_protocol_conformance() -> None:
     c = await _DummyAsyncClient.from_config(McpClientConfig())
-    assert isinstance(c, AsyncMCPInfoProvider)
+    assert isinstance(c, BaseAsyncMCPInfoProvider)
 
 
 # ------------------------------
