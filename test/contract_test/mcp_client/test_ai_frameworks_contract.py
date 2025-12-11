@@ -73,40 +73,9 @@ def _mock_transport_gateway() -> httpx.MockTransport:
 
     return httpx.MockTransport(handler)
 
-
 # ------------------------------
-# Adapters to framework-friendly tool descriptors
+# Strict-aware smoke-call helpers
 # ------------------------------
-
-
-def to_openai_function_tools(tools: Sequence[McpTool]) -> List[Dict[str, Any]]:
-    out: List[Dict[str, Any]] = []
-    for t in tools:
-        out.append(
-            {
-                "type": "function",
-                "function": {
-                    "name": t.name,
-                    "description": t.description or "",
-                    "parameters": t.raw_parameters_schema or {"type": "object"},
-                },
-            }
-        )
-    return out
-
-
-def to_langchain_tools(tools: Sequence[McpTool]) -> List[Any]:
-    pytest.importorskip("langchain")
-    from langchain_core.tools import Tool
-
-    out: List[Any] = []
-    for t in tools:
-
-        def _fn(**kwargs: Any) -> Dict[str, Any]:
-            return {"called": t.name, "args": kwargs}
-
-        out.append(Tool(name=t.name, description=t.description or "", func=_fn))
-    return out
 
 def _maybe_call_langchain_tool(tool: Any, expected: str = "echo") -> None:
     try:
@@ -185,257 +154,40 @@ def _strict() -> bool:
         return False
     return val.strip().lower() in ("1", "true", "yes", "on")
 
+
 # ------------------------------
-# Base suite: shared async tests (override _make_client_async)
+# Adapters to framework-friendly tool descriptors
 # ------------------------------
 
 
-class BaseAsyncSuite:
-    async def _make_client_async(self):  # returns (client, closers)
-        raise NotImplementedError
-
-    async def _get_client_and_tools(self):  # returns (client, tools, closers)
-        client, closers = await self._make_client_async()
-        tools = await client.list_tools("s1")
-        return client, tools, closers
-
-    async def _close_all(self, closers) -> None:
-        for c in closers:
-            try:
-                await c.aclose()
-            except Exception:
-                pass
-
-    @pytest.mark.asyncio
-    async def test_servers_and_tools(self) -> None:
-        client, tools, closers = await self._get_client_and_tools()
-        try:
-            servers = await client.list_servers()
-            assert [s.id for s in servers] == ["s1"]
-            assert tools and tools[0].name == "echo"
-
-            oa_tools = to_openai_function_tools(tools)
-            assert oa_tools and oa_tools[0]["function"]["name"] == "echo"
-
-            lc_tools = to_langchain_tools(tools)
-            assert lc_tools and getattr(lc_tools[0], "name", None) == "echo"
-        finally:
-            await self._close_all(closers)
-
-    @pytest.mark.asyncio
-    async def test_autogen(self) -> None:
-        _, tools, closers = await self._get_client_and_tools()
-        try:
-            oa_tools = to_autogen_tools(tools)
-            assert oa_tools and oa_tools[0]["function"]["name"] == "echo"
-        finally:
-            await self._close_all(closers)
-
-    @pytest.mark.asyncio
-    async def test_ag2(self) -> None:
-        _, tools, closers = await self._get_client_and_tools()
-        try:
-            ag2_tools = to_ag2_tools(tools)
-            assert ag2_tools and ag2_tools[0]["function"]["name"] == "echo"
-        finally:
-            await self._close_all(closers)
-
-    @pytest.mark.asyncio
-    async def test_langchain(self) -> None:
-        _, tools, closers = await self._get_client_and_tools()
-        try:
-            lc_tools = to_langchain_tools(tools)
-            assert lc_tools and getattr(lc_tools[0], "name", None) == "echo"
-            _maybe_call_langchain_tool(lc_tools[0])
-        finally:
-            await self._close_all(closers)
-
-    @pytest.mark.asyncio
-    async def test_langgraph(self) -> None:
-        pytest.importorskip("langgraph")
-        _, tools, closers = await self._get_client_and_tools()
-        try:
-            lc_tools = to_langchain_tools(tools)
-            assert lc_tools and getattr(lc_tools[0], "name", None) == "echo"
-        finally:
-            await self._close_all(closers)
-
-    @pytest.mark.asyncio
-    async def test_crewai(self, offline_http_guard) -> None:
-        _, tools, closers = await self._get_client_and_tools()
-        try:
-            cr_tools = to_crewai_tools(tools)
-            assert cr_tools and getattr(cr_tools[0], "name", None) == "echo"
-        finally:
-            await self._close_all(closers)
-
-    @pytest.mark.asyncio
-    async def test_llamaindex(self) -> None:
-        _, tools, closers = await self._get_client_and_tools()
-        try:
-            li_tools = to_llamaindex_tools(tools)
-            assert li_tools and len(li_tools) > 0
-            _maybe_call_llamaindex_tool(li_tools[0])
-        finally:
-            await self._close_all(closers)
-
-    @pytest.mark.asyncio
-    async def test_phidata(self) -> None:
-        _, tools, closers = await self._get_client_and_tools()
-        try:
-            pd_tools = to_phidata_tools(tools)
-            assert pd_tools and pd_tools[0].type == "function"
-            _maybe_call_phidata_tool(pd_tools[0])
-        finally:
-            await self._close_all(closers)
-
-    @pytest.mark.asyncio
-    async def test_semantic_kernel(self) -> None:
-        _, tools, closers = await self._get_client_and_tools()
-        try:
-            sk_tools = to_semantic_kernel_tools(tools)
-            assert sk_tools and sk_tools[0]["function"]["name"] == "echo"
-        finally:
-            await self._close_all(closers)
-
-    @pytest.mark.asyncio
-    async def test_google_adk(self) -> None:
-        _, tools, closers = await self._get_client_and_tools()
-        try:
-            adk_tools = to_google_adk_tools(tools)
-            assert adk_tools and callable(adk_tools[0])
-            _maybe_call_callable(adk_tools[0])
-        finally:
-            await self._close_all(closers)
-
-    @pytest.mark.asyncio
-    async def test_pydantic_ai(self) -> None:
-        _, tools, closers = await self._get_client_and_tools()
-        try:
-            pa_tools = to_pydantic_ai_tools(tools)
-            assert pa_tools and callable(pa_tools[0])
-            _maybe_call_callable(pa_tools[0])
-        finally:
-            await self._close_all(closers)
-
-    @pytest.mark.asyncio
-    async def test_autogen_native(self) -> None:
-        _, tools, closers = await self._get_client_and_tools()
-        try:
-            native_tools = to_autogen_agentchat_native_tools(tools)
-            assert native_tools and len(native_tools) > 0
-        finally:
-            await self._close_all(closers)
-
-    @pytest.mark.asyncio
-    async def test_ag2_native(self) -> None:
-        _, tools, closers = await self._get_client_and_tools()
-        try:
-            native_tools = to_ag2_native_tools(tools)
-            assert native_tools and len(native_tools) > 0
-        finally:
-            await self._close_all(closers)
-
-    @pytest.mark.asyncio
-    async def test_semantic_kernel_native(self) -> None:
-        _, tools, closers = await self._get_client_and_tools()
-        try:
-            native_tools = to_semantic_kernel_native_tools(tools)
-            assert native_tools and callable(native_tools[0])
-        finally:
-            await self._close_all(closers)
-
-    @pytest.mark.asyncio
-    async def test_crewai_native(self, offline_http_guard) -> None:
-        _, tools, closers = await self._get_client_and_tools()
-        try:
-            native = to_crewai_native_tools(tools)
-            assert native and len(native) > 0
-        finally:
-            await self._close_all(closers)
-
-    @pytest.mark.asyncio
-    async def test_langgraph_native(self) -> None:
-        _, tools, closers = await self._get_client_and_tools()
-        try:
-            node = to_langgraph_native_node(tools)
-            assert node is not None
-        finally:
-            await self._close_all(closers)
-
-    @pytest.mark.asyncio
-    async def test_autogen_binding(self) -> None:
-        _, tools, closers = await self._get_client_and_tools()
-        try:
-            agent = _autogen_make_agent_with_tools(tools)
-            assert agent is not None
-        finally:
-            await self._close_all(closers)
-
-    @pytest.mark.asyncio
-    async def test_crewai_binding(self, offline_http_guard) -> None:
-        _, tools, closers = await self._get_client_and_tools()
-        try:
-            agent = _crewai_make_agent_with_tools(tools)
-            assert agent is not None
-        finally:
-            await self._close_all(closers)
-
-    @pytest.mark.asyncio
-    async def test_semantic_kernel_binding(self) -> None:
-        _, tools, closers = await self._get_client_and_tools()
-        try:
-            kernel = _sk_make_kernel_with_tools(tools)
-            assert kernel is not None
-        finally:
-            await self._close_all(closers)
-
-    @pytest.mark.asyncio
-    async def test_pydantic_ai_binding(self) -> None:
-        _, tools, closers = await self._get_client_and_tools()
-        try:
-            agent = _pydantic_ai_make_agent_with_tools(tools)
-            assert agent is not None
-        finally:
-            await self._close_all(closers)
-
-    @pytest.mark.asyncio
-    async def test_google_adk_binding(self) -> None:
-        _, tools, closers = await self._get_client_and_tools()
-        try:
-            agent = _google_adk_make_agent_with_tools(tools)
-            assert agent is not None
-        finally:
-            await self._close_all(closers)
-
-
-class TestAsyncWithDirect(BaseAsyncSuite):
-    async def _make_client_async(self):
-        from gearmeshing_ai.mcp_client.strategy.direct_async import (
-            AsyncDirectMcpStrategy,
+def to_openai_function_tools(tools: Sequence[McpTool]) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    for t in tools:
+        out.append(
+            {
+                "type": "function",
+                "function": {
+                    "name": t.name,
+                    "description": t.description or "",
+                    "parameters": t.raw_parameters_schema or {"type": "object"},
+                },
+            }
         )
-
-        atransport = _mock_transport_direct()
-        async_client = httpx.AsyncClient(transport=atransport, base_url="http://mock")
-        strat = AsyncDirectMcpStrategy([ServerConfig(name="s1", endpoint_url="http://mock/mcp")], client=async_client)
-        client = AsyncMcpClient(strategies=[strat])
-        return client, [async_client]
+    return out
 
 
-class TestAsyncWithGateway(BaseAsyncSuite):
-    async def _make_client_async(self):
-        atransport = _mock_transport_gateway()
-        mgmt_client = httpx.Client(transport=atransport, base_url="http://mock")
-        http_client = httpx.AsyncClient(transport=atransport, base_url="http://mock")
-        sse_client = httpx.AsyncClient(transport=atransport, base_url="http://mock")
-        cfg = McpClientConfig(gateway=GatewayConfig(base_url="http://mock"))
-        client = await AsyncMcpClient.from_config(
-            cfg,
-            gateway_mgmt_client=mgmt_client,
-            gateway_http_client=http_client,
-            gateway_sse_client=sse_client,
-        )
-        return client, [http_client, sse_client]
+def to_langchain_tools(tools: Sequence[McpTool]) -> List[Any]:
+    pytest.importorskip("langchain")
+    from langchain_core.tools import Tool
+
+    out: List[Any] = []
+    for t in tools:
+
+        def _fn(**kwargs: Any) -> Dict[str, Any]:
+            return {"called": t.name, "args": kwargs}
+
+        out.append(Tool(name=t.name, description=t.description or "", func=_fn))
+    return out
 
 
 # ------------------------------
@@ -765,6 +517,259 @@ def _google_adk_make_agent_with_tools(tools: Sequence[McpTool]) -> Any:
             return agent
         except Exception as e:
             pytest.skip(f"google-adk Agent constructor mismatch: {e}")
+
+
+# ------------------------------
+# Base suite: shared async tests (override _make_client_async)
+# ------------------------------
+
+
+class BaseAsyncSuite:
+    async def _make_client_async(self):  # returns (client, closers)
+        raise NotImplementedError
+
+    async def _get_client_and_tools(self):  # returns (client, tools, closers)
+        client, closers = await self._make_client_async()
+        tools = await client.list_tools("s1")
+        return client, tools, closers
+
+    async def _close_all(self, closers) -> None:
+        for c in closers:
+            try:
+                await c.aclose()
+            except Exception:
+                pass
+
+    @pytest.mark.asyncio
+    async def test_servers_and_tools(self) -> None:
+        client, tools, closers = await self._get_client_and_tools()
+        try:
+            servers = await client.list_servers()
+            assert [s.id for s in servers] == ["s1"]
+            assert tools and tools[0].name == "echo"
+
+            oa_tools = to_openai_function_tools(tools)
+            assert oa_tools and oa_tools[0]["function"]["name"] == "echo"
+
+            lc_tools = to_langchain_tools(tools)
+            assert lc_tools and getattr(lc_tools[0], "name", None) == "echo"
+        finally:
+            await self._close_all(closers)
+
+    @pytest.mark.asyncio
+    async def test_autogen(self) -> None:
+        _, tools, closers = await self._get_client_and_tools()
+        try:
+            oa_tools = to_autogen_tools(tools)
+            assert oa_tools and oa_tools[0]["function"]["name"] == "echo"
+        finally:
+            await self._close_all(closers)
+
+    @pytest.mark.asyncio
+    async def test_ag2(self) -> None:
+        _, tools, closers = await self._get_client_and_tools()
+        try:
+            ag2_tools = to_ag2_tools(tools)
+            assert ag2_tools and ag2_tools[0]["function"]["name"] == "echo"
+        finally:
+            await self._close_all(closers)
+
+    @pytest.mark.asyncio
+    async def test_langchain(self) -> None:
+        _, tools, closers = await self._get_client_and_tools()
+        try:
+            lc_tools = to_langchain_tools(tools)
+            assert lc_tools and getattr(lc_tools[0], "name", None) == "echo"
+            _maybe_call_langchain_tool(lc_tools[0])
+        finally:
+            await self._close_all(closers)
+
+    @pytest.mark.asyncio
+    async def test_langgraph(self) -> None:
+        pytest.importorskip("langgraph")
+        _, tools, closers = await self._get_client_and_tools()
+        try:
+            lc_tools = to_langchain_tools(tools)
+            assert lc_tools and getattr(lc_tools[0], "name", None) == "echo"
+        finally:
+            await self._close_all(closers)
+
+    @pytest.mark.asyncio
+    async def test_crewai(self, offline_http_guard) -> None:
+        _, tools, closers = await self._get_client_and_tools()
+        try:
+            cr_tools = to_crewai_tools(tools)
+            assert cr_tools and getattr(cr_tools[0], "name", None) == "echo"
+        finally:
+            await self._close_all(closers)
+
+    @pytest.mark.asyncio
+    async def test_llamaindex(self) -> None:
+        _, tools, closers = await self._get_client_and_tools()
+        try:
+            li_tools = to_llamaindex_tools(tools)
+            assert li_tools and len(li_tools) > 0
+            _maybe_call_llamaindex_tool(li_tools[0])
+        finally:
+            await self._close_all(closers)
+
+    @pytest.mark.asyncio
+    async def test_phidata(self) -> None:
+        _, tools, closers = await self._get_client_and_tools()
+        try:
+            pd_tools = to_phidata_tools(tools)
+            assert pd_tools and pd_tools[0].type == "function"
+            _maybe_call_phidata_tool(pd_tools[0])
+        finally:
+            await self._close_all(closers)
+
+    @pytest.mark.asyncio
+    async def test_semantic_kernel(self) -> None:
+        _, tools, closers = await self._get_client_and_tools()
+        try:
+            sk_tools = to_semantic_kernel_tools(tools)
+            assert sk_tools and sk_tools[0]["function"]["name"] == "echo"
+        finally:
+            await self._close_all(closers)
+
+    @pytest.mark.asyncio
+    async def test_google_adk(self) -> None:
+        _, tools, closers = await self._get_client_and_tools()
+        try:
+            adk_tools = to_google_adk_tools(tools)
+            assert adk_tools and callable(adk_tools[0])
+            _maybe_call_callable(adk_tools[0])
+        finally:
+            await self._close_all(closers)
+
+    @pytest.mark.asyncio
+    async def test_pydantic_ai(self) -> None:
+        _, tools, closers = await self._get_client_and_tools()
+        try:
+            pa_tools = to_pydantic_ai_tools(tools)
+            assert pa_tools and callable(pa_tools[0])
+            _maybe_call_callable(pa_tools[0])
+        finally:
+            await self._close_all(closers)
+
+    @pytest.mark.asyncio
+    async def test_autogen_native(self) -> None:
+        _, tools, closers = await self._get_client_and_tools()
+        try:
+            native_tools = to_autogen_agentchat_native_tools(tools)
+            assert native_tools and len(native_tools) > 0
+        finally:
+            await self._close_all(closers)
+
+    @pytest.mark.asyncio
+    async def test_ag2_native(self) -> None:
+        _, tools, closers = await self._get_client_and_tools()
+        try:
+            native_tools = to_ag2_native_tools(tools)
+            assert native_tools and len(native_tools) > 0
+        finally:
+            await self._close_all(closers)
+
+    @pytest.mark.asyncio
+    async def test_semantic_kernel_native(self) -> None:
+        _, tools, closers = await self._get_client_and_tools()
+        try:
+            native_tools = to_semantic_kernel_native_tools(tools)
+            assert native_tools and callable(native_tools[0])
+        finally:
+            await self._close_all(closers)
+
+    @pytest.mark.asyncio
+    async def test_crewai_native(self, offline_http_guard) -> None:
+        _, tools, closers = await self._get_client_and_tools()
+        try:
+            native = to_crewai_native_tools(tools)
+            assert native and len(native) > 0
+        finally:
+            await self._close_all(closers)
+
+    @pytest.mark.asyncio
+    async def test_langgraph_native(self) -> None:
+        _, tools, closers = await self._get_client_and_tools()
+        try:
+            node = to_langgraph_native_node(tools)
+            assert node is not None
+        finally:
+            await self._close_all(closers)
+
+    @pytest.mark.asyncio
+    async def test_autogen_binding(self) -> None:
+        _, tools, closers = await self._get_client_and_tools()
+        try:
+            agent = _autogen_make_agent_with_tools(tools)
+            assert agent is not None
+        finally:
+            await self._close_all(closers)
+
+    @pytest.mark.asyncio
+    async def test_crewai_binding(self, offline_http_guard) -> None:
+        _, tools, closers = await self._get_client_and_tools()
+        try:
+            agent = _crewai_make_agent_with_tools(tools)
+            assert agent is not None
+        finally:
+            await self._close_all(closers)
+
+    @pytest.mark.asyncio
+    async def test_semantic_kernel_binding(self) -> None:
+        _, tools, closers = await self._get_client_and_tools()
+        try:
+            kernel = _sk_make_kernel_with_tools(tools)
+            assert kernel is not None
+        finally:
+            await self._close_all(closers)
+
+    @pytest.mark.asyncio
+    async def test_pydantic_ai_binding(self) -> None:
+        _, tools, closers = await self._get_client_and_tools()
+        try:
+            agent = _pydantic_ai_make_agent_with_tools(tools)
+            assert agent is not None
+        finally:
+            await self._close_all(closers)
+
+    @pytest.mark.asyncio
+    async def test_google_adk_binding(self) -> None:
+        _, tools, closers = await self._get_client_and_tools()
+        try:
+            agent = _google_adk_make_agent_with_tools(tools)
+            assert agent is not None
+        finally:
+            await self._close_all(closers)
+
+
+class TestAsyncWithDirect(BaseAsyncSuite):
+    async def _make_client_async(self):
+        from gearmeshing_ai.mcp_client.strategy.direct_async import (
+            AsyncDirectMcpStrategy,
+        )
+
+        atransport = _mock_transport_direct()
+        async_client = httpx.AsyncClient(transport=atransport, base_url="http://mock")
+        strat = AsyncDirectMcpStrategy([ServerConfig(name="s1", endpoint_url="http://mock/mcp")], client=async_client)
+        client = AsyncMcpClient(strategies=[strat])
+        return client, [async_client]
+
+
+class TestAsyncWithGateway(BaseAsyncSuite):
+    async def _make_client_async(self):
+        atransport = _mock_transport_gateway()
+        mgmt_client = httpx.Client(transport=atransport, base_url="http://mock")
+        http_client = httpx.AsyncClient(transport=atransport, base_url="http://mock")
+        sse_client = httpx.AsyncClient(transport=atransport, base_url="http://mock")
+        cfg = McpClientConfig(gateway=GatewayConfig(base_url="http://mock"))
+        client = await AsyncMcpClient.from_config(
+            cfg,
+            gateway_mgmt_client=mgmt_client,
+            gateway_http_client=http_client,
+            gateway_sse_client=sse_client,
+        )
+        return client, [http_client, sse_client]
 
 
 # ------------------------------
