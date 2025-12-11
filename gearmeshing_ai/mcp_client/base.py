@@ -35,11 +35,18 @@ from gearmeshing_ai.mcp_client.strategy.base import is_mutating_tool_name
 
 
 @runtime_checkable
-class SyncClientProtocol(Protocol):
-    """Protocol for synchronous MCP clients.
+class MCPInfoProvider(Protocol):
+    """Protocol for synchronous MCP info providers.
 
-    Concrete implementations should provide discovery, listing, pagination,
-    and tool invocation through one or more underlying `SyncStrategy`s.
+    Exposes only read-only MCP metadata needed by AI agents and other
+    consumers:
+
+    - discovery of MCP endpoints (servers)
+    - listing tools for a given endpoint
+    - optional paginated tool listing
+
+    Concrete facades such as `McpClient` should also apply `ToolPolicy`
+    constraints via `ClientCommonMixin` when an `agent_id` is supplied.
     """
 
     @classmethod
@@ -53,7 +60,7 @@ class SyncClientProtocol(Protocol):
         gateway_http_client: Optional[httpx.Client] = None,
     ) -> Self: ...
 
-    def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]: ...
+    def get_endpoints(self, *, agent_id: str | None = None) -> List[McpServerRef]: ...
 
     def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]: ...
 
@@ -66,22 +73,15 @@ class SyncClientProtocol(Protocol):
         agent_id: str | None = None,
     ) -> ToolsPage: ...
 
-    def call_tool(
-        self,
-        server_id: str,
-        tool_name: str,
-        args: dict[str, Any],
-        *,
-        agent_id: str | None = None,
-    ) -> ToolCallResult: ...
-
 
 @runtime_checkable
-class AsyncClientProtocol(Protocol):
-    """Protocol for asynchronous MCP clients.
+class AsyncMCPInfoProvider(Protocol):
+    """Protocol for asynchronous MCP info providers.
 
-    Concrete implementations should provide async listing, pagination, tool
-    invocation, and SSE streaming helpers.
+    Async counterpart to `MCPInfoProvider`, exposing endpoint and tool
+    discovery APIs only. Concrete facades such as `AsyncMcpClient` may
+    offer additional capabilities (tool invocation, streaming), but those
+    are not part of this minimal info-provider contract.
     """
 
     @classmethod
@@ -95,7 +95,7 @@ class AsyncClientProtocol(Protocol):
         gateway_sse_client: Optional[httpx.AsyncClient] = None,
     ) -> Self: ...
 
-    async def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]: ...
+    async def get_endpoints(self, *, agent_id: str | None = None) -> List[McpServerRef]: ...
 
     async def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]: ...
 
@@ -107,47 +107,6 @@ class AsyncClientProtocol(Protocol):
         limit: Optional[int] = None,
         agent_id: str | None = None,
     ) -> ToolsPage: ...
-
-    async def call_tool(
-        self,
-        server_id: str,
-        tool_name: str,
-        args: dict[str, Any],
-        *,
-        agent_id: str | None = None,
-    ) -> ToolCallResult: ...
-
-    # Note: declared as async def returning AsyncIterator since concrete client methods are async wrappers
-    # around strategy generators. Strategy Protocol methods are regular def returning AsyncIterator to
-    # model async generators per MyPy guidance. Implementations should ensure compatibility.
-    async def stream_events(
-        self,
-        server_id: str,
-        path: str = "/sse",
-        *,
-        reconnect: bool = False,
-        max_retries: int = 3,
-        backoff_initial: float = 0.5,
-        backoff_factor: float = 2.0,
-        backoff_max: float = 8.0,
-        idle_timeout: Optional[float] = None,
-        max_total_seconds: Optional[float] = None,
-    ) -> AsyncIterator[str]: ...
-
-    # Note: same rationale as stream_events; returns an AsyncIterator of parsed dict events.
-    async def stream_events_parsed(
-        self,
-        server_id: str,
-        path: str = "/sse",
-        *,
-        reconnect: bool = False,
-        max_retries: int = 3,
-        backoff_initial: float = 0.5,
-        backoff_factor: float = 2.0,
-        backoff_max: float = 8.0,
-        idle_timeout: Optional[float] = None,
-        max_total_seconds: Optional[float] = None,
-    ) -> AsyncIterator[Dict[str, Any]]: ...
 
 
 class ClientCommonMixin:

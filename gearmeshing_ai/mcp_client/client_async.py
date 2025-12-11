@@ -12,7 +12,7 @@ from typing import Any, AsyncIterator, Dict, Iterable, List, Optional
 
 import httpx
 
-from .base import AsyncClientProtocol, ClientCommonMixin
+from .base import AsyncMCPInfoProvider, ClientCommonMixin
 from .errors import ServerNotFoundError, ToolAccessDeniedError
 from .gateway_api.client import GatewayApiClient
 from .policy import PolicyMap, enforce_policy
@@ -32,7 +32,7 @@ from .strategy.gateway_async import AsyncGatewayMcpStrategy
 logger = logging.getLogger(__name__)
 
 
-class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
+class AsyncMcpClient(ClientCommonMixin, AsyncMCPInfoProvider):
     """Async facade for MCP client operations.
 
     Delegates to one or more `AsyncStrategy` implementations (direct/gateway)
@@ -141,8 +141,8 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
                 logger.debug("list_tools error from %s: %s", type(strat).__name__, e)
         raise ServerNotFoundError(server_id)
 
-    async def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]:
-        """Return discovered servers across async strategies, honoring policy.
+    async def get_endpoints(self, *, agent_id: str | None = None) -> List[McpServerRef]:
+        """Return discovered MCP endpoints across async strategies, honoring policy.
 
         Aggregates servers from configured async strategies. For Direct strategies,
         reads configured ServerConfig entries. For Gateway strategies, uses the
@@ -180,7 +180,7 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
                                 )
                             )
             except Exception as e:
-                logger.debug("list_servers error from %s: %s", type(strat).__name__, e)
+                logger.debug("get_endpoints error from %s: %s", type(strat).__name__, e)
 
         if agent_id and agent_id in self._policies:
             policy = self._policies[agent_id]
@@ -188,6 +188,10 @@ class AsyncMcpClient(ClientCommonMixin, AsyncClientProtocol):
                 servers = [s for s in servers if s.id in policy.allowed_servers]
 
         return servers
+
+    # Back-compat alias used by existing callers/tests; delegates to get_endpoints.
+    async def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # pragma: no cover - thin wrapper
+        return await self.get_endpoints(agent_id=agent_id)
 
     async def list_tools_page(
         self,

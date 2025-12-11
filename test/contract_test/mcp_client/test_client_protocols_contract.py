@@ -6,9 +6,9 @@ from typing import Any, AsyncIterator, Dict, List, Optional
 import pytest
 
 from gearmeshing_ai.mcp_client.base import (
-    AsyncClientProtocol,
+    AsyncMCPInfoProvider,
     ClientCommonMixin,
-    SyncClientProtocol,
+    MCPInfoProvider,
 )
 from gearmeshing_ai.mcp_client.policy import ToolPolicy
 from gearmeshing_ai.mcp_client.schemas.config import McpClientConfig
@@ -24,7 +24,7 @@ from gearmeshing_ai.mcp_client.schemas.core import (
 
 
 class _DummySyncClient(ClientCommonMixin):
-    """Minimal concrete impl satisfying SyncClientProtocol for contract testing."""
+    """Minimal concrete impl satisfying MCPInfoProvider for contract testing."""
 
     def __init__(self) -> None:
         self._servers = [
@@ -71,8 +71,12 @@ class _DummySyncClient(ClientCommonMixin):
         return cls()
 
     # API
-    def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # noqa: ARG002
+    def get_endpoints(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # noqa: ARG002
         return list(self._servers)
+
+    # Back-compat name that matches earlier protocol; used elsewhere in tests.
+    def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # noqa: ARG002
+        return self.get_endpoints(agent_id=agent_id)
 
     def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]:  # noqa: ARG002
         return list(self._tools)
@@ -99,7 +103,7 @@ class _DummySyncClient(ClientCommonMixin):
 
 
 class _DummyAsyncClient(ClientCommonMixin):
-    """Minimal concrete impl satisfying AsyncClientProtocol for contract testing."""
+    """Minimal concrete impl satisfying AsyncMCPInfoProvider for contract testing."""
 
     def __init__(self) -> None:
         self._tools = [
@@ -124,7 +128,7 @@ class _DummyAsyncClient(ClientCommonMixin):
     ) -> "_DummyAsyncClient":
         return cls()
 
-    async def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # noqa: ARG002
+    async def get_endpoints(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # noqa: ARG002
         return [
             McpServerRef(
                 id="s1",
@@ -134,6 +138,10 @@ class _DummyAsyncClient(ClientCommonMixin):
                 endpoint_url="http://mock/mcp/",
             )
         ]
+
+    # Back-compat alias for older async protocol/tests
+    async def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # noqa: ARG002
+        return await self.get_endpoints(agent_id=agent_id)
 
     async def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]:  # noqa: ARG002
         return list(self._tools)
@@ -205,13 +213,13 @@ class _DummyAsyncClient(ClientCommonMixin):
 
 def test_sync_client_runtime_protocol_conformance() -> None:
     c = _DummySyncClient()
-    assert isinstance(c, SyncClientProtocol)
+    assert isinstance(c, MCPInfoProvider)
 
 
 @pytest.mark.asyncio
 async def test_async_client_runtime_protocol_conformance() -> None:
     c = await _DummyAsyncClient.from_config(McpClientConfig())
-    assert isinstance(c, AsyncClientProtocol)
+    assert isinstance(c, AsyncMCPInfoProvider)
 
 
 # ------------------------------

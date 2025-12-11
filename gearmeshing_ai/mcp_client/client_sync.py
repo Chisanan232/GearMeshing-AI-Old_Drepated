@@ -9,6 +9,48 @@ Typical usage:
     client = McpClient.from_config(cfg)
     tools = client.list_tools("server-id")
     res = client.call_tool("server-id", "echo", {"text": "hi"})
+
+Ad an AI agent, in generally, it would initial a MCP connection object with MCP server endpoint, and instantiate the MCP
+connection object to build connection with MCP servers and list all the MCP tools. And would use the MCP tools to set to
+the AI agent. So as an object for how to provide the necessary info about MCP tools for AI agent. I think this object just
+need to provide 2 points: the MCP server endpoints and how to get the MCP tools by the AI agent framework.
+
+Here are the architecture as the relationship of the AI agent and the objects:
+
+
++-------------------+
+|  Import AI agent  |
++-------------------+                                                                                   Get the MCP info
+      |                                              Provide the MCP                                 (directly from config or
+      |      +---------------------------------+     info like endpoints      +--------------------+    gateway service)     +---------------+
+      +----->|  AI agent MCP tools connection  | <----------------------------|  MCP info provider | ----------------------> |  MCP servers  |
+      |      +---------------------------------+                              +--------------------+                         +---------------+
+      |           | Use the MCP info
+      |           | like tools array   +------------+
+      +-----------+------------------> |  AI agent  |
+                                       +------------+
+
+From the above architecture and the brief workflow, we could make sure the MCP info provider could be very easily and
+simple: provide the MCP info like endpoint and tools is enough to use.
+
+```python
+mcp_info_provider = MCPInfoProvider(strategy=StrategyImplementation())
+
+mcp_servers = mcp_info_provider.servers
+print(f"MCP servers: {mcp_servers}")    # {"clickup_mcp": {endpoint: "http://clickup-mcp:8082/mcp/strable-http", tools: [{"name": "task.get", }]}}
+
+all_mcp_endpoints = [v.endpoint for k, v in mcp_info_provider.servers]
+
+# Here just demonstrate how a AI agent would be configured some MCP tools
+mcp_tools = TestTools(
+    endpoints=all_mcp_endpoints,
+)
+TestAIAgent(
+    name="Test AI agent",
+    system_prompt="You are a poor software engineer. And you focus on Python."
+    tools=mcp_tools.list_tools,
+)
+```
 """
 
 from __future__ import annotations
@@ -18,7 +60,7 @@ from typing import Any, Iterable, List, Optional
 
 import httpx
 
-from .base import ClientCommonMixin, SyncClientProtocol
+from .base import ClientCommonMixin, MCPInfoProvider
 from .errors import ServerNotFoundError, ToolAccessDeniedError
 from .gateway_api.client import GatewayApiClient
 from .policy import PolicyMap, enforce_policy
@@ -31,7 +73,7 @@ from .strategy.gateway import GatewayMcpStrategy
 logger = logging.getLogger(__name__)
 
 
-class McpClient(ClientCommonMixin, SyncClientProtocol):
+class McpClient(ClientCommonMixin, MCPInfoProvider):
     """High-level MCP client facade.
 
     Delegates operations to one or more `SyncStrategy` implementations and
@@ -102,8 +144,8 @@ class McpClient(ClientCommonMixin, SyncClientProtocol):
             )
         return cls(strategies=strategies, agent_policies=agent_policies)
 
-    def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]:
-        """Return discovered servers across strategies, honoring policy.
+    def get_endpoints(self, *, agent_id: str | None = None) -> List[McpServerRef]:
+        """Return discovered MCP endpoints across strategies, honoring policy.
 
         If `agent_id` is provided and policies are configured, filters servers by
         the agent's allowed server list (if present).
@@ -117,22 +159,26 @@ class McpClient(ClientCommonMixin, SyncClientProtocol):
         servers: List[McpServerRef] = []
         for strat in self._strategies:
             try:
-                logger.debug("McpClient.list_servers: using %s", type(strat).__name__)
+                logger.debug("McpClient.get_endpoints: using %s", type(strat).__name__)
                 servers.extend(list(strat.list_servers()))
             except Exception as e:
-                logger.debug("list_servers error from %s: %s", type(strat).__name__, e)
+                logger.debug("get_endpoints error from %s: %s", type(strat).__name__, e)
         if agent_id and agent_id in self._policies:
             policy = self._policies[agent_id]
             before = len(servers)
             servers = self._filter_servers_by_policy(servers, policy)
             if before != len(servers):
                 logger.debug(
-                    "McpClient.list_servers: policy filtered servers for agent=%s from %d to %d",
+                    "McpClient.get_endpoints: policy filtered endpoints for agent=%s from %d to %d",
                     agent_id,
                     before,
                     len(servers),
                 )
         return servers
+
+    # Back-compat alias used by existing callers/tests; delegates to get_endpoints.
+    def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # pragma: no cover - thin wrapper
+        return self.get_endpoints(agent_id=agent_id)
 
     def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]:
         """List tools for a specific server, applying policy filters.
