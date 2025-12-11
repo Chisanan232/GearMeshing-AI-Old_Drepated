@@ -3,7 +3,7 @@
 This module defines the concrete sync/async MCP info provider classes that
 implement the :mod:`gearmeshing_ai.info_provider.mcp.base` protocols.
 
-* :class:`MCPInfoProvider` – sync facade for listing MCP endpoints/tools and
+* :class:`MCPInfoProvider` – sync facade for listing MCP tools and
   invoking tools over one or more underlying sync strategies (direct/gateway).
 * :class:`AsyncMCPInfoProvider` – async counterpart that also supports
   streaming SSE events.
@@ -193,60 +193,6 @@ class AsyncMCPInfoProvider(ClientCommonMixin, BaseAsyncMCPInfoProvider):
             except Exception as e:
                 logger.debug("list_tools error from %s: %s", type(strat).__name__, e)
         raise ServerNotFoundError(server_id)
-
-    async def get_endpoints(self, *, agent_id: str | None = None) -> List[McpServerRef]:
-        """Return discovered MCP endpoints across async strategies, honoring policy.
-
-        Aggregates servers from configured async strategies. For Direct strategies,
-        reads configured ServerConfig entries. For Gateway strategies, uses the
-        Gateway management client to list servers.
-        """
-        servers: List[McpServerRef] = []
-        for strat in self._strategies:
-            try:
-                # Direct: introspect configured ServerConfig entries
-                if isinstance(strat, AsyncDirectMcpStrategy):
-                    for sc in getattr(strat, "_servers", []) or []:
-                        servers.append(
-                            McpServerRef(
-                                id=sc.name,
-                                display_name=sc.name,
-                                kind=ServerKind.DIRECT,
-                                transport=TransportType.STREAMABLE_HTTP,
-                                endpoint_url=sc.endpoint_url,
-                                auth_token=sc.auth_token,
-                            )
-                        )
-                # Gateway: use GatewayApiClient to discover servers
-                elif isinstance(strat, AsyncGatewayMcpStrategy):
-                    gw = getattr(strat, "_gateway", None)
-                    if gw is not None:
-                        for srv in gw.list_servers():
-                            servers.append(
-                                McpServerRef(
-                                    id=srv.id,
-                                    display_name=srv.name,
-                                    kind=ServerKind.GATEWAY,
-                                    transport=TransportType.STREAMABLE_HTTP,
-                                    endpoint_url=f"{gw.base_url}/servers/{srv.id}/mcp",
-                                    auth_token=gw.auth_token,
-                                )
-                            )
-            except Exception as e:
-                logger.debug("get_endpoints error from %s: %s", type(strat).__name__, e)
-
-        if agent_id and agent_id in self._policies:
-            policy = self._policies[agent_id]
-            if policy.allowed_servers is not None:
-                servers = [s for s in servers if s.id in policy.allowed_servers]
-
-        return servers
-
-    # Back-compat alias used by existing callers/tests; delegates to get_endpoints.
-    async def list_servers(
-        self, *, agent_id: str | None = None
-    ) -> List[McpServerRef]:  # pragma: no cover - thin wrapper
-        return await self.get_endpoints(agent_id=agent_id)
 
     async def list_tools_page(
         self,
@@ -515,42 +461,6 @@ class MCPInfoProvider(ClientCommonMixin, BaseMCPInfoProvider):
                 )
             )
         return cls(strategies=strategies, agent_policies=agent_policies)
-
-    def get_endpoints(self, *, agent_id: str | None = None) -> List[McpServerRef]:
-        """Return discovered MCP endpoints across strategies, honoring policy.
-
-        If `agent_id` is provided and policies are configured, filters servers by
-        the agent's allowed server list (if present).
-
-        Args:
-            agent_id: Optional agent identifier used for policy filtering.
-
-        Returns:
-            A list of `McpServerRef` discovered across strategies after filtering.
-        """
-        servers: List[McpServerRef] = []
-        for strat in self._strategies:
-            try:
-                logger.debug("McpClient.get_endpoints: using %s", type(strat).__name__)
-                servers.extend(list(strat.list_servers()))
-            except Exception as e:
-                logger.debug("get_endpoints error from %s: %s", type(strat).__name__, e)
-        if agent_id and agent_id in self._policies:
-            policy = self._policies[agent_id]
-            before = len(servers)
-            servers = self._filter_servers_by_policy(servers, policy)
-            if before != len(servers):
-                logger.debug(
-                    "McpClient.get_endpoints: policy filtered endpoints for agent=%s from %d to %d",
-                    agent_id,
-                    before,
-                    len(servers),
-                )
-        return servers
-
-    # Back-compat alias used by existing callers/tests; delegates to get_endpoints.
-    def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # pragma: no cover - thin wrapper
-        return self.get_endpoints(agent_id=agent_id)
 
     def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]:
         """List tools for a specific server, applying policy filters.
