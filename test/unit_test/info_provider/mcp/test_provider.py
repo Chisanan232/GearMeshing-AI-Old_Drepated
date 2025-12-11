@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 import httpx
 import pytest
 
-from gearmeshing_ai.info_provider.mcp.client_async import AsyncMcpClient
+from gearmeshing_ai.info_provider.mcp.provider import (AsyncMcpClient)
 from gearmeshing_ai.info_provider.mcp.policy import ToolPolicy
 from gearmeshing_ai.info_provider.mcp.schemas.config import (
     GatewayConfig,

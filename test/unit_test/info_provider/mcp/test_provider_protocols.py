@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from gearmeshing_ai.info_provider.mcp.base import AsyncMCPInfoProvider, MCPInfoProvider
-from gearmeshing_ai.info_provider.mcp.client_async import AsyncMcpClient
+from gearmeshing_ai.info_provider.mcp.provider import AsyncMcpClient
 from gearmeshing_ai.info_provider.mcp.client_sync import McpClient
 
 
