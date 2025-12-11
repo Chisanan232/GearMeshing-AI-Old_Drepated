@@ -3,7 +3,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from gearmeshing_ai.info_provider.transport.sse import BasicSseTransport
+from gearmeshing_ai.info_provider.mcp.transport.sse import BasicSseTransport
 
 
 def _mock_transport() -> httpx.MockTransport:

@@ -4,8 +4,8 @@ from typing import Any, Dict, List
 
 import pytest
 
-from gearmeshing_ai.info_provider.schemas.core import McpTool, ToolCallResult, ToolsPage
-from gearmeshing_ai.info_provider.strategy.models.dto import (
+from gearmeshing_ai.info_provider.mcp.schemas.core import McpTool, ToolCallResult, ToolsPage
+from gearmeshing_ai.info_provider.mcp.strategy.models.dto import (
     ToolDescriptorDTO,
     ToolInvokePayloadDTO,
     ToolsListPayloadDTO,

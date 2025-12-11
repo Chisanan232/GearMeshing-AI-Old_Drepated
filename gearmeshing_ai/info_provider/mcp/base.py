@@ -23,15 +23,15 @@ from typing import (
 
 import httpx
 
-from gearmeshing_ai.info_provider.policy import PolicyMap, ToolPolicy
-from gearmeshing_ai.info_provider.schemas.config import McpClientConfig
-from gearmeshing_ai.info_provider.schemas.core import (
+from .policy import PolicyMap, ToolPolicy
+from .schemas.config import McpClientConfig
+from .schemas.core import (
     McpServerRef,
     McpTool,
     ToolCallResult,
     ToolsPage,
 )
-from gearmeshing_ai.info_provider.strategy.base import is_mutating_tool_name
+from .strategy.base import is_mutating_tool_name
 
 
 @runtime_checkable

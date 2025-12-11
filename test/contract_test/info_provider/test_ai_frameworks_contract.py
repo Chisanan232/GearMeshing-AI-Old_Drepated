@@ -6,14 +6,14 @@ import os
 import httpx
 import pytest
 
-from gearmeshing_ai.info_provider.client_async import AsyncMcpClient
-from gearmeshing_ai.info_provider.client_sync import McpClient
-from gearmeshing_ai.info_provider.schemas.config import (
+from gearmeshing_ai.info_provider.mcp.client_async import AsyncMcpClient
+from gearmeshing_ai.info_provider.mcp.client_sync import McpClient
+from gearmeshing_ai.info_provider.mcp.schemas.config import (
     GatewayConfig,
     McpClientConfig,
     ServerConfig,
 )
-from gearmeshing_ai.info_provider.schemas.core import McpTool
+from gearmeshing_ai.info_provider.mcp.schemas.core import McpTool
 
 # ------------------------------
 # Mock transports for Direct and Gateway
@@ -745,7 +745,7 @@ class BaseAsyncSuite:
 
 class TestAsyncWithDirect(BaseAsyncSuite):
     async def _make_client_async(self):
-        from gearmeshing_ai.info_provider.strategy.direct_async import (
+        from gearmeshing_ai.info_provider.mcp.strategy.direct_async import (
             AsyncDirectMcpStrategy,
         )
 

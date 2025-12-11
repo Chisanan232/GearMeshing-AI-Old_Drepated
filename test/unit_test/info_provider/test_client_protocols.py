@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from gearmeshing_ai.info_provider.base import AsyncMCPInfoProvider, MCPInfoProvider
-from gearmeshing_ai.info_provider.client_async import AsyncMcpClient
-from gearmeshing_ai.info_provider.client_sync import McpClient
+from gearmeshing_ai.info_provider.mcp.base import AsyncMCPInfoProvider, MCPInfoProvider
+from gearmeshing_ai.info_provider.mcp.client_async import AsyncMcpClient
+from gearmeshing_ai.info_provider.mcp.client_sync import McpClient
 
 
 def test_sync_client_conforms_runtime_protocol() -> None:

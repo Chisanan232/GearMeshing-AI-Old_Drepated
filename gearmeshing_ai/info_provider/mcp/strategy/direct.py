@@ -40,8 +40,8 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import httpx
 
-from gearmeshing_ai.info_provider.schemas.config import ServerConfig
-from gearmeshing_ai.info_provider.schemas.core import (
+from gearmeshing_ai.info_provider.mcp.schemas.config import ServerConfig
+from gearmeshing_ai.info_provider.mcp.schemas.core import (
     McpServerRef,
     McpTool,
     ServerKind,

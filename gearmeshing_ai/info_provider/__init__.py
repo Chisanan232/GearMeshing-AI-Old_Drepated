@@ -6,7 +6,7 @@ Provides:
 - High-level client facades (`McpClient`, `AsyncMcpClient`) with policy support.
 """
 
-from .schemas.config import MCPConfig
+from .mcp.schemas.config import MCPConfig
 
 __all__ = [
     "MCPConfig",

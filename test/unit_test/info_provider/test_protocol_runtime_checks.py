@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from gearmeshing_ai.info_provider.client_async import AsyncMcpClient
-from gearmeshing_ai.info_provider.client_sync import McpClient
+from gearmeshing_ai.info_provider.mcp.client_async import AsyncMcpClient
+from gearmeshing_ai.info_provider.mcp.client_sync import McpClient
 
 
 class BadSyncStrategy:

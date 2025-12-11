@@ -7,8 +7,8 @@ from typing import Any, Dict
 import pytest
 from pydantic_core._pydantic_core import ValidationError
 
-from gearmeshing_ai.info_provider.gateway_api import GatewayTransport
-from gearmeshing_ai.info_provider.gateway_api.models.dto import (
+from gearmeshing_ai.info_provider.mcp.gateway_api import GatewayTransport
+from gearmeshing_ai.info_provider.mcp.gateway_api.models.dto import (
     GatewayServerCreate,
     ListServersQuery,
     ServerReadDTO,

@@ -12,7 +12,7 @@ from typing import List, Optional
 
 import httpx
 
-from gearmeshing_ai.info_provider.gateway_api.models import (
+from .models import (
     GatewayServer,
     GatewayServerCreate,
     ListServersQuery,

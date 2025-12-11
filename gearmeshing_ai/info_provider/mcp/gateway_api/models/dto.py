@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import AnyHttpUrl, Field, model_validator
 
-from gearmeshing_ai.info_provider.schemas.base import BaseSchema
+from ...schemas.base import BaseSchema
 
 from .domain import GatewayServer, GatewayTransport
 
