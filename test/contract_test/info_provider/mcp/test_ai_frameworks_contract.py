@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Sequence
 import os
+from typing import Any, Dict, List, Sequence
 
 import httpx
 import pytest
@@ -73,9 +73,11 @@ def _mock_transport_gateway() -> httpx.MockTransport:
 
     return httpx.MockTransport(handler)
 
+
 # ------------------------------
 # Strict-aware smoke-call helpers
 # ------------------------------
+
 
 def _maybe_call_langchain_tool(tool: Any, expected: str = "echo") -> None:
     try:
@@ -92,7 +94,6 @@ def _maybe_call_langchain_tool(tool: Any, expected: str = "echo") -> None:
     except Exception as e:
         if _strict():
             raise
-        pass
 
 
 def _maybe_call_llamaindex_tool(tool: Any, expected: str = "echo") -> None:
@@ -110,7 +111,6 @@ def _maybe_call_llamaindex_tool(tool: Any, expected: str = "echo") -> None:
     except Exception as e:
         if _strict():
             raise
-        pass
 
 
 def _maybe_call_callable(fn: Any, expected: str = "echo") -> None:
@@ -122,7 +122,6 @@ def _maybe_call_callable(fn: Any, expected: str = "echo") -> None:
     except Exception as e:
         if _strict():
             raise
-        pass
 
 
 def _maybe_call_phidata_tool(tool: Any, expected: str = "echo") -> None:
@@ -139,9 +138,10 @@ def _maybe_call_phidata_tool(tool: Any, expected: str = "echo") -> None:
     except Exception as e:
         if _strict():
             raise
-        pass
+
 
 _STRICT_ENV_KEYS: Sequence[str] = ("GM_STRICT_BINDINGS", "GM_STRICT_CONTRACTS")
+
 
 def _strict() -> bool:
     val: str | None = None
