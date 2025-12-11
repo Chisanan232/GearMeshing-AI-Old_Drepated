@@ -5,9 +5,9 @@ import json as _json
 import httpx
 import pytest
 
-from gearmeshing_ai.mcp_client.gateway_api.client import GatewayApiClient
-from gearmeshing_ai.mcp_client.gateway_api.errors import GatewayServerNotFoundError
-from gearmeshing_ai.mcp_client.gateway_api.models.domain import (
+from gearmeshing_ai.info_provider.gateway_api.client import GatewayApiClient
+from gearmeshing_ai.info_provider.gateway_api.errors import GatewayServerNotFoundError
+from gearmeshing_ai.info_provider.gateway_api.models.domain import (
     GatewayServerCreate,
     GatewayTransport,
 )

@@ -4,8 +4,8 @@ from typing import Any, Dict, List
 
 import httpx
 
-from gearmeshing_ai.mcp_client.schemas.config import ServerConfig
-from gearmeshing_ai.mcp_client.strategy.direct import DirectMcpStrategy
+from gearmeshing_ai.info_provider.schemas.config import ServerConfig
+from gearmeshing_ai.info_provider.strategy.direct import DirectMcpStrategy
 
 
 def _mock_transport() -> httpx.MockTransport:

@@ -5,9 +5,9 @@ from typing import Any, Dict, List
 import httpx
 import pytest
 
-from gearmeshing_ai.mcp_client.client_async import AsyncMcpClient
-from gearmeshing_ai.mcp_client.policy import ToolPolicy
-from gearmeshing_ai.mcp_client.schemas.config import GatewayConfig, McpClientConfig
+from gearmeshing_ai.info_provider.client_async import AsyncMcpClient
+from gearmeshing_ai.info_provider.policy import ToolPolicy
+from gearmeshing_ai.info_provider.schemas.config import GatewayConfig, McpClientConfig
 
 
 def _mock_transport(state: dict) -> httpx.MockTransport:
@@ -82,7 +82,7 @@ async def test_async_client_read_only_blocks_mutations() -> None:
     tools = await client.list_tools("s1", agent_id="agent")
     assert [t.name for t in tools] == ["get_issue"]
 
-    from gearmeshing_ai.mcp_client.errors import ToolAccessDeniedError
+    from gearmeshing_ai.info_provider.errors import ToolAccessDeniedError
 
     with pytest.raises(ToolAccessDeniedError):
         await client.call_tool("s1", "create_issue", {}, agent_id="agent")

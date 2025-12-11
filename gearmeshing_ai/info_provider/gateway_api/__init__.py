@@ -4,7 +4,7 @@ Exposes a thin HTTP client for the MCP Gateway service and re-exports
 domain/DTO models from the `gateway_api.models` subpackage for convenience.
 """
 
-from gearmeshing_ai.mcp_client.gateway_api.models import (
+from gearmeshing_ai.info_provider.gateway_api.models import (
     GatewayServer,
     GatewayServerCreate,
     GatewayTransport,

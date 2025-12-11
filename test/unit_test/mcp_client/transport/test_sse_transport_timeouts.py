@@ -5,7 +5,7 @@ import asyncio
 import httpx
 import pytest
 
-from gearmeshing_ai.mcp_client.transport.sse import BasicSseTransport
+from gearmeshing_ai.info_provider.transport.sse import BasicSseTransport
 
 
 class SlowAsyncStream(httpx.AsyncByteStream):

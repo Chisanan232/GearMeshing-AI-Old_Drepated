@@ -20,9 +20,9 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import httpx
 
-from gearmeshing_ai.mcp_client.gateway_api import GatewayApiClient
-from gearmeshing_ai.mcp_client.gateway_api.models.domain import GatewayTransport
-from gearmeshing_ai.mcp_client.schemas.core import (
+from gearmeshing_ai.info_provider.gateway_api import GatewayApiClient
+from gearmeshing_ai.info_provider.gateway_api.models.domain import GatewayTransport
+from gearmeshing_ai.info_provider.schemas.core import (
     McpServerRef,
     McpTool,
     ToolCallResult,

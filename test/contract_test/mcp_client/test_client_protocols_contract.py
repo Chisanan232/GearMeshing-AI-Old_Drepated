@@ -5,14 +5,14 @@ from typing import Any, AsyncIterator, Dict, List, Optional
 
 import pytest
 
-from gearmeshing_ai.mcp_client.base import (
+from gearmeshing_ai.info_provider.base import (
     AsyncMCPInfoProvider,
     ClientCommonMixin,
     MCPInfoProvider,
 )
-from gearmeshing_ai.mcp_client.policy import ToolPolicy
-from gearmeshing_ai.mcp_client.schemas.config import McpClientConfig
-from gearmeshing_ai.mcp_client.schemas.core import (
+from gearmeshing_ai.info_provider.policy import ToolPolicy
+from gearmeshing_ai.info_provider.schemas.config import McpClientConfig
+from gearmeshing_ai.info_provider.schemas.core import (
     McpServerRef,
     McpTool,
     ServerKind,

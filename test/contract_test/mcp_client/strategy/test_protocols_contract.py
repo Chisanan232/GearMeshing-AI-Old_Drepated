@@ -5,7 +5,7 @@ from typing import Any, AsyncIterator, Dict, Iterable, List
 
 import pytest
 
-from gearmeshing_ai.mcp_client.schemas.core import (
+from gearmeshing_ai.info_provider.schemas.core import (
     McpServerRef,
     McpTool,
     ServerKind,
@@ -13,7 +13,7 @@ from gearmeshing_ai.mcp_client.schemas.core import (
     ToolCallResult,
     TransportType,
 )
-from gearmeshing_ai.mcp_client.strategy.base import (
+from gearmeshing_ai.info_provider.strategy.base import (
     AsyncStrategy,
     StrategyCommonMixin,
     SyncStrategy,

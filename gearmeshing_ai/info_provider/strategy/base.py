@@ -22,7 +22,7 @@ from typing import (
     runtime_checkable,
 )
 
-from gearmeshing_ai.mcp_client.schemas.core import (
+from gearmeshing_ai.info_provider.schemas.core import (
     McpServerRef,
     McpTool,
     ToolArgument,

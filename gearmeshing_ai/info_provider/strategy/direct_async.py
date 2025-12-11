@@ -1,17 +1,23 @@
-"""Async Gateway MCP strategy
+"""Async Direct MCP strategy
 
-Async strategy that discovers MCP servers via a Gateway management API and
-interacts with their streamable HTTP endpoints.
+Async strategy for directly connecting to MCP servers over HTTP without going
+through the Gateway management API. Supports:
 
-Targets and use-cases:
-- Centralized discovery/management via a Gateway service.
-- Environments where auth and transport selection are delegated to Gateway.
+- Listing tools with a per-server TTL cache
+- Paginated tools listing when server supports `cursor`/`limit`
+- SSE streaming helpers for server-sent events
 
-Highlights:
-- Per-server tools caching with TTL.
-- Tool invocation through Gateway endpoints.
-- Optional pagination for tools listing.
-- SSE streaming helpers (raw and parsed events).
+Typical usage:
+    from gearmeshing_ai.mcp_client.schemas.config import ServerConfig
+    from gearmeshing_ai.mcp_client.strategy.direct_async import AsyncDirectMcpStrategy
+
+    strat = AsyncDirectMcpStrategy([
+        ServerConfig(name="s1", endpoint_url="http://localhost:8000/mcp/"),
+    ])
+
+    tools = await strat.list_tools("s1")
+    page = await strat.list_tools_page("s1", limit=50)
+    res = await strat.call_tool("s1", "echo", {"text": "hi"})
 """
 
 from __future__ import annotations
@@ -22,12 +28,8 @@ from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
 import httpx
 
-from gearmeshing_ai.mcp_client.gateway_api.client import GatewayApiClient
-from gearmeshing_ai.mcp_client.schemas.core import (
-    McpTool,
-    ToolCallResult,
-    ToolsPage,
-)
+from gearmeshing_ai.info_provider.schemas.config import ServerConfig
+from gearmeshing_ai.info_provider.schemas.core import McpTool, ToolCallResult, ToolsPage
 
 from .base import AsyncStrategy, StrategyCommonMixin
 from .models.dto import (
@@ -38,58 +40,72 @@ from .models.dto import (
 )
 
 
-class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
-    """Async variant of the Gateway strategy for streamable HTTP MCP endpoints.
+class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
+    """Async strategy for direct HTTP access to MCP servers.
 
-    - Discovers base via `GatewayApiClient.base_url`.
-    - Uses `httpx.AsyncClient` for HTTP operations.
-    - Maintains a per-server tools cache with TTL.
-    - Propagates Authorization header from `GatewayApiClient`.
+    - Discovers servers from provided `ServerConfig` entries.
+    - Uses `httpx.AsyncClient` for HTTP calls and maintains a per-server tools cache.
+    - Exposes basic SSE streaming helpers using `BasicSseTransport`.
+
+    Configure `ttl_seconds` to balance cache freshness and performance.
+    Provide custom clients when you need custom timeouts/proxies.
     """
 
     def __init__(
         self,
-        gateway: GatewayApiClient,
+        servers: List[ServerConfig],
         *,
         client: Optional[httpx.AsyncClient] = None,
         ttl_seconds: float = 10.0,
         sse_client: Optional[httpx.AsyncClient] = None,
     ) -> None:
-        self._gateway = gateway
+        self._servers: List[ServerConfig] = list(servers)
         self._http = client or httpx.AsyncClient(timeout=10.0, follow_redirects=True)
         self._logger = logging.getLogger(__name__)
         self._ttl = ttl_seconds
         self._tools_cache: Dict[str, Tuple[List[McpTool], float]] = {}
         self._sse_client = sse_client
 
-    def _base_for(self, server_id: str) -> str:
-        """Build the Gateway streamable HTTP base URL for a server.
+    def _get_server(self, server_id: str) -> ServerConfig:
+        """Lookup a configured server by name.
 
         Args:
-            server_id: The Gateway server identifier.
+            server_id: The `ServerConfig.name` of the target server.
 
         Returns:
-            The base URL where MCP endpoints for the server are exposed.
+            The matching `ServerConfig`.
+
+        Raises:
+            ValueError: If no configured server matches `server_id`.
         """
-        return f"{self._gateway.base_url}/servers/{server_id}/mcp"
+        for s in self._servers:
+            if s.name == server_id:
+                return s
+        raise ValueError(f"Unknown server_id: {server_id}")
 
-    def _headers(self) -> Dict[str, str]:
-        """Build JSON headers, propagating Gateway auth if configured.
+    def _headers(self, cfg: ServerConfig) -> Dict[str, str]:
+        """Build HTTP headers for direct requests.
+
+        Args:
+            cfg: The server configuration providing optional `auth_token`.
 
         Returns:
-            A dictionary with `Content-Type` and optional `Authorization` header.
+            A dictionary of headers including `Content-Type: application/json` and
+            `Authorization` when an auth token is configured.
         """
         headers: Dict[str, str] = {"Content-Type": "application/json"}
-        token = self._gateway.auth_token
-        if token:
-            headers["Authorization"] = token
+        if cfg.auth_token:
+            headers["Authorization"] = cfg.auth_token
         return headers
 
     async def list_tools(self, server_id: str) -> List[McpTool]:
-        """Return tools for a Gateway server, honoring the per-server cache.
+        """Return the list of tools for a server.
+
+        - Honors a TTL cache keyed by server name.
+        - Performs GET `<endpoint>/tools` and normalizes via `ToolsListPayloadDTO`.
 
         Args:
-            server_id: The Gateway server identifier.
+            server_id: The configured `ServerConfig.name` for the server.
 
         Returns:
             A list of `McpTool`.
@@ -104,9 +120,10 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         if cached and cached[1] > now:
             return list(cached[0])
 
-        base = self._base_for(server_id).rstrip("/")
-        self._logger.debug("AsyncGatewayMcpStrategy.list_tools: GET %s/tools", base)
-        r = await self._http.get(f"{base}/tools", headers=self._headers())
+        cfg = self._get_server(server_id)
+        base = cfg.endpoint_url.rstrip("/")
+        self._logger.debug("AsyncDirectMcpStrategy.list_tools: GET %s/tools", base)
+        r = await self._http.get(f"{base}/tools", headers=self._headers(cfg))
         r.raise_for_status()
         data = r.json()
         payload = ToolsListPayloadDTO.model_validate(data)
@@ -120,17 +137,16 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         self,
         server_id: str,
         tool_name: str,
-        args: Dict[str, Any],
+        args: dict[str, Any],
     ) -> ToolCallResult:
-        """Invoke a tool via the Gateway streamable HTTP endpoint.
+        """Invoke a tool by POSTing to `/a2a/{tool}/invoke`.
 
-        - POST `{gateway}/servers/{server_id}/mcp/a2a/{tool}/invoke`
-        - Payload is `ToolInvokeRequestDTO(parameters=args)`
-        - Normalized to `ToolCallResult` via `ToolInvokePayloadDTO`
-        - Invalidates cache on success when tool is mutating
+        - Body: `{ "parameters": args }`.
+        - Response normalized by `ToolInvokePayloadDTO` to `ToolCallResult`.
+        - Invalidates cache on success for mutating tools (heuristic).
 
         Args:
-            server_id: The Gateway server identifier.
+            server_id: The configured `ServerConfig.name` for the server.
             tool_name: The tool identifier to invoke.
             args: The tool parameters to send.
 
@@ -142,37 +158,25 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
             httpx.TransportError: For transport-level HTTP issues.
             pydantic.ValidationError: If the invocation payload fails validation.
         """
-        base = self._base_for(server_id).rstrip("/")
+        cfg = self._get_server(server_id)
+        base = cfg.endpoint_url.rstrip("/")
         payload = ToolInvokeRequestDTO(parameters=args or {})
         self._logger.debug(
-            "AsyncGatewayMcpStrategy.call_tool: POST %s/a2a/%s/invoke args_keys=%s",
+            "AsyncDirectMcpStrategy.call_tool: POST %s/a2a/%s/invoke args_keys=%s",
             base,
             tool_name,
             list((args or {}).keys()),
         )
         r = await self._http.post(
             f"{base}/a2a/{tool_name}/invoke",
-            headers=self._headers(),
+            headers=self._headers(cfg),
             json=payload.model_dump(by_alias=True, mode="json"),
         )
         r.raise_for_status()
-        body = r.json()
-        inv = ToolInvokePayloadDTO.model_validate(body)
+        inv = ToolInvokePayloadDTO.model_validate(r.json())
         result = inv.to_tool_call_result()
-
-        # Invalidate cache if mutating tool (prefer cached metadata if available)
-        cached = self._tools_cache.get(server_id)
-        is_mut: Optional[bool] = None
-        if cached:
-            for t in cached[0]:
-                if t.name == tool_name:
-                    is_mut = t.mutating
-                    break
-        if is_mut is None:
-            is_mut = self._is_mutating_tool_name(tool_name)
-        if is_mut:
+        if result.ok and self._is_mutating_tool_name(tool_name):
             self._tools_cache.pop(server_id, None)
-
         return result
 
     async def list_tools_page(
@@ -182,14 +186,14 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
     ) -> ToolsPage:
-        """Return a page of tools for a server when pagination is supported.
+        """Return a single page of tools for a server.
 
-        - Query built via `ToolsListQuery(cursor, limit).to_params()`
-        - Returns `ToolsPage(items, next_cursor)`
-        - Updates cache only for non-paginated requests
+        - Query params built via `ToolsListQuery(cursor, limit).to_params()`.
+        - Returns a `ToolsPage` with `items` and an optional `next_cursor`.
+        - Updates cache only for non-paginated calls (no cursor/limit).
 
         Args:
-            server_id: The Gateway server identifier.
+            server_id: The configured `ServerConfig.name` for the server.
             cursor: Cursor returned from a previous page.
             limit: Max number of items to request per page.
 
@@ -201,22 +205,20 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
             httpx.TransportError: For transport-level HTTP issues.
             pydantic.ValidationError: If the tools payload fails validation.
         """
-        base = self._base_for(server_id).rstrip("/")
+        cfg = self._get_server(server_id)
+        base = cfg.endpoint_url.rstrip("/")
         q = ToolsListQuery(cursor=cursor, limit=limit)
         params = q.to_params()
-        self._logger.debug("AsyncGatewayMcpStrategy.list_tools_page: GET %s/tools params=%s", base, params)
-        r = await self._http.get(f"{base}/tools", headers=self._headers(), params=params or None)
+        self._logger.debug("AsyncDirectMcpStrategy.list_tools_page: GET %s/tools params=%s", base, params)
+        r = await self._http.get(f"{base}/tools", headers=self._headers(cfg), params=params or None)
         r.raise_for_status()
         data = r.json()
         payload = ToolsListPayloadDTO.model_validate(data)
         tools: List[McpTool] = []
         for td in payload.tools:
             tools.append(td.to_mcp_tool(self._infer_arguments, self._is_mutating_tool_name))
-        # Only update cache for unpaginated fetches
         if cursor is None and limit is None:
-            import time as _time
-
-            now = _time.monotonic()
+            now = time.monotonic()
             self._tools_cache[server_id] = (tools, now + self._ttl)
         return ToolsPage(items=tools, next_cursor=payload.next_cursor)
 
@@ -233,11 +235,14 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         idle_timeout: Optional[float] = None,
         max_total_seconds: Optional[float] = None,
     ) -> AsyncIterator[str]:
-        """Yield raw SSE lines from the Gateway-connected server.
+        """Yield raw SSE lines from the server.
+
+        Uses `BasicSseTransport` to connect and handle retries/backoff.
+        Yields lines including blank ones (event boundary markers).
 
         Args:
-            server_id: The Gateway server identifier.
-            path: The SSE path relative to the server's MCP base.
+            server_id: The configured `ServerConfig.name` for the server.
+            path: The SSE path relative to the server's endpoint base.
             reconnect: Whether to reconnect automatically on errors.
             max_retries: Max reconnection attempts when `reconnect` is True.
             backoff_initial: Initial backoff delay in seconds.
@@ -253,13 +258,14 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
             httpx.HTTPStatusError: If initial or subsequent connections fail.
             httpx.TransportError: For transport-level HTTP issues.
         """
-        from gearmeshing_ai.mcp_client.transport.sse import BasicSseTransport
+        from gearmeshing_ai.info_provider.transport.sse import BasicSseTransport
 
-        base = self._base_for(server_id)
+        cfg = self._get_server(server_id)
+        base = cfg.endpoint_url.rstrip("/")
         sse = BasicSseTransport(
             base,
             client=self._sse_client,
-            auth_token=self._gateway.auth_token,
+            auth_token=cfg.auth_token,
             include_blank_lines=True,
             reconnect=reconnect,
             max_retries=max_retries,
@@ -271,11 +277,11 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         )
         await sse.connect(path)
         try:
-            self._logger.debug("AsyncGatewayMcpStrategy.stream_events: start server_id=%s path=%s", server_id, path)
+            self._logger.debug("AsyncDirectMcpStrategy.stream_events: start server_id=%s path=%s", server_id, path)
             async for line in sse.aiter():
                 yield line
         finally:
-            self._logger.debug("AsyncGatewayMcpStrategy.stream_events: stop server_id=%s path=%s", server_id, path)
+            self._logger.debug("AsyncDirectMcpStrategy.stream_events: stop server_id=%s path=%s", server_id, path)
             await sse.close()
 
     async def stream_events_parsed(
@@ -291,15 +297,15 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         idle_timeout: Optional[float] = None,
         max_total_seconds: Optional[float] = None,
     ) -> AsyncIterator[Dict[str, Any]]:
-        """Yield parsed SSE events as dictionaries: {id, event, data}.
+        """Yield parsed SSE events as dicts: `{id, event, data}`.
 
         - Multiple data lines are joined with `\n`.
         - Comments (lines starting with `:`) are ignored.
-        - Event boundary is a blank line.
+        - Blank line denotes event boundary.
 
         Args:
-            server_id: The Gateway server identifier.
-            path: The SSE path relative to the server's MCP base.
+            server_id: The configured `ServerConfig.name` for the server.
+            path: The SSE path relative to the server's endpoint base.
             reconnect: Whether to reconnect automatically on errors.
             max_retries: Max reconnection attempts when `reconnect` is True.
             backoff_initial: Initial backoff delay in seconds.
@@ -339,9 +345,7 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
                     buf_id, buf_event, buf_data = None, None, []
                 continue
             if line.startswith(":"):
-                # comment
                 continue
-            # field parsing: key: value (value may be empty)
             if ":" in line:
                 key, val = line.split(":", 1)
                 val = val.lstrip(" ")
@@ -355,9 +359,7 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
             elif key == "data":
                 buf_data.append(val)
             else:
-                # ignore other fields for now
                 pass
-        # flush tail if stream ended without final blank line
         if buf_id is not None or buf_event is not None or buf_data:
             yield {
                 "id": buf_id,

@@ -5,11 +5,11 @@ DTOs (e.g., `GatewayServerCreate`, `ListServersQuery`, `ServerReadDTO`,
 `ServersListPayloadDTO`) consumed by `GatewayApiClient` and strategy layers.
 """
 
-from gearmeshing_ai.mcp_client.gateway_api.models.domain import (
+from gearmeshing_ai.info_provider.gateway_api.models.domain import (
     GatewayServer,
     GatewayTransport,
 )
-from gearmeshing_ai.mcp_client.gateway_api.models.dto import (
+from gearmeshing_ai.info_provider.gateway_api.models.dto import (
     GatewayServerCreate,
     ListServersQuery,
     ServerReadDTO,

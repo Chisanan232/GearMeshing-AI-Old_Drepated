@@ -12,8 +12,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import AnyHttpUrl, Field
 
-from gearmeshing_ai.mcp_client.schemas.base import BaseSchema
-from gearmeshing_ai.mcp_client.schemas.core import (
+from gearmeshing_ai.info_provider.schemas.base import BaseSchema
+from gearmeshing_ai.info_provider.schemas.core import (
     McpServerRef,
     ServerKind,
     TransportType,

@@ -5,10 +5,10 @@ from typing import Any, Dict, List
 import httpx
 import pytest
 
-from gearmeshing_ai.mcp_client.client_sync import McpClient
-from gearmeshing_ai.mcp_client.errors import ToolAccessDeniedError
-from gearmeshing_ai.mcp_client.policy import ToolPolicy
-from gearmeshing_ai.mcp_client.schemas.config import McpClientConfig, ServerConfig
+from gearmeshing_ai.info_provider.client_sync import McpClient
+from gearmeshing_ai.info_provider.errors import ToolAccessDeniedError
+from gearmeshing_ai.info_provider.policy import ToolPolicy
+from gearmeshing_ai.info_provider.schemas.config import McpClientConfig, ServerConfig
 
 
 def _mock_transport() -> httpx.MockTransport:
