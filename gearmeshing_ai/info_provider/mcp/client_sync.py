@@ -1,0 +1,323 @@
+"""Synchronous MCP client facade.
+
+Provides a high-level API for listing servers/tools and invoking tools using one
+or more underlying strategies (direct and/or gateway). Applies optional policy
+enforcement (server/tool allow-lists and read-only constraints).
+
+Typical usage:
+    cfg = McpClientConfig(...)
+    client = McpClient.from_config(cfg)
+    tools = client.list_tools("server-id")
+    res = client.call_tool("server-id", "echo", {"text": "hi"})
+
+Ad an AI agent, in generally, it would initial a MCP connection object with MCP server endpoint, and instantiate the MCP
+connection object to build connection with MCP servers and list all the MCP tools. And would use the MCP tools to set to
+the AI agent. So as an object for how to provide the necessary info about MCP tools for AI agent. I think this object just
+need to provide 2 points: the MCP server endpoints and how to get the MCP tools by the AI agent framework.
+
+Here are the architecture as the relationship of the AI agent and the objects:
+
+
++-------------------+
+|  Import AI agent  |
++-------------------+                                                                                   Get the MCP info
+      |                                              Provide the MCP                                 (directly from config or
+      |      +---------------------------------+     info like endpoints      +--------------------+    gateway service)     +---------------+
+      +----->|  AI agent MCP tools connection  | <----------------------------|  MCP info provider | ----------------------> |  MCP servers  |
+      |      +---------------------------------+                              +--------------------+                         +---------------+
+      |           | Use the MCP info
+      |           | like tools array   +------------+
+      +-----------+------------------> |  AI agent  |
+                                       +------------+
+
+From the above architecture and the brief workflow, we could make sure the MCP info provider could be very easily and
+simple: provide the MCP info like endpoint and tools is enough to use.
+
+```python
+mcp_info_provider = MCPInfoProvider(strategy=StrategyImplementation())
+
+mcp_servers = mcp_info_provider.servers
+print(f"MCP servers: {mcp_servers}")    # {"clickup_mcp": {endpoint: "http://clickup-mcp:8082/mcp/strable-http", tools: [{"name": "task.get", }]}}
+
+all_mcp_endpoints = [v.endpoint for k, v in mcp_info_provider.servers]
+
+# Here just demonstrate how a AI agent would be configured some MCP tools
+mcp_tools = TestTools(
+    endpoints=all_mcp_endpoints,
+)
+TestAIAgent(
+    name="Test AI agent",
+    system_prompt="You are a poor software engineer. And you focus on Python."
+    tools=mcp_tools.list_tools,
+)
+```
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Any, Iterable, List, Optional
+
+import httpx
+
+from .base import ClientCommonMixin, MCPInfoProvider
+from .errors import ServerNotFoundError, ToolAccessDeniedError
+from .gateway_api.client import GatewayApiClient
+from .policy import PolicyMap, enforce_policy
+from .schemas.config import McpClientConfig
+from .schemas.core import McpServerRef, McpTool, ToolCallResult, ToolsPage
+from .strategy.base import SyncStrategy
+from .strategy.direct import DirectMcpStrategy
+from .strategy.gateway import GatewayMcpStrategy
+
+logger = logging.getLogger(__name__)
+
+
+class McpClient(ClientCommonMixin, MCPInfoProvider):
+    """High-level MCP client facade.
+
+    Delegates operations to one or more `SyncStrategy` implementations and
+    applies access policies when provided.
+    """
+
+    def __init__(
+        self,
+        *,
+        strategies: Iterable[SyncStrategy],
+        agent_policies: Optional[PolicyMap] = None,
+    ) -> None:
+        self._strategies: List[SyncStrategy] = list(strategies)
+        # runtime validation (optional)
+        for s in self._strategies:
+            if not isinstance(s, SyncStrategy):
+                raise TypeError(f"Strategy {type(s).__name__} does not conform to SyncStrategy protocol")
+        self._policies = agent_policies or {}
+
+    @classmethod
+    def from_config(
+        cls,
+        config: McpClientConfig,
+        *,
+        agent_policies: Optional[PolicyMap] = None,
+        direct_http_client: Optional[httpx.Client] = None,
+        gateway_mgmt_client: Optional[httpx.Client] = None,
+        gateway_http_client: Optional[httpx.Client] = None,
+    ) -> "McpClient":
+        """Construct a client from `McpClientConfig`.
+
+        - Enables Direct strategy when `servers` are configured.
+        - Enables Gateway strategy when `gateway` config is present.
+        - Custom httpx clients may be provided for advanced settings.
+
+        Args:
+            config: The high-level MCP client configuration.
+            agent_policies: Optional per-agent access policies.
+            direct_http_client: Optional httpx.Client for direct strategy.
+            gateway_mgmt_client: Optional httpx.Client for Gateway management API.
+            gateway_http_client: Optional httpx.Client for Gateway HTTP endpoints.
+
+        Returns:
+            An initialized `McpClient`.
+        """
+        strategies: List[SyncStrategy] = []
+        if config.servers:
+            strategies.append(
+                DirectMcpStrategy(
+                    config.servers,
+                    client=direct_http_client,
+                    ttl_seconds=config.tools_cache_ttl_seconds,
+                )
+            )
+        if config.gateway is not None:
+            gw = GatewayApiClient(
+                config.gateway.base_url,
+                auth_token=config.gateway.auth_token,
+                client=gateway_mgmt_client,
+                timeout=config.gateway.request_timeout_seconds,
+            )
+            strategies.append(
+                GatewayMcpStrategy(
+                    gw,
+                    client=gateway_http_client,
+                    ttl_seconds=config.tools_cache_ttl_seconds,
+                )
+            )
+        return cls(strategies=strategies, agent_policies=agent_policies)
+
+    def get_endpoints(self, *, agent_id: str | None = None) -> List[McpServerRef]:
+        """Return discovered MCP endpoints across strategies, honoring policy.
+
+        If `agent_id` is provided and policies are configured, filters servers by
+        the agent's allowed server list (if present).
+
+        Args:
+            agent_id: Optional agent identifier used for policy filtering.
+
+        Returns:
+            A list of `McpServerRef` discovered across strategies after filtering.
+        """
+        servers: List[McpServerRef] = []
+        for strat in self._strategies:
+            try:
+                logger.debug("McpClient.get_endpoints: using %s", type(strat).__name__)
+                servers.extend(list(strat.list_servers()))
+            except Exception as e:
+                logger.debug("get_endpoints error from %s: %s", type(strat).__name__, e)
+        if agent_id and agent_id in self._policies:
+            policy = self._policies[agent_id]
+            before = len(servers)
+            servers = self._filter_servers_by_policy(servers, policy)
+            if before != len(servers):
+                logger.debug(
+                    "McpClient.get_endpoints: policy filtered endpoints for agent=%s from %d to %d",
+                    agent_id,
+                    before,
+                    len(servers),
+                )
+        return servers
+
+    # Back-compat alias used by existing callers/tests; delegates to get_endpoints.
+    def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # pragma: no cover - thin wrapper
+        return self.get_endpoints(agent_id=agent_id)
+
+    def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]:
+        """List tools for a specific server, applying policy filters.
+
+        Raises `ToolAccessDeniedError` if the agent is not permitted to access
+        the server per policy. If tools are found from a strategy, returns the
+        first non-empty result.
+
+        Args:
+            server_id: Target server identifier.
+            agent_id: Optional agent identifier used for policy enforcement.
+
+        Returns:
+            A list of `McpTool`.
+
+        Raises:
+            ToolAccessDeniedError: If access is blocked by policy.
+            ServerNotFoundError: If no strategy can serve the server.
+        """
+        # Enforce server access policy first
+        if agent_id and agent_id in self._policies:
+            policy = self._policies[agent_id]
+            if policy.allowed_servers is not None and server_id not in policy.allowed_servers:
+                raise ToolAccessDeniedError(agent_id, server_id, "<list_tools>")
+        for strat in self._strategies:
+            try:
+                logger.debug("McpClient.list_tools: using %s for server_id=%s", type(strat).__name__, server_id)
+                tools: List[McpTool] = list(strat.list_tools(server_id))
+                if tools:
+                    if agent_id and agent_id in self._policies:
+                        policy = self._policies[agent_id]
+                        before = len(tools)
+                        tools = self._filter_tools_by_policy(tools, policy)
+                        if before != len(tools):
+                            logger.debug(
+                                "McpClient.list_tools: policy filtered tools for agent=%s from %d to %d",
+                                agent_id,
+                                before,
+                                len(tools),
+                            )
+                    return tools
+            except Exception as e:
+                logger.debug("list_tools error from %s: %s", type(strat).__name__, e)
+        raise ServerNotFoundError(server_id)
+
+    def list_tools_page(
+        self,
+        server_id: str,
+        *,
+        cursor: Optional[str] = None,
+        limit: Optional[int] = None,
+        agent_id: str | None = None,
+    ) -> ToolsPage:
+        """List tools with pagination when supported by the strategy/backend.
+
+        Applies server/tool filters based on policy when `agent_id` is provided.
+        Falls back to non-paginated `list_tools` when pagination is unavailable.
+
+        Args:
+            server_id: Target server identifier.
+            cursor: Cursor from a previous page.
+            limit: Max items per page.
+            agent_id: Optional agent identifier used for policy enforcement.
+
+        Returns:
+            A `ToolsPage` with `items` and optional `next_cursor`.
+
+        Raises:
+            ToolAccessDeniedError: If access is blocked by policy.
+            ServerNotFoundError: If pagination unsupported and no tools found.
+        """
+        if agent_id and agent_id in self._policies:
+            policy = self._policies[agent_id]
+            if policy.allowed_servers is not None and server_id not in policy.allowed_servers:
+                raise ToolAccessDeniedError(agent_id, server_id, "<list_tools_page>")
+        for strat in self._strategies:
+            try:
+                fn = getattr(strat, "list_tools_page", None)
+                if fn is not None:
+                    page: ToolsPage = fn(server_id, cursor=cursor, limit=limit)
+                    if agent_id and agent_id in self._policies:
+                        policy = self._policies[agent_id]
+                        items = self._filter_tools_by_policy(page.items, policy)
+                        return ToolsPage(items=items, next_cursor=page.next_cursor)
+                    return page
+            except Exception as e:
+                logger.debug("list_tools_page error from %s: %s", type(strat).__name__, e)
+        tools = self.list_tools(server_id, agent_id=agent_id)
+        return ToolsPage(items=tools, next_cursor=None)
+
+    def call_tool(
+        self,
+        server_id: str,
+        tool_name: str,
+        args: dict[str, Any],
+        *,
+        agent_id: str | None = None,
+    ) -> ToolCallResult:
+        """Invoke a tool through the first responding strategy.
+
+        Enforces policy (server access, tool allow-list, and read-only).
+
+        Args:
+            server_id: Target server identifier.
+            tool_name: Tool identifier to invoke.
+            args: Tool arguments.
+            agent_id: Optional agent identifier used for policy enforcement.
+
+        Returns:
+            A `ToolCallResult` describing the outcome.
+
+        Raises:
+            ToolAccessDeniedError: If access is blocked by policy.
+            ServerNotFoundError: If no strategy can handle the server.
+        """
+        enforce_policy(agent_id=agent_id, server_id=server_id, tool_name=tool_name, policies=self._policies)
+        if agent_id and agent_id in self._policies:
+            policy = self._policies[agent_id]
+            try:
+                listed = {t.name: t for t in self.list_tools(server_id, agent_id=agent_id)}
+            except Exception:
+                listed = None
+            if self._should_block_read_only(policy, tool_name, listed):
+                raise ToolAccessDeniedError(agent_id, server_id, tool_name)
+        for strat in self._strategies:
+            try:
+                logger.debug(
+                    "McpClient.call_tool: strategy=%s server_id=%s tool=%s agent=%s",
+                    type(strat).__name__,
+                    server_id,
+                    tool_name,
+                    agent_id,
+                )
+                return strat.call_tool(
+                    server_id,
+                    tool_name,
+                    args,
+                    agent_id=agent_id,
+                )
+            except Exception as e:
+                logger.debug("call_tool error from %s: %s", type(strat).__name__, e)
+        raise ServerNotFoundError(server_id)
