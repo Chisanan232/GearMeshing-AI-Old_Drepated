@@ -91,7 +91,7 @@ def test_gateway_server_create_validation_and_dump_contract() -> None:
     ],
 )
 def test_openapi_contains_expected_gateway_schemas(schema_key: str, expected_fields: set[str]) -> None:
-    spec_path = Path(__file__).parents[5] / "docs" / "openapi_spec" / "mcp_gateway.json"
+    spec_path = Path(__file__).parents[6] / "docs" / "openapi_spec" / "mcp_gateway.json"
     with spec_path.open("r", encoding="utf-8") as f:
         spec: Dict[str, Any] = json.load(f)
     comps = (spec.get("components") or {}).get("schemas") or {}
