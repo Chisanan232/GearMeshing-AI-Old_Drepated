@@ -29,7 +29,6 @@ from ..schemas.core import (
     ToolsPage,
     TransportType,
 )
-
 from .base import StrategyCommonMixin, SyncStrategy
 from .models.dto import (
     ToolInvokePayloadDTO,

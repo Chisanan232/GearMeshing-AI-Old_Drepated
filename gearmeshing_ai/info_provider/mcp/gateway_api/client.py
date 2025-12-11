@@ -12,6 +12,7 @@ from typing import List, Optional
 
 import httpx
 
+from .errors import GatewayApiError, GatewayServerNotFoundError
 from .models import (
     GatewayServer,
     GatewayServerCreate,
@@ -19,8 +20,6 @@ from .models import (
     ServerReadDTO,
     ServersListPayloadDTO,
 )
-
-from .errors import GatewayApiError, GatewayServerNotFoundError
 
 
 class GatewayApiClient:

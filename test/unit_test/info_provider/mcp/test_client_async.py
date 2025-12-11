@@ -7,7 +7,10 @@ import pytest
 
 from gearmeshing_ai.info_provider.mcp.client_async import AsyncMcpClient
 from gearmeshing_ai.info_provider.mcp.policy import ToolPolicy
-from gearmeshing_ai.info_provider.mcp.schemas.config import GatewayConfig, McpClientConfig
+from gearmeshing_ai.info_provider.mcp.schemas.config import (
+    GatewayConfig,
+    McpClientConfig,
+)
 
 
 def _mock_transport(state: dict) -> httpx.MockTransport:

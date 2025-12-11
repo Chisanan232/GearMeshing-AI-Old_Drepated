@@ -190,7 +190,9 @@ class AsyncMcpClient(ClientCommonMixin, AsyncMCPInfoProvider):
         return servers
 
     # Back-compat alias used by existing callers/tests; delegates to get_endpoints.
-    async def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # pragma: no cover - thin wrapper
+    async def list_servers(
+        self, *, agent_id: str | None = None
+    ) -> List[McpServerRef]:  # pragma: no cover - thin wrapper
         return await self.get_endpoints(agent_id=agent_id)
 
     async def list_tools_page(

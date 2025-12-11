@@ -17,7 +17,6 @@ from typing import Any, Dict, List, Optional
 from pydantic import AnyHttpUrl, Field, model_validator
 
 from ...schemas.base import BaseSchema
-
 from .domain import GatewayServer, GatewayTransport
 
 

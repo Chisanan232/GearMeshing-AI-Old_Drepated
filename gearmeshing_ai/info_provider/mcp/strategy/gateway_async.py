@@ -28,7 +28,6 @@ from ..schemas.core import (
     ToolCallResult,
     ToolsPage,
 )
-
 from .base import AsyncStrategy, StrategyCommonMixin
 from .models.dto import (
     ToolInvokePayloadDTO,

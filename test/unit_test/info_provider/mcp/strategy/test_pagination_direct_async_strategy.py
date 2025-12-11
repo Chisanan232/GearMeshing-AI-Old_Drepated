@@ -6,7 +6,9 @@ import httpx
 import pytest
 
 from gearmeshing_ai.info_provider.mcp.schemas.config import ServerConfig
-from gearmeshing_ai.info_provider.mcp.strategy.direct_async import AsyncDirectMcpStrategy
+from gearmeshing_ai.info_provider.mcp.strategy.direct_async import (
+    AsyncDirectMcpStrategy,
+)
 
 
 def _mock_transport(state: dict) -> httpx.MockTransport:

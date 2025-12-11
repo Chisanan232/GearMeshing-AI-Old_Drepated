@@ -11,8 +11,6 @@ Usage:
 from __future__ import annotations
 
 from typing import (
-    Any,
-    AsyncIterator,
     Dict,
     List,
     Optional,
@@ -28,7 +26,6 @@ from .schemas.config import McpClientConfig
 from .schemas.core import (
     McpServerRef,
     McpTool,
-    ToolCallResult,
     ToolsPage,
 )
 from .strategy.base import is_mutating_tool_name
