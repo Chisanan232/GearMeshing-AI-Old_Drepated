@@ -22,6 +22,7 @@ from gearmeshing_ai.mcp_client.schemas.core import (
 
 class GatewayTransport(str, Enum):
     """Transport types exposed by the Gateway for underlying server connectivity."""
+
     SSE = "SSE"
     STREAMABLE_HTTP = "STREAMABLEHTTP"
     STDIO = "STDIO"
@@ -29,6 +30,7 @@ class GatewayTransport(str, Enum):
 
 class GatewayServer(BaseSchema):
     """Domain model representing a server entry managed by the Gateway."""
+
     id: str = Field(
         ...,
         description=(

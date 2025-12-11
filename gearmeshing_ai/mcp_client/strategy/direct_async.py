@@ -21,7 +21,6 @@ Typical usage:
 """
 
 from __future__ import annotations
-from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
 import logging
 import time

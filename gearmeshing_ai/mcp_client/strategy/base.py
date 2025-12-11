@@ -57,6 +57,7 @@ class SyncStrategy(Protocol):
         >>> for s in strategy.list_servers():
         ...     print(s.id, s.label)
     """
+
     def list_servers(self) -> Iterable[McpServerRef]:
         """List all MCP servers accessible through this strategy.
 
@@ -140,6 +141,7 @@ class AsyncStrategy(Protocol):
         >>> tools = await strategy.list_tools("server-1")
         >>> res = await strategy.call_tool("server-1", "search", {"q": "bar"})
     """
+
     async def list_tools(self, server_id: str) -> List[McpTool]:
         """Asynchronously list tools for a specific server.
 

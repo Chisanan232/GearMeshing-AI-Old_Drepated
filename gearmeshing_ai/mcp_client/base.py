@@ -41,6 +41,7 @@ class SyncClientProtocol(Protocol):
     Concrete implementations should provide discovery, listing, pagination,
     and tool invocation through one or more underlying `SyncStrategy`s.
     """
+
     @classmethod
     def from_config(
         cls,
@@ -82,6 +83,7 @@ class AsyncClientProtocol(Protocol):
     Concrete implementations should provide async listing, pagination, tool
     invocation, and SSE streaming helpers.
     """
+
     @classmethod
     async def from_config(
         cls,
@@ -92,6 +94,8 @@ class AsyncClientProtocol(Protocol):
         gateway_http_client: Optional[httpx.AsyncClient] = None,
         gateway_sse_client: Optional[httpx.AsyncClient] = None,
     ) -> Self: ...
+
+    async def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]: ...
 
     async def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]: ...
 

@@ -58,6 +58,7 @@ class ToolDescriptorDTO(BaseSchema):
         - MCP Spec (tools): https://modelcontextprotocol.io/specification/latest/server/tools
         - Conversion: `ToolDescriptorDTO.to_mcp_tool()`
     """
+
     model_config = ConfigDict(extra="allow")
     name: str = Field(
         ..., description="Tool name as exposed by the MCP server (unique within a server).", examples=["get_issue"]
@@ -131,6 +132,7 @@ class ToolInvokeRequestDTO(BaseSchema):
         - Emitted by strategies during `call_tool(server_id, tool_name, args)`.
         - MCP Spec (tools): https://modelcontextprotocol.io/specification/latest/server/tools
     """
+
     parameters: Dict[str, JSONValue] = Field(
         default_factory=dict,
         description="Arguments to pass to the tool as per its inputSchema.",
@@ -152,6 +154,7 @@ class ToolsListQuery(BaseSchema):
         - Used by strategies to call list endpoints that support pagination.
         - MCP Spec (tools): https://modelcontextprotocol.io/specification/latest/server/tools
     """
+
     cursor: Optional[str] = Field(
         default=None,
         description="Opaque pagination cursor returned by a previous tools list response.",
@@ -206,6 +209,7 @@ class ToolsListPayloadDTO(BaseSchema):
         - Consumed by strategies implementing `list_tools` / `list_tools_page`.
         - MCP Spec (tools): https://modelcontextprotocol.io/specification/latest/server/tools
     """
+
     tools: List[ToolDescriptorDTO] = Field(
         ..., description="Normalized list of tools regardless of source response shape."
     )
@@ -256,6 +260,7 @@ class ToolInvokePayloadDTO(BaseSchema):
         - Conversion to domain: `ToolInvokePayloadDTO.to_tool_call_result()`.
         - MCP Spec (tools): https://modelcontextprotocol.io/specification/latest/server/tools
     """
+
     ok: Optional[bool] = Field(
         default=None,
         description="Optional success flag; if None, treated as success unless response indicates otherwise.",

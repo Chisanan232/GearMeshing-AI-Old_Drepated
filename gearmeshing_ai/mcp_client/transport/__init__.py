@@ -1,9 +1,9 @@
 """Transport interfaces for MCP client communication.
 
-  Defines lightweight Protocols used by strategies and clients to abstract
-  transport implementations (HTTP streaming, Server-Sent Events, stdio).
-  Concrete transports live alongside these interfaces (e.g., `sse.py`).
-  """
+Defines lightweight Protocols used by strategies and clients to abstract
+transport implementations (HTTP streaming, Server-Sent Events, stdio).
+Concrete transports live alongside these interfaces (e.g., `sse.py`).
+"""
 
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ class HttpStreamTransport(Protocol):
         Raises:
             Exception: Implementations may raise transport-specific errors
                 (e.g., network failures, timeouts).
-        
+
         Examples:
             >>> resp = transport.send_request({"jsonrpc": "2.0", "id": 7, "method": "status"})
             >>> print(resp.get("result"))
@@ -64,7 +64,7 @@ class SseTransport(Protocol):
 
         Raises:
             Exception: If the connection cannot be established.
-        
+
         Examples:
             >>> await transport.connect("/events")
         """
@@ -75,7 +75,7 @@ class SseTransport(Protocol):
 
         Raises:
             Exception: If an error occurs during teardown.
-        
+
         Examples:
             >>> await transport.close()
         """
@@ -96,7 +96,7 @@ class StdioTransport(Protocol):
 
         Raises:
             Exception: If the process cannot be started.
-        
+
         Examples:
             >>> transport.start()
         """
@@ -107,7 +107,7 @@ class StdioTransport(Protocol):
 
         Raises:
             Exception: If an error occurs while stopping.
-        
+
         Examples:
             >>> transport.stop()
         """
