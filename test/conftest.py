@@ -56,3 +56,4 @@ def _global_offline_http_guard(monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr(httpx._client.Client, "request", offline_sync, raising=True)
     monkeypatch.setattr(httpx._client.AsyncClient, "request", offline_async, raising=True)
+
