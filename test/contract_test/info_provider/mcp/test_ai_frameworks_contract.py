@@ -524,11 +524,11 @@ def _google_adk_make_agent_with_tools(tools: Sequence[McpTool]) -> Any:
 
 
 class BaseAsyncSuite:
-    async def _make_client_async(self):  # returns (client, closers)
+    async def _make_provider_async(self):  # returns (client, closers)
         raise NotImplementedError
 
     async def _get_client_and_tools(self):  # returns (client, tools, closers)
-        client, closers = await self._make_client_async()
+        client, closers = await self._make_provider_async()
         tools = await client.list_tools("s1")
         return client, tools, closers
 
@@ -743,7 +743,7 @@ class BaseAsyncSuite:
 
 
 class TestAsyncWithDirect(BaseAsyncSuite):
-    async def _make_client_async(self):
+    async def _make_provider_async(self):
         from gearmeshing_ai.info_provider.mcp.strategy.direct_async import (
             AsyncDirectMcpStrategy,
         )
@@ -756,7 +756,7 @@ class TestAsyncWithDirect(BaseAsyncSuite):
 
 
 class TestAsyncWithGateway(BaseAsyncSuite):
-    async def _make_client_async(self):
+    async def _make_provider_async(self):
         atransport = _mock_transport_gateway()
         mgmt_client = httpx.Client(transport=atransport, base_url="http://mock")
         http_client = httpx.AsyncClient(transport=atransport, base_url="http://mock")
@@ -777,11 +777,11 @@ class TestAsyncWithGateway(BaseAsyncSuite):
 
 
 class BaseSyncSuite:
-    def _make_client(self) -> MCPInfoProvider:  # pragma: no cover - must be implemented in subclasses
+    def _make_provider(self) -> MCPInfoProvider:  # pragma: no cover - must be implemented in subclasses
         raise NotImplementedError
 
     def _get_client_and_tools(self):
-        client = self._make_client()
+        client = self._make_provider()
         tools = client.list_tools("s1")
         return client, tools
 
@@ -914,7 +914,7 @@ class BaseSyncSuite:
 
 
 class TestSyncWithGateway(BaseSyncSuite):
-    def _make_client(self) -> MCPInfoProvider:
+    def _make_provider(self) -> MCPInfoProvider:
         transport = _mock_transport_gateway()
         mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
         http_client = httpx.Client(transport=transport, base_url="http://mock")
@@ -932,7 +932,7 @@ class TestSyncWithGateway(BaseSyncSuite):
 
 
 class TestSyncWithDirect(BaseSyncSuite):
-    def _make_client(self) -> MCPInfoProvider:
+    def _make_provider(self) -> MCPInfoProvider:
         transport = _mock_transport_direct()
         http_client = httpx.Client(transport=transport, base_url="http://mock")
         cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])

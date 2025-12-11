@@ -4,11 +4,11 @@ from gearmeshing_ai.info_provider.mcp.base import BaseAsyncMCPInfoProvider, Base
 from gearmeshing_ai.info_provider.mcp.provider import AsyncMCPInfoProvider, MCPInfoProvider
 
 
-def test_sync_client_conforms_runtime_protocol() -> None:
+def test_sync_provider_conforms_runtime_protocol() -> None:
     c = MCPInfoProvider(strategies=[])
     assert isinstance(c, BaseMCPInfoProvider)
 
 
-def test_async_client_conforms_runtime_protocol() -> None:
+def test_async_provider_conforms_runtime_protocol() -> None:
     c = AsyncMCPInfoProvider(strategies=[])
     assert isinstance(c, BaseAsyncMCPInfoProvider)

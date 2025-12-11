@@ -44,7 +44,7 @@ def _mock_transport(state: dict) -> httpx.MockTransport:
 
 
 @pytest.mark.asyncio
-async def test_async_client_list_and_call_with_policy() -> None:
+async def test_async_provider_list_and_call_with_policy() -> None:
     state = {"expected_auth": "Bearer aaa"}
     transport = _mock_transport(state)
 
@@ -69,7 +69,7 @@ async def test_async_client_list_and_call_with_policy() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_client_read_only_blocks_mutations() -> None:
+async def test_async_provider_read_only_blocks_mutations() -> None:
     state = {"expected_auth": "Bearer bbb"}
     transport = _mock_transport(state)
     http_client = httpx.AsyncClient(transport=transport, base_url="http://mock")

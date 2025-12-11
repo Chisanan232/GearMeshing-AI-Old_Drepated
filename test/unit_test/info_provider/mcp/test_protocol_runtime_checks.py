@@ -15,12 +15,12 @@ class BadAsyncStrategy:
     pass
 
 
-def test_sync_client_rejects_non_protocol_strategy() -> None:
+def test_sync_provider_rejects_non_protocol_strategy() -> None:
     with pytest.raises(TypeError):
         MCPInfoProvider(strategies=[BadSyncStrategy()])  # type: ignore[list-item]
 
 
 @pytest.mark.asyncio
-async def test_async_client_rejects_non_protocol_strategy() -> None:
+async def test_async_provider_rejects_non_protocol_strategy() -> None:
     with pytest.raises(TypeError):
         AsyncMCPInfoProvider(strategies=[BadAsyncStrategy()])  # type: ignore[list-item]
