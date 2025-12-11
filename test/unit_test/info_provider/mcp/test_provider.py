@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 from gearmeshing_ai.info_provider.mcp.policy import ToolPolicy
-from gearmeshing_ai.info_provider.mcp.provider import AsyncMCPInfoProvider
+from gearmeshing_ai.info_provider.mcp.provider import AsyncMCPInfoProvider, MCPInfoProvider
 from gearmeshing_ai.info_provider.mcp.schemas.config import (
     GatewayConfig,
     McpClientConfig,
@@ -41,6 +41,64 @@ def _mock_transport(state: dict) -> httpx.MockTransport:
         return httpx.Response(404, json={"error": "not found"})
 
     return httpx.MockTransport(handler)
+
+
+def test_sync_provider_list_and_call_with_policy() -> None:
+    state = {"expected_auth": "Bearer aaa"}
+    transport = _mock_transport(state)
+
+    http_client = httpx.Client(transport=transport, base_url="http://mock")
+
+    cfg = McpClientConfig(
+        gateway=GatewayConfig(base_url="http://mock", auth_token=state["expected_auth"]),
+        tools_cache_ttl_seconds=60.0,
+    )
+    policies = {"agent": ToolPolicy(allowed_servers={"s1"}, read_only=False)}
+
+    client = MCPInfoProvider.from_config(
+        cfg,
+        agent_policies=policies,
+        gateway_http_client=http_client,
+        gateway_mgmt_client=http_client,
+    )
+
+    tools = client.list_tools("s1", agent_id="agent")
+    assert {t.name for t in tools} == {"create_issue", "get_issue"}
+
+    res = client.call_tool("s1", "get_issue", {}, agent_id="agent")
+    assert res.ok is True and res.data.get("issue", {}).get("id") == 1
+
+    http_client.close()
+
+
+def test_sync_provider_read_only_blocks_mutations() -> None:
+    state = {"expected_auth": "Bearer bbb"}
+    transport = _mock_transport(state)
+    http_client = httpx.Client(transport=transport, base_url="http://mock")
+
+    cfg = McpClientConfig(
+        gateway=GatewayConfig(base_url="http://mock", auth_token=state["expected_auth"]),
+        tools_cache_ttl_seconds=60.0,
+    )
+    policies = {"agent": ToolPolicy(allowed_servers={"s1"}, read_only=True)}
+
+    client = MCPInfoProvider.from_config(
+        cfg,
+        agent_policies=policies,
+        gateway_http_client=http_client,
+        gateway_mgmt_client=http_client,
+    )
+
+    tools = client.list_tools("s1", agent_id="agent")
+    # read_only should filter out mutating tools when listing
+    assert [t.name for t in tools] == ["get_issue"]
+
+    from gearmeshing_ai.info_provider.mcp.errors import ToolAccessDeniedError
+
+    with pytest.raises(ToolAccessDeniedError):
+        client.call_tool("s1", "create_issue", {}, agent_id="agent")
+
+    http_client.close()
 
 
 @pytest.mark.asyncio
