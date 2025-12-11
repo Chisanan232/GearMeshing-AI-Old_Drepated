@@ -75,9 +75,6 @@ def test_mcp_client_composed_strategies() -> None:
         gateway_http_client=http_client,
     )
 
-    servers = {s.id for s in client.list_servers()}
-    assert servers == {"direct1", "s1"}
-
     tools_direct = {t.name for t in client.list_tools("direct1")}
     tools_gateway = {t.name for t in client.list_tools("s1")}
     assert tools_direct == {"d_echo"}

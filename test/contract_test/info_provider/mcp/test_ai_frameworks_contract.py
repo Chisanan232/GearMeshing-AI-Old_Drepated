@@ -546,8 +546,6 @@ class BaseAsyncSuite:
     async def test_servers_and_tools(self) -> None:
         client, tools, closers = await self._get_client_and_tools()
         try:
-            servers = await client.list_servers()
-            assert [s.id for s in servers] == ["s1"]
             assert tools and tools[0].name == "echo"
 
             oa_tools = to_openai_function_tools(tools)
@@ -790,8 +788,6 @@ class BaseSyncSuite:
 
     def test_servers_and_tools(self) -> None:
         client, tools = self._get_client_and_tools()
-        servers = client.list_servers()
-        assert [s.id for s in servers] == ["s1"]
         assert tools and tools[0].name == "echo"
 
         oa_tools = to_openai_function_tools(tools)

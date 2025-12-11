@@ -70,14 +70,6 @@ class _DummySyncProvider(ClientCommonMixin):
     ) -> "_DummySyncProvider":
         return cls()
 
-    # API
-    def get_endpoints(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # noqa: ARG002
-        return list(self._servers)
-
-    # Back-compat name that matches earlier protocol; used elsewhere in tests.
-    def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # noqa: ARG002
-        return self.get_endpoints(agent_id=agent_id)
-
     def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]:  # noqa: ARG002
         return list(self._tools)
 
@@ -127,21 +119,6 @@ class _DummyAsyncProvider(ClientCommonMixin):
         gateway_sse_client=None,  # noqa: ARG002
     ) -> "_DummyAsyncProvider":
         return cls()
-
-    async def get_endpoints(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # noqa: ARG002
-        return [
-            McpServerRef(
-                id="s1",
-                display_name="Local",
-                kind=ServerKind.DIRECT,
-                transport=TransportType.STREAMABLE_HTTP,
-                endpoint_url="http://mock/mcp/",
-            )
-        ]
-
-    # Back-compat alias for older async protocol/tests
-    async def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # noqa: ARG002
-        return await self.get_endpoints(agent_id=agent_id)
 
     async def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]:  # noqa: ARG002
         return list(self._tools)
@@ -229,9 +206,6 @@ async def test_async_provider_runtime_protocol_conformance() -> None:
 
 def test_sync_provider_basic_contract() -> None:
     c = _DummySyncProvider()
-    servers = c.list_servers()
-    assert servers and servers[0].id == "s1"
-
     tools = c.list_tools("s1")
     assert tools and {t.name for t in tools} == {"get_issue", "create_issue"}
 

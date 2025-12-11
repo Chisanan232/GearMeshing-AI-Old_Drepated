@@ -58,9 +58,6 @@ def test_client_from_config_list_servers_and_tools_with_policy() -> None:
         direct_http_client=http_client,
     )
 
-    servers = client.list_servers(agent_id="agent")
-    assert [s.id for s in servers] == ["direct1"]
-
     tools = client.list_tools("direct1", agent_id="agent")
     assert [t.name for t in tools] == ["echo"]
 
