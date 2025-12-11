@@ -6,7 +6,10 @@ from typing import Any, Dict, List, Sequence
 import httpx
 import pytest
 
-from gearmeshing_ai.info_provider.mcp.provider import AsyncMCPInfoProvider, MCPInfoProvider
+from gearmeshing_ai.info_provider.mcp.provider import (
+    AsyncMCPInfoProvider,
+    MCPInfoProvider,
+)
 from gearmeshing_ai.info_provider.mcp.schemas.config import (
     GatewayConfig,
     McpClientConfig,

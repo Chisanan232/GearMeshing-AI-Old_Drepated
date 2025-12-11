@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import pytest
 
-from gearmeshing_ai.info_provider.mcp.provider import AsyncMCPInfoProvider, MCPInfoProvider
+from gearmeshing_ai.info_provider.mcp.provider import (
+    AsyncMCPInfoProvider,
+    MCPInfoProvider,
+)
 
 
 class BadSyncStrategy:

@@ -66,7 +66,7 @@ from typing import Any, AsyncIterator, Dict, Iterable, List, Optional
 
 import httpx
 
-from .base import BaseAsyncMCPInfoProvider, ClientCommonMixin, BaseMCPInfoProvider
+from .base import BaseAsyncMCPInfoProvider, BaseMCPInfoProvider, ClientCommonMixin
 from .errors import ServerNotFoundError, ToolAccessDeniedError
 from .gateway_api import GatewayApiClient
 from .gateway_api.client import GatewayApiClient
@@ -81,7 +81,7 @@ from .schemas.core import (
     TransportType,
 )
 from .strategy import DirectMcpStrategy, GatewayMcpStrategy
-from .strategy.base import AsyncStrategy, is_mutating_tool_name, SyncStrategy
+from .strategy.base import AsyncStrategy, SyncStrategy, is_mutating_tool_name
 from .strategy.direct_async import AsyncDirectMcpStrategy
 from .strategy.gateway_async import AsyncGatewayMcpStrategy
 

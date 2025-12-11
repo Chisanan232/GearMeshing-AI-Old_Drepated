@@ -7,8 +7,8 @@ import pytest
 
 from gearmeshing_ai.info_provider.mcp.base import (
     BaseAsyncMCPInfoProvider,
-    ClientCommonMixin,
     BaseMCPInfoProvider,
+    ClientCommonMixin,
 )
 from gearmeshing_ai.info_provider.mcp.policy import ToolPolicy
 from gearmeshing_ai.info_provider.mcp.schemas.config import McpClientConfig
