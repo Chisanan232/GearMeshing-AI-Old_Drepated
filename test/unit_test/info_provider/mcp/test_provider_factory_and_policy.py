@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 import httpx
 import pytest
 
-from gearmeshing_ai.info_provider.mcp.provider import McpClient
+from gearmeshing_ai.info_provider.mcp.provider import MCPInfoProvider
 from gearmeshing_ai.info_provider.mcp.errors import ToolAccessDeniedError
 from gearmeshing_ai.info_provider.mcp.policy import ToolPolicy
 from gearmeshing_ai.info_provider.mcp.schemas.config import (
@@ -52,7 +52,7 @@ def test_client_from_config_list_servers_and_tools_with_policy() -> None:
 
     policies = {"agent": ToolPolicy(allowed_servers={"direct1"}, allowed_tools={"echo"})}
 
-    client = McpClient.from_config(
+    client = MCPInfoProvider.from_config(
         cfg,
         agent_policies=policies,
         direct_http_client=http_client,
@@ -76,7 +76,7 @@ def test_client_policy_denies_server_and_tool() -> None:
 
     policies = {"agent": ToolPolicy(allowed_servers={"direct1"}, allowed_tools={"echo"})}
 
-    client = McpClient.from_config(
+    client = MCPInfoProvider.from_config(
         cfg,
         agent_policies=policies,
         direct_http_client=http_client,

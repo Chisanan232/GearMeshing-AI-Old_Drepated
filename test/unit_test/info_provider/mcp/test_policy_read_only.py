@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 import httpx
 import pytest
 
-from gearmeshing_ai.info_provider.mcp.provider import McpClient
+from gearmeshing_ai.info_provider.mcp.provider import MCPInfoProvider
 from gearmeshing_ai.info_provider.mcp.errors import ToolAccessDeniedError
 from gearmeshing_ai.info_provider.mcp.policy import ToolPolicy
 from gearmeshing_ai.info_provider.mcp.schemas.config import (
@@ -40,7 +40,7 @@ def test_read_only_policy_filters_and_blocks_mutations() -> None:
 
     policies = {"agent": ToolPolicy(allowed_servers={"direct1"}, read_only=True)}
 
-    client = McpClient.from_config(
+    client = MCPInfoProvider.from_config(
         cfg,
         agent_policies=policies,
         direct_http_client=http_client,

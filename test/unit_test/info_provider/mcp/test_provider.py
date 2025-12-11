@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 import httpx
 import pytest
 
-from gearmeshing_ai.info_provider.mcp.provider import (AsyncMcpClient)
+from gearmeshing_ai.info_provider.mcp.provider import (AsyncMCPInfoProvider)
 from gearmeshing_ai.info_provider.mcp.policy import ToolPolicy
 from gearmeshing_ai.info_provider.mcp.schemas.config import (
     GatewayConfig,
@@ -57,7 +57,7 @@ async def test_async_client_list_and_call_with_policy() -> None:
     )
     policies = {"agent": ToolPolicy(allowed_servers={"s1"}, read_only=False)}
 
-    client = await AsyncMcpClient.from_config(cfg, agent_policies=policies, gateway_http_client=http_client)
+    client = await AsyncMCPInfoProvider.from_config(cfg, agent_policies=policies, gateway_http_client=http_client)
 
     tools = await client.list_tools("s1", agent_id="agent")
     assert {t.name for t in tools} == {"create_issue", "get_issue"}
@@ -80,7 +80,7 @@ async def test_async_client_read_only_blocks_mutations() -> None:
     )
     policies = {"agent": ToolPolicy(allowed_servers={"s1"}, read_only=True)}
 
-    client = await AsyncMcpClient.from_config(cfg, agent_policies=policies, gateway_http_client=http_client)
+    client = await AsyncMCPInfoProvider.from_config(cfg, agent_policies=policies, gateway_http_client=http_client)
 
     tools = await client.list_tools("s1", agent_id="agent")
     assert [t.name for t in tools] == ["get_issue"]

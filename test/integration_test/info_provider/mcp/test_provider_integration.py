@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 
 import httpx
 
-from gearmeshing_ai.info_provider.mcp.provider import McpClient
+from gearmeshing_ai.info_provider.mcp.provider import MCPInfoProvider
 from gearmeshing_ai.info_provider.mcp.schemas.config import (
     GatewayConfig,
     McpClientConfig,
@@ -68,7 +68,7 @@ def test_mcp_client_composed_strategies() -> None:
         servers=[ServerConfig(name="direct1", endpoint_url="http://mock/mcp")],
     )
 
-    client = McpClient.from_config(
+    client = MCPInfoProvider.from_config(
         cfg,
         direct_http_client=http_client,
         gateway_mgmt_client=mgmt_client,

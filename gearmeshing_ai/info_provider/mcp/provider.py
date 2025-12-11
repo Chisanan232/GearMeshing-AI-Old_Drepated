@@ -88,7 +88,7 @@ from .strategy.gateway_async import AsyncGatewayMcpStrategy
 logger = logging.getLogger(__name__)
 
 
-class AsyncMcpClient(ClientCommonMixin, BaseAsyncMCPInfoProvider):
+class AsyncMCPInfoProvider(ClientCommonMixin, BaseAsyncMCPInfoProvider):
     """Async facade for MCP client operations.
 
     Delegates to one or more `AsyncStrategy` implementations (direct/gateway)
@@ -116,7 +116,7 @@ class AsyncMcpClient(ClientCommonMixin, BaseAsyncMCPInfoProvider):
         gateway_mgmt_client: Optional[httpx.Client] = None,
         gateway_http_client: Optional[httpx.AsyncClient] = None,
         gateway_sse_client: Optional[httpx.AsyncClient] = None,
-    ) -> "AsyncMcpClient":
+    ) -> "AsyncMCPInfoProvider":
         """Construct an async client from `McpClientConfig`.
 
         - Enables AsyncDirect strategy when `servers` are configured.
@@ -448,7 +448,7 @@ class AsyncMcpClient(ClientCommonMixin, BaseAsyncMCPInfoProvider):
         raise ServerNotFoundError(server_id)
 
 
-class McpClient(ClientCommonMixin, BaseMCPInfoProvider):
+class MCPInfoProvider(ClientCommonMixin, BaseMCPInfoProvider):
     """High-level MCP client facade.
 
     Delegates operations to one or more `SyncStrategy` implementations and
@@ -477,7 +477,7 @@ class McpClient(ClientCommonMixin, BaseMCPInfoProvider):
         direct_http_client: Optional[httpx.Client] = None,
         gateway_mgmt_client: Optional[httpx.Client] = None,
         gateway_http_client: Optional[httpx.Client] = None,
-    ) -> "McpClient":
+    ) -> "MCPInfoProvider":
         """Construct a client from `McpClientConfig`.
 
         - Enables Direct strategy when `servers` are configured.
