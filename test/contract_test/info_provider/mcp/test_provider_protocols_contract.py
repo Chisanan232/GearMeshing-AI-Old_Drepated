@@ -6,9 +6,9 @@ from typing import Any, AsyncIterator, Dict, List, Optional
 import pytest
 
 from gearmeshing_ai.info_provider.mcp.base import (
-    AsyncMCPInfoProvider,
+    BaseAsyncMCPInfoProvider,
+    BaseMCPInfoProvider,
     ClientCommonMixin,
-    MCPInfoProvider,
 )
 from gearmeshing_ai.info_provider.mcp.policy import ToolPolicy
 from gearmeshing_ai.info_provider.mcp.schemas.config import McpClientConfig
@@ -23,7 +23,7 @@ from gearmeshing_ai.info_provider.mcp.schemas.core import (
 )
 
 
-class _DummySyncClient(ClientCommonMixin):
+class _DummySyncProvider(ClientCommonMixin):
     """Minimal concrete impl satisfying MCPInfoProvider for contract testing."""
 
     def __init__(self) -> None:
@@ -67,7 +67,7 @@ class _DummySyncClient(ClientCommonMixin):
         direct_http_client=None,  # noqa: ARG002
         gateway_mgmt_client=None,  # noqa: ARG002
         gateway_http_client=None,  # noqa: ARG002
-    ) -> "_DummySyncClient":
+    ) -> "_DummySyncProvider":
         return cls()
 
     # API
@@ -102,7 +102,7 @@ class _DummySyncClient(ClientCommonMixin):
         return ToolCallResult(ok=True, data={"tool": tool_name, "parameters": dict(args)})
 
 
-class _DummyAsyncClient(ClientCommonMixin):
+class _DummyAsyncProvider(ClientCommonMixin):
     """Minimal concrete impl satisfying AsyncMCPInfoProvider for contract testing."""
 
     def __init__(self) -> None:
@@ -125,7 +125,7 @@ class _DummyAsyncClient(ClientCommonMixin):
         gateway_mgmt_client=None,  # noqa: ARG002
         gateway_http_client=None,  # noqa: ARG002
         gateway_sse_client=None,  # noqa: ARG002
-    ) -> "_DummyAsyncClient":
+    ) -> "_DummyAsyncProvider":
         return cls()
 
     async def get_endpoints(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # noqa: ARG002
@@ -211,15 +211,15 @@ class _DummyAsyncClient(ClientCommonMixin):
 # ------------------------------
 
 
-def test_sync_client_runtime_protocol_conformance() -> None:
-    c = _DummySyncClient()
-    assert isinstance(c, MCPInfoProvider)
+def test_sync_provider_runtime_protocol_conformance() -> None:
+    c = _DummySyncProvider()
+    assert isinstance(c, BaseMCPInfoProvider)
 
 
 @pytest.mark.asyncio
-async def test_async_client_runtime_protocol_conformance() -> None:
-    c = await _DummyAsyncClient.from_config(McpClientConfig())
-    assert isinstance(c, AsyncMCPInfoProvider)
+async def test_async_provider_runtime_protocol_conformance() -> None:
+    c = await _DummyAsyncProvider.from_config(McpClientConfig())
+    assert isinstance(c, BaseAsyncMCPInfoProvider)
 
 
 # ------------------------------
@@ -227,8 +227,8 @@ async def test_async_client_runtime_protocol_conformance() -> None:
 # ------------------------------
 
 
-def test_sync_client_basic_contract() -> None:
-    c = _DummySyncClient()
+def test_sync_provider_basic_contract() -> None:
+    c = _DummySyncProvider()
     servers = c.list_servers()
     assert servers and servers[0].id == "s1"
 
@@ -243,8 +243,8 @@ def test_sync_client_basic_contract() -> None:
 
 
 @pytest.mark.asyncio
-async def test_async_client_basic_contract() -> None:
-    c = await _DummyAsyncClient.from_config(McpClientConfig())
+async def test_async_provider_basic_contract() -> None:
+    c = await _DummyAsyncProvider.from_config(McpClientConfig())
     tools = await c.list_tools("s1")
     assert tools and tools[0].name == "get_issue"
 
@@ -275,7 +275,7 @@ async def test_async_client_basic_contract() -> None:
 # ------------------------------
 
 
-def test_client_common_mixin_filters_and_blocking_contract() -> None:
+def test_provider_common_mixin_filters_and_blocking_contract() -> None:
     mixin = ClientCommonMixin()
 
     servers = [

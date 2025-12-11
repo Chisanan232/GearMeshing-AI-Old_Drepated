@@ -32,7 +32,7 @@ from .strategy.base import is_mutating_tool_name
 
 
 @runtime_checkable
-class MCPInfoProvider(Protocol):
+class BaseMCPInfoProvider(Protocol):
     """Protocol for synchronous MCP info providers.
 
     Exposes only read-only MCP metadata needed by AI agents and other
@@ -72,7 +72,7 @@ class MCPInfoProvider(Protocol):
 
 
 @runtime_checkable
-class AsyncMCPInfoProvider(Protocol):
+class BaseAsyncMCPInfoProvider(Protocol):
     """Protocol for asynchronous MCP info providers.
 
     Async counterpart to `MCPInfoProvider`, exposing endpoint and tool

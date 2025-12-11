@@ -6,8 +6,10 @@ from typing import Any, Dict, List, Sequence
 import httpx
 import pytest
 
-from gearmeshing_ai.info_provider.mcp.client_async import AsyncMcpClient
-from gearmeshing_ai.info_provider.mcp.client_sync import McpClient
+from gearmeshing_ai.info_provider.mcp.provider import (
+    AsyncMCPInfoProvider,
+    MCPInfoProvider,
+)
 from gearmeshing_ai.info_provider.mcp.schemas.config import (
     GatewayConfig,
     McpClientConfig,
@@ -525,11 +527,11 @@ def _google_adk_make_agent_with_tools(tools: Sequence[McpTool]) -> Any:
 
 
 class BaseAsyncSuite:
-    async def _make_client_async(self):  # returns (client, closers)
+    async def _make_provider_async(self):  # returns (client, closers)
         raise NotImplementedError
 
     async def _get_client_and_tools(self):  # returns (client, tools, closers)
-        client, closers = await self._make_client_async()
+        client, closers = await self._make_provider_async()
         tools = await client.list_tools("s1")
         return client, tools, closers
 
@@ -744,7 +746,7 @@ class BaseAsyncSuite:
 
 
 class TestAsyncWithDirect(BaseAsyncSuite):
-    async def _make_client_async(self):
+    async def _make_provider_async(self):
         from gearmeshing_ai.info_provider.mcp.strategy.direct_async import (
             AsyncDirectMcpStrategy,
         )
@@ -752,18 +754,18 @@ class TestAsyncWithDirect(BaseAsyncSuite):
         atransport = _mock_transport_direct()
         async_client = httpx.AsyncClient(transport=atransport, base_url="http://mock")
         strat = AsyncDirectMcpStrategy([ServerConfig(name="s1", endpoint_url="http://mock/mcp")], client=async_client)
-        client = AsyncMcpClient(strategies=[strat])
+        client = AsyncMCPInfoProvider(strategies=[strat])
         return client, [async_client]
 
 
 class TestAsyncWithGateway(BaseAsyncSuite):
-    async def _make_client_async(self):
+    async def _make_provider_async(self):
         atransport = _mock_transport_gateway()
         mgmt_client = httpx.Client(transport=atransport, base_url="http://mock")
         http_client = httpx.AsyncClient(transport=atransport, base_url="http://mock")
         sse_client = httpx.AsyncClient(transport=atransport, base_url="http://mock")
         cfg = McpClientConfig(gateway=GatewayConfig(base_url="http://mock"))
-        client = await AsyncMcpClient.from_config(
+        client = await AsyncMCPInfoProvider.from_config(
             cfg,
             gateway_mgmt_client=mgmt_client,
             gateway_http_client=http_client,
@@ -778,11 +780,11 @@ class TestAsyncWithGateway(BaseAsyncSuite):
 
 
 class BaseSyncSuite:
-    def _make_client(self) -> McpClient:  # pragma: no cover - must be implemented in subclasses
+    def _make_provider(self) -> MCPInfoProvider:  # pragma: no cover - must be implemented in subclasses
         raise NotImplementedError
 
     def _get_client_and_tools(self):
-        client = self._make_client()
+        client = self._make_provider()
         tools = client.list_tools("s1")
         return client, tools
 
@@ -915,12 +917,12 @@ class BaseSyncSuite:
 
 
 class TestSyncWithGateway(BaseSyncSuite):
-    def _make_client(self) -> McpClient:
+    def _make_provider(self) -> MCPInfoProvider:
         transport = _mock_transport_gateway()
         mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
         http_client = httpx.Client(transport=transport, base_url="http://mock")
         cfg = McpClientConfig(gateway=GatewayConfig(base_url="http://mock"))
-        return McpClient.from_config(
+        return MCPInfoProvider.from_config(
             cfg,
             gateway_mgmt_client=mgmt_client,
             gateway_http_client=http_client,
@@ -933,8 +935,8 @@ class TestSyncWithGateway(BaseSyncSuite):
 
 
 class TestSyncWithDirect(BaseSyncSuite):
-    def _make_client(self) -> McpClient:
+    def _make_provider(self) -> MCPInfoProvider:
         transport = _mock_transport_direct()
         http_client = httpx.Client(transport=transport, base_url="http://mock")
         cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
-        return McpClient.from_config(cfg, direct_http_client=http_client)
+        return MCPInfoProvider.from_config(cfg, direct_http_client=http_client)
