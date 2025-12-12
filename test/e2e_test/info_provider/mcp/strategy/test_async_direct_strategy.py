@@ -9,7 +9,7 @@ from gearmeshing_ai.info_provider.mcp.transport.mcp import SseMCPTransport
 
 @pytest.mark.e2e
 @pytest.mark.asyncio
-async def test_clickup_async_direct_strategy_lists_tools(clickup_base_url: str) -> None:
+async def test_async_direct_strategy_lists_tools(clickup_base_url: str) -> None:
     strat = AsyncDirectMcpStrategy(
         servers=[ServerConfig(name="clickup", endpoint_url=clickup_base_url)],
         ttl_seconds=1.0,

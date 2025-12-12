@@ -8,7 +8,7 @@ from gearmeshing_ai.info_provider.mcp.transport.mcp import SseMCPTransport
 
 
 @pytest.mark.e2e
-def test_clickup_direct_strategy_lists_tools(clickup_base_url: str) -> None:
+def test_direct_strategy_lists_tools(clickup_base_url: str) -> None:
     strat = DirectMcpStrategy(
         servers=[ServerConfig(name="clickup", endpoint_url=clickup_base_url)],
         ttl_seconds=1.0,
