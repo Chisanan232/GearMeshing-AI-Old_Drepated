@@ -29,7 +29,7 @@ from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
 import httpx
 from mcp import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
+from ..transport.mcp import AsyncMCPTransport, StreamableHttpMCPTransport
 
 from ..schemas.config import ServerConfig
 from ..schemas.core import McpTool, ToolCallResult, ToolsPage
@@ -60,6 +60,7 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         client: Optional[httpx.AsyncClient] = None,
         ttl_seconds: float = 10.0,
         sse_client: Optional[httpx.AsyncClient] = None,
+        mcp_transport: Optional[AsyncMCPTransport] = None,
     ) -> None:
         self._servers: List[ServerConfig] = list(servers)
         self._http = client or httpx.AsyncClient(timeout=10.0, follow_redirects=True)
@@ -67,6 +68,7 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         self._ttl = ttl_seconds
         self._tools_cache: Dict[str, Tuple[List[McpTool], float]] = {}
         self._sse_client = sse_client
+        self._mcp_transport: AsyncMCPTransport = mcp_transport or StreamableHttpMCPTransport()
 
     @asynccontextmanager
     async def _open_session(self, server_id: str) -> AsyncIterator[ClientSession]:
@@ -79,10 +81,8 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         """
         cfg = self._get_server(server_id)
         base = cfg.endpoint_url.rstrip("/")
-        async with streamablehttp_client(base) as (read_stream, write_stream, _close_fn):
-            async with ClientSession(read_stream, write_stream) as session:
-                await session.initialize()
-                yield session
+        async with self._mcp_transport.session(base) as session:
+            yield session
 
     def _get_server(self, server_id: str) -> ServerConfig:
         """Lookup a configured server by name.
