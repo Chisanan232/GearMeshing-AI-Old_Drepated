@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from typing import AsyncIterator, Protocol
+from typing import AsyncContextManager, AsyncIterator, Protocol
 
 from mcp import ClientSession
 from mcp.client.sse import sse_client
@@ -15,14 +15,13 @@ class AsyncMCPTransport(Protocol):
     that yields an initialized ``ClientSession``.
     """
 
-    def session(self, endpoint_url: str):  # -> AsyncContextManager[ClientSession]
-        ...
+    def session(self, endpoint_url: str) -> AsyncContextManager[ClientSession]: ...
 
 
 class StreamableHttpMCPTransport(AsyncMCPTransport):
     """MCP transport using the streamable HTTP client."""
 
-    def session(self, endpoint_url: str):
+    def session(self, endpoint_url: str) -> AsyncContextManager[ClientSession]:
         @asynccontextmanager
         async def _cm() -> AsyncIterator[ClientSession]:
             async with streamablehttp_client(endpoint_url) as (read_stream, write_stream, _close_fn):
@@ -36,7 +35,7 @@ class StreamableHttpMCPTransport(AsyncMCPTransport):
 class SseMCPTransport(AsyncMCPTransport):
     """MCP transport using the SSE client (MCP over SSE)."""
 
-    def session(self, endpoint_url: str):
+    def session(self, endpoint_url: str) -> AsyncContextManager[ClientSession]:
         @asynccontextmanager
         async def _cm() -> AsyncIterator[ClientSession]:
             async with sse_client(endpoint_url) as (read_stream, write_stream):

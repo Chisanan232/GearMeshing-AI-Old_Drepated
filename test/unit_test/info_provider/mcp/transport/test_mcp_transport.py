@@ -30,18 +30,23 @@ class _FakeClientSession:
         self.initialized = True
 
 
-def _fake_streamablehttp_client_factory(state: dict) -> Callable[[str], AsyncIterator[Tuple[Any, Any, Callable[[], None]]]]:
+def _fake_streamablehttp_client_factory(
+    state: dict,
+) -> Callable[[str], AsyncIterator[Tuple[Any, Any, Callable[[], None]]]]:
     @asynccontextmanager
     async def _fake_ctx(endpoint_url: str):  # noqa: ARG001
         state["stream_entered"] = True
         read_stream = object()
         write_stream = object()
+
         def _close() -> None:
             state["close_called"] = True
+
         try:
             yield (read_stream, write_stream, _close)
         finally:
             state["stream_exited"] = True
+
     return _fake_ctx  # type: ignore[return-value]
 
 
@@ -55,6 +60,7 @@ def _fake_sse_client_factory(state: dict) -> Callable[[str], AsyncIterator[Tuple
             yield (read_stream, write_stream)
         finally:
             state["sse_exited"] = True
+
     return _fake_ctx  # type: ignore[return-value]
 
 
@@ -104,7 +110,7 @@ async def test_streamable_http_transport_propagates_initialize_exception(monkeyp
     state: dict = {}
 
     class _FailingClientSession(_FakeClientSession):
-        async def initialize(self) -> None:  # type: ignore[override]
+        async def initialize(self) -> None:
             raise RuntimeError("init-failed")
 
     monkeypatch.setattr(m_mod, "streamablehttp_client", _fake_streamablehttp_client_factory(state), raising=True)
@@ -126,7 +132,7 @@ async def test_sse_transport_propagates_aenter_exception(monkeypatch: pytest.Mon
     state: dict = {}
 
     class _EnterFailClientSession(_FakeClientSession):
-        async def __aenter__(self) -> "_FakeClientSession":  # type: ignore[override]
+        async def __aenter__(self) -> "_FakeClientSession":
             raise ValueError("enter-failed")
 
     monkeypatch.setattr(m_mod, "sse_client", _fake_sse_client_factory(state), raising=True)
