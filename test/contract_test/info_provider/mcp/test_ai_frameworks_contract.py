@@ -10,6 +10,7 @@ from gearmeshing_ai.info_provider.mcp.provider import (
     AsyncMCPInfoProvider,
     MCPInfoProvider,
 )
+from gearmeshing_ai.info_provider.mcp.transport.mcp import SseMCPTransport
 from gearmeshing_ai.info_provider.mcp.schemas.config import (
     GatewayConfig,
     McpClientConfig,
@@ -794,12 +795,11 @@ class TestAsyncWithGateway(BaseAsyncSuite):
         http_client = httpx.AsyncClient(transport=atransport, base_url="http://mock")
         sse_client = httpx.AsyncClient(transport=atransport, base_url="http://mock")
         cfg = McpClientConfig(gateway=GatewayConfig(base_url="http://mock"))
-        client = await AsyncMCPInfoProvider.from_config(
-            cfg,
-            gateway_mgmt_client=mgmt_client,
-            gateway_http_client=http_client,
-            gateway_sse_client=sse_client,
-        )
+        client = await AsyncMCPInfoProvider.from_config(cfg, mcp_transport=SseMCPTransport(),
+                                                        gateway_mgmt_client=mgmt_client,
+                                                        gateway_http_client=http_client,
+                                                        gateway_sse_client=sse_client,
+                                                        )
         return client, [http_client, sse_client]
 
 
@@ -949,11 +949,10 @@ class TestSyncWithGateway(BaseSyncSuite):
         mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
         http_client = httpx.Client(transport=transport, base_url="http://mock")
         cfg = McpClientConfig(gateway=GatewayConfig(base_url="http://mock"))
-        return MCPInfoProvider.from_config(
-            cfg,
-            gateway_mgmt_client=mgmt_client,
-            gateway_http_client=http_client,
-        )
+        return MCPInfoProvider.from_config(cfg, mcp_transport=SseMCPTransport(),
+                                           gateway_mgmt_client=mgmt_client,
+                                           gateway_http_client=http_client,
+                                           )
 
 
 # ------------------------------
