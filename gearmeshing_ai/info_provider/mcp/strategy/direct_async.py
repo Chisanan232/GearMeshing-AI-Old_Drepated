@@ -27,7 +27,6 @@ import time
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
-import httpx
 from mcp import ClientSession
 from ..transport.mcp import AsyncMCPTransport, StreamableHttpMCPTransport
 
@@ -57,17 +56,16 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         self,
         servers: List[ServerConfig],
         *,
-        client: Optional[httpx.AsyncClient] = None,
+        client: Optional[object] = None,
         ttl_seconds: float = 10.0,
-        sse_client: Optional[httpx.AsyncClient] = None,
+        sse_client: Optional[object] = None,
         mcp_transport: Optional[AsyncMCPTransport] = None,
     ) -> None:
         self._servers: List[ServerConfig] = list(servers)
-        self._http = client or httpx.AsyncClient(timeout=10.0, follow_redirects=True)
         self._logger = logging.getLogger(__name__)
         self._ttl = ttl_seconds
         self._tools_cache: Dict[str, Tuple[List[McpTool], float]] = {}
-        self._sse_client = sse_client
+        # Deprecated params `client` and `sse_client` are accepted for backward compatibility but unused.
         self._mcp_transport: AsyncMCPTransport = mcp_transport or StreamableHttpMCPTransport()
 
     @asynccontextmanager
@@ -101,20 +99,7 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
                 return s
         raise ValueError(f"Unknown server_id: {server_id}")
 
-    def _headers(self, cfg: ServerConfig) -> Dict[str, str]:
-        """Build HTTP headers for direct requests.
-
-        Args:
-            cfg: The server configuration providing optional `auth_token`.
-
-        Returns:
-            A dictionary of headers including `Content-Type: application/json` and
-            `Authorization` when an auth token is configured.
-        """
-        headers: Dict[str, str] = {"Content-Type": "application/json"}
-        if cfg.auth_token:
-            headers["Authorization"] = cfg.auth_token
-        return headers
+    # No HTTP headers builder needed; MCP transport handles wire details.
 
     async def list_tools(self, server_id: str) -> List[McpTool]:
         """Return the list of tools for a server.
@@ -311,7 +296,6 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         base = cfg.endpoint_url.rstrip("/")
         sse = BasicSseTransport(
             base,
-            client=self._sse_client,
             auth_token=cfg.auth_token,
             include_blank_lines=True,
             reconnect=reconnect,
