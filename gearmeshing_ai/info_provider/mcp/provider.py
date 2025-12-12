@@ -299,7 +299,6 @@ class MCPInfoProvider(ClientCommonMixin, BaseMCPInfoProvider):
             strategies.append(
                 DirectMcpStrategy(
                     config.servers,
-                    client=direct_http_client,
                     ttl_seconds=config.tools_cache_ttl_seconds,
                 )
             )
