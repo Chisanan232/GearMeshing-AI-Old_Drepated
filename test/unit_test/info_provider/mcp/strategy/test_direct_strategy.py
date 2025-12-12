@@ -2,52 +2,57 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-import httpx
+from contextlib import asynccontextmanager
 
 from gearmeshing_ai.info_provider.mcp.schemas.config import ServerConfig
 from gearmeshing_ai.info_provider.mcp.strategy.direct import DirectMcpStrategy
 
 
-def _mock_transport() -> httpx.MockTransport:
-    def handler(request: httpx.Request) -> httpx.Response:
-        # Expecting base_url http://mock and endpoint_url http://mock/mcp
-        # So tools path -> /mcp/tools
-        if request.method == "GET" and request.url.path == "/mcp/tools":
-            data: List[Dict[str, Any]] = [
-                {
-                    "name": "echo",
-                    "description": "Echo tool",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {"text": {"type": "string", "description": "Text to echo"}},
-                        "required": ["text"],
-                    },
-                }
-            ]
-            return httpx.Response(200, json=data)
-        if request.method == "POST" and request.url.path == "/mcp/a2a/echo/invoke":
-            body: Dict[str, Any] = {}
-            if request.content:
-                try:
-                    body = httpx.RequestContent.decode(request).json()
-                except Exception:
-                    try:
-                        body = httpx._models.jsonlib.loads(request.content.decode("utf-8"))
-                    except Exception:
-                        body = {}
-            params = (body or {}).get("parameters") or {}
-            return httpx.Response(200, json={"ok": True, "echo": params.get("text")})
-        return httpx.Response(404, json={"error": "not found"})
+class _FakeTool:
+    def __init__(self, name: str, description: str | None, input_schema: Dict[str, Any]) -> None:
+        self.name = name
+        self.description = description
+        self.input_schema = input_schema
 
-    return httpx.MockTransport(handler)
+
+class _FakeListToolsResp:
+    def __init__(self, tools: List[_FakeTool]) -> None:
+        self.tools = tools
+        self.next_cursor = None
+
+
+class _FakeSession:
+    async def list_tools(self, cursor: str | None = None, limit: int | None = None):  # noqa: ARG002
+        return _FakeListToolsResp([
+            _FakeTool(
+                "echo",
+                "Echo tool",
+                {
+                    "type": "object",
+                    "properties": {"text": {"type": "string", "description": "Text to echo"}},
+                    "required": ["text"],
+                },
+            )
+        ])
+
+    async def call_tool(self, name: str, arguments: Dict[str, Any] | None = None):  # noqa: ARG002
+        args = dict(arguments or {})
+        return {"ok": True, "echo": args.get("text")}
+
+
+class _FakeMCPTransport:
+    def session(self, endpoint_url: str):  # noqa: ARG002
+        @asynccontextmanager
+        async def _cm():
+            yield _FakeSession()
+
+        return _cm()
 
 
 def test_direct_strategy_list_and_call() -> None:
-    transport = _mock_transport()
-    client = httpx.Client(transport=transport, base_url="http://mock")
     servers = [ServerConfig(name="direct1", endpoint_url="http://mock/mcp")]
 
-    strategy = DirectMcpStrategy(servers, client=client)
+    strategy = DirectMcpStrategy(servers, mcp_transport=_FakeMCPTransport())
 
     servers_list = list(strategy.list_servers())
     assert len(servers_list) == 1

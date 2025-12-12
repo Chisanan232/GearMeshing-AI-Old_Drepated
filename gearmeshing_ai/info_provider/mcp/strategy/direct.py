@@ -37,8 +37,7 @@ from __future__ import annotations
 import logging
 import time
 from typing import Any, Dict, Iterable, List, Optional, Tuple
-
-import httpx
+import asyncio
 
 from gearmeshing_ai.info_provider.mcp.schemas.config import ServerConfig
 from gearmeshing_ai.info_provider.mcp.schemas.core import (
@@ -50,6 +49,7 @@ from gearmeshing_ai.info_provider.mcp.schemas.core import (
 )
 
 from .base import StrategyCommonMixin, SyncStrategy
+from ..transport.mcp import AsyncMCPTransport, StreamableHttpMCPTransport
 
 
 class DirectMcpStrategy(StrategyCommonMixin, SyncStrategy):
@@ -74,15 +74,15 @@ class DirectMcpStrategy(StrategyCommonMixin, SyncStrategy):
         self,
         servers: Iterable[ServerConfig],
         *,
-        client: Optional[httpx.Client] = None,
         ttl_seconds: float = 10.0,
+        mcp_transport: Optional[AsyncMCPTransport] = None,
     ) -> None:
         self._servers: List[ServerConfig] = list(servers)
-        self._http = client or httpx.Client(timeout=10.0, follow_redirects=True)
         self._logger = logging.getLogger(__name__)
         self._ttl = ttl_seconds
         # cache: server_id -> (tools, expires_at)
         self._tools_cache: Dict[str, Tuple[List[McpTool], float]] = {}
+        self._mcp_transport: AsyncMCPTransport = mcp_transport or StreamableHttpMCPTransport()
 
     def list_servers(self) -> Iterable[McpServerRef]:
         """Yield `McpServerRef` entries for each configured server.
@@ -125,34 +125,32 @@ class DirectMcpStrategy(StrategyCommonMixin, SyncStrategy):
             return list(cached[0])
 
         cfg = self._get_server(server_id)
-        endpoint = cfg.endpoint_url.rstrip("/")
-        headers = self._headers(cfg)
-        self._logger.debug("DirectMcpStrategy.list_tools: GET %s/tools", endpoint)
-        r = self._http.get(f"{endpoint}/tools", headers=headers)
-        r.raise_for_status()
-        data = r.json()
-        tools: List[McpTool] = []
-        if isinstance(data, list):
-            for item in data:
-                if not isinstance(item, dict):
-                    continue
-                name = item.get("name")
-                if not isinstance(name, str) or not name:
-                    continue
-                description = item.get("description") if isinstance(item.get("description"), str) else None
-                input_schema: Dict[str, Any] = (
-                    item.get("inputSchema") if isinstance(item.get("inputSchema"), dict) else {}
-                ) or {}
-                is_mut = self._is_mutating_tool_name(name)
-                tools.append(
-                    McpTool(
-                        name=name,
-                        description=description,
-                        mutating=is_mut,
-                        arguments=self._infer_arguments(input_schema),
-                        raw_parameters_schema=input_schema,
+        base = cfg.endpoint_url.rstrip("/")
+        self._logger.debug("DirectMcpStrategy.list_tools: MCP list_tools base=%s", base)
+        async def _work() -> List[McpTool]:
+            tools: List[McpTool] = []
+            async with self._mcp_transport.session(base) as session:
+                resp = await session.list_tools()
+                for tool in getattr(resp, "tools", []) or []:
+                    name = getattr(tool, "name", None)
+                    if not isinstance(name, str) or not name:
+                        continue
+                    desc_val = getattr(tool, "description", None)
+                    description = desc_val if isinstance(desc_val, str) else None
+                    input_schema = getattr(tool, "input_schema", {}) or {}
+                    if not isinstance(input_schema, dict):
+                        input_schema = {}
+                    tools.append(
+                        McpTool(
+                            name=name,
+                            description=description,
+                            mutating=self._is_mutating_tool_name(name),
+                            arguments=self._infer_arguments(input_schema),
+                            raw_parameters_schema=input_schema,
+                        )
                     )
-                )
+            return tools
+        tools = asyncio.run(_work())
         # update cache
         self._tools_cache[server_id] = (tools, now + self._ttl)
         return tools
@@ -186,20 +184,21 @@ class DirectMcpStrategy(StrategyCommonMixin, SyncStrategy):
             httpx.TransportError: For transport-level HTTP issues.
         """
         cfg = self._get_server(server_id)
-        endpoint = cfg.endpoint_url.rstrip("/")
-        headers = self._headers(cfg)
-        payload: Dict[str, Any] = {"parameters": args or {}}
+        base = cfg.endpoint_url.rstrip("/")
         self._logger.debug(
-            "DirectMcpStrategy.call_tool: POST %s/a2a/%s/invoke args_keys=%s",
-            endpoint,
+            "DirectMcpStrategy.call_tool: MCP call_tool base=%s tool=%s args_keys=%s",
+            base,
             tool_name,
             list((args or {}).keys()),
         )
-        r = self._http.post(f"{endpoint}/a2a/{tool_name}/invoke", headers=headers, json=payload)
-        r.raise_for_status()
-        body = r.json()
-        ok = bool(body.get("ok", True)) if isinstance(body, dict) else True
-        data: Dict[str, Any] = body if isinstance(body, dict) else {"result": body}
+        async def _work() -> Tuple[bool, Dict[str, Any]]:
+            async with self._mcp_transport.session(base) as session:
+                res = await session.call_tool(name=tool_name, arguments=args or {})
+                payload = res.model_dump() if hasattr(res, "model_dump") else res
+                if isinstance(payload, dict):
+                    return True, payload
+                return True, {"result": payload}
+        ok, data = asyncio.run(_work())
         # Invalidate cache if mutating tool and call succeeded
         if self._is_mutating_tool_name(tool_name) and ok:
             self._tools_cache.pop(server_id, None)
@@ -221,23 +220,5 @@ class DirectMcpStrategy(StrategyCommonMixin, SyncStrategy):
             if s.name == server_id:
                 return s
         raise ValueError(f"Unknown server_id: {server_id}")
-
-    def _headers(self, cfg: ServerConfig) -> Dict[str, str]:
-        """Build HTTP headers for direct calls.
-
-        - Always sets `Content-Type: application/json`.
-        - Adds `Authorization` if `auth_token` is configured on the server.
-
-        Args:
-            cfg: The server configuration providing optional `auth_token`.
-
-        Returns:
-            A dictionary of headers including `Content-Type: application/json` and
-            optional `Authorization` when an auth token is configured.
-        """
-        headers: Dict[str, str] = {"Content-Type": "application/json"}
-        if cfg.auth_token:
-            headers["Authorization"] = cfg.auth_token
-        return headers
 
     # _infer_arguments and _is_mutating_tool_name inherited from StrategyCommonMixin
