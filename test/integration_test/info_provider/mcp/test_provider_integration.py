@@ -79,4 +79,3 @@ def test_mcp_client_composed_strategies() -> None:
     tools_gateway = {t.name for t in client.list_tools("s1")}
     assert tools_direct == {"d_echo"}
     assert tools_gateway == {"g_echo"}
-

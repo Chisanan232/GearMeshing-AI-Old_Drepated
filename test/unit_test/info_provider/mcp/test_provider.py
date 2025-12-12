@@ -21,8 +21,8 @@ from gearmeshing_ai.info_provider.mcp.schemas.config import (
 )
 from gearmeshing_ai.info_provider.mcp.schemas.core import (
     McpTool,
-    ToolsPage,
     ToolCallResult,
+    ToolsPage,
 )
 from gearmeshing_ai.info_provider.mcp.strategy import (
     DirectMcpStrategy,
@@ -302,7 +302,9 @@ class TestAsyncMCPInfoProvider:
             async def list_tools(self, server_id: str) -> List[McpTool]:  # noqa: ARG002
                 return []
 
-            async def list_tools_page(self, server_id: str, *, cursor: str | None = None, limit: int | None = None) -> ToolsPage:
+            async def list_tools_page(
+                self, server_id: str, *, cursor: str | None = None, limit: int | None = None
+            ) -> ToolsPage:
                 items = [
                     McpTool(
                         name="t2",
@@ -587,7 +589,9 @@ class TestSyncMCPInfoProvider:
             def list_tools(self, server_id: str) -> Iterable[McpTool]:  # noqa: ARG002
                 return []
 
-            def list_tools_page(self, server_id: str, *, cursor: str | None = None, limit: int | None = None) -> ToolsPage:
+            def list_tools_page(
+                self, server_id: str, *, cursor: str | None = None, limit: int | None = None
+            ) -> ToolsPage:
                 items = [
                     McpTool(
                         name="t2",
