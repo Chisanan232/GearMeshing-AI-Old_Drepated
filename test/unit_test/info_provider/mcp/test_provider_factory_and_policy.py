@@ -61,9 +61,6 @@ def test_client_from_config_list_servers_and_tools_with_policy() -> None:
     tools = client.list_tools("direct1", agent_id="agent")
     assert [t.name for t in tools] == ["echo"]
 
-    res = client.call_tool("direct1", "echo", {"text": "hi"}, agent_id="agent")
-    assert res.ok is True
-
 
 def test_client_policy_denies_server_and_tool() -> None:
     transport = _mock_direct_transport()
@@ -82,5 +79,5 @@ def test_client_policy_denies_server_and_tool() -> None:
     with pytest.raises(ToolAccessDeniedError):
         client.list_tools("forbidden", agent_id="agent")
 
-    with pytest.raises(ToolAccessDeniedError):
-        client.call_tool("direct1", "other", {}, agent_id="agent")
+    # Tool-level denial is enforced when listing; invocation helpers are not
+    # exposed on the info provider itself.

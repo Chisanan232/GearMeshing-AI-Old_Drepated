@@ -127,7 +127,7 @@ class TestAsyncMCPInfoProvider:
         assert getattr(client, "_strategies") == []
 
     @pytest.mark.asyncio
-    async def test_provider_list_and_call_with_policy(self) -> None:
+    async def test_provider_list_with_policy(self) -> None:
         state = {"expected_auth": "Bearer aaa"}
         transport = _mock_transport(state)
 
@@ -149,13 +149,10 @@ class TestAsyncMCPInfoProvider:
         tools = await client.list_tools("s1", agent_id="agent")
         assert {t.name for t in tools} == {"create_issue", "get_issue"}
 
-        res = await client.call_tool("s1", "get_issue", {}, agent_id="agent")
-        assert res.ok is True and res.data.get("issue", {}).get("id") == 1
-
         await http_client.aclose()
 
     @pytest.mark.asyncio
-    async def test_provider_read_only_blocks_mutations(self) -> None:
+    async def test_provider_read_only_filters_mutations_on_list(self) -> None:
         state = {"expected_auth": "Bearer bbb"}
         transport = _mock_transport(state)
         http_client = httpx.AsyncClient(transport=transport, base_url="http://mock")
@@ -175,11 +172,6 @@ class TestAsyncMCPInfoProvider:
         tools = await client.list_tools("s1", agent_id="agent")
         assert [t.name for t in tools] == ["get_issue"]
 
-        from gearmeshing_ai.info_provider.mcp.errors import ToolAccessDeniedError
-
-        with pytest.raises(ToolAccessDeniedError):
-            await client.call_tool("s1", "create_issue", {}, agent_id="agent")
-
         await http_client.aclose()
 
     @pytest.mark.asyncio
@@ -195,9 +187,6 @@ class TestAsyncMCPInfoProvider:
                         raw_parameters_schema={},
                     )
                 ]
-
-            async def call_tool(self, server_id: str, tool_name: str, args: dict[str, Any]) -> ToolCallResult:  # noqa: ARG002
-                return ToolCallResult(ok=True, data={"called": tool_name, "args": args})
 
             def stream_events(self, server_id: str, path: str = "/sse", **_: Any) -> AsyncIterator[str]:  # noqa: ARG002
                 async def _gen() -> AsyncIterator[str]:
@@ -223,9 +212,6 @@ class TestAsyncMCPInfoProvider:
         class DummyAsyncWithPagination(AsyncStrategy):
             async def list_tools(self, server_id: str) -> List[McpTool]:  # noqa: ARG002
                 return []
-
-            async def call_tool(self, server_id: str, tool_name: str, args: dict[str, Any]) -> ToolCallResult:  # noqa: ARG002
-                return ToolCallResult(ok=True, data={"called": tool_name})
 
             async def list_tools_page(self, server_id: str, *, cursor: str | None = None, limit: int | None = None) -> ToolsPage:  # type: ignore[override]
                 items = [
@@ -264,51 +250,8 @@ class TestAsyncMCPInfoProvider:
         with pytest.raises(ServerNotFoundError):
             await client.list_tools("unknown")
 
-    @pytest.mark.asyncio
-    async def test_call_tool_raises_server_not_found_when_no_strategy(self) -> None:
-        client = AsyncMCPInfoProvider(strategies=[])
-
-        with pytest.raises(ServerNotFoundError):
-            await client.call_tool("s1", "t", {})
-
-    @pytest.mark.asyncio
-    async def test_stream_events_and_parsed_delegate_to_strategy(self) -> None:
-        class DummyAsyncStream(AsyncStrategy):
-            async def list_tools(self, server_id: str) -> List[McpTool]:  # noqa: ARG002
-                return []
-
-            async def call_tool(self, server_id: str, tool_name: str, args: dict[str, Any]) -> ToolCallResult:  # noqa: ARG002
-                return ToolCallResult(ok=True, data={})
-
-            def stream_events(self, server_id: str, path: str = "/sse", **_: Any) -> AsyncIterator[str]:  # noqa: ARG002
-                async def _gen() -> AsyncIterator[str]:
-                    yield "data: line"
-
-                return _gen()
-
-            def stream_events_parsed(self, server_id: str, path: str = "/sse", **_: Any) -> AsyncIterator[Dict[str, Any]]:  # noqa: ARG002
-                async def _gen() -> AsyncIterator[Dict[str, Any]]:
-                    yield {"event": "msg", "data": "ok"}
-
-                return _gen()
-
-        client = AsyncMCPInfoProvider(strategies=[DummyAsyncStream()])
-
-        # raw stream
-        raw: List[str] = []
-        raw_stream = await client.stream_events("s1")
-        async for ln in raw_stream:
-            raw.append(ln)
-            break
-        assert raw == ["data: line"]
-
-        # parsed stream
-        parsed: List[Dict[str, Any]] = []
-        parsed_stream = await client.stream_events_parsed("s1")
-        async for evt in parsed_stream:
-            parsed.append(evt)
-            break
-        assert parsed and parsed[0]["event"] == "msg"
+    # No call_tool/streaming helpers are exposed on AsyncMCPInfoProvider; those
+    # remain responsibilities of underlying strategies.
 
 
 class TestSyncMCPInfoProvider:
@@ -372,7 +315,7 @@ class TestSyncMCPInfoProvider:
 
         assert getattr(client, "_strategies") == []
 
-    def test_provider_list_and_call_with_policy(self) -> None:
+    def test_provider_list_with_policy(self) -> None:
         state = {"expected_auth": "Bearer aaa"}
         transport = _mock_transport(state)
 
@@ -394,12 +337,9 @@ class TestSyncMCPInfoProvider:
         tools = client.list_tools("s1", agent_id="agent")
         assert {t.name for t in tools} == {"create_issue", "get_issue"}
 
-        res = client.call_tool("s1", "get_issue", {}, agent_id="agent")
-        assert res.ok is True and res.data.get("issue", {}).get("id") == 1
-
         http_client.close()
 
-    def test_provider_read_only_blocks_mutations(self) -> None:
+    def test_provider_read_only_filters_mutations_on_list(self) -> None:
         state = {"expected_auth": "Bearer bbb"}
         transport = _mock_transport(state)
         http_client = httpx.Client(transport=transport, base_url="http://mock")
@@ -421,11 +361,6 @@ class TestSyncMCPInfoProvider:
         # read_only should filter out mutating tools when listing
         assert [t.name for t in tools] == ["get_issue"]
 
-        from gearmeshing_ai.info_provider.mcp.errors import ToolAccessDeniedError
-
-        with pytest.raises(ToolAccessDeniedError):
-            client.call_tool("s1", "create_issue", {}, agent_id="agent")
-
         http_client.close()
 
     def test_list_tools_page_falls_back_when_strategy_has_no_pagination(self) -> None:
@@ -444,9 +379,6 @@ class TestSyncMCPInfoProvider:
                     )
                 ]
 
-            def call_tool(self, server_id: str, tool_name: str, args: dict[str, Any], *, agent_id: str | None = None) -> ToolCallResult:  # noqa: ARG002
-                return ToolCallResult(ok=True, data={"called": tool_name, "args": args})
-
         client = MCPInfoProvider(strategies=[DummySyncNoPagination()])
 
         page = client.list_tools_page("s1")
@@ -461,9 +393,6 @@ class TestSyncMCPInfoProvider:
 
             def list_tools(self, server_id: str) -> Iterable[McpTool]:  # noqa: ARG002
                 return []
-
-            def call_tool(self, server_id: str, tool_name: str, args: dict[str, Any], *, agent_id: str | None = None) -> ToolCallResult:  # noqa: ARG002
-                return ToolCallResult(ok=True, data={"called": tool_name})
 
             def list_tools_page(self, server_id: str, *, cursor: str | None = None, limit: int | None = None) -> ToolsPage:  # type: ignore[override]
                 items = [
@@ -489,8 +418,5 @@ class TestSyncMCPInfoProvider:
         with pytest.raises(ServerNotFoundError):
             client.list_tools("unknown")
 
-    def test_call_tool_raises_server_not_found_when_no_strategy(self) -> None:
-        client = MCPInfoProvider(strategies=[])
-
-        with pytest.raises(ServerNotFoundError):
-            client.call_tool("s1", "t", {})
+    # No call_tool helper is exposed on MCPInfoProvider; tool invocation is
+    # delegated to lower-level strategy/client layers.
