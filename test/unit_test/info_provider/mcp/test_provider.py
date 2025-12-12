@@ -13,7 +13,7 @@ from gearmeshing_ai.info_provider.mcp.schemas.config import (
     ServerConfig,
 )
 from gearmeshing_ai.info_provider.mcp.schemas.core import McpTool, ToolCallResult, ToolsPage
-from gearmeshing_ai.info_provider.mcp.errors import ServerNotFoundError
+from gearmeshing_ai.info_provider.mcp.errors import ServerNotFoundError, ToolAccessDeniedError
 from gearmeshing_ai.info_provider.mcp.strategy.direct_async import AsyncDirectMcpStrategy
 from gearmeshing_ai.info_provider.mcp.strategy.gateway_async import AsyncGatewayMcpStrategy
 from gearmeshing_ai.info_provider.mcp.strategy import DirectMcpStrategy, GatewayMcpStrategy
@@ -152,6 +152,30 @@ class TestAsyncMCPInfoProvider:
         await http_client.aclose()
 
     @pytest.mark.asyncio
+    async def test_list_tools_applies_allowed_tools_policy(self) -> None:
+        state = {"expected_auth": "Bearer aaa"}
+        transport = _mock_transport(state)
+
+        http_client = httpx.AsyncClient(transport=transport, base_url="http://mock")
+
+        cfg = McpClientConfig(
+            gateway=GatewayConfig(base_url="http://mock", auth_token=state["expected_auth"]),
+            tools_cache_ttl_seconds=60.0,
+        )
+        policies = {"agent": ToolPolicy(allowed_servers={"s1"}, allowed_tools={"get_issue"})}
+
+        client = await AsyncMCPInfoProvider.from_config(
+            cfg,
+            agent_policies=policies,
+            gateway_http_client=http_client,
+        )
+
+        tools = await client.list_tools("s1", agent_id="agent")
+        assert [t.name for t in tools] == ["get_issue"]
+
+        await http_client.aclose()
+
+    @pytest.mark.asyncio
     async def test_provider_read_only_filters_mutations_on_list(self) -> None:
         state = {"expected_auth": "Bearer bbb"}
         transport = _mock_transport(state)
@@ -249,6 +273,126 @@ class TestAsyncMCPInfoProvider:
 
         with pytest.raises(ServerNotFoundError):
             await client.list_tools("unknown")
+
+    @pytest.mark.asyncio
+    async def test_list_tools_denied_when_server_not_allowed_by_policy(self) -> None:
+        # Policy has allowed_servers that does NOT include "s1"; denial happens
+        policies = {"agent": ToolPolicy(allowed_servers={"other"})}
+        client = AsyncMCPInfoProvider(strategies=[], agent_policies=policies)
+
+        with pytest.raises(ToolAccessDeniedError):
+            await client.list_tools("s1", agent_id="agent")
+
+    @pytest.mark.asyncio
+    async def test_init_rejects_non_async_strategy(self) -> None:
+        class NotAStrategy:
+            pass
+
+        with pytest.raises(TypeError):
+            AsyncMCPInfoProvider(strategies=[NotAStrategy()])
+
+    @pytest.mark.asyncio
+    async def test_list_tools_skips_failing_strategy_and_uses_next(self) -> None:
+        class FailingThenWorking(AsyncStrategy):
+            def __init__(self, fail: bool) -> None:
+                self._fail = fail
+
+            async def list_tools(self, server_id: str) -> List[McpTool]:  # noqa: ARG002
+                if self._fail:
+                    raise RuntimeError("boom")
+                return [
+                    McpTool(
+                        name="ok",
+                        description="",
+                        mutating=False,
+                        arguments=[],
+                        raw_parameters_schema={},
+                    )
+                ]
+
+        client = AsyncMCPInfoProvider(strategies=[FailingThenWorking(True), FailingThenWorking(False)])
+
+        tools = await client.list_tools("s1")
+        assert [t.name for t in tools] == ["ok"]
+
+    @pytest.mark.asyncio
+    async def test_list_tools_page_applies_allowed_tools_and_read_only_policy(self) -> None:
+        class Paginated(AsyncStrategy):
+            async def list_tools(self, server_id: str) -> List[McpTool]:  # noqa: ARG002
+                return []
+
+            async def list_tools_page(
+                self,
+                server_id: str,
+                *,
+                cursor: str | None = None,
+                limit: int | None = None,
+            ) -> ToolsPage:  # type: ignore[override]
+                items = [
+                    McpTool(
+                        name="keep",
+                        description="",
+                        mutating=False,
+                        arguments=[],
+                        raw_parameters_schema={},
+                    ),
+                    McpTool(
+                        name="drop_mutating",
+                        description="",
+                        mutating=True,
+                        arguments=[],
+                        raw_parameters_schema={},
+                    ),
+                ]
+                return ToolsPage(items=items, next_cursor=None)
+
+        policies = {"agent": ToolPolicy(allowed_servers={"s1"}, allowed_tools={"keep", "drop_mutating"}, read_only=True)}
+        client = AsyncMCPInfoProvider(strategies=[Paginated()], agent_policies=policies)
+
+        page = await client.list_tools_page("s1", agent_id="agent")
+        # allowed_tools keeps both by name, read_only then drops the mutating one
+        assert [t.name for t in page.items] == ["keep"]
+
+    @pytest.mark.asyncio
+    async def test_list_tools_page_denied_when_server_not_allowed_by_policy(self) -> None:
+        policies = {"agent": ToolPolicy(allowed_servers={"other"})}
+        client = AsyncMCPInfoProvider(strategies=[], agent_policies=policies)
+
+        with pytest.raises(ToolAccessDeniedError):
+            await client.list_tools_page("s1", agent_id="agent")
+
+    @pytest.mark.asyncio
+    async def test_list_tools_page_falls_back_when_pagination_strategy_raises(self) -> None:
+        class RaisingPage(AsyncStrategy):
+            async def list_tools(self, server_id: str) -> List[McpTool]:  # noqa: ARG002
+                return []
+
+            async def list_tools_page(
+                self,
+                server_id: str,
+                *,
+                cursor: str | None = None,
+                limit: int | None = None,
+            ) -> ToolsPage:  # type: ignore[override]
+                raise RuntimeError("pagination not available")
+
+        class ListOnly(AsyncStrategy):
+            async def list_tools(self, server_id: str) -> List[McpTool]:  # noqa: ARG002
+                return [
+                    McpTool(
+                        name="from_list_only",
+                        description="",
+                        mutating=False,
+                        arguments=[],
+                        raw_parameters_schema={},
+                    )
+                ]
+
+        client = AsyncMCPInfoProvider(strategies=[RaisingPage(), ListOnly()])
+
+        page = await client.list_tools_page("s1")
+        # first strategy's list_tools_page fails; provider falls back to list_tools
+        assert [t.name for t in page.items] == ["from_list_only"]
 
     # No call_tool/streaming helpers are exposed on AsyncMCPInfoProvider; those
     # remain responsibilities of underlying strategies.
@@ -417,6 +561,129 @@ class TestSyncMCPInfoProvider:
 
         with pytest.raises(ServerNotFoundError):
             client.list_tools("unknown")
+
+    def test_list_tools_denied_when_server_not_allowed_by_policy(self) -> None:
+        policies = {"agent": ToolPolicy(allowed_servers={"other"})}
+        client = MCPInfoProvider(strategies=[], agent_policies=policies)
+
+        with pytest.raises(ToolAccessDeniedError):
+            client.list_tools("s1", agent_id="agent")
+
+    def test_init_rejects_non_sync_strategy(self) -> None:
+        class NotASyncStrategy:
+            pass
+
+        with pytest.raises(TypeError):
+            MCPInfoProvider(strategies=[NotASyncStrategy()])
+
+    def test_list_tools_skips_failing_strategy_and_uses_next(self) -> None:
+        class FailingThenWorking(SyncStrategy):
+            def __init__(self, fail: bool) -> None:
+                self._fail = fail
+
+            def list_servers(self) -> Iterable[McpTool]:  # type: ignore[override]
+                return []
+
+            def list_tools(self, server_id: str) -> Iterable[McpTool]:  # noqa: ARG002
+                if self._fail:
+                    raise RuntimeError("boom")
+                return [
+                    McpTool(
+                        name="ok",
+                        description="",
+                        mutating=False,
+                        arguments=[],
+                        raw_parameters_schema={},
+                    )
+                ]
+
+        client = MCPInfoProvider(strategies=[FailingThenWorking(True), FailingThenWorking(False)])
+
+        tools = client.list_tools("s1")
+        assert [t.name for t in tools] == ["ok"]
+
+    def test_list_tools_page_applies_allowed_tools_and_read_only_policy(self) -> None:
+        class Paginated(SyncStrategy):
+            def list_servers(self) -> Iterable[McpTool]:  # type: ignore[override]
+                return []
+
+            def list_tools(self, server_id: str) -> Iterable[McpTool]:  # noqa: ARG002
+                return []
+
+            def list_tools_page(
+                self,
+                server_id: str,
+                *,
+                cursor: str | None = None,
+                limit: int | None = None,
+            ) -> ToolsPage:  # type: ignore[override]
+                items = [
+                    McpTool(
+                        name="keep",
+                        description="",
+                        mutating=False,
+                        arguments=[],
+                        raw_parameters_schema={},
+                    ),
+                    McpTool(
+                        name="drop_mutating",
+                        description="",
+                        mutating=True,
+                        arguments=[],
+                        raw_parameters_schema={},
+                    ),
+                ]
+                return ToolsPage(items=items, next_cursor=None)
+
+        policies = {"agent": ToolPolicy(allowed_servers={"s1"}, allowed_tools={"keep", "drop_mutating"}, read_only=True)}
+        client = MCPInfoProvider(strategies=[Paginated()], agent_policies=policies)
+
+        page = client.list_tools_page("s1", agent_id="agent")
+        assert [t.name for t in page.items] == ["keep"]
+
+    def test_list_tools_page_denied_when_server_not_allowed_by_policy(self) -> None:
+        policies = {"agent": ToolPolicy(allowed_servers={"other"})}
+        client = MCPInfoProvider(strategies=[], agent_policies=policies)
+
+        with pytest.raises(ToolAccessDeniedError):
+            client.list_tools_page("s1", agent_id="agent")
+
+    def test_list_tools_page_falls_back_when_pagination_strategy_raises(self) -> None:
+        class RaisingPage(SyncStrategy):
+            def list_servers(self) -> Iterable[McpTool]:  # type: ignore[override]
+                return []
+
+            def list_tools(self, server_id: str) -> Iterable[McpTool]:  # noqa: ARG002
+                return []
+
+            def list_tools_page(
+                self,
+                server_id: str,
+                *,
+                cursor: str | None = None,
+                limit: int | None = None,
+            ) -> ToolsPage:  # type: ignore[override]
+                raise RuntimeError("no pagination")
+
+        class ListOnly(SyncStrategy):
+            def list_servers(self) -> Iterable[McpTool]:  # type: ignore[override]
+                return []
+
+            def list_tools(self, server_id: str) -> Iterable[McpTool]:  # noqa: ARG002
+                return [
+                    McpTool(
+                        name="from_list_only",
+                        description="",
+                        mutating=False,
+                        arguments=[],
+                        raw_parameters_schema={},
+                    )
+                ]
+
+        client = MCPInfoProvider(strategies=[RaisingPage(), ListOnly()])
+
+        page = client.list_tools_page("s1")
+        assert [t.name for t in page.items] == ["from_list_only"]
 
     # No call_tool helper is exposed on MCPInfoProvider; tool invocation is
     # delegated to lower-level strategy/client layers.
