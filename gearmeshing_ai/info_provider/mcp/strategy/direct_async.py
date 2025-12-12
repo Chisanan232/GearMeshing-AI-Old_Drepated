@@ -223,7 +223,7 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
             )
             # The MCP client typically supports optional pagination parameters.
             # If unsupported by the backend, it should return all tools with no next_cursor.
-            resp: ListToolsResult = await session.list_tools(cursor=cursor, limit=limit)  # type: ignore[call-arg]
+            resp: ListToolsResult = await session.list_tools(cursor=cursor, limit=limit)
             for tool in resp.tools or []:
                 name = tool.name
                 description = tool.description

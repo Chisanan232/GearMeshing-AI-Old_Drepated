@@ -21,7 +21,7 @@ class _FakeTool:
 class _FakeListToolsResp:
     def __init__(self, tools: List[_FakeTool]) -> None:
         self.tools = tools
-        self.next_cursor = None
+        self.next_cursor: str | None = None
 
 
 class _FakeSession:

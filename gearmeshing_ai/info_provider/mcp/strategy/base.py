@@ -140,22 +140,6 @@ class AsyncStrategy(Protocol):
         >>> res = await strategy.call_tool("server-1", "search", {"q": "bar"})
     """
 
-    async def list_servers(self) -> List[McpServerRef]:
-        """Asynchronously list all MCP servers accessible through this strategy.
-
-        Args:
-            None
-
-        Returns:
-            List[McpServerRef]: A list of server references describing the
-            server id and human-readable label. Order is not guaranteed.
-
-        Raises:
-            Exception: Implementations may raise transport- or discovery-related
-            errors (e.g., network failures) where applicable.
-        """
-        ...
-
     async def list_tools(self, server_id: str) -> List[McpTool]:
         """Asynchronously list tools for a specific server.
 

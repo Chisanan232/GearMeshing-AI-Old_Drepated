@@ -68,7 +68,7 @@ def clickup_container() -> DockerContainer:
     token = os.getenv("CLICKUP_API_TOKEN") or os.getenv("GM_CLICKUP_API_TOKEN") or "e2e-test-token"
 
     container = (
-        DockerContainer(f"chisanan232/clickup-mcp-server:{tag}")  # type: ignore[attr-defined]
+        DockerContainer(f"chisanan232/clickup-mcp-server:{tag}")
         .with_exposed_ports(port_int)
         .with_env("SERVER_PORT", str(port_int))
         .with_env("CLICKUP_API_TOKEN", token)
