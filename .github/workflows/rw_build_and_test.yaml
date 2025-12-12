@@ -67,6 +67,7 @@ jobs:
       test_type: e2e-test
       test_folder: './test/e2e_test'
       install_dependency_with_group: 'e2e-test'
+      operating-systems: '["ubuntu-latest", "ubuntu-22.04"]'
 #      max-parallel: 1
       with-environment-variables: ${{ inputs.with-environment-variables }}
     secrets:
