@@ -24,9 +24,12 @@ from __future__ import annotations
 
 import logging
 import time
+from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
 import httpx
+from mcp import ClientSession
+from mcp.client.streamable_http import streamablehttp_client
 
 from ..schemas.config import ServerConfig
 from ..schemas.core import McpTool, ToolCallResult, ToolsPage
@@ -64,6 +67,22 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         self._ttl = ttl_seconds
         self._tools_cache: Dict[str, Tuple[List[McpTool], float]] = {}
         self._sse_client = sse_client
+
+    @asynccontextmanager
+    async def _open_session(self, server_id: str) -> AsyncIterator[ClientSession]:
+        """Open a short-lived MCP ClientSession for the given server.
+
+        This helper uses the official `mcp` streamable HTTP client to establish
+        a bidirectional MCP connection to the configured endpoint. A new
+        session is created per call, comparable in cost to the previous
+        per-call HTTP usage, and keeps the strategy stateless.
+        """
+        cfg = self._get_server(server_id)
+        base = cfg.endpoint_url.rstrip("/")
+        async with streamablehttp_client(base) as (read_stream, write_stream, _close_fn):
+            async with ClientSession(read_stream, write_stream) as session:
+                await session.initialize()
+                yield session
 
     def _get_server(self, server_id: str) -> ServerConfig:
         """Lookup a configured server by name.
@@ -119,16 +138,31 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         if cached and cached[1] > now:
             return list(cached[0])
 
-        cfg = self._get_server(server_id)
-        base = cfg.endpoint_url.rstrip("/")
-        self._logger.debug("AsyncDirectMcpStrategy.list_tools: GET %s/tools", base)
-        r = await self._http.get(f"{base}/tools", headers=self._headers(cfg))
-        r.raise_for_status()
-        data = r.json()
-        payload = ToolsListPayloadDTO.model_validate(data)
         tools: List[McpTool] = []
-        for td in payload.tools:
-            tools.append(td.to_mcp_tool(self._infer_arguments, self._is_mutating_tool_name))
+        async with self._open_session(server_id) as session:
+            self._logger.debug(
+                "AsyncDirectMcpStrategy.list_tools: using MCP ClientSession for server_id=%s",
+                server_id,
+            )
+            resp = await session.list_tools()
+            for tool in getattr(resp, "tools", []) or []:
+                name = getattr(tool, "name", None)
+                if not isinstance(name, str) or not name:
+                    continue
+                desc_val = getattr(tool, "description", None)
+                description = desc_val if isinstance(desc_val, str) else None
+                input_schema = getattr(tool, "input_schema", {}) or {}
+                if not isinstance(input_schema, dict):
+                    input_schema = {}
+                tools.append(
+                    McpTool(
+                        name=name,
+                        description=description,
+                        mutating=self._is_mutating_tool_name(name),
+                        arguments=self._infer_arguments(input_schema),
+                        raw_parameters_schema=input_schema,
+                    )
+                )
         self._tools_cache[server_id] = (tools, now + self._ttl)
         return tools
 
@@ -157,26 +191,21 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
             httpx.TransportError: For transport-level HTTP issues.
             pydantic.ValidationError: If the invocation payload fails validation.
         """
-        cfg = self._get_server(server_id)
-        base = cfg.endpoint_url.rstrip("/")
-        payload = ToolInvokeRequestDTO(parameters=args or {})
-        self._logger.debug(
-            "AsyncDirectMcpStrategy.call_tool: POST %s/a2a/%s/invoke args_keys=%s",
-            base,
-            tool_name,
-            list((args or {}).keys()),
-        )
-        r = await self._http.post(
-            f"{base}/a2a/{tool_name}/invoke",
-            headers=self._headers(cfg),
-            json=payload.model_dump(by_alias=True, mode="json"),
-        )
-        r.raise_for_status()
-        inv = ToolInvokePayloadDTO.model_validate(r.json())
-        result = inv.to_tool_call_result()
-        if result.ok and self._is_mutating_tool_name(tool_name):
+        async with self._open_session(server_id) as session:
+            self._logger.debug(
+                "AsyncDirectMcpStrategy.call_tool: using MCP ClientSession for server_id=%s tool=%s args_keys=%s",
+                server_id,
+                tool_name,
+                list((args or {}).keys()),
+            )
+            res = await session.call_tool(name=tool_name, arguments=args or {})
+            payload = res.model_dump() if hasattr(res, "model_dump") else res
+            ok = True
+            data: Dict[str, Any] = payload if isinstance(payload, dict) else {"result": payload}
+
+        if self._is_mutating_tool_name(tool_name) and ok:
             self._tools_cache.pop(server_id, None)
-        return result
+        return ToolCallResult(ok=ok, data=data)
 
     async def list_tools_page(
         self,
