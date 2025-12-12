@@ -81,6 +81,7 @@ from .strategy import DirectMcpStrategy, GatewayMcpStrategy
 from .strategy.base import AsyncStrategy, SyncStrategy, is_mutating_tool_name
 from .strategy.direct_async import AsyncDirectMcpStrategy
 from .strategy.gateway_async import AsyncGatewayMcpStrategy
+from .transport.mcp import SseMCPTransport
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +137,9 @@ class AsyncMCPInfoProvider(ClientCommonMixin, BaseAsyncMCPInfoProvider):
                 AsyncDirectMcpStrategy(
                     list(config.servers),
                     ttl_seconds=config.tools_cache_ttl_seconds,
-                )
+                    # TODO: It should extract this property as parameter
+                    mcp_transport=SseMCPTransport(),
+                ),
             )
         if config.gateway is not None:
             gw = GatewayApiClient(
@@ -300,7 +303,9 @@ class MCPInfoProvider(ClientCommonMixin, BaseMCPInfoProvider):
                 DirectMcpStrategy(
                     config.servers,
                     ttl_seconds=config.tools_cache_ttl_seconds,
-                )
+                    # TODO: It should extract this property as parameter
+                    mcp_transport=SseMCPTransport(),
+                ),
             )
         if config.gateway is not None:
             gw = GatewayApiClient(
