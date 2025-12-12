@@ -81,7 +81,7 @@ from .strategy import DirectMcpStrategy, GatewayMcpStrategy
 from .strategy.base import AsyncStrategy, SyncStrategy, is_mutating_tool_name
 from .strategy.direct_async import AsyncDirectMcpStrategy
 from .strategy.gateway_async import AsyncGatewayMcpStrategy
-from .transport.mcp import SseMCPTransport
+from .transport.mcp import AsyncMCPTransport
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +110,7 @@ class AsyncMCPInfoProvider(ClientCommonMixin, BaseAsyncMCPInfoProvider):
         cls,
         config: McpClientConfig,
         *,
+        mcp_transport: AsyncMCPTransport,
         agent_policies: Optional[PolicyMap] = None,
         gateway_mgmt_client: Optional[httpx.Client] = None,
         gateway_http_client: Optional[httpx.AsyncClient] = None,
@@ -137,8 +138,7 @@ class AsyncMCPInfoProvider(ClientCommonMixin, BaseAsyncMCPInfoProvider):
                 AsyncDirectMcpStrategy(
                     list(config.servers),
                     ttl_seconds=config.tools_cache_ttl_seconds,
-                    # TODO: It should extract this property as parameter
-                    mcp_transport=SseMCPTransport(),
+                    mcp_transport=mcp_transport,
                 ),
             )
         if config.gateway is not None:
@@ -276,6 +276,7 @@ class MCPInfoProvider(ClientCommonMixin, BaseMCPInfoProvider):
         cls,
         config: McpClientConfig,
         *,
+        mcp_transport: AsyncMCPTransport,
         agent_policies: Optional[PolicyMap] = None,
         direct_http_client: Optional[httpx.Client] = None,
         gateway_mgmt_client: Optional[httpx.Client] = None,
@@ -303,8 +304,7 @@ class MCPInfoProvider(ClientCommonMixin, BaseMCPInfoProvider):
                 DirectMcpStrategy(
                     config.servers,
                     ttl_seconds=config.tools_cache_ttl_seconds,
-                    # TODO: It should extract this property as parameter
-                    mcp_transport=SseMCPTransport(),
+                    mcp_transport=mcp_transport,
                 ),
             )
         if config.gateway is not None:

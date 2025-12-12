@@ -30,6 +30,7 @@ from .schemas.core import (
     ToolsPage,
 )
 from .strategy.base import is_mutating_tool_name
+from .transport.mcp import AsyncMCPTransport
 
 
 @runtime_checkable
@@ -55,6 +56,7 @@ class BaseMCPInfoProvider(Protocol):
         cls,
         config: McpClientConfig,
         *,
+        mcp_transport: AsyncMCPTransport,
         agent_policies: Optional[PolicyMap] = None,
         direct_http_client: Optional[httpx.Client] = None,
         gateway_mgmt_client: Optional[httpx.Client] = None,
@@ -89,6 +91,7 @@ class BaseAsyncMCPInfoProvider(Protocol):
         cls,
         config: McpClientConfig,
         *,
+        mcp_transport: AsyncMCPTransport,
         agent_policies: Optional[PolicyMap] = None,
         gateway_mgmt_client: Optional[httpx.Client] = None,
         gateway_http_client: Optional[httpx.AsyncClient] = None,

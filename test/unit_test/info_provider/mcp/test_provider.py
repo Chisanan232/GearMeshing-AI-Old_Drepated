@@ -35,6 +35,7 @@ from gearmeshing_ai.info_provider.mcp.strategy.direct_async import (
 from gearmeshing_ai.info_provider.mcp.strategy.gateway_async import (
     AsyncGatewayMcpStrategy,
 )
+from gearmeshing_ai.info_provider.mcp.transport.mcp import SseMCPTransport
 
 
 def _mock_transport(state: dict) -> httpx.MockTransport:
@@ -136,7 +137,7 @@ class TestAsyncMCPInfoProvider:
             tools_cache_ttl_seconds=30.0,
         )
 
-        client = await AsyncMCPInfoProvider.from_config(cfg)
+        client = await AsyncMCPInfoProvider.from_config(cfg, mcp_transport=SseMCPTransport())
 
         assert len(client._strategies) == 1
         assert isinstance(client._strategies[0], AsyncDirectMcpStrategy)
@@ -154,6 +155,7 @@ class TestAsyncMCPInfoProvider:
 
         client = await AsyncMCPInfoProvider.from_config(
             cfg,
+            mcp_transport=SseMCPTransport(),
             gateway_mgmt_client=mgmt_client,
             gateway_http_client=http_client,
             gateway_sse_client=sse_client,
@@ -181,6 +183,7 @@ class TestAsyncMCPInfoProvider:
 
         client = await AsyncMCPInfoProvider.from_config(
             cfg,
+            mcp_transport=SseMCPTransport(),
             gateway_mgmt_client=mgmt_client,
             gateway_http_client=http_client,
             gateway_sse_client=sse_client,
@@ -199,7 +202,7 @@ class TestAsyncMCPInfoProvider:
     async def test_from_config_empty_config_has_no_strategies(self) -> None:
         cfg = McpClientConfig()
 
-        client = await AsyncMCPInfoProvider.from_config(cfg)
+        client = await AsyncMCPInfoProvider.from_config(cfg, mcp_transport=SseMCPTransport())
 
         assert getattr(client, "_strategies") == []
 
@@ -219,6 +222,7 @@ class TestAsyncMCPInfoProvider:
 
         client = await AsyncMCPInfoProvider.from_config(
             cfg,
+            mcp_transport=SseMCPTransport(),
             agent_policies=policies,
             gateway_http_client=http_client,
         )
@@ -243,6 +247,7 @@ class TestAsyncMCPInfoProvider:
 
         client = await AsyncMCPInfoProvider.from_config(
             cfg,
+            mcp_transport=SseMCPTransport(),
             agent_policies=policies,
             gateway_http_client=http_client,
         )
@@ -266,6 +271,7 @@ class TestAsyncMCPInfoProvider:
 
         client = await AsyncMCPInfoProvider.from_config(
             cfg,
+            mcp_transport=SseMCPTransport(),
             agent_policies=policies,
             gateway_http_client=http_client,
         )
@@ -460,7 +466,7 @@ class TestSyncMCPInfoProvider:
     def test_from_config_servers_only_builds_direct_strategy(self) -> None:
         cfg = McpClientConfig(servers=[ServerConfig(name="direct1", endpoint_url="http://mock/mcp")])
 
-        client = MCPInfoProvider.from_config(cfg)
+        client = MCPInfoProvider.from_config(cfg, mcp_transport=SseMCPTransport())
 
         assert len(client._strategies) == 1
         assert isinstance(client._strategies[0], DirectMcpStrategy)
@@ -475,6 +481,7 @@ class TestSyncMCPInfoProvider:
 
         client = MCPInfoProvider.from_config(
             cfg,
+            mcp_transport=SseMCPTransport(),
             gateway_mgmt_client=mgmt_client,
             gateway_http_client=http_client,
         )
@@ -497,6 +504,7 @@ class TestSyncMCPInfoProvider:
 
         client = MCPInfoProvider.from_config(
             cfg,
+            mcp_transport=SseMCPTransport(),
             gateway_mgmt_client=mgmt_client,
             gateway_http_client=http_client,
         )
@@ -512,7 +520,7 @@ class TestSyncMCPInfoProvider:
     def test_from_config_empty_config_has_no_strategies(self) -> None:
         cfg = McpClientConfig()
 
-        client = MCPInfoProvider.from_config(cfg)
+        client = MCPInfoProvider.from_config(cfg, mcp_transport=SseMCPTransport())
 
         assert getattr(client, "_strategies") == []
 
@@ -530,6 +538,7 @@ class TestSyncMCPInfoProvider:
 
         client = MCPInfoProvider.from_config(
             cfg,
+            mcp_transport=SseMCPTransport(),
             agent_policies=policies,
             gateway_http_client=http_client,
             gateway_mgmt_client=http_client,
@@ -553,6 +562,7 @@ class TestSyncMCPInfoProvider:
 
         client = MCPInfoProvider.from_config(
             cfg,
+            mcp_transport=SseMCPTransport(),
             agent_policies=policies,
             gateway_http_client=http_client,
             gateway_mgmt_client=http_client,

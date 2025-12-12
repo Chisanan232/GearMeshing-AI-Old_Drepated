@@ -17,6 +17,7 @@ from gearmeshing_ai.info_provider.mcp.schemas.config import (
 )
 from gearmeshing_ai.info_provider.mcp.schemas.core import McpTool
 from gearmeshing_ai.info_provider.mcp.strategy import DirectMcpStrategy
+from gearmeshing_ai.info_provider.mcp.transport.mcp import SseMCPTransport
 
 # ------------------------------
 # Mock transports for Direct and Gateway
@@ -796,6 +797,7 @@ class TestAsyncWithGateway(BaseAsyncSuite):
         cfg = McpClientConfig(gateway=GatewayConfig(base_url="http://mock"))
         client = await AsyncMCPInfoProvider.from_config(
             cfg,
+            mcp_transport=SseMCPTransport(),
             gateway_mgmt_client=mgmt_client,
             gateway_http_client=http_client,
             gateway_sse_client=sse_client,
@@ -951,6 +953,7 @@ class TestSyncWithGateway(BaseSyncSuite):
         cfg = McpClientConfig(gateway=GatewayConfig(base_url="http://mock"))
         return MCPInfoProvider.from_config(
             cfg,
+            mcp_transport=SseMCPTransport(),
             gateway_mgmt_client=mgmt_client,
             gateway_http_client=http_client,
         )
