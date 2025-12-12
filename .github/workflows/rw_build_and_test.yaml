@@ -41,7 +41,7 @@ jobs:
     with:
       test_type: contract-test
       test_folder: './test/contract_test'
-      install_dependency_with_group: 'dev'
+      install_dependency_with_group: 'contract-test-with-ai-frameworks'
 
 #  run_one_e2e-test:
 ##    name: Run all end-to-end test items under one case
