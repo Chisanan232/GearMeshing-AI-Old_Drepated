@@ -216,7 +216,7 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
     ) -> ToolsPage:
         """Return a single page of tools for a server.
 
-        - Query params built via `ToolsListQuery(cursor, limit).to_params()`.
+        - Uses MCP ClientSession.list_tools(cursor, limit) to request a page.
         - Returns a `ToolsPage` with `items` and an optional `next_cursor`.
         - Updates cache only for non-paginated calls (no cursor/limit).
 
@@ -233,22 +233,41 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
             httpx.TransportError: For transport-level HTTP issues.
             pydantic.ValidationError: If the tools payload fails validation.
         """
-        cfg = self._get_server(server_id)
-        base = cfg.endpoint_url.rstrip("/")
-        q = ToolsListQuery(cursor=cursor, limit=limit)
-        params = q.to_params()
-        self._logger.debug("AsyncDirectMcpStrategy.list_tools_page: GET %s/tools params=%s", base, params)
-        r = await self._http.get(f"{base}/tools", headers=self._headers(cfg), params=params or None)
-        r.raise_for_status()
-        data = r.json()
-        payload = ToolsListPayloadDTO.model_validate(data)
         tools: List[McpTool] = []
-        for td in payload.tools:
-            tools.append(td.to_mcp_tool(self._infer_arguments, self._is_mutating_tool_name))
+        next_cursor: Optional[str] = None
+        async with self._open_session(server_id) as session:
+            self._logger.debug(
+                "AsyncDirectMcpStrategy.list_tools_page: using MCP ClientSession for server_id=%s cursor=%s limit=%s",
+                server_id,
+                cursor,
+                limit,
+            )
+            # The MCP client typically supports optional pagination parameters.
+            # If unsupported by the backend, it should return all tools with no next_cursor.
+            resp = await session.list_tools(cursor=cursor, limit=limit)  # type: ignore[call-arg]
+            for tool in getattr(resp, "tools", []) or []:
+                name = getattr(tool, "name", None)
+                if not isinstance(name, str) or not name:
+                    continue
+                desc_val = getattr(tool, "description", None)
+                description = desc_val if isinstance(desc_val, str) else None
+                input_schema = getattr(tool, "input_schema", {}) or {}
+                if not isinstance(input_schema, dict):
+                    input_schema = {}
+                tools.append(
+                    McpTool(
+                        name=name,
+                        description=description,
+                        mutating=self._is_mutating_tool_name(name),
+                        arguments=self._infer_arguments(input_schema),
+                        raw_parameters_schema=input_schema,
+                    )
+                )
+            next_cursor = getattr(resp, "next_cursor", None)
         if cursor is None and limit is None:
             now = time.monotonic()
             self._tools_cache[server_id] = (tools, now + self._ttl)
-        return ToolsPage(items=tools, next_cursor=payload.next_cursor)
+        return ToolsPage(items=tools, next_cursor=next_cursor)
 
     async def stream_events(
         self,
