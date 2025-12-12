@@ -153,7 +153,9 @@ class TestAsyncMCPInfoProvider:
         http_client = httpx.AsyncClient(base_url="http://mock")
         sse_client = httpx.AsyncClient(base_url="http://mock")
 
-        client = await AsyncMCPInfoProvider.from_config(cfg, mcp_transport=SseMCPTransport(),
+        client = await AsyncMCPInfoProvider.from_config(
+            cfg,
+            mcp_transport=SseMCPTransport(),
             gateway_mgmt_client=mgmt_client,
             gateway_http_client=http_client,
             gateway_sse_client=sse_client,
@@ -179,7 +181,9 @@ class TestAsyncMCPInfoProvider:
         http_client = httpx.AsyncClient(base_url="http://mock")
         sse_client = httpx.AsyncClient(base_url="http://mock")
 
-        client = await AsyncMCPInfoProvider.from_config(cfg, mcp_transport=SseMCPTransport(),
+        client = await AsyncMCPInfoProvider.from_config(
+            cfg,
+            mcp_transport=SseMCPTransport(),
             gateway_mgmt_client=mgmt_client,
             gateway_http_client=http_client,
             gateway_sse_client=sse_client,
@@ -216,7 +220,9 @@ class TestAsyncMCPInfoProvider:
         )
         policies = {"agent": ToolPolicy(allowed_servers={"s1"}, read_only=False)}
 
-        client = await AsyncMCPInfoProvider.from_config(cfg, mcp_transport=SseMCPTransport(),
+        client = await AsyncMCPInfoProvider.from_config(
+            cfg,
+            mcp_transport=SseMCPTransport(),
             agent_policies=policies,
             gateway_http_client=http_client,
         )
@@ -239,7 +245,9 @@ class TestAsyncMCPInfoProvider:
         )
         policies = {"agent": ToolPolicy(allowed_servers={"s1"}, allowed_tools={"get_issue"})}
 
-        client = await AsyncMCPInfoProvider.from_config(cfg, mcp_transport=SseMCPTransport(),
+        client = await AsyncMCPInfoProvider.from_config(
+            cfg,
+            mcp_transport=SseMCPTransport(),
             agent_policies=policies,
             gateway_http_client=http_client,
         )
@@ -261,7 +269,9 @@ class TestAsyncMCPInfoProvider:
         )
         policies = {"agent": ToolPolicy(allowed_servers={"s1"}, read_only=True)}
 
-        client = await AsyncMCPInfoProvider.from_config(cfg, mcp_transport=SseMCPTransport(),
+        client = await AsyncMCPInfoProvider.from_config(
+            cfg,
+            mcp_transport=SseMCPTransport(),
             agent_policies=policies,
             gateway_http_client=http_client,
         )
@@ -469,7 +479,9 @@ class TestSyncMCPInfoProvider:
         mgmt_client = httpx.Client(base_url="http://mock")
         http_client = httpx.Client(base_url="http://mock")
 
-        client = MCPInfoProvider.from_config(cfg, mcp_transport=SseMCPTransport(),
+        client = MCPInfoProvider.from_config(
+            cfg,
+            mcp_transport=SseMCPTransport(),
             gateway_mgmt_client=mgmt_client,
             gateway_http_client=http_client,
         )
@@ -490,7 +502,9 @@ class TestSyncMCPInfoProvider:
         mgmt_client = httpx.Client(base_url="http://mock")
         http_client = httpx.Client(base_url="http://mock")
 
-        client = MCPInfoProvider.from_config(cfg, mcp_transport=SseMCPTransport(),
+        client = MCPInfoProvider.from_config(
+            cfg,
+            mcp_transport=SseMCPTransport(),
             gateway_mgmt_client=mgmt_client,
             gateway_http_client=http_client,
         )
@@ -522,7 +536,9 @@ class TestSyncMCPInfoProvider:
         )
         policies = {"agent": ToolPolicy(allowed_servers={"s1"}, read_only=False)}
 
-        client = MCPInfoProvider.from_config(cfg, mcp_transport=SseMCPTransport(),
+        client = MCPInfoProvider.from_config(
+            cfg,
+            mcp_transport=SseMCPTransport(),
             agent_policies=policies,
             gateway_http_client=http_client,
             gateway_mgmt_client=http_client,
@@ -544,7 +560,9 @@ class TestSyncMCPInfoProvider:
         )
         policies = {"agent": ToolPolicy(allowed_servers={"s1"}, read_only=True)}
 
-        client = MCPInfoProvider.from_config(cfg, mcp_transport=SseMCPTransport(),
+        client = MCPInfoProvider.from_config(
+            cfg,
+            mcp_transport=SseMCPTransport(),
             agent_policies=policies,
             gateway_http_client=http_client,
             gateway_mgmt_client=http_client,
