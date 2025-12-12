@@ -58,19 +58,19 @@ jobs:
 #      with-environment-variables: ${{ inputs.with-environment-variables }}
 #    secrets:
 #      e2e_test_api_token: ${{ secrets.e2e_test_api_token }}
-#
-#  run_e2e-test:
-##    name: Run all end-to-end test items
-#    if: ${{ inputs.run_e2e == true }}
-#    uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_uv_run_test.yaml@master
-#    with:
-#      test_type: e2e-test
-#      test_folder: './test/e2e_test'
-#      install_dependency_with_group: 'dev'
+
+  run_e2e-test:
+#    name: Run all end-to-end test items
+    if: ${{ inputs.run_e2e == true }}
+    uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_uv_run_test.yaml@master
+    with:
+      test_type: e2e-test
+      test_folder: './test/e2e_test'
+      install_dependency_with_group: 'dev'
 #      max-parallel: 1
-#      with-environment-variables: ${{ inputs.with-environment-variables }}
-#    secrets:
-#      e2e_test_api_token: ${{ secrets.e2e_test_api_token }}
+      with-environment-variables: ${{ inputs.with-environment-variables }}
+    secrets:
+      e2e_test_api_token: ${{ secrets.e2e_test_api_token }}
 
 #  run_script-test:
 ##    name: Run all contract test items
@@ -123,17 +123,17 @@ jobs:
 #    uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_organize_test_cov_reports.yaml@master
 #    with:
 #      test_type: e2e-test
-#
-#  e2e-test_codecov:
-##    name: For end-to-end test, organize and generate the testing report and upload it to Codecov
-#    if: ${{
-#        contains(fromJSON('["pull_request","workflow_dispatch","schedule"]'), github.event_name) ||
-#        (github.event_name == 'push' && github.ref_name == 'master')
-#      }}
-#    needs: run_e2e-test
-#    uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_organize_test_cov_reports.yaml@master
-#    with:
-#      test_type: e2e-test
+
+  e2e-test_codecov:
+#    name: For end-to-end test, organize and generate the testing report and upload it to Codecov
+    if: ${{
+        contains(fromJSON('["pull_request","workflow_dispatch","schedule"]'), github.event_name) ||
+        (github.event_name == 'push' && github.ref_name == 'master')
+      }}
+    needs: run_e2e-test
+    uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_organize_test_cov_reports.yaml@master
+    with:
+      test_type: e2e-test
 
   all_test_not_e2e_test_codecov:
 #    name: Organize and generate the testing report and upload it to Codecov
@@ -144,8 +144,7 @@ jobs:
         ) &&
         inputs.run_e2e == false
       }}
-#    needs: [run_unit-test, run_integration-test, run_contract-test]
-    needs: [run_unit-test, run_integration-test, run_contract-test]
+    needs: [run_unit-test, run_integration-test, run_contract-test, run_e2e-test]
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_organize_test_cov_reports.yaml@master
     with:
       test_type: all-test
