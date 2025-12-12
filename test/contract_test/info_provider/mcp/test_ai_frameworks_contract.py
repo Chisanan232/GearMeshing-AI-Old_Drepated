@@ -16,6 +16,7 @@ from gearmeshing_ai.info_provider.mcp.schemas.config import (
     ServerConfig,
 )
 from gearmeshing_ai.info_provider.mcp.schemas.core import McpTool
+from gearmeshing_ai.info_provider.mcp.strategy import DirectMcpStrategy
 
 # ------------------------------
 # Mock transports for Direct and Gateway
@@ -745,15 +746,45 @@ class BaseAsyncSuite:
 
 class TestAsyncWithDirect(BaseAsyncSuite):
     async def _make_provider_async(self):
+        # Provide a small fake MCP transport that returns tools without network.
+        from contextlib import asynccontextmanager
+
         from gearmeshing_ai.info_provider.mcp.strategy.direct_async import (
             AsyncDirectMcpStrategy,
         )
 
-        atransport = _mock_transport_direct()
-        async_client = httpx.AsyncClient(transport=atransport, base_url="http://mock")
-        strat = AsyncDirectMcpStrategy([ServerConfig(name="s1", endpoint_url="http://mock/mcp")], client=async_client)
+        class _FakeTool:
+            def __init__(self, name: str, description: str | None, input_schema: dict[str, object]):
+                self.name = name
+                self.description = description
+                self.inputSchema = input_schema
+
+        class _FakeListToolsResp:
+            def __init__(self, tools):
+                self.tools = tools
+                self.next_cursor = None
+
+        class _FakeSession:
+            async def list_tools(self, cursor: str | None = None, limit: int | None = None):  # noqa: ARG002
+                return _FakeListToolsResp([_FakeTool("echo", "Echo tool", {"type": "object", "properties": {}})])
+
+            async def call_tool(self, name: str, arguments: dict[str, object] | None = None):  # noqa: ARG002
+                return {"ok": True}
+
+        class _FakeMCPTransport:
+            def session(self, endpoint_url: str):  # noqa: ARG002
+                @asynccontextmanager
+                async def _cm():
+                    yield _FakeSession()
+
+                return _cm()
+
+        strat = AsyncDirectMcpStrategy(
+            [ServerConfig(name="s1", endpoint_url="http://mock/mcp")],
+            mcp_transport=_FakeMCPTransport(),
+        )
         client = AsyncMCPInfoProvider(strategies=[strat])
-        return client, [async_client]
+        return client, []
 
 
 class TestAsyncWithGateway(BaseAsyncSuite):
@@ -932,7 +963,38 @@ class TestSyncWithGateway(BaseSyncSuite):
 
 class TestSyncWithDirect(BaseSyncSuite):
     def _make_provider(self) -> MCPInfoProvider:
-        transport = _mock_transport_direct()
-        http_client = httpx.Client(transport=transport, base_url="http://mock")
-        cfg = McpClientConfig(servers=[ServerConfig(name="s1", endpoint_url="http://mock/mcp")])
-        return MCPInfoProvider.from_config(cfg, direct_http_client=http_client)
+        # Build provider with a Direct strategy that uses a fake MCP transport
+        from contextlib import asynccontextmanager
+
+        class _FakeTool:
+            def __init__(self, name: str, description: str | None, input_schema: Dict[str, Any]) -> None:
+                self.name = name
+                self.description = description
+                self.inputSchema = input_schema
+
+        class _FakeListToolsResp:
+            def __init__(self, tools: List[_FakeTool]) -> None:
+                self.tools = tools
+                self.next_cursor = None
+
+        class _FakeSession:
+            async def list_tools(self, cursor: str | None = None, limit: int | None = None):  # noqa: ARG002
+                return _FakeListToolsResp([_FakeTool("echo", "Echo tool", {"type": "object", "properties": {}})])
+
+            async def call_tool(self, name: str, arguments: Dict[str, Any] | None = None):  # noqa: ARG002
+                return {"ok": True}
+
+        class _FakeMCPTransport:
+            def session(self, endpoint_url: str):  # noqa: ARG002
+                @asynccontextmanager
+                async def _cm():
+                    yield _FakeSession()
+
+                return _cm()
+
+        strat = DirectMcpStrategy(
+            [ServerConfig(name="s1", endpoint_url="http://mock/mcp")],
+            ttl_seconds=10.0,
+            mcp_transport=_FakeMCPTransport(),
+        )
+        return MCPInfoProvider(strategies=[strat])

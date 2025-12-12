@@ -24,19 +24,17 @@ from __future__ import annotations
 
 import logging
 import time
+from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
-import httpx
+from mcp import ClientSession
+from mcp.types import CallToolResult as MCPCallToolResult
+from mcp.types import ListToolsResult
 
 from ..schemas.config import ServerConfig
 from ..schemas.core import McpTool, ToolCallResult, ToolsPage
+from ..transport.mcp import AsyncMCPTransport, StreamableHttpMCPTransport
 from .base import AsyncStrategy, StrategyCommonMixin
-from .models.dto import (
-    ToolInvokePayloadDTO,
-    ToolInvokeRequestDTO,
-    ToolsListPayloadDTO,
-    ToolsListQuery,
-)
 
 
 class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
@@ -54,16 +52,28 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         self,
         servers: List[ServerConfig],
         *,
-        client: Optional[httpx.AsyncClient] = None,
         ttl_seconds: float = 10.0,
-        sse_client: Optional[httpx.AsyncClient] = None,
+        mcp_transport: Optional[AsyncMCPTransport] = None,
     ) -> None:
         self._servers: List[ServerConfig] = list(servers)
-        self._http = client or httpx.AsyncClient(timeout=10.0, follow_redirects=True)
         self._logger = logging.getLogger(__name__)
         self._ttl = ttl_seconds
         self._tools_cache: Dict[str, Tuple[List[McpTool], float]] = {}
-        self._sse_client = sse_client
+        self._mcp_transport = mcp_transport or StreamableHttpMCPTransport()
+
+    @asynccontextmanager
+    async def _open_session(self, server_id: str) -> AsyncIterator[ClientSession]:
+        """Open a short-lived MCP ClientSession for the given server.
+
+        This helper uses the official `mcp` streamable HTTP client to establish
+        a bidirectional MCP connection to the configured endpoint. A new
+        session is created per call, comparable in cost to the previous
+        per-call HTTP usage, and keeps the strategy stateless.
+        """
+        cfg = self._get_server(server_id)
+        base = cfg.endpoint_url.rstrip("/")
+        async with self._mcp_transport.session(base) as session:
+            yield session
 
     def _get_server(self, server_id: str) -> ServerConfig:
         """Lookup a configured server by name.
@@ -82,20 +92,7 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
                 return s
         raise ValueError(f"Unknown server_id: {server_id}")
 
-    def _headers(self, cfg: ServerConfig) -> Dict[str, str]:
-        """Build HTTP headers for direct requests.
-
-        Args:
-            cfg: The server configuration providing optional `auth_token`.
-
-        Returns:
-            A dictionary of headers including `Content-Type: application/json` and
-            `Authorization` when an auth token is configured.
-        """
-        headers: Dict[str, str] = {"Content-Type": "application/json"}
-        if cfg.auth_token:
-            headers["Authorization"] = cfg.auth_token
-        return headers
+    # No HTTP headers builder needed; MCP transport handles wire details.
 
     async def list_tools(self, server_id: str) -> List[McpTool]:
         """Return the list of tools for a server.
@@ -119,16 +116,26 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         if cached and cached[1] > now:
             return list(cached[0])
 
-        cfg = self._get_server(server_id)
-        base = cfg.endpoint_url.rstrip("/")
-        self._logger.debug("AsyncDirectMcpStrategy.list_tools: GET %s/tools", base)
-        r = await self._http.get(f"{base}/tools", headers=self._headers(cfg))
-        r.raise_for_status()
-        data = r.json()
-        payload = ToolsListPayloadDTO.model_validate(data)
         tools: List[McpTool] = []
-        for td in payload.tools:
-            tools.append(td.to_mcp_tool(self._infer_arguments, self._is_mutating_tool_name))
+        async with self._open_session(server_id) as session:
+            self._logger.debug(
+                "AsyncDirectMcpStrategy.list_tools: using MCP ClientSession for server_id=%s",
+                server_id,
+            )
+            resp: ListToolsResult = await session.list_tools()
+            for tool in resp.tools or []:
+                name = tool.name
+                description = tool.description
+                input_schema = tool.inputSchema or {}
+                tools.append(
+                    McpTool(
+                        name=name,
+                        description=description,
+                        mutating=self._is_mutating_tool_name(name),
+                        arguments=self._infer_arguments(input_schema),
+                        raw_parameters_schema=input_schema,
+                    )
+                )
         self._tools_cache[server_id] = (tools, now + self._ttl)
         return tools
 
@@ -157,26 +164,27 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
             httpx.TransportError: For transport-level HTTP issues.
             pydantic.ValidationError: If the invocation payload fails validation.
         """
-        cfg = self._get_server(server_id)
-        base = cfg.endpoint_url.rstrip("/")
-        payload = ToolInvokeRequestDTO(parameters=args or {})
-        self._logger.debug(
-            "AsyncDirectMcpStrategy.call_tool: POST %s/a2a/%s/invoke args_keys=%s",
-            base,
-            tool_name,
-            list((args or {}).keys()),
-        )
-        r = await self._http.post(
-            f"{base}/a2a/{tool_name}/invoke",
-            headers=self._headers(cfg),
-            json=payload.model_dump(by_alias=True, mode="json"),
-        )
-        r.raise_for_status()
-        inv = ToolInvokePayloadDTO.model_validate(r.json())
-        result = inv.to_tool_call_result()
-        if result.ok and self._is_mutating_tool_name(tool_name):
+        async with self._open_session(server_id) as session:
+            self._logger.debug(
+                "AsyncDirectMcpStrategy.call_tool: using MCP ClientSession for server_id=%s tool=%s args_keys=%s",
+                server_id,
+                tool_name,
+                list((args or {}).keys()),
+            )
+            res = await session.call_tool(name=tool_name, arguments=args or {})
+            ok = True
+            if isinstance(res, MCPCallToolResult):
+                data: Dict[str, Any] = res.model_dump()
+            elif hasattr(res, "model_dump"):
+                data = res.model_dump()
+            elif isinstance(res, dict):
+                data = res
+            else:
+                data = {"ok": res}
+
+        if self._is_mutating_tool_name(tool_name) and ok:
             self._tools_cache.pop(server_id, None)
-        return result
+        return ToolCallResult(ok=ok, data=data)
 
     async def list_tools_page(
         self,
@@ -187,7 +195,7 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
     ) -> ToolsPage:
         """Return a single page of tools for a server.
 
-        - Query params built via `ToolsListQuery(cursor, limit).to_params()`.
+        - Uses MCP ClientSession.list_tools(cursor, limit) to request a page.
         - Returns a `ToolsPage` with `items` and an optional `next_cursor`.
         - Updates cache only for non-paginated calls (no cursor/limit).
 
@@ -204,164 +212,33 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
             httpx.TransportError: For transport-level HTTP issues.
             pydantic.ValidationError: If the tools payload fails validation.
         """
-        cfg = self._get_server(server_id)
-        base = cfg.endpoint_url.rstrip("/")
-        q = ToolsListQuery(cursor=cursor, limit=limit)
-        params = q.to_params()
-        self._logger.debug("AsyncDirectMcpStrategy.list_tools_page: GET %s/tools params=%s", base, params)
-        r = await self._http.get(f"{base}/tools", headers=self._headers(cfg), params=params or None)
-        r.raise_for_status()
-        data = r.json()
-        payload = ToolsListPayloadDTO.model_validate(data)
         tools: List[McpTool] = []
-        for td in payload.tools:
-            tools.append(td.to_mcp_tool(self._infer_arguments, self._is_mutating_tool_name))
+        next_cursor: Optional[str] = None
+        async with self._open_session(server_id) as session:
+            self._logger.debug(
+                "AsyncDirectMcpStrategy.list_tools_page: using MCP ClientSession for server_id=%s cursor=%s limit=%s",
+                server_id,
+                cursor,
+                limit,
+            )
+            # The MCP client typically supports optional pagination parameters.
+            # If unsupported by the backend, it should return all tools with no next_cursor.
+            resp: ListToolsResult = await session.list_tools(cursor=cursor, limit=limit)
+            for tool in resp.tools or []:
+                name = tool.name
+                description = tool.description
+                input_schema = tool.inputSchema or {}
+                tools.append(
+                    McpTool(
+                        name=name,
+                        description=description,
+                        mutating=self._is_mutating_tool_name(name),
+                        arguments=self._infer_arguments(input_schema),
+                        raw_parameters_schema=input_schema,
+                    )
+                )
+            next_cursor = resp.next_cursor
         if cursor is None and limit is None:
             now = time.monotonic()
             self._tools_cache[server_id] = (tools, now + self._ttl)
-        return ToolsPage(items=tools, next_cursor=payload.next_cursor)
-
-    async def stream_events(
-        self,
-        server_id: str,
-        path: str = "/sse",
-        *,
-        reconnect: bool = False,
-        max_retries: int = 3,
-        backoff_initial: float = 0.5,
-        backoff_factor: float = 2.0,
-        backoff_max: float = 8.0,
-        idle_timeout: Optional[float] = None,
-        max_total_seconds: Optional[float] = None,
-    ) -> AsyncIterator[str]:
-        """Yield raw SSE lines from the server.
-
-        Uses `BasicSseTransport` to connect and handle retries/backoff.
-        Yields lines including blank ones (event boundary markers).
-
-        Args:
-            server_id: The configured `ServerConfig.name` for the server.
-            path: The SSE path relative to the server's endpoint base.
-            reconnect: Whether to reconnect automatically on errors.
-            max_retries: Max reconnection attempts when `reconnect` is True.
-            backoff_initial: Initial backoff delay in seconds.
-            backoff_factor: Exponential backoff factor.
-            backoff_max: Maximum backoff delay in seconds.
-            idle_timeout: Optional idle-timeout for the connection.
-            max_total_seconds: Optional max total streaming time.
-
-        Returns:
-            An async iterator of raw SSE lines (decoded strings).
-
-        Raises:
-            httpx.HTTPStatusError: If initial or subsequent connections fail.
-            httpx.TransportError: For transport-level HTTP issues.
-        """
-        from gearmeshing_ai.info_provider.mcp.transport.sse import BasicSseTransport
-
-        cfg = self._get_server(server_id)
-        base = cfg.endpoint_url.rstrip("/")
-        sse = BasicSseTransport(
-            base,
-            client=self._sse_client,
-            auth_token=cfg.auth_token,
-            include_blank_lines=True,
-            reconnect=reconnect,
-            max_retries=max_retries,
-            backoff_initial=backoff_initial,
-            backoff_factor=backoff_factor,
-            backoff_max=backoff_max,
-            idle_timeout=idle_timeout,
-            max_total_seconds=max_total_seconds,
-        )
-        await sse.connect(path)
-        try:
-            self._logger.debug("AsyncDirectMcpStrategy.stream_events: start server_id=%s path=%s", server_id, path)
-            async for line in sse.aiter():
-                yield line
-        finally:
-            self._logger.debug("AsyncDirectMcpStrategy.stream_events: stop server_id=%s path=%s", server_id, path)
-            await sse.close()
-
-    async def stream_events_parsed(
-        self,
-        server_id: str,
-        path: str = "/sse",
-        *,
-        reconnect: bool = False,
-        max_retries: int = 3,
-        backoff_initial: float = 0.5,
-        backoff_factor: float = 2.0,
-        backoff_max: float = 8.0,
-        idle_timeout: Optional[float] = None,
-        max_total_seconds: Optional[float] = None,
-    ) -> AsyncIterator[Dict[str, Any]]:
-        """Yield parsed SSE events as dicts: `{id, event, data}`.
-
-        - Multiple data lines are joined with `\n`.
-        - Comments (lines starting with `:`) are ignored.
-        - Blank line denotes event boundary.
-
-        Args:
-            server_id: The configured `ServerConfig.name` for the server.
-            path: The SSE path relative to the server's endpoint base.
-            reconnect: Whether to reconnect automatically on errors.
-            max_retries: Max reconnection attempts when `reconnect` is True.
-            backoff_initial: Initial backoff delay in seconds.
-            backoff_factor: Exponential backoff factor.
-            backoff_max: Maximum backoff delay in seconds.
-            idle_timeout: Optional idle-timeout for the connection.
-            max_total_seconds: Optional max total streaming time.
-
-        Returns:
-            An async iterator of parsed SSE event dictionaries.
-
-        Raises:
-            httpx.HTTPStatusError: If initial or subsequent connections fail.
-            httpx.TransportError: For transport-level HTTP issues.
-        """
-        buf_id: Optional[str] = None
-        buf_event: Optional[str] = None
-        buf_data: List[str] = []
-        async for line in self.stream_events(
-            server_id,
-            path,
-            reconnect=reconnect,
-            max_retries=max_retries,
-            backoff_initial=backoff_initial,
-            backoff_factor=backoff_factor,
-            backoff_max=backoff_max,
-            idle_timeout=idle_timeout,
-            max_total_seconds=max_total_seconds,
-        ):
-            if not line.strip():
-                if buf_id is not None or buf_event is not None or buf_data:
-                    yield {
-                        "id": buf_id,
-                        "event": buf_event,
-                        "data": "\n".join(buf_data),
-                    }
-                    buf_id, buf_event, buf_data = None, None, []
-                continue
-            if line.startswith(":"):
-                continue
-            if ":" in line:
-                key, val = line.split(":", 1)
-                val = val.lstrip(" ")
-            else:
-                key, val = line, ""
-            key = key.strip()
-            if key == "id":
-                buf_id = val
-            elif key == "event":
-                buf_event = val
-            elif key == "data":
-                buf_data.append(val)
-            else:
-                pass
-        if buf_id is not None or buf_event is not None or buf_data:
-            yield {
-                "id": buf_id,
-                "event": buf_event,
-                "data": "\n".join(buf_data),
-            }
+        return ToolsPage(items=tools, next_cursor=next_cursor)

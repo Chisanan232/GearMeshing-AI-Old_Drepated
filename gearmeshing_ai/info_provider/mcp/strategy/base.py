@@ -13,11 +13,9 @@ from __future__ import annotations
 
 from typing import (
     Any,
-    AsyncIterator,
     Dict,
     Iterable,
     List,
-    Optional,
     Protocol,
     runtime_checkable,
 )
@@ -180,83 +178,7 @@ class AsyncStrategy(Protocol):
         """
         ...
 
-    # Note: declared as regular def returning AsyncIterator to model async generators per MyPy.
-    # Implementations should use `async def` with `yield` and return AsyncIterator.
-    def stream_events(
-        self,
-        server_id: str,
-        path: str = "/sse",
-        *,
-        reconnect: bool = False,
-        max_retries: int = 3,
-        backoff_initial: float = 0.5,
-        backoff_factor: float = 2.0,
-        backoff_max: float = 8.0,
-        idle_timeout: Optional[float] = None,
-        max_total_seconds: Optional[float] = None,
-    ) -> AsyncIterator[str]:
-        """Yield raw SSE event lines from the server.
-
-        Args:
-            server_id: Identifier of the target server.
-            path: Relative SSE endpoint path (default: "/sse").
-            reconnect: Whether to automatically reconnect on disconnect.
-            max_retries: Maximum reconnect attempts when `reconnect` is True.
-            backoff_initial: Initial backoff delay in seconds.
-            backoff_factor: Multiplicative factor applied to backoff delay.
-            backoff_max: Maximum backoff delay in seconds.
-            idle_timeout: Optional inactivity timeout for the stream.
-            max_total_seconds: Optional maximum total streaming duration.
-
-        Returns:
-            AsyncIterator[str]: An async iterator of raw text lines as received
-            from the server (including comment/blank lines if applicable).
-
-        Raises:
-            Exception: Implementations may raise transport or parsing errors.
-
-        Examples:
-            >>> async for line in strategy.stream_events("server-1", reconnect=True, max_retries=5):
-            ...     print(line)
-        """
-        ...
-
-    # Note: declared as regular def returning AsyncIterator to model async generators per MyPy.
-    # Implementations should use `async def` with `yield` and return AsyncIterator of parsed dict events.
-    def stream_events_parsed(
-        self,
-        server_id: str,
-        path: str = "/sse",
-        *,
-        reconnect: bool = False,
-        max_retries: int = 3,
-        backoff_initial: float = 0.5,
-        backoff_factor: float = 2.0,
-        backoff_max: float = 8.0,
-        idle_timeout: Optional[float] = None,
-        max_total_seconds: Optional[float] = None,
-    ) -> AsyncIterator[Dict[str, Any]]:
-        """Yield parsed SSE events as dictionaries.
-
-        Args:
-            server_id: Identifier of the target server.
-            path: Relative SSE endpoint path (default: "/sse").
-            reconnect: Whether to automatically reconnect on disconnect.
-            max_retries: Maximum reconnect attempts when `reconnect` is True.
-            backoff_initial: Initial backoff delay in seconds.
-            backoff_factor: Multiplicative factor applied to backoff delay.
-            backoff_max: Maximum backoff delay in seconds.
-            idle_timeout: Optional inactivity timeout for the stream.
-            max_total_seconds: Optional maximum total streaming duration.
-
-        Returns:
-            AsyncIterator[Dict[str, Any]]: An async iterator of parsed events
-            as dictionaries (e.g., with keys like "event", "data", etc.).
-
-        Raises:
-            Exception: Implementations may raise transport or parsing errors.
-        """
-        ...
+    # Streaming methods removed; streaming may be provided by dedicated transports/services.
 
 
 class StrategyCommonMixin:

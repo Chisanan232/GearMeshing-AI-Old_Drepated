@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import asyncio
-from typing import Any, AsyncIterator, Dict, Iterable, List
+from typing import Any, Dict, Iterable, List
 
 import pytest
 
@@ -80,6 +79,17 @@ class DummyAsyncStrategy(StrategyCommonMixin):
             "required": ["id"],
         }
 
+    async def list_servers(self) -> List[McpServerRef]:
+        return [
+            McpServerRef(
+                id="s1",
+                display_name="Local Server",
+                kind=ServerKind.DIRECT,
+                transport=TransportType.STREAMABLE_HTTP,
+                endpoint_url="http://mock/mcp/",
+            )
+        ]
+
     async def list_tools(self, server_id: str) -> List[McpTool]:  # noqa: ARG002
         return [
             McpTool(
@@ -93,46 +103,6 @@ class DummyAsyncStrategy(StrategyCommonMixin):
 
     async def call_tool(self, server_id: str, tool_name: str, args: dict[str, Any]) -> ToolCallResult:  # noqa: ARG002
         return ToolCallResult(ok=True, data={"tool": tool_name, "parameters": dict(args)})
-
-    def stream_events(
-        self,
-        server_id: str,  # noqa: ARG002
-        path: str = "/sse",  # noqa: ARG002
-        *,
-        reconnect: bool = False,  # noqa: ARG002
-        max_retries: int = 3,  # noqa: ARG002
-        backoff_initial: float = 0.5,  # noqa: ARG002
-        backoff_factor: float = 2.0,  # noqa: ARG002
-        backoff_max: float = 8.0,  # noqa: ARG002
-        idle_timeout: float | None = None,  # noqa: ARG002
-        max_total_seconds: float | None = None,  # noqa: ARG002
-    ) -> AsyncIterator[str]:
-        async def _gen() -> AsyncIterator[str]:
-            yield "id: 1"
-            await asyncio.sleep(0)
-            yield ""
-            await asyncio.sleep(0)
-            yield "data: done"
-
-        return _gen()
-
-    def stream_events_parsed(
-        self,
-        server_id: str,  # noqa: ARG002
-        path: str = "/sse",  # noqa: ARG002
-        *,
-        reconnect: bool = False,  # noqa: ARG002
-        max_retries: int = 3,  # noqa: ARG002
-        backoff_initial: float = 0.5,  # noqa: ARG002
-        backoff_factor: float = 2.0,  # noqa: ARG002
-        backoff_max: float = 8.0,  # noqa: ARG002
-        idle_timeout: float | None = None,  # noqa: ARG002
-        max_total_seconds: float | None = None,  # noqa: ARG002
-    ) -> AsyncIterator[Dict[str, Any]]:
-        async def _gen() -> AsyncIterator[Dict[str, Any]]:
-            yield {"id": "1", "event": "message", "data": "hello"}
-
-        return _gen()
 
 
 # ------------------------------
@@ -181,20 +151,7 @@ async def test_async_strategy_basic_contract() -> None:
     res = await s.call_tool("s1", "get_issue", {"id": "Y"})
     assert isinstance(res, ToolCallResult) and res.ok is True and res.data["parameters"]["id"] == "Y"
 
-    # stream raw
-    lines: List[str] = []
-    async for ln in s.stream_events("s1"):
-        lines.append(ln)
-        if len(lines) >= 3:
-            break
-    assert any(l.startswith("id:") for l in lines)
-
-    # stream parsed
-    events: List[Dict[str, Any]] = []
-    async for evt in s.stream_events_parsed("s1"):
-        events.append(evt)
-        break
-    assert events and events[0]["event"] == "message"
+    # streaming no longer part of AsyncStrategy contract
 
 
 # ------------------------------
