@@ -38,6 +38,7 @@ import logging
 import time
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 import asyncio
+from mcp.types import ListToolsResult, CallToolResult as MCPCallToolResult
 
 from gearmeshing_ai.info_provider.mcp.schemas.config import ServerConfig
 from gearmeshing_ai.info_provider.mcp.schemas.core import (
@@ -130,16 +131,11 @@ class DirectMcpStrategy(StrategyCommonMixin, SyncStrategy):
         async def _work() -> List[McpTool]:
             tools: List[McpTool] = []
             async with self._mcp_transport.session(base) as session:
-                resp = await session.list_tools()
-                for tool in getattr(resp, "tools", []) or []:
-                    name = getattr(tool, "name", None)
-                    if not isinstance(name, str) or not name:
-                        continue
-                    desc_val = getattr(tool, "description", None)
-                    description = desc_val if isinstance(desc_val, str) else None
-                    input_schema = getattr(tool, "input_schema", {}) or {}
-                    if not isinstance(input_schema, dict):
-                        input_schema = {}
+                resp: ListToolsResult = await session.list_tools()
+                for tool in resp.tools or []:
+                    name = tool.name
+                    description = tool.description
+                    input_schema = (tool.input_schema or {})
                     tools.append(
                         McpTool(
                             name=name,
@@ -194,10 +190,13 @@ class DirectMcpStrategy(StrategyCommonMixin, SyncStrategy):
         async def _work() -> Tuple[bool, Dict[str, Any]]:
             async with self._mcp_transport.session(base) as session:
                 res = await session.call_tool(name=tool_name, arguments=args or {})
-                payload = res.model_dump() if hasattr(res, "model_dump") else res
-                if isinstance(payload, dict):
-                    return True, payload
-                return True, {"result": payload}
+                if isinstance(res, MCPCallToolResult):
+                    return True, res.model_dump()
+                if hasattr(res, "model_dump"):
+                    return True, res.model_dump()
+                if isinstance(res, dict):
+                    return True, res
+                return True, {"result": res}
         ok, data = asyncio.run(_work())
         # Invalidate cache if mutating tool and call succeeded
         if self._is_mutating_tool_name(tool_name) and ok:

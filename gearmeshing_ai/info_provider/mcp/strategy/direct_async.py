@@ -27,6 +27,7 @@ import time
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 from mcp import ClientSession
+from mcp.types import ListToolsResult, CallToolResult as MCPCallToolResult
 from ..transport.mcp import AsyncMCPTransport, StreamableHttpMCPTransport
 
 from ..schemas.config import ServerConfig
@@ -122,16 +123,11 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
                 "AsyncDirectMcpStrategy.list_tools: using MCP ClientSession for server_id=%s",
                 server_id,
             )
-            resp = await session.list_tools()
-            for tool in getattr(resp, "tools", []) or []:
-                name = getattr(tool, "name", None)
-                if not isinstance(name, str) or not name:
-                    continue
-                desc_val = getattr(tool, "description", None)
-                description = desc_val if isinstance(desc_val, str) else None
-                input_schema = getattr(tool, "input_schema", {}) or {}
-                if not isinstance(input_schema, dict):
-                    input_schema = {}
+            resp: ListToolsResult = await session.list_tools()
+            for tool in resp.tools or []:
+                name = tool.name
+                description = tool.description
+                input_schema = (tool.input_schema or {})
                 tools.append(
                     McpTool(
                         name=name,
@@ -177,9 +173,15 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
                 list((args or {}).keys()),
             )
             res = await session.call_tool(name=tool_name, arguments=args or {})
-            payload = res.model_dump() if hasattr(res, "model_dump") else res
             ok = True
-            data: Dict[str, Any] = payload if isinstance(payload, dict) else {"result": payload}
+            if isinstance(res, MCPCallToolResult):
+                data: Dict[str, Any] = res.model_dump()
+            elif hasattr(res, "model_dump"):
+                data = res.model_dump()
+            elif isinstance(res, dict):
+                data = res
+            else:
+                data = {"result": res}
 
         if self._is_mutating_tool_name(tool_name) and ok:
             self._tools_cache.pop(server_id, None)
@@ -222,16 +224,11 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
             )
             # The MCP client typically supports optional pagination parameters.
             # If unsupported by the backend, it should return all tools with no next_cursor.
-            resp = await session.list_tools(cursor=cursor, limit=limit)  # type: ignore[call-arg]
-            for tool in getattr(resp, "tools", []) or []:
-                name = getattr(tool, "name", None)
-                if not isinstance(name, str) or not name:
-                    continue
-                desc_val = getattr(tool, "description", None)
-                description = desc_val if isinstance(desc_val, str) else None
-                input_schema = getattr(tool, "input_schema", {}) or {}
-                if not isinstance(input_schema, dict):
-                    input_schema = {}
+            resp: ListToolsResult = await session.list_tools(cursor=cursor, limit=limit)  # type: ignore[call-arg]
+            for tool in resp.tools or []:
+                name = tool.name
+                description = tool.description
+                input_schema = (tool.input_schema or {})
                 tools.append(
                     McpTool(
                         name=name,
@@ -241,7 +238,7 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
                         raw_parameters_schema=input_schema,
                     )
                 )
-            next_cursor = getattr(resp, "next_cursor", None)
+            next_cursor = resp.next_cursor
         if cursor is None and limit is None:
             now = time.monotonic()
             self._tools_cache[server_id] = (tools, now + self._ttl)
