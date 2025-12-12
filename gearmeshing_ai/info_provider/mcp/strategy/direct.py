@@ -196,7 +196,7 @@ class DirectMcpStrategy(StrategyCommonMixin, SyncStrategy):
                     return True, res.model_dump()
                 if isinstance(res, dict):
                     return True, res
-                return True, {"result": res}
+                return True, {"ok": res}
         ok, data = asyncio.run(_work())
         # Invalidate cache if mutating tool and call succeeded
         if self._is_mutating_tool_name(tool_name) and ok:

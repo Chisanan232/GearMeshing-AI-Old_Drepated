@@ -181,7 +181,7 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
             elif isinstance(res, dict):
                 data = res
             else:
-                data = {"result": res}
+                data = {"ok": res}
 
         if self._is_mutating_tool_name(tool_name) and ok:
             self._tools_cache.pop(server_id, None)
