@@ -5,6 +5,8 @@ from typing import Any, Dict, List
 import httpx
 
 from gearmeshing_ai.info_provider.mcp.provider import MCPInfoProvider
+from gearmeshing_ai.info_provider.mcp.gateway_api.client import GatewayApiClient
+from gearmeshing_ai.info_provider.mcp.strategy import DirectMcpStrategy, GatewayMcpStrategy
 from gearmeshing_ai.info_provider.mcp.schemas.config import (
     GatewayConfig,
     McpClientConfig,
@@ -68,12 +70,47 @@ def test_mcp_client_composed_strategies() -> None:
         servers=[ServerConfig(name="direct1", endpoint_url="http://mock/mcp")],
     )
 
-    client = MCPInfoProvider.from_config(
-        cfg,
-        direct_http_client=http_client,
-        gateway_mgmt_client=mgmt_client,
-        gateway_http_client=http_client,
+    # Build Gateway strategy as before
+    gw = GatewayApiClient("http://mock", client=mgmt_client)
+    gw_strategy = GatewayMcpStrategy(gw, client=http_client)
+
+    # Build Direct strategy with a fake MCP transport (no httpx)
+    from contextlib import asynccontextmanager
+
+    class _FakeTool:
+        def __init__(self, name: str, description: str | None, input_schema: Dict[str, Any]) -> None:
+            self.name = name
+            self.description = description
+            self.input_schema = input_schema
+
+    class _FakeListToolsResp:
+        def __init__(self, tools: List[_FakeTool]) -> None:
+            self.tools = tools
+            self.next_cursor = None
+
+    class _FakeSession:
+        async def list_tools(self, cursor: str | None = None, limit: int | None = None):  # noqa: ARG002
+            return _FakeListToolsResp([
+                _FakeTool("d_echo", "Direct Echo", {"type": "object", "properties": {"text": {"type": "string"}}})
+            ])
+
+        async def call_tool(self, name: str, arguments: Dict[str, Any] | None = None):  # noqa: ARG002
+            return {"ok": True, "source": "direct", "echo": True}
+
+    class _FakeMCPTransport:
+        def session(self, endpoint_url: str):  # noqa: ARG002
+            @asynccontextmanager
+            async def _cm():
+                yield _FakeSession()
+
+            return _cm()
+
+    direct_strategy = DirectMcpStrategy(
+        [ServerConfig(name="direct1", endpoint_url="http://mock/mcp")],
+        mcp_transport=_FakeMCPTransport(),
     )
+
+    client = MCPInfoProvider(strategies=[direct_strategy, gw_strategy])
 
     tools_direct = {t.name for t in client.list_tools("direct1")}
     tools_gateway = {t.name for t in client.list_tools("s1")}
