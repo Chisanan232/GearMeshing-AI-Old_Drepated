@@ -22,6 +22,7 @@ from gearmeshing_ai.info_provider.mcp.schemas.config import (
 from gearmeshing_ai.info_provider.mcp.schemas.core import (
     McpTool,
     ToolsPage,
+    ToolCallResult,
 )
 from gearmeshing_ai.info_provider.mcp.strategy import (
     DirectMcpStrategy,
@@ -66,6 +67,66 @@ def _mock_transport(state: dict) -> httpx.MockTransport:
     return httpx.MockTransport(handler)
 
 
+class AsyncDummyBase(AsyncStrategy):
+    """Concrete AsyncStrategy test double with no-op implementations.
+
+    Subclasses can override list_tools and/or list_tools_page without having to
+    reimplement call_tool or streaming helpers, keeping them MyPy-concrete.
+    """
+
+    async def list_tools(self, server_id: str) -> List[McpTool]:  # noqa: ARG002
+        return []
+
+    async def call_tool(
+        self,
+        server_id: str,
+        tool_name: str,
+        args: dict[str, Any],
+    ) -> ToolCallResult:  # noqa: ARG002
+        return ToolCallResult(ok=True, data={}, error=None)
+
+    def stream_events(self, server_id: str, path: str = "/sse", **_: Any) -> AsyncIterator[str]:  # noqa: ARG002
+        async def _gen() -> AsyncIterator[str]:
+            yield "data: ok"
+
+        return _gen()
+
+    def stream_events_parsed(
+        self,
+        server_id: str,
+        path: str = "/sse",
+        **_: Any,
+    ) -> AsyncIterator[Dict[str, Any]]:  # noqa: ARG002
+        async def _gen() -> AsyncIterator[Dict[str, Any]]:
+            yield {"data": "ok"}
+
+        return _gen()
+
+
+class SyncDummyBase(SyncStrategy):
+    """Concrete SyncStrategy test double with no-op implementations.
+
+    Subclasses typically override list_tools or list_tools_page; call_tool
+    simply returns a successful empty ToolCallResult.
+    """
+
+    def list_servers(self) -> Iterable[McpTool]:
+        return []
+
+    def list_tools(self, server_id: str) -> Iterable[McpTool]:  # noqa: ARG002
+        return []
+
+    def call_tool(
+        self,
+        server_id: str,
+        tool_name: str,
+        args: dict[str, Any],
+        *,
+        agent_id: str | None = None,  # noqa: ARG002
+    ) -> ToolCallResult:
+        return ToolCallResult(ok=True, data={}, error=None)
+
+
 class TestAsyncMCPInfoProvider:
 
     @pytest.mark.asyncio
@@ -77,8 +138,8 @@ class TestAsyncMCPInfoProvider:
 
         client = await AsyncMCPInfoProvider.from_config(cfg)
 
-        assert len(client._strategies) == 1  # type: ignore[attr-defined]
-        assert isinstance(client._strategies[0], AsyncDirectMcpStrategy)  # type: ignore[attr-defined]
+        assert len(client._strategies) == 1
+        assert isinstance(client._strategies[0], AsyncDirectMcpStrategy)
 
     @pytest.mark.asyncio
     async def test_from_config_gateway_only_builds_gateway_strategy(self) -> None:
@@ -99,8 +160,8 @@ class TestAsyncMCPInfoProvider:
         )
 
         try:
-            assert len(client._strategies) == 1  # type: ignore[attr-defined]
-            assert isinstance(client._strategies[0], AsyncGatewayMcpStrategy)  # type: ignore[attr-defined]
+            assert len(client._strategies) == 1
+            assert isinstance(client._strategies[0], AsyncGatewayMcpStrategy)
         finally:
             await http_client.aclose()
             await sse_client.aclose()
@@ -126,7 +187,7 @@ class TestAsyncMCPInfoProvider:
         )
 
         try:
-            types = {type(s) for s in client._strategies}  # type: ignore[attr-defined]
+            types = {type(s) for s in client._strategies}
             assert AsyncDirectMcpStrategy in types
             assert AsyncGatewayMcpStrategy in types
         finally:
@@ -216,7 +277,7 @@ class TestAsyncMCPInfoProvider:
 
     @pytest.mark.asyncio
     async def test_list_tools_page_falls_back_when_strategy_has_no_pagination(self) -> None:
-        class DummyAsyncNoPagination(AsyncStrategy):
+        class DummyAsyncNoPagination(AsyncDummyBase):
             async def list_tools(self, server_id: str) -> List[McpTool]:  # noqa: ARG002
                 return [
                     McpTool(
@@ -228,20 +289,6 @@ class TestAsyncMCPInfoProvider:
                     )
                 ]
 
-            def stream_events(self, server_id: str, path: str = "/sse", **_: Any) -> AsyncIterator[str]:  # noqa: ARG002
-                async def _gen() -> AsyncIterator[str]:
-                    yield "data: ok"
-
-                return _gen()
-
-            def stream_events_parsed(
-                self, server_id: str, path: str = "/sse", **_: Any
-            ) -> AsyncIterator[Dict[str, Any]]:  # noqa: ARG002
-                async def _gen() -> AsyncIterator[Dict[str, Any]]:
-                    yield {"data": "ok"}
-
-                return _gen()
-
         client = AsyncMCPInfoProvider(strategies=[DummyAsyncNoPagination()])
 
         page = await client.list_tools_page("s1")
@@ -251,11 +298,11 @@ class TestAsyncMCPInfoProvider:
 
     @pytest.mark.asyncio
     async def test_list_tools_page_uses_native_pagination_when_available(self) -> None:
-        class DummyAsyncWithPagination(AsyncStrategy):
+        class DummyAsyncWithPagination(AsyncDummyBase):
             async def list_tools(self, server_id: str) -> List[McpTool]:  # noqa: ARG002
                 return []
 
-            async def list_tools_page(self, server_id: str, *, cursor: str | None = None, limit: int | None = None) -> ToolsPage:  # type: ignore[override]
+            async def list_tools_page(self, server_id: str, *, cursor: str | None = None, limit: int | None = None) -> ToolsPage:
                 items = [
                     McpTool(
                         name="t2",
@@ -266,20 +313,6 @@ class TestAsyncMCPInfoProvider:
                     )
                 ]
                 return ToolsPage(items=items, next_cursor="next" if cursor is None else None)
-
-            def stream_events(self, server_id: str, path: str = "/sse", **_: Any) -> AsyncIterator[str]:  # noqa: ARG002
-                async def _gen() -> AsyncIterator[str]:
-                    yield "data: ok"
-
-                return _gen()
-
-            def stream_events_parsed(
-                self, server_id: str, path: str = "/sse", **_: Any
-            ) -> AsyncIterator[Dict[str, Any]]:  # noqa: ARG002
-                async def _gen() -> AsyncIterator[Dict[str, Any]]:
-                    yield {"data": "ok"}
-
-                return _gen()
 
         client = AsyncMCPInfoProvider(strategies=[DummyAsyncWithPagination()])
 
@@ -309,11 +342,11 @@ class TestAsyncMCPInfoProvider:
             pass
 
         with pytest.raises(TypeError):
-            AsyncMCPInfoProvider(strategies=[NotAStrategy()])
+            AsyncMCPInfoProvider(strategies=[NotAStrategy()])  # type: ignore[list-item]
 
     @pytest.mark.asyncio
     async def test_list_tools_skips_failing_strategy_and_uses_next(self) -> None:
-        class FailingThenWorking(AsyncStrategy):
+        class FailingThenWorking(AsyncDummyBase):
             def __init__(self, fail: bool) -> None:
                 self._fail = fail
 
@@ -337,7 +370,7 @@ class TestAsyncMCPInfoProvider:
 
     @pytest.mark.asyncio
     async def test_list_tools_page_applies_allowed_tools_and_read_only_policy(self) -> None:
-        class Paginated(AsyncStrategy):
+        class Paginated(AsyncDummyBase):
             async def list_tools(self, server_id: str) -> List[McpTool]:  # noqa: ARG002
                 return []
 
@@ -347,7 +380,7 @@ class TestAsyncMCPInfoProvider:
                 *,
                 cursor: str | None = None,
                 limit: int | None = None,
-            ) -> ToolsPage:  # type: ignore[override]
+            ) -> ToolsPage:
                 items = [
                     McpTool(
                         name="keep",
@@ -385,7 +418,7 @@ class TestAsyncMCPInfoProvider:
 
     @pytest.mark.asyncio
     async def test_list_tools_page_falls_back_when_pagination_strategy_raises(self) -> None:
-        class RaisingPage(AsyncStrategy):
+        class RaisingPage(AsyncDummyBase):
             async def list_tools(self, server_id: str) -> List[McpTool]:  # noqa: ARG002
                 return []
 
@@ -395,10 +428,10 @@ class TestAsyncMCPInfoProvider:
                 *,
                 cursor: str | None = None,
                 limit: int | None = None,
-            ) -> ToolsPage:  # type: ignore[override]
+            ) -> ToolsPage:
                 raise RuntimeError("pagination not available")
 
-        class ListOnly(AsyncStrategy):
+        class ListOnly(AsyncDummyBase):
             async def list_tools(self, server_id: str) -> List[McpTool]:  # noqa: ARG002
                 return [
                     McpTool(
@@ -427,8 +460,8 @@ class TestSyncMCPInfoProvider:
 
         client = MCPInfoProvider.from_config(cfg)
 
-        assert len(client._strategies) == 1  # type: ignore[attr-defined]
-        assert isinstance(client._strategies[0], DirectMcpStrategy)  # type: ignore[attr-defined]
+        assert len(client._strategies) == 1
+        assert isinstance(client._strategies[0], DirectMcpStrategy)
 
     def test_from_config_gateway_only_builds_gateway_strategy(self) -> None:
         cfg = McpClientConfig(
@@ -445,8 +478,8 @@ class TestSyncMCPInfoProvider:
         )
 
         try:
-            assert len(client._strategies) == 1  # type: ignore[attr-defined]
-            assert isinstance(client._strategies[0], GatewayMcpStrategy)  # type: ignore[attr-defined]
+            assert len(client._strategies) == 1
+            assert isinstance(client._strategies[0], GatewayMcpStrategy)
         finally:
             mgmt_client.close()
             http_client.close()
@@ -467,7 +500,7 @@ class TestSyncMCPInfoProvider:
         )
 
         try:
-            types = {type(s) for s in client._strategies}  # type: ignore[attr-defined]
+            types = {type(s) for s in client._strategies}
             assert DirectMcpStrategy in types
             assert GatewayMcpStrategy in types
         finally:
@@ -530,10 +563,7 @@ class TestSyncMCPInfoProvider:
         http_client.close()
 
     def test_list_tools_page_falls_back_when_strategy_has_no_pagination(self) -> None:
-        class DummySyncNoPagination(SyncStrategy):
-            def list_servers(self) -> Iterable[McpTool]:  # type: ignore[override]
-                return []
-
+        class DummySyncNoPagination(SyncDummyBase):
             def list_tools(self, server_id: str) -> Iterable[McpTool]:  # noqa: ARG002
                 return [
                     McpTool(
@@ -553,14 +583,11 @@ class TestSyncMCPInfoProvider:
         assert page.next_cursor is None
 
     def test_list_tools_page_uses_native_pagination_when_available(self) -> None:
-        class DummySyncWithPagination(SyncStrategy):
-            def list_servers(self) -> Iterable[McpTool]:  # type: ignore[override]
-                return []
-
+        class DummySyncWithPagination(SyncDummyBase):
             def list_tools(self, server_id: str) -> Iterable[McpTool]:  # noqa: ARG002
                 return []
 
-            def list_tools_page(self, server_id: str, *, cursor: str | None = None, limit: int | None = None) -> ToolsPage:  # type: ignore[override]
+            def list_tools_page(self, server_id: str, *, cursor: str | None = None, limit: int | None = None) -> ToolsPage:
                 items = [
                     McpTool(
                         name="t2",
@@ -596,15 +623,12 @@ class TestSyncMCPInfoProvider:
             pass
 
         with pytest.raises(TypeError):
-            MCPInfoProvider(strategies=[NotASyncStrategy()])
+            MCPInfoProvider(strategies=[NotASyncStrategy()])  # type: ignore[list-item]
 
     def test_list_tools_skips_failing_strategy_and_uses_next(self) -> None:
-        class FailingThenWorking(SyncStrategy):
+        class FailingThenWorking(SyncDummyBase):
             def __init__(self, fail: bool) -> None:
                 self._fail = fail
-
-            def list_servers(self) -> Iterable[McpTool]:  # type: ignore[override]
-                return []
 
             def list_tools(self, server_id: str) -> Iterable[McpTool]:  # noqa: ARG002
                 if self._fail:
@@ -625,10 +649,7 @@ class TestSyncMCPInfoProvider:
         assert [t.name for t in tools] == ["ok"]
 
     def test_list_tools_page_applies_allowed_tools_and_read_only_policy(self) -> None:
-        class Paginated(SyncStrategy):
-            def list_servers(self) -> Iterable[McpTool]:  # type: ignore[override]
-                return []
-
+        class Paginated(SyncDummyBase):
             def list_tools(self, server_id: str) -> Iterable[McpTool]:  # noqa: ARG002
                 return []
 
@@ -638,7 +659,7 @@ class TestSyncMCPInfoProvider:
                 *,
                 cursor: str | None = None,
                 limit: int | None = None,
-            ) -> ToolsPage:  # type: ignore[override]
+            ) -> ToolsPage:
                 items = [
                     McpTool(
                         name="keep",
@@ -673,10 +694,7 @@ class TestSyncMCPInfoProvider:
             client.list_tools_page("s1", agent_id="agent")
 
     def test_list_tools_page_falls_back_when_pagination_strategy_raises(self) -> None:
-        class RaisingPage(SyncStrategy):
-            def list_servers(self) -> Iterable[McpTool]:  # type: ignore[override]
-                return []
-
+        class RaisingPage(SyncDummyBase):
             def list_tools(self, server_id: str) -> Iterable[McpTool]:  # noqa: ARG002
                 return []
 
@@ -686,13 +704,10 @@ class TestSyncMCPInfoProvider:
                 *,
                 cursor: str | None = None,
                 limit: int | None = None,
-            ) -> ToolsPage:  # type: ignore[override]
+            ) -> ToolsPage:
                 raise RuntimeError("no pagination")
 
-        class ListOnly(SyncStrategy):
-            def list_servers(self) -> Iterable[McpTool]:  # type: ignore[override]
-                return []
-
+        class ListOnly(SyncDummyBase):
             def list_tools(self, server_id: str) -> Iterable[McpTool]:  # noqa: ARG002
                 return [
                     McpTool(
