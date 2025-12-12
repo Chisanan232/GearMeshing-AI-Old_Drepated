@@ -80,6 +80,17 @@ class DummyAsyncStrategy(StrategyCommonMixin):
             "required": ["id"],
         }
 
+    async def list_servers(self) -> List[McpServerRef]:
+        return [
+            McpServerRef(
+                id="s1",
+                display_name="Local Server",
+                kind=ServerKind.DIRECT,
+                transport=TransportType.STREAMABLE_HTTP,
+                endpoint_url="http://mock/mcp/",
+            )
+        ]
+
     async def list_tools(self, server_id: str) -> List[McpTool]:  # noqa: ARG002
         return [
             McpTool(
