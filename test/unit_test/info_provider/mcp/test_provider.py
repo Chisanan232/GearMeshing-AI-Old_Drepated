@@ -5,19 +5,35 @@ from typing import Any, AsyncIterator, Dict, Iterable, List
 import httpx
 import pytest
 
+from gearmeshing_ai.info_provider.mcp.errors import (
+    ServerNotFoundError,
+    ToolAccessDeniedError,
+)
 from gearmeshing_ai.info_provider.mcp.policy import ToolPolicy
-from gearmeshing_ai.info_provider.mcp.provider import AsyncMCPInfoProvider, MCPInfoProvider
+from gearmeshing_ai.info_provider.mcp.provider import (
+    AsyncMCPInfoProvider,
+    MCPInfoProvider,
+)
 from gearmeshing_ai.info_provider.mcp.schemas.config import (
     GatewayConfig,
     McpClientConfig,
     ServerConfig,
 )
-from gearmeshing_ai.info_provider.mcp.schemas.core import McpTool, ToolCallResult, ToolsPage
-from gearmeshing_ai.info_provider.mcp.errors import ServerNotFoundError, ToolAccessDeniedError
-from gearmeshing_ai.info_provider.mcp.strategy.direct_async import AsyncDirectMcpStrategy
-from gearmeshing_ai.info_provider.mcp.strategy.gateway_async import AsyncGatewayMcpStrategy
-from gearmeshing_ai.info_provider.mcp.strategy import DirectMcpStrategy, GatewayMcpStrategy
+from gearmeshing_ai.info_provider.mcp.schemas.core import (
+    McpTool,
+    ToolsPage,
+)
+from gearmeshing_ai.info_provider.mcp.strategy import (
+    DirectMcpStrategy,
+    GatewayMcpStrategy,
+)
 from gearmeshing_ai.info_provider.mcp.strategy.base import AsyncStrategy, SyncStrategy
+from gearmeshing_ai.info_provider.mcp.strategy.direct_async import (
+    AsyncDirectMcpStrategy,
+)
+from gearmeshing_ai.info_provider.mcp.strategy.gateway_async import (
+    AsyncGatewayMcpStrategy,
+)
 
 
 def _mock_transport(state: dict) -> httpx.MockTransport:
@@ -218,7 +234,9 @@ class TestAsyncMCPInfoProvider:
 
                 return _gen()
 
-            def stream_events_parsed(self, server_id: str, path: str = "/sse", **_: Any) -> AsyncIterator[Dict[str, Any]]:  # noqa: ARG002
+            def stream_events_parsed(
+                self, server_id: str, path: str = "/sse", **_: Any
+            ) -> AsyncIterator[Dict[str, Any]]:  # noqa: ARG002
                 async def _gen() -> AsyncIterator[Dict[str, Any]]:
                     yield {"data": "ok"}
 
@@ -255,7 +273,9 @@ class TestAsyncMCPInfoProvider:
 
                 return _gen()
 
-            def stream_events_parsed(self, server_id: str, path: str = "/sse", **_: Any) -> AsyncIterator[Dict[str, Any]]:  # noqa: ARG002
+            def stream_events_parsed(
+                self, server_id: str, path: str = "/sse", **_: Any
+            ) -> AsyncIterator[Dict[str, Any]]:  # noqa: ARG002
                 async def _gen() -> AsyncIterator[Dict[str, Any]]:
                     yield {"data": "ok"}
 
@@ -346,7 +366,9 @@ class TestAsyncMCPInfoProvider:
                 ]
                 return ToolsPage(items=items, next_cursor=None)
 
-        policies = {"agent": ToolPolicy(allowed_servers={"s1"}, allowed_tools={"keep", "drop_mutating"}, read_only=True)}
+        policies = {
+            "agent": ToolPolicy(allowed_servers={"s1"}, allowed_tools={"keep", "drop_mutating"}, read_only=True)
+        }
         client = AsyncMCPInfoProvider(strategies=[Paginated()], agent_policies=policies)
 
         page = await client.list_tools_page("s1", agent_id="agent")
@@ -635,7 +657,9 @@ class TestSyncMCPInfoProvider:
                 ]
                 return ToolsPage(items=items, next_cursor=None)
 
-        policies = {"agent": ToolPolicy(allowed_servers={"s1"}, allowed_tools={"keep", "drop_mutating"}, read_only=True)}
+        policies = {
+            "agent": ToolPolicy(allowed_servers={"s1"}, allowed_tools={"keep", "drop_mutating"}, read_only=True)
+        }
         client = MCPInfoProvider(strategies=[Paginated()], agent_policies=policies)
 
         page = client.list_tools_page("s1", agent_id="agent")

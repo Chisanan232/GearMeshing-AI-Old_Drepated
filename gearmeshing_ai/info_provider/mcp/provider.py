@@ -64,7 +64,7 @@ TestAIAgent(
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Iterable, List, Optional
 
 import httpx
 
@@ -74,11 +74,8 @@ from .gateway_api.client import GatewayApiClient
 from .policy import PolicyMap
 from .schemas.config import McpClientConfig
 from .schemas.core import (
-    McpServerRef,
     McpTool,
-    ServerKind,
     ToolsPage,
-    TransportType,
 )
 from .strategy import DirectMcpStrategy, GatewayMcpStrategy
 from .strategy.base import AsyncStrategy, SyncStrategy, is_mutating_tool_name

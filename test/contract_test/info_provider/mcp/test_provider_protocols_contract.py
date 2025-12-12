@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import asyncio
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import pytest
 
@@ -17,7 +16,6 @@ from gearmeshing_ai.info_provider.mcp.schemas.core import (
     McpTool,
     ServerKind,
     ToolArgument,
-    ToolCallResult,
     ToolsPage,
     TransportType,
 )
@@ -82,6 +80,7 @@ class _DummySyncProvider(ClientCommonMixin):
         agent_id: str | None = None,  # noqa: ARG002
     ) -> ToolsPage:
         return ToolsPage(items=list(self._tools), next_cursor=None)
+
 
 class _DummyAsyncProvider(ClientCommonMixin):
     """Minimal concrete impl satisfying async MCP info-provider contracts."""
