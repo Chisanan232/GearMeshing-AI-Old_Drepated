@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import asyncio
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import pytest
 
@@ -17,14 +16,13 @@ from gearmeshing_ai.info_provider.mcp.schemas.core import (
     McpTool,
     ServerKind,
     ToolArgument,
-    ToolCallResult,
     ToolsPage,
     TransportType,
 )
 
 
 class _DummySyncProvider(ClientCommonMixin):
-    """Minimal concrete impl satisfying MCPInfoProvider for contract testing."""
+    """Minimal concrete impl satisfying MCP info-provider contracts (sync)."""
 
     def __init__(self) -> None:
         self._servers = [
@@ -70,14 +68,6 @@ class _DummySyncProvider(ClientCommonMixin):
     ) -> "_DummySyncProvider":
         return cls()
 
-    # API
-    def get_endpoints(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # noqa: ARG002
-        return list(self._servers)
-
-    # Back-compat name that matches earlier protocol; used elsewhere in tests.
-    def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # noqa: ARG002
-        return self.get_endpoints(agent_id=agent_id)
-
     def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]:  # noqa: ARG002
         return list(self._tools)
 
@@ -91,19 +81,9 @@ class _DummySyncProvider(ClientCommonMixin):
     ) -> ToolsPage:
         return ToolsPage(items=list(self._tools), next_cursor=None)
 
-    def call_tool(
-        self,
-        server_id: str,  # noqa: ARG002
-        tool_name: str,
-        args: dict[str, Any],
-        *,
-        agent_id: str | None = None,  # noqa: ARG002
-    ) -> ToolCallResult:
-        return ToolCallResult(ok=True, data={"tool": tool_name, "parameters": dict(args)})
-
 
 class _DummyAsyncProvider(ClientCommonMixin):
-    """Minimal concrete impl satisfying AsyncMCPInfoProvider for contract testing."""
+    """Minimal concrete impl satisfying async MCP info-provider contracts."""
 
     def __init__(self) -> None:
         self._tools = [
@@ -128,21 +108,6 @@ class _DummyAsyncProvider(ClientCommonMixin):
     ) -> "_DummyAsyncProvider":
         return cls()
 
-    async def get_endpoints(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # noqa: ARG002
-        return [
-            McpServerRef(
-                id="s1",
-                display_name="Local",
-                kind=ServerKind.DIRECT,
-                transport=TransportType.STREAMABLE_HTTP,
-                endpoint_url="http://mock/mcp/",
-            )
-        ]
-
-    # Back-compat alias for older async protocol/tests
-    async def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # noqa: ARG002
-        return await self.get_endpoints(agent_id=agent_id)
-
     async def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]:  # noqa: ARG002
         return list(self._tools)
 
@@ -156,54 +121,7 @@ class _DummyAsyncProvider(ClientCommonMixin):
     ) -> ToolsPage:
         return ToolsPage(items=list(self._tools), next_cursor=None)
 
-    async def call_tool(
-        self,
-        server_id: str,  # noqa: ARG002
-        tool_name: str,
-        args: dict[str, Any],
-        *,
-        agent_id: str | None = None,  # noqa: ARG002
-    ) -> ToolCallResult:
-        return ToolCallResult(ok=True, data={"tool": tool_name, "parameters": dict(args)})
-
-    # Streaming methods (async def returning AsyncIterator per protocol)
-    async def stream_events(
-        self,
-        server_id: str,  # noqa: ARG002
-        path: str = "/sse",  # noqa: ARG002
-        *,
-        reconnect: bool = False,  # noqa: ARG002
-        max_retries: int = 3,  # noqa: ARG002
-        backoff_initial: float = 0.5,  # noqa: ARG002
-        backoff_factor: float = 2.0,  # noqa: ARG002
-        backoff_max: float = 8.0,  # noqa: ARG002
-        idle_timeout: float | None = None,  # noqa: ARG002
-        max_total_seconds: float | None = None,  # noqa: ARG002
-    ) -> AsyncIterator[str]:
-        async def _gen() -> AsyncIterator[str]:
-            yield "id: 1"
-            await asyncio.sleep(0)
-            yield "data: ok"
-
-        return _gen()
-
-    async def stream_events_parsed(
-        self,
-        server_id: str,  # noqa: ARG002
-        path: str = "/sse",  # noqa: ARG002
-        *,
-        reconnect: bool = False,  # noqa: ARG002
-        max_retries: int = 3,  # noqa: ARG002
-        backoff_initial: float = 0.5,  # noqa: ARG002
-        backoff_factor: float = 2.0,  # noqa: ARG002
-        backoff_max: float = 8.0,  # noqa: ARG002
-        idle_timeout: float | None = None,  # noqa: ARG002
-        max_total_seconds: float | None = None,  # noqa: ARG002
-    ) -> AsyncIterator[Dict[str, Any]]:
-        async def _gen() -> AsyncIterator[Dict[str, Any]]:
-            yield {"id": "1", "event": "message", "data": "ok"}
-
-        return _gen()
+    # No call_tool or streaming helpers: async provider is tools-only.
 
 
 # ------------------------------
@@ -229,17 +147,11 @@ async def test_async_provider_runtime_protocol_conformance() -> None:
 
 def test_sync_provider_basic_contract() -> None:
     c = _DummySyncProvider()
-    servers = c.list_servers()
-    assert servers and servers[0].id == "s1"
-
     tools = c.list_tools("s1")
     assert tools and {t.name for t in tools} == {"get_issue", "create_issue"}
 
     page = c.list_tools_page("s1")
     assert isinstance(page, ToolsPage) and page.next_cursor is None and page.items
-
-    result = c.call_tool("s1", "get_issue", {"id": "X"})
-    assert isinstance(result, ToolCallResult) and result.ok and result.data["parameters"]["id"] == "X"
 
 
 @pytest.mark.asyncio
@@ -250,24 +162,6 @@ async def test_async_provider_basic_contract() -> None:
 
     page = await c.list_tools_page("s1")
     assert isinstance(page, ToolsPage) and page.items
-
-    result = await c.call_tool("s1", "get_issue", {"id": "Y"})
-    assert isinstance(result, ToolCallResult) and result.ok and result.data["parameters"]["id"] == "Y"
-
-    # streaming
-    raw: List[str] = []
-    raw_stream = await c.stream_events("s1")
-    async for ln in raw_stream:
-        raw.append(ln)
-        break
-    assert raw and raw[0].startswith("id:")
-
-    parsed: List[Dict[str, Any]] = []
-    parsed_stream = await c.stream_events_parsed("s1")
-    async for evt in parsed_stream:
-        parsed.append(evt)
-        break
-    assert parsed and parsed[0]["event"] == "message"
 
 
 # ------------------------------

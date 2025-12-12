@@ -1,20 +1,22 @@
-"""Synchronous and asynchronous MCP client facade.
+"""Synchronous and asynchronous MCP info provider facades.
 
-For asynchronous MCP client facade, please see `AsyncMcpClient`.
-Provides a high-level async API for listing tools, invoking tools, and
-optionally streaming events using one or more underlying async strategies
-(direct and/or gateway). Applies optional policy enforcement.
+This module defines the concrete sync/async MCP info provider classes that
+implement the :mod:`gearmeshing_ai.info_provider.mcp.base` protocols.
 
-For synchronous MCP client facade, please see `McpClient`.
-Provides a high-level API for listing servers/tools and invoking tools using one
-or more underlying strategies (direct and/or gateway). Applies optional policy
-enforcement (server/tool allow-lists and read-only constraints).
+The providers intentionally expose an **info-only** surface focused on tool
+discovery for already-known servers. Transport details, tool invocation, and
+streaming remain responsibilities of lower-level strategy/client layers.
+
+* :class:`MCPInfoProvider` – sync facade for listing MCP tools (and optional
+  paginated tool metadata) over one or more underlying sync strategies
+  (direct/gateway).
+* :class:`AsyncMCPInfoProvider` – async counterpart for the same listing
+  operations.
 
 Typical usage:
     cfg = McpClientConfig(...)
-    client = McpClient.from_config(cfg)
-    tools = client.list_tools("server-id")
-    res = client.call_tool("server-id", "echo", {"text": "hi"})
+    provider = MCPInfoProvider.from_config(cfg)
+    tools = provider.list_tools("server-id")
 
 Ad an AI agent, in generally, it would initial a MCP connection object with MCP server endpoint, and instantiate the MCP
 connection object to build connection with MCP servers and list all the MCP tools. And would use the MCP tools to set to
@@ -62,23 +64,18 @@ TestAIAgent(
 from __future__ import annotations
 
 import logging
-from typing import Any, AsyncIterator, Dict, Iterable, List, Optional
+from typing import Iterable, List, Optional
 
 import httpx
 
 from .base import BaseAsyncMCPInfoProvider, BaseMCPInfoProvider, ClientCommonMixin
 from .errors import ServerNotFoundError, ToolAccessDeniedError
-from .gateway_api import GatewayApiClient
 from .gateway_api.client import GatewayApiClient
-from .policy import PolicyMap, enforce_policy
+from .policy import PolicyMap
 from .schemas.config import McpClientConfig
 from .schemas.core import (
-    McpServerRef,
     McpTool,
-    ServerKind,
-    ToolCallResult,
     ToolsPage,
-    TransportType,
 )
 from .strategy import DirectMcpStrategy, GatewayMcpStrategy
 from .strategy.base import AsyncStrategy, SyncStrategy, is_mutating_tool_name
@@ -89,10 +86,10 @@ logger = logging.getLogger(__name__)
 
 
 class AsyncMCPInfoProvider(ClientCommonMixin, BaseAsyncMCPInfoProvider):
-    """Async facade for MCP client operations.
+    """Async MCP info provider facade.
 
-    Delegates to one or more `AsyncStrategy` implementations (direct/gateway)
-    and enforces optional access policies.
+    Delegates to one or more :class:`AsyncStrategy` implementations
+    (direct/gateway) and enforces optional access policies.
     """
 
     def __init__(
@@ -117,7 +114,7 @@ class AsyncMCPInfoProvider(ClientCommonMixin, BaseAsyncMCPInfoProvider):
         gateway_http_client: Optional[httpx.AsyncClient] = None,
         gateway_sse_client: Optional[httpx.AsyncClient] = None,
     ) -> "AsyncMCPInfoProvider":
-        """Construct an async client from `McpClientConfig`.
+        """Construct an async info provider from ``McpClientConfig``.
 
         - Enables AsyncDirect strategy when `servers` are configured.
         - Enables AsyncGateway strategy when `gateway` config is present.
@@ -131,7 +128,7 @@ class AsyncMCPInfoProvider(ClientCommonMixin, BaseAsyncMCPInfoProvider):
             gateway_sse_client: Optional async httpx.AsyncClient for Gateway SSE endpoints.
 
         Returns:
-            An initialized `AsyncMcpClient`.
+            An initialized :class:`AsyncMCPInfoProvider`.
         """
         strategies: List[AsyncStrategy] = []
         if config.servers:
@@ -197,60 +194,6 @@ class AsyncMCPInfoProvider(ClientCommonMixin, BaseAsyncMCPInfoProvider):
                 logger.debug("list_tools error from %s: %s", type(strat).__name__, e)
         raise ServerNotFoundError(server_id)
 
-    async def get_endpoints(self, *, agent_id: str | None = None) -> List[McpServerRef]:
-        """Return discovered MCP endpoints across async strategies, honoring policy.
-
-        Aggregates servers from configured async strategies. For Direct strategies,
-        reads configured ServerConfig entries. For Gateway strategies, uses the
-        Gateway management client to list servers.
-        """
-        servers: List[McpServerRef] = []
-        for strat in self._strategies:
-            try:
-                # Direct: introspect configured ServerConfig entries
-                if isinstance(strat, AsyncDirectMcpStrategy):
-                    for sc in getattr(strat, "_servers", []) or []:
-                        servers.append(
-                            McpServerRef(
-                                id=sc.name,
-                                display_name=sc.name,
-                                kind=ServerKind.DIRECT,
-                                transport=TransportType.STREAMABLE_HTTP,
-                                endpoint_url=sc.endpoint_url,
-                                auth_token=sc.auth_token,
-                            )
-                        )
-                # Gateway: use GatewayApiClient to discover servers
-                elif isinstance(strat, AsyncGatewayMcpStrategy):
-                    gw = getattr(strat, "_gateway", None)
-                    if gw is not None:
-                        for srv in gw.list_servers():
-                            servers.append(
-                                McpServerRef(
-                                    id=srv.id,
-                                    display_name=srv.name,
-                                    kind=ServerKind.GATEWAY,
-                                    transport=TransportType.STREAMABLE_HTTP,
-                                    endpoint_url=f"{gw.base_url}/servers/{srv.id}/mcp",
-                                    auth_token=gw.auth_token,
-                                )
-                            )
-            except Exception as e:
-                logger.debug("get_endpoints error from %s: %s", type(strat).__name__, e)
-
-        if agent_id and agent_id in self._policies:
-            policy = self._policies[agent_id]
-            if policy.allowed_servers is not None:
-                servers = [s for s in servers if s.id in policy.allowed_servers]
-
-        return servers
-
-    # Back-compat alias used by existing callers/tests; delegates to get_endpoints.
-    async def list_servers(
-        self, *, agent_id: str | None = None
-    ) -> List[McpServerRef]:  # pragma: no cover - thin wrapper
-        return await self.get_endpoints(agent_id=agent_id)
-
     async def list_tools_page(
         self,
         server_id: str,
@@ -301,158 +244,15 @@ class AsyncMCPInfoProvider(ClientCommonMixin, BaseAsyncMCPInfoProvider):
         tools = await self.list_tools(server_id, agent_id=agent_id)
         return ToolsPage(items=tools, next_cursor=None)
 
-    async def stream_events(
-        self,
-        server_id: str,
-        path: str = "/sse",
-        *,
-        reconnect: bool = False,
-        max_retries: int = 3,
-        backoff_initial: float = 0.5,
-        backoff_factor: float = 2.0,
-        backoff_max: float = 8.0,
-        idle_timeout: Optional[float] = None,
-        max_total_seconds: Optional[float] = None,
-    ) -> AsyncIterator[str]:
-        """Yield raw SSE lines by delegating to the first strategy that supports it.
-
-        Args:
-            server_id: Target server identifier.
-            path: SSE path relative to the server base.
-            reconnect: Whether to reconnect automatically.
-            max_retries: Max reconnection attempts.
-            backoff_initial: Initial backoff in seconds.
-            backoff_factor: Exponential backoff factor.
-            backoff_max: Max backoff in seconds.
-            idle_timeout: Optional idle-timeout for the connection.
-            max_total_seconds: Optional cap on total streaming time.
-
-        Returns:
-            An async iterator of raw SSE lines (decoded strings).
-
-        Raises:
-            ServerNotFoundError: If no strategy is available.
-        """
-        for strat in self._strategies:
-            return strat.stream_events(
-                server_id,
-                path,
-                reconnect=reconnect,
-                max_retries=max_retries,
-                backoff_initial=backoff_initial,
-                backoff_factor=backoff_factor,
-                backoff_max=backoff_max,
-                idle_timeout=idle_timeout,
-                max_total_seconds=max_total_seconds,
-            )
-        raise ServerNotFoundError(server_id)
-
-    async def stream_events_parsed(
-        self,
-        server_id: str,
-        path: str = "/sse",
-        *,
-        reconnect: bool = False,
-        max_retries: int = 3,
-        backoff_initial: float = 0.5,
-        backoff_factor: float = 2.0,
-        backoff_max: float = 8.0,
-        idle_timeout: Optional[float] = None,
-        max_total_seconds: Optional[float] = None,
-    ) -> AsyncIterator[Dict[str, Any]]:
-        """Yield parsed SSE events as dictionaries by delegating to a strategy.
-
-        Args:
-            server_id: Target server identifier.
-            path: SSE path relative to the server base.
-            reconnect: Whether to reconnect automatically.
-            max_retries: Max reconnection attempts.
-            backoff_initial: Initial backoff in seconds.
-            backoff_factor: Exponential backoff factor.
-            backoff_max: Max backoff in seconds.
-            idle_timeout: Optional idle-timeout for the connection.
-            max_total_seconds: Optional cap on total streaming time.
-
-        Returns:
-            An async iterator of parsed event dictionaries.
-
-        Raises:
-            ServerNotFoundError: If no strategy is available.
-        """
-        for strat in self._strategies:
-            return strat.stream_events_parsed(
-                server_id,
-                path,
-                reconnect=reconnect,
-                max_retries=max_retries,
-                backoff_initial=backoff_initial,
-                backoff_factor=backoff_factor,
-                backoff_max=backoff_max,
-                idle_timeout=idle_timeout,
-                max_total_seconds=max_total_seconds,
-            )
-        raise ServerNotFoundError(server_id)
-
-    async def call_tool(
-        self,
-        server_id: str,
-        tool_name: str,
-        args: dict[str, Any],
-        *,
-        agent_id: str | None = None,
-    ) -> ToolCallResult:
-        """Invoke a tool through the first async strategy that succeeds.
-
-        Enforces policy checks (read-only, allow-lists).
-
-        Args:
-            server_id: Target server identifier.
-            tool_name: Tool identifier to invoke.
-            args: Tool arguments.
-            agent_id: Optional agent identifier used for policy enforcement.
-
-        Returns:
-            A `ToolCallResult` describing the outcome.
-
-        Raises:
-            ToolAccessDeniedError: If access is blocked by policy.
-            ServerNotFoundError: If no strategy can serve the server.
-        """
-        enforce_policy(agent_id=agent_id, server_id=server_id, tool_name=tool_name, policies=self._policies)
-        if agent_id and agent_id in self._policies and self._policies[agent_id].read_only:
-            # Prefer metadata from list_tools if available
-            try:
-                listed = {t.name: t for t in await self.list_tools(server_id, agent_id=agent_id)}
-                t = listed.get(tool_name)
-                is_mut = bool(getattr(t, "mutating", False)) if t else is_mutating_tool_name(tool_name)
-            except Exception:
-                is_mut = is_mutating_tool_name(tool_name)
-            if is_mut:
-                raise ToolAccessDeniedError(agent_id, server_id, tool_name)
-        for strat in self._strategies:
-            try:
-                logger.debug(
-                    "AsyncMcpClient.call_tool: strategy=%s server_id=%s tool=%s agent=%s",
-                    type(strat).__name__,
-                    server_id,
-                    tool_name,
-                    agent_id,
-                )
-                return await strat.call_tool(
-                    server_id,
-                    tool_name,
-                    args,
-                )
-            except Exception as e:
-                logger.debug("call_tool error from %s: %s", type(strat).__name__, e)
-        raise ServerNotFoundError(server_id)
+    # Note: AsyncMCPInfoProvider is intentionally *tools-only*; callers should
+    # use lower-level strategies/clients for tool invocation and streaming.
 
 
 class MCPInfoProvider(ClientCommonMixin, BaseMCPInfoProvider):
-    """High-level MCP client facade.
+    """High-level MCP info provider facade.
 
-    Delegates operations to one or more `SyncStrategy` implementations and
-    applies access policies when provided.
+    Delegates operations to one or more :class:`SyncStrategy` implementations
+    and applies access policies when provided.
     """
 
     def __init__(
@@ -478,7 +278,7 @@ class MCPInfoProvider(ClientCommonMixin, BaseMCPInfoProvider):
         gateway_mgmt_client: Optional[httpx.Client] = None,
         gateway_http_client: Optional[httpx.Client] = None,
     ) -> "MCPInfoProvider":
-        """Construct a client from `McpClientConfig`.
+        """Construct a sync info provider from ``McpClientConfig``.
 
         - Enables Direct strategy when `servers` are configured.
         - Enables Gateway strategy when `gateway` config is present.
@@ -492,7 +292,7 @@ class MCPInfoProvider(ClientCommonMixin, BaseMCPInfoProvider):
             gateway_http_client: Optional httpx.Client for Gateway HTTP endpoints.
 
         Returns:
-            An initialized `McpClient`.
+            An initialized :class:`MCPInfoProvider`.
         """
         strategies: List[SyncStrategy] = []
         if config.servers:
@@ -518,42 +318,6 @@ class MCPInfoProvider(ClientCommonMixin, BaseMCPInfoProvider):
                 )
             )
         return cls(strategies=strategies, agent_policies=agent_policies)
-
-    def get_endpoints(self, *, agent_id: str | None = None) -> List[McpServerRef]:
-        """Return discovered MCP endpoints across strategies, honoring policy.
-
-        If `agent_id` is provided and policies are configured, filters servers by
-        the agent's allowed server list (if present).
-
-        Args:
-            agent_id: Optional agent identifier used for policy filtering.
-
-        Returns:
-            A list of `McpServerRef` discovered across strategies after filtering.
-        """
-        servers: List[McpServerRef] = []
-        for strat in self._strategies:
-            try:
-                logger.debug("McpClient.get_endpoints: using %s", type(strat).__name__)
-                servers.extend(list(strat.list_servers()))
-            except Exception as e:
-                logger.debug("get_endpoints error from %s: %s", type(strat).__name__, e)
-        if agent_id and agent_id in self._policies:
-            policy = self._policies[agent_id]
-            before = len(servers)
-            servers = self._filter_servers_by_policy(servers, policy)
-            if before != len(servers):
-                logger.debug(
-                    "McpClient.get_endpoints: policy filtered endpoints for agent=%s from %d to %d",
-                    agent_id,
-                    before,
-                    len(servers),
-                )
-        return servers
-
-    # Back-compat alias used by existing callers/tests; delegates to get_endpoints.
-    def list_servers(self, *, agent_id: str | None = None) -> List[McpServerRef]:  # pragma: no cover - thin wrapper
-        return self.get_endpoints(agent_id=agent_id)
 
     def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]:
         """List tools for a specific server, applying policy filters.
@@ -644,55 +408,5 @@ class MCPInfoProvider(ClientCommonMixin, BaseMCPInfoProvider):
         tools = self.list_tools(server_id, agent_id=agent_id)
         return ToolsPage(items=tools, next_cursor=None)
 
-    def call_tool(
-        self,
-        server_id: str,
-        tool_name: str,
-        args: dict[str, Any],
-        *,
-        agent_id: str | None = None,
-    ) -> ToolCallResult:
-        """Invoke a tool through the first responding strategy.
-
-        Enforces policy (server access, tool allow-list, and read-only).
-
-        Args:
-            server_id: Target server identifier.
-            tool_name: Tool identifier to invoke.
-            args: Tool arguments.
-            agent_id: Optional agent identifier used for policy enforcement.
-
-        Returns:
-            A `ToolCallResult` describing the outcome.
-
-        Raises:
-            ToolAccessDeniedError: If access is blocked by policy.
-            ServerNotFoundError: If no strategy can handle the server.
-        """
-        enforce_policy(agent_id=agent_id, server_id=server_id, tool_name=tool_name, policies=self._policies)
-        if agent_id and agent_id in self._policies:
-            policy = self._policies[agent_id]
-            try:
-                listed = {t.name: t for t in self.list_tools(server_id, agent_id=agent_id)}
-            except Exception:
-                listed = None
-            if self._should_block_read_only(policy, tool_name, listed):
-                raise ToolAccessDeniedError(agent_id, server_id, tool_name)
-        for strat in self._strategies:
-            try:
-                logger.debug(
-                    "McpClient.call_tool: strategy=%s server_id=%s tool=%s agent=%s",
-                    type(strat).__name__,
-                    server_id,
-                    tool_name,
-                    agent_id,
-                )
-                return strat.call_tool(
-                    server_id,
-                    tool_name,
-                    args,
-                    agent_id=agent_id,
-                )
-            except Exception as e:
-                logger.debug("call_tool error from %s: %s", type(strat).__name__, e)
-        raise ServerNotFoundError(server_id)
+    # Note: MCPInfoProvider is intentionally *tools-only*; callers should rely
+    # on lower-level strategies or higher-level clients for invocation.

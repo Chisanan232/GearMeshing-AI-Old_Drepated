@@ -1,11 +1,12 @@
-"""Client protocols and shared helpers for the MCP client facade.
+"""Protocols and shared helpers for the MCP info provider facade.
 
-Defines the sync/async client protocols that concrete clients must satisfy,
-and a `ClientCommonMixin` with helpers for policy-based filtering.
+Defines the sync/async provider protocols that concrete MCP info providers
+must satisfy, and a `ClientCommonMixin` with helpers for policy-based
+filtering.
 
-Usage:
-- `McpClient` and `AsyncMcpClient` implement these protocols.
-- Strategies focus on transport; clients focus on policy and composition.
+Typical usage:
+- `MCPInfoProvider` and `AsyncMCPInfoProvider` implement these protocols.
+- Strategies focus on transport; providers focus on policy and composition.
 """
 
 from __future__ import annotations
@@ -36,14 +37,17 @@ class BaseMCPInfoProvider(Protocol):
     """Protocol for synchronous MCP info providers.
 
     Exposes only read-only MCP metadata needed by AI agents and other
-    consumers:
+    consumers for **known** MCP servers:
 
-    - discovery of MCP endpoints (servers)
-    - listing tools for a given endpoint
+    - listing tools for a given server
     - optional paginated tool listing
 
-    Concrete facades such as `McpClient` should also apply `ToolPolicy`
-    constraints via `ClientCommonMixin` when an `agent_id` is supplied.
+    Endpoint discovery and resolution are handled by lower-level
+    transport/gateway components, not by this protocol.
+
+    Concrete facades such as `MCPInfoProvider` should also apply
+    `ToolPolicy` constraints via `ClientCommonMixin` when an
+    `agent_id` is supplied.
     """
 
     @classmethod
@@ -56,8 +60,6 @@ class BaseMCPInfoProvider(Protocol):
         gateway_mgmt_client: Optional[httpx.Client] = None,
         gateway_http_client: Optional[httpx.Client] = None,
     ) -> Self: ...
-
-    def get_endpoints(self, *, agent_id: str | None = None) -> List[McpServerRef]: ...
 
     def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]: ...
 
@@ -75,10 +77,11 @@ class BaseMCPInfoProvider(Protocol):
 class BaseAsyncMCPInfoProvider(Protocol):
     """Protocol for asynchronous MCP info providers.
 
-    Async counterpart to `MCPInfoProvider`, exposing endpoint and tool
-    discovery APIs only. Concrete facades such as `AsyncMcpClient` may
-    offer additional capabilities (tool invocation, streaming), but those
-    are not part of this minimal info-provider contract.
+    Async counterpart to :class:`BaseMCPInfoProvider`, exposing only
+    read-only tool discovery APIs for known servers. Concrete facades
+    such as :class:`AsyncMCPInfoProvider` may offer additional
+    capabilities (tool invocation, streaming), but those are not part
+    of this minimal info-provider contract.
     """
 
     @classmethod
@@ -91,8 +94,6 @@ class BaseAsyncMCPInfoProvider(Protocol):
         gateway_http_client: Optional[httpx.AsyncClient] = None,
         gateway_sse_client: Optional[httpx.AsyncClient] = None,
     ) -> Self: ...
-
-    async def get_endpoints(self, *, agent_id: str | None = None) -> List[McpServerRef]: ...
 
     async def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]: ...
 
@@ -107,7 +108,7 @@ class BaseAsyncMCPInfoProvider(Protocol):
 
 
 class ClientCommonMixin:
-    """Shared policy helpers for sync/async client facades."""
+    """Shared policy helpers for sync/async MCP info provider facades."""
 
     def _filter_servers_by_policy(
         self,

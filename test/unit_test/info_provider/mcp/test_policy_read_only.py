@@ -3,9 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 import httpx
-import pytest
 
-from gearmeshing_ai.info_provider.mcp.errors import ToolAccessDeniedError
 from gearmeshing_ai.info_provider.mcp.policy import ToolPolicy
 from gearmeshing_ai.info_provider.mcp.provider import MCPInfoProvider
 from gearmeshing_ai.info_provider.mcp.schemas.config import (
@@ -46,14 +44,6 @@ def test_read_only_policy_filters_and_blocks_mutations() -> None:
         direct_http_client=http_client,
     )
 
-    # List tools should only return non-mutating tool
+    # List tools should only return non-mutating tool when read_only is set
     tools = client.list_tools("direct1", agent_id="agent")
     assert [t.name for t in tools] == ["get_issue"]
-
-    # Calling mutating tool should be denied
-    with pytest.raises(ToolAccessDeniedError):
-        client.call_tool("direct1", "create_issue", {}, agent_id="agent")
-
-    # Calling non-mutating tool should pass
-    res = client.call_tool("direct1", "get_issue", {}, agent_id="agent")
-    assert res.ok is True and res.data.get("issue", {}).get("id") == 1
