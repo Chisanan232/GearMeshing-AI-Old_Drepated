@@ -26,19 +26,13 @@ import logging
 import time
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
-
 from mcp import ClientSession
 from ..transport.mcp import AsyncMCPTransport, StreamableHttpMCPTransport
 
 from ..schemas.config import ServerConfig
 from ..schemas.core import McpTool, ToolCallResult, ToolsPage
 from .base import AsyncStrategy, StrategyCommonMixin
-from .models.dto import (
-    ToolInvokePayloadDTO,
-    ToolInvokeRequestDTO,
-    ToolsListPayloadDTO,
-    ToolsListQuery,
-)
+ 
 
 
 class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
@@ -56,17 +50,14 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         self,
         servers: List[ServerConfig],
         *,
-        client: Optional[object] = None,
         ttl_seconds: float = 10.0,
-        sse_client: Optional[object] = None,
         mcp_transport: Optional[AsyncMCPTransport] = None,
     ) -> None:
         self._servers: List[ServerConfig] = list(servers)
         self._logger = logging.getLogger(__name__)
         self._ttl = ttl_seconds
         self._tools_cache: Dict[str, Tuple[List[McpTool], float]] = {}
-        # Deprecated params `client` and `sse_client` are accepted for backward compatibility but unused.
-        self._mcp_transport: AsyncMCPTransport = mcp_transport or StreamableHttpMCPTransport()
+        self._mcp_transport = mcp_transport or StreamableHttpMCPTransport()
 
     @asynccontextmanager
     async def _open_session(self, server_id: str) -> AsyncIterator[ClientSession]:
@@ -81,6 +72,8 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         base = cfg.endpoint_url.rstrip("/")
         async with self._mcp_transport.session(base) as session:
             yield session
+
+
 
     def _get_server(self, server_id: str) -> ServerConfig:
         """Lookup a configured server by name.
@@ -254,146 +247,4 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
             self._tools_cache[server_id] = (tools, now + self._ttl)
         return ToolsPage(items=tools, next_cursor=next_cursor)
 
-    async def stream_events(
-        self,
-        server_id: str,
-        path: str = "/sse",
-        *,
-        reconnect: bool = False,
-        max_retries: int = 3,
-        backoff_initial: float = 0.5,
-        backoff_factor: float = 2.0,
-        backoff_max: float = 8.0,
-        idle_timeout: Optional[float] = None,
-        max_total_seconds: Optional[float] = None,
-    ) -> AsyncIterator[str]:
-        """Yield raw SSE lines from the server.
-
-        Uses `BasicSseTransport` to connect and handle retries/backoff.
-        Yields lines including blank ones (event boundary markers).
-
-        Args:
-            server_id: The configured `ServerConfig.name` for the server.
-            path: The SSE path relative to the server's endpoint base.
-            reconnect: Whether to reconnect automatically on errors.
-            max_retries: Max reconnection attempts when `reconnect` is True.
-            backoff_initial: Initial backoff delay in seconds.
-            backoff_factor: Exponential backoff factor.
-            backoff_max: Maximum backoff delay in seconds.
-            idle_timeout: Optional idle-timeout for the connection.
-            max_total_seconds: Optional max total streaming time.
-
-        Returns:
-            An async iterator of raw SSE lines (decoded strings).
-
-        Raises:
-            httpx.HTTPStatusError: If initial or subsequent connections fail.
-            httpx.TransportError: For transport-level HTTP issues.
-        """
-        from gearmeshing_ai.info_provider.mcp.transport.sse import BasicSseTransport
-
-        cfg = self._get_server(server_id)
-        base = cfg.endpoint_url.rstrip("/")
-        sse = BasicSseTransport(
-            base,
-            auth_token=cfg.auth_token,
-            include_blank_lines=True,
-            reconnect=reconnect,
-            max_retries=max_retries,
-            backoff_initial=backoff_initial,
-            backoff_factor=backoff_factor,
-            backoff_max=backoff_max,
-            idle_timeout=idle_timeout,
-            max_total_seconds=max_total_seconds,
-        )
-        await sse.connect(path)
-        try:
-            self._logger.debug("AsyncDirectMcpStrategy.stream_events: start server_id=%s path=%s", server_id, path)
-            async for line in sse.aiter():
-                yield line
-        finally:
-            self._logger.debug("AsyncDirectMcpStrategy.stream_events: stop server_id=%s path=%s", server_id, path)
-            await sse.close()
-
-    async def stream_events_parsed(
-        self,
-        server_id: str,
-        path: str = "/sse",
-        *,
-        reconnect: bool = False,
-        max_retries: int = 3,
-        backoff_initial: float = 0.5,
-        backoff_factor: float = 2.0,
-        backoff_max: float = 8.0,
-        idle_timeout: Optional[float] = None,
-        max_total_seconds: Optional[float] = None,
-    ) -> AsyncIterator[Dict[str, Any]]:
-        """Yield parsed SSE events as dicts: `{id, event, data}`.
-
-        - Multiple data lines are joined with `\n`.
-        - Comments (lines starting with `:`) are ignored.
-        - Blank line denotes event boundary.
-
-        Args:
-            server_id: The configured `ServerConfig.name` for the server.
-            path: The SSE path relative to the server's endpoint base.
-            reconnect: Whether to reconnect automatically on errors.
-            max_retries: Max reconnection attempts when `reconnect` is True.
-            backoff_initial: Initial backoff delay in seconds.
-            backoff_factor: Exponential backoff factor.
-            backoff_max: Maximum backoff delay in seconds.
-            idle_timeout: Optional idle-timeout for the connection.
-            max_total_seconds: Optional max total streaming time.
-
-        Returns:
-            An async iterator of parsed SSE event dictionaries.
-
-        Raises:
-            httpx.HTTPStatusError: If initial or subsequent connections fail.
-            httpx.TransportError: For transport-level HTTP issues.
-        """
-        buf_id: Optional[str] = None
-        buf_event: Optional[str] = None
-        buf_data: List[str] = []
-        async for line in self.stream_events(
-            server_id,
-            path,
-            reconnect=reconnect,
-            max_retries=max_retries,
-            backoff_initial=backoff_initial,
-            backoff_factor=backoff_factor,
-            backoff_max=backoff_max,
-            idle_timeout=idle_timeout,
-            max_total_seconds=max_total_seconds,
-        ):
-            if not line.strip():
-                if buf_id is not None or buf_event is not None or buf_data:
-                    yield {
-                        "id": buf_id,
-                        "event": buf_event,
-                        "data": "\n".join(buf_data),
-                    }
-                    buf_id, buf_event, buf_data = None, None, []
-                continue
-            if line.startswith(":"):
-                continue
-            if ":" in line:
-                key, val = line.split(":", 1)
-                val = val.lstrip(" ")
-            else:
-                key, val = line, ""
-            key = key.strip()
-            if key == "id":
-                buf_id = val
-            elif key == "event":
-                buf_event = val
-            elif key == "data":
-                buf_data.append(val)
-            else:
-                pass
-        if buf_id is not None or buf_event is not None or buf_data:
-            yield {
-                "id": buf_id,
-                "event": buf_event,
-                "data": "\n".join(buf_data),
-            }
+    

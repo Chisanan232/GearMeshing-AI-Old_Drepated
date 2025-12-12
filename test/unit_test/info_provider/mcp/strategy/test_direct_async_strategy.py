@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import json as _json
 from typing import Any, Dict, List
+from contextlib import asynccontextmanager
 
-import httpx
 import pytest
 
 from gearmeshing_ai.info_provider.mcp.schemas.config import ServerConfig
@@ -12,52 +11,59 @@ from gearmeshing_ai.info_provider.mcp.strategy.direct_async import (
 )
 
 
-def _mock_transport(state: dict) -> httpx.MockTransport:
-    def handler(request: httpx.Request) -> httpx.Response:
-        # Direct server endpoints
-        if request.method == "GET" and request.url.path == "/tools":
-            state["tools_get_count"] = state.get("tools_get_count", 0) + 1
-            assert request.headers.get("Authorization") == state.get("expected_auth")
-            tools: List[Dict[str, Any]] = [
-                {
-                    "name": "echo",
-                    "description": "Echo tool",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {"text": {"type": "string", "description": "Text to echo"}},
-                        "required": ["text"],
-                    },
-                }
-            ]
-            return httpx.Response(200, json=tools)
+class _FakeTool:
+    def __init__(self, name: str, description: str | None, input_schema: Dict[str, Any]) -> None:
+        self.name = name
+        self.description = description
+        self.input_schema = input_schema
 
-        if request.method == "GET" and request.url.path == "/tools" and request.url.params:
-            # pagination branch returns same single page without nextCursor
-            return httpx.Response(200, json=[{"name": "echo", "inputSchema": {"type": "object"}}])
 
-        if request.method == "POST" and request.url.path == "/a2a/echo/invoke":
-            assert request.headers.get("Authorization") == state.get("expected_auth")
-            try:
-                body = _json.loads(request.content.decode("utf-8")) if request.content else {}
-            except Exception:
-                body = {}
-            params = (body or {}).get("parameters") or {}
-            return httpx.Response(200, json={"ok": True, "echo": params.get("text")})
+class _FakeListToolsResp:
+    def __init__(self, tools: List[_FakeTool]) -> None:
+        self.tools = tools
+        self.next_cursor = None
 
-        return httpx.Response(404, json={"error": "not found"})
 
-    return httpx.MockTransport(handler)
+class _FakeSession:
+    def __init__(self, state: dict) -> None:
+        self._state = state
+
+    async def list_tools(self, cursor: str | None = None, limit: int | None = None):  # noqa: ARG002
+        self._state["tools_get_count"] = self._state.get("tools_get_count", 0) + 1
+        tool = _FakeTool(
+            "echo",
+            "Echo tool",
+            {
+                "type": "object",
+                "properties": {"text": {"type": "string", "description": "Text to echo"}},
+                "required": ["text"],
+            },
+        )
+        return _FakeListToolsResp([tool])
+
+    async def call_tool(self, name: str, arguments: Dict[str, Any] | None = None):  # noqa: ARG002
+        args = dict(arguments or {})
+        return {"ok": True, "echo": args.get("text")}
+
+
+class _FakeMCPTransport:
+    def __init__(self, state: dict) -> None:
+        self._state = state
+
+    def session(self, endpoint_url: str):  # noqa: ARG002
+        @asynccontextmanager
+        async def _cm():
+            yield _FakeSession(self._state)
+
+        return _cm()
 
 
 @pytest.mark.asyncio
 async def test_async_direct_strategy_cache_and_auth() -> None:
-    state: dict = {"expected_auth": "Bearer xyz"}
-    transport = _mock_transport(state)
+    state: dict = {}
 
-    http_client = httpx.AsyncClient(transport=transport, base_url="http://mock")
-
-    servers = [ServerConfig(name="s1", endpoint_url="http://mock", auth_token=state["expected_auth"])]
-    strategy = AsyncDirectMcpStrategy(servers, client=http_client, ttl_seconds=60.0)
+    servers = [ServerConfig(name="s1", endpoint_url="http://mock", auth_token=None)]
+    strategy = AsyncDirectMcpStrategy(servers, ttl_seconds=60.0, mcp_transport=_FakeMCPTransport(state))
 
     tools1 = await strategy.list_tools("s1")
     assert len(tools1) == 1 and tools1[0].name == "echo"
@@ -71,18 +77,13 @@ async def test_async_direct_strategy_cache_and_auth() -> None:
     assert res.ok is True
     assert res.data.get("echo") == "hi"
 
-    await http_client.aclose()
-
 
 @pytest.mark.asyncio
 async def test_async_direct_strategy_ttl_zero_no_cache() -> None:
-    state: dict = {"expected_auth": "Bearer xyz"}
-    transport = _mock_transport(state)
+    state: dict = {}
 
-    http_client = httpx.AsyncClient(transport=transport, base_url="http://mock")
-
-    servers = [ServerConfig(name="s1", endpoint_url="http://mock", auth_token=state["expected_auth"])]
-    strategy = AsyncDirectMcpStrategy(servers, client=http_client, ttl_seconds=0.0)
+    servers = [ServerConfig(name="s1", endpoint_url="http://mock", auth_token=None)]
+    strategy = AsyncDirectMcpStrategy(servers, ttl_seconds=0.0, mcp_transport=_FakeMCPTransport(state))
 
     tools1 = await strategy.list_tools("s1")
     assert len(tools1) == 1 and tools1[0].name == "echo"
@@ -91,5 +92,3 @@ async def test_async_direct_strategy_ttl_zero_no_cache() -> None:
     tools2 = await strategy.list_tools("s1")
     assert len(tools2) == 1 and tools2[0].name == "echo"
     assert state.get("tools_get_count", 0) == 2
-
-    await http_client.aclose()
