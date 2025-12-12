@@ -1443,7 +1443,6 @@ contract-test-with-ai-frameworks = [
     { name = "phidata" },
     { name = "pydantic-ai" },
     { name = "semantic-kernel" },
-    { name = "testcontainers" },
 ]
 dev = [
     { name = "coverage" },
@@ -1451,6 +1450,9 @@ dev = [
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "pytest-rerunfailures" },
+]
+e2e-test = [
+    { name = "testcontainers" },
 ]
 pre-commit-ci = [
     { name = "mypy" },
@@ -1482,7 +1484,6 @@ contract-test-with-ai-frameworks = [
     { name = "phidata", specifier = ">=2.7.10,<3.0.0" },
     { name = "pydantic-ai", specifier = ">=1.27.0" },
     { name = "semantic-kernel", specifier = ">=1.35.0" },
-    { name = "testcontainers", specifier = ">=4.7.2" },
 ]
 dev = [
     { name = "coverage", specifier = "~=7.10" },
@@ -1491,6 +1492,7 @@ dev = [
     { name = "pytest-cov", specifier = ">=5.0.0,<8" },
     { name = "pytest-rerunfailures", specifier = "~=16.0" },
 ]
+e2e-test = [{ name = "testcontainers", specifier = ">=4.7.2" }]
 pre-commit-ci = [
     { name = "mypy", specifier = ">=1.2.0,<2" },
     { name = "pre-commit", specifier = ">=3.5.0,<5" },
