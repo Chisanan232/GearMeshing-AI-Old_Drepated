@@ -10,13 +10,13 @@ from gearmeshing_ai.info_provider.mcp.provider import (
     AsyncMCPInfoProvider,
     MCPInfoProvider,
 )
-from gearmeshing_ai.info_provider.mcp.strategy import DirectMcpStrategy
 from gearmeshing_ai.info_provider.mcp.schemas.config import (
     GatewayConfig,
     McpClientConfig,
     ServerConfig,
 )
 from gearmeshing_ai.info_provider.mcp.schemas.core import McpTool
+from gearmeshing_ai.info_provider.mcp.strategy import DirectMcpStrategy
 
 # ------------------------------
 # Mock transports for Direct and Gateway
@@ -746,12 +746,12 @@ class BaseAsyncSuite:
 
 class TestAsyncWithDirect(BaseAsyncSuite):
     async def _make_provider_async(self):
+        # Provide a small fake MCP transport that returns tools without network.
+        from contextlib import asynccontextmanager
+
         from gearmeshing_ai.info_provider.mcp.strategy.direct_async import (
             AsyncDirectMcpStrategy,
         )
-
-        # Provide a small fake MCP transport that returns tools without network.
-        from contextlib import asynccontextmanager
 
         class _FakeTool:
             def __init__(self, name: str, description: str | None, input_schema: dict[str, object]):
@@ -766,9 +766,7 @@ class TestAsyncWithDirect(BaseAsyncSuite):
 
         class _FakeSession:
             async def list_tools(self, cursor: str | None = None, limit: int | None = None):  # noqa: ARG002
-                return _FakeListToolsResp([
-                    _FakeTool("echo", "Echo tool", {"type": "object", "properties": {}})
-                ])
+                return _FakeListToolsResp([_FakeTool("echo", "Echo tool", {"type": "object", "properties": {}})])
 
             async def call_tool(self, name: str, arguments: dict[str, object] | None = None):  # noqa: ARG002
                 return {"ok": True}
@@ -981,9 +979,7 @@ class TestSyncWithDirect(BaseSyncSuite):
 
         class _FakeSession:
             async def list_tools(self, cursor: str | None = None, limit: int | None = None):  # noqa: ARG002
-                return _FakeListToolsResp([
-                    _FakeTool("echo", "Echo tool", {"type": "object", "properties": {}})
-                ])
+                return _FakeListToolsResp([_FakeTool("echo", "Echo tool", {"type": "object", "properties": {}})])
 
             async def call_tool(self, name: str, arguments: Dict[str, Any] | None = None):  # noqa: ARG002
                 return {"ok": True}

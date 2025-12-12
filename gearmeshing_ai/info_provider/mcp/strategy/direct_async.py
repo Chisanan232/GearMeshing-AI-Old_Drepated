@@ -26,14 +26,15 @@ import logging
 import time
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
+
 from mcp import ClientSession
-from mcp.types import ListToolsResult, CallToolResult as MCPCallToolResult
-from ..transport.mcp import AsyncMCPTransport, StreamableHttpMCPTransport
+from mcp.types import CallToolResult as MCPCallToolResult
+from mcp.types import ListToolsResult
 
 from ..schemas.config import ServerConfig
 from ..schemas.core import McpTool, ToolCallResult, ToolsPage
+from ..transport.mcp import AsyncMCPTransport, StreamableHttpMCPTransport
 from .base import AsyncStrategy, StrategyCommonMixin
- 
 
 
 class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
@@ -73,8 +74,6 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         base = cfg.endpoint_url.rstrip("/")
         async with self._mcp_transport.session(base) as session:
             yield session
-
-
 
     def _get_server(self, server_id: str) -> ServerConfig:
         """Lookup a configured server by name.
@@ -127,7 +126,7 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
             for tool in resp.tools or []:
                 name = tool.name
                 description = tool.description
-                input_schema = (tool.inputSchema or {})
+                input_schema = tool.inputSchema or {}
                 tools.append(
                     McpTool(
                         name=name,
@@ -228,7 +227,7 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
             for tool in resp.tools or []:
                 name = tool.name
                 description = tool.description
-                input_schema = (tool.inputSchema or {})
+                input_schema = tool.inputSchema or {}
                 tools.append(
                     McpTool(
                         name=name,
@@ -243,5 +242,3 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
             now = time.monotonic()
             self._tools_cache[server_id] = (tools, now + self._ttl)
         return ToolsPage(items=tools, next_cursor=next_cursor)
-
-    

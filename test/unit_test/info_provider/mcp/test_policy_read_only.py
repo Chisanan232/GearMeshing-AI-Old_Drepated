@@ -27,10 +27,12 @@ def _fake_mcp_transport_for_readonly():
 
     class _FakeSession:
         async def list_tools(self, cursor: str | None = None, limit: int | None = None):  # noqa: ARG002
-            return _FakeListToolsResp([
-                _FakeTool("create_issue", "Create", {"type": "object"}),
-                _FakeTool("get_issue", "Read", {"type": "object"}),
-            ])
+            return _FakeListToolsResp(
+                [
+                    _FakeTool("create_issue", "Create", {"type": "object"}),
+                    _FakeTool("get_issue", "Read", {"type": "object"}),
+                ]
+            )
 
         async def call_tool(self, name: str, arguments: Dict[str, Any] | None = None):  # noqa: ARG002
             return {"ok": True}

@@ -4,13 +4,16 @@ from typing import Any, Dict, List
 
 import httpx
 
-from gearmeshing_ai.info_provider.mcp.provider import MCPInfoProvider
 from gearmeshing_ai.info_provider.mcp.gateway_api.client import GatewayApiClient
-from gearmeshing_ai.info_provider.mcp.strategy import DirectMcpStrategy, GatewayMcpStrategy
+from gearmeshing_ai.info_provider.mcp.provider import MCPInfoProvider
 from gearmeshing_ai.info_provider.mcp.schemas.config import (
     GatewayConfig,
     McpClientConfig,
     ServerConfig,
+)
+from gearmeshing_ai.info_provider.mcp.strategy import (
+    DirectMcpStrategy,
+    GatewayMcpStrategy,
 )
 
 
@@ -90,9 +93,9 @@ def test_mcp_client_composed_strategies() -> None:
 
     class _FakeSession:
         async def list_tools(self, cursor: str | None = None, limit: int | None = None):  # noqa: ARG002
-            return _FakeListToolsResp([
-                _FakeTool("d_echo", "Direct Echo", {"type": "object", "properties": {"text": {"type": "string"}}})
-            ])
+            return _FakeListToolsResp(
+                [_FakeTool("d_echo", "Direct Echo", {"type": "object", "properties": {"text": {"type": "string"}}})]
+            )
 
         async def call_tool(self, name: str, arguments: Dict[str, Any] | None = None):  # noqa: ARG002
             return {"ok": True, "source": "direct", "echo": True}

@@ -34,11 +34,13 @@ Guidelines:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from typing import Any, Dict, Iterable, List, Optional, Tuple
-import asyncio
-from mcp.types import ListToolsResult, CallToolResult as MCPCallToolResult
+
+from mcp.types import CallToolResult as MCPCallToolResult
+from mcp.types import ListToolsResult
 
 from gearmeshing_ai.info_provider.mcp.schemas.config import ServerConfig
 from gearmeshing_ai.info_provider.mcp.schemas.core import (
@@ -49,8 +51,8 @@ from gearmeshing_ai.info_provider.mcp.schemas.core import (
     TransportType,
 )
 
-from .base import StrategyCommonMixin, SyncStrategy
 from ..transport.mcp import AsyncMCPTransport, StreamableHttpMCPTransport
+from .base import StrategyCommonMixin, SyncStrategy
 
 
 class DirectMcpStrategy(StrategyCommonMixin, SyncStrategy):
@@ -128,6 +130,7 @@ class DirectMcpStrategy(StrategyCommonMixin, SyncStrategy):
         cfg = self._get_server(server_id)
         base = cfg.endpoint_url.rstrip("/")
         self._logger.debug("DirectMcpStrategy.list_tools: MCP list_tools base=%s", base)
+
         async def _work() -> List[McpTool]:
             tools: List[McpTool] = []
             async with self._mcp_transport.session(base) as session:
@@ -135,7 +138,7 @@ class DirectMcpStrategy(StrategyCommonMixin, SyncStrategy):
                 for tool in resp.tools or []:
                     name = tool.name
                     description = tool.description
-                    input_schema = (tool.inputSchema or {})
+                    input_schema = tool.inputSchema or {}
                     tools.append(
                         McpTool(
                             name=name,
@@ -146,6 +149,7 @@ class DirectMcpStrategy(StrategyCommonMixin, SyncStrategy):
                         )
                     )
             return tools
+
         tools = asyncio.run(_work())
         # update cache
         self._tools_cache[server_id] = (tools, now + self._ttl)
@@ -187,6 +191,7 @@ class DirectMcpStrategy(StrategyCommonMixin, SyncStrategy):
             tool_name,
             list((args or {}).keys()),
         )
+
         async def _work() -> Tuple[bool, Dict[str, Any]]:
             async with self._mcp_transport.session(base) as session:
                 res = await session.call_tool(name=tool_name, arguments=args or {})
@@ -197,6 +202,7 @@ class DirectMcpStrategy(StrategyCommonMixin, SyncStrategy):
                 if isinstance(res, dict):
                     return True, res
                 return True, {"ok": res}
+
         ok, data = asyncio.run(_work())
         # Invalidate cache if mutating tool and call succeeded
         if self._is_mutating_tool_name(tool_name) and ok:

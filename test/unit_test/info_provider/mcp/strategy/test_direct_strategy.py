@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
-import pytest
-
 from contextlib import asynccontextmanager
+from typing import Any, Dict, List
+
+import pytest
 
 from gearmeshing_ai.info_provider.mcp.schemas.config import ServerConfig
 from gearmeshing_ai.info_provider.mcp.strategy.direct import DirectMcpStrategy
@@ -24,17 +24,19 @@ class _FakeListToolsResp:
 
 class _FakeSession:
     async def list_tools(self, cursor: str | None = None, limit: int | None = None):  # noqa: ARG002
-        return _FakeListToolsResp([
-            _FakeTool(
-                "echo",
-                "Echo tool",
-                {
-                    "type": "object",
-                    "properties": {"text": {"type": "string", "description": "Text to echo"}},
-                    "required": ["text"],
-                },
-            )
-        ])
+        return _FakeListToolsResp(
+            [
+                _FakeTool(
+                    "echo",
+                    "Echo tool",
+                    {
+                        "type": "object",
+                        "properties": {"text": {"type": "string", "description": "Text to echo"}},
+                        "required": ["text"],
+                    },
+                )
+            ]
+        )
 
     async def call_tool(self, name: str, arguments: Dict[str, Any] | None = None):  # noqa: ARG002
         args = dict(arguments or {})
@@ -79,9 +81,7 @@ def test_direct_strategy_cache_feature() -> None:
 
         async def list_tools(self, cursor: str | None = None, limit: int | None = None):  # noqa: ARG002
             self._state["calls"] = self._state.get("calls", 0) + 1
-            return _FakeListToolsResp([
-                _FakeTool("echo", "Echo tool", {"type": "object"})
-            ])
+            return _FakeListToolsResp([_FakeTool("echo", "Echo tool", {"type": "object"})])
 
         async def call_tool(self, name: str, arguments: Dict[str, Any] | None = None):  # noqa: ARG002
             return {"ok": True}
@@ -98,7 +98,9 @@ def test_direct_strategy_cache_feature() -> None:
             return _cm()
 
     state: dict = {}
-    strategy = DirectMcpStrategy([ServerConfig(name="s1", endpoint_url="http://mock")], mcp_transport=_CountingTransport(state))
+    strategy = DirectMcpStrategy(
+        [ServerConfig(name="s1", endpoint_url="http://mock")], mcp_transport=_CountingTransport(state)
+    )
     # First list populates cache
     tools1 = list(strategy.list_tools("s1"))
     assert [t.name for t in tools1] == ["echo"]
@@ -115,6 +117,7 @@ def test_direct_strategy_cache_feature() -> None:
 )
 def test_direct_strategy_call_tool_result_variants(monkeypatch: pytest.MonkeyPatch, variant: str) -> None:
     from contextlib import asynccontextmanager
+
     from gearmeshing_ai.info_provider.mcp.strategy import direct as d_mod
 
     class _Typed:
@@ -149,7 +152,9 @@ def test_direct_strategy_call_tool_result_variants(monkeypatch: pytest.MonkeyPat
 
             return _cm()
 
-    strategy = DirectMcpStrategy([ServerConfig(name="s1", endpoint_url="http://mock")], mcp_transport=_VaryingTransport())
+    strategy = DirectMcpStrategy(
+        [ServerConfig(name="s1", endpoint_url="http://mock")], mcp_transport=_VaryingTransport()
+    )
     res = strategy.call_tool("s1", "echo", {})
     assert res.ok is True
     assert isinstance(res.data, dict)
@@ -158,7 +163,9 @@ def test_direct_strategy_call_tool_result_variants(monkeypatch: pytest.MonkeyPat
 
 def test_direct_strategy_mutating_call_invalidates_cache() -> None:
     # Prime cache
-    strategy = DirectMcpStrategy([ServerConfig(name="s1", endpoint_url="http://mock")], mcp_transport=_FakeMCPTransport())
+    strategy = DirectMcpStrategy(
+        [ServerConfig(name="s1", endpoint_url="http://mock")], mcp_transport=_FakeMCPTransport()
+    )
     list(strategy.list_tools("s1"))
     assert "s1" in strategy._tools_cache
     # Mutating call should clear cache

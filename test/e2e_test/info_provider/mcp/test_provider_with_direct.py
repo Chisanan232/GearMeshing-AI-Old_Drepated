@@ -2,8 +2,14 @@ from __future__ import annotations
 
 import pytest
 
-from gearmeshing_ai.info_provider.mcp.schemas.config import ServerConfig, McpClientConfig
-from gearmeshing_ai.info_provider.mcp.provider import MCPInfoProvider, AsyncMCPInfoProvider
+from gearmeshing_ai.info_provider.mcp.provider import (
+    AsyncMCPInfoProvider,
+    MCPInfoProvider,
+)
+from gearmeshing_ai.info_provider.mcp.schemas.config import (
+    McpClientConfig,
+    ServerConfig,
+)
 
 
 @pytest.mark.e2e

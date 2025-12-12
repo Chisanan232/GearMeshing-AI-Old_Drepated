@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
 from contextlib import asynccontextmanager
+from typing import Any, Dict, List
 
 import pytest
 
 from gearmeshing_ai.info_provider.mcp.schemas.config import ServerConfig
-from gearmeshing_ai.info_provider.mcp.strategy.direct_async import AsyncDirectMcpStrategy
+from gearmeshing_ai.info_provider.mcp.strategy.direct_async import (
+    AsyncDirectMcpStrategy,
+)
 
 
 class _FakeTool:
@@ -25,14 +27,20 @@ class _FakeListToolsResp:
 class _FakeSession:
     async def list_tools(self, cursor: str | None = None, limit: int | None = None):  # noqa: ARG002
         if cursor is None:
-            return _FakeListToolsResp([
-                _FakeTool("t1", "one", {"type": "object"}),
-                _FakeTool("t2", "two", {"type": "object"}),
-            ], next_cursor="cursor-2")
+            return _FakeListToolsResp(
+                [
+                    _FakeTool("t1", "one", {"type": "object"}),
+                    _FakeTool("t2", "two", {"type": "object"}),
+                ],
+                next_cursor="cursor-2",
+            )
         if cursor == "cursor-2":
-            return _FakeListToolsResp([
-                _FakeTool("t3", "three", {"type": "object"}),
-            ], next_cursor=None)
+            return _FakeListToolsResp(
+                [
+                    _FakeTool("t3", "three", {"type": "object"}),
+                ],
+                next_cursor=None,
+            )
         return _FakeListToolsResp([], next_cursor=None)
 
 
@@ -41,6 +49,7 @@ class _FakeMCPTransport:
         @asynccontextmanager
         async def _cm():
             yield _FakeSession()
+
         return _cm()
 
 

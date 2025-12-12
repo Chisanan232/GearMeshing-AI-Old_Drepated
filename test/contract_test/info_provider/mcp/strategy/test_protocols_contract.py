@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from typing import Any, Dict, Iterable, List
 
 import pytest
@@ -104,7 +103,6 @@ class DummyAsyncStrategy(StrategyCommonMixin):
 
     async def call_tool(self, server_id: str, tool_name: str, args: dict[str, Any]) -> ToolCallResult:  # noqa: ARG002
         return ToolCallResult(ok=True, data={"tool": tool_name, "parameters": dict(args)})
-
 
 
 # ------------------------------

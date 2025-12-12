@@ -13,11 +13,9 @@ from __future__ import annotations
 
 from typing import (
     Any,
-    AsyncIterator,
     Dict,
     Iterable,
     List,
-    Optional,
     Protocol,
     runtime_checkable,
 )

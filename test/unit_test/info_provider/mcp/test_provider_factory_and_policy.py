@@ -30,18 +30,20 @@ def _fake_mcp_transport_for_factory():
 
     class _FakeSession:
         async def list_tools(self, cursor: str | None = None, limit: int | None = None):  # noqa: ARG002
-            return _FakeListToolsResp([
-                _FakeTool(
-                    "echo",
-                    "Echo tool",
-                    {
-                        "type": "object",
-                        "properties": {"text": {"type": "string", "description": "Text to echo"}},
-                        "required": ["text"],
-                    },
-                ),
-                _FakeTool("other", "Another tool", {"type": "object", "properties": {}}),
-            ])
+            return _FakeListToolsResp(
+                [
+                    _FakeTool(
+                        "echo",
+                        "Echo tool",
+                        {
+                            "type": "object",
+                            "properties": {"text": {"type": "string", "description": "Text to echo"}},
+                            "required": ["text"],
+                        },
+                    ),
+                    _FakeTool("other", "Another tool", {"type": "object", "properties": {}}),
+                ]
+            )
 
         async def call_tool(self, name: str, arguments: Dict[str, Any] | None = None):  # noqa: ARG002
             return {"ok": True, "result": "ok"}

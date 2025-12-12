@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
 from contextlib import asynccontextmanager
+from typing import Any, Dict, List
 
 import pytest
 
@@ -151,7 +151,9 @@ async def test_async_direct_strategy_call_tool_result_variants(monkeypatch: pyte
 
             return _cm()
 
-    strat = AsyncDirectMcpStrategy([ServerConfig(name="s1", endpoint_url="http://mock")], mcp_transport=_VaryingTransport())
+    strat = AsyncDirectMcpStrategy(
+        [ServerConfig(name="s1", endpoint_url="http://mock")], mcp_transport=_VaryingTransport()
+    )
     res = await strat.call_tool("s1", "echo", {})
     assert res.ok is True
     assert isinstance(res.data, dict)
@@ -162,7 +164,9 @@ async def test_async_direct_strategy_call_tool_result_variants(monkeypatch: pyte
 async def test_async_direct_strategy_mutating_call_invalidates_cache() -> None:
     # Setup strategy and prime the cache
     state: dict = {}
-    strat = AsyncDirectMcpStrategy([ServerConfig(name="s1", endpoint_url="http://mock")], mcp_transport=_FakeMCPTransport(state))
+    strat = AsyncDirectMcpStrategy(
+        [ServerConfig(name="s1", endpoint_url="http://mock")], mcp_transport=_FakeMCPTransport(state)
+    )
     await strat.list_tools("s1")
     assert "s1" in strat._tools_cache
     # Mutating tool name should invalidate cache on success
@@ -198,7 +202,9 @@ async def test_async_direct_strategy_pagination_and_cache_behavior() -> None:
             return _cm()
 
     state: dict = {}
-    strat = AsyncDirectMcpStrategy([ServerConfig(name="s1", endpoint_url="http://mock")], mcp_transport=_PageTransport(state))
+    strat = AsyncDirectMcpStrategy(
+        [ServerConfig(name="s1", endpoint_url="http://mock")], mcp_transport=_PageTransport(state)
+    )
 
     # First page (no cursor/limit) should update cache
     page1 = await strat.list_tools_page("s1")
