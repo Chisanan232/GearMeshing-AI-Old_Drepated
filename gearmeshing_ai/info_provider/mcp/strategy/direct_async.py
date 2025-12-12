@@ -228,7 +228,7 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
             for tool in resp.tools or []:
                 name = tool.name
                 description = tool.description
-                input_schema = (tool.input_schema or {})
+                input_schema = (tool.inputSchema or {})
                 tools.append(
                     McpTool(
                         name=name,

@@ -18,7 +18,7 @@ def _fake_mcp_transport_for_readonly():
         def __init__(self, name: str, description: str | None, input_schema: Dict[str, Any]) -> None:
             self.name = name
             self.description = description
-            self.input_schema = input_schema
+            self.inputSchema = input_schema
 
     class _FakeListToolsResp:
         def __init__(self, tools: List[_FakeTool]) -> None:

@@ -757,7 +757,7 @@ class TestAsyncWithDirect(BaseAsyncSuite):
             def __init__(self, name: str, description: str | None, input_schema: dict[str, object]):
                 self.name = name
                 self.description = description
-                self.input_schema = input_schema
+                self.inputSchema = input_schema
 
         class _FakeListToolsResp:
             def __init__(self, tools):
@@ -972,7 +972,7 @@ class TestSyncWithDirect(BaseSyncSuite):
             def __init__(self, name: str, description: str | None, input_schema: Dict[str, Any]) -> None:
                 self.name = name
                 self.description = description
-                self.input_schema = input_schema
+                self.inputSchema = input_schema
 
         class _FakeListToolsResp:
             def __init__(self, tools: List[_FakeTool]) -> None:
