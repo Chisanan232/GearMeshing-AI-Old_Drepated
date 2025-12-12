@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, AsyncIterator, Dict, Iterable, List
 
 import httpx
 import pytest
@@ -12,9 +12,12 @@ from gearmeshing_ai.info_provider.mcp.schemas.config import (
     McpClientConfig,
     ServerConfig,
 )
+from gearmeshing_ai.info_provider.mcp.schemas.core import McpTool, ToolCallResult, ToolsPage
+from gearmeshing_ai.info_provider.mcp.errors import ServerNotFoundError
 from gearmeshing_ai.info_provider.mcp.strategy.direct_async import AsyncDirectMcpStrategy
 from gearmeshing_ai.info_provider.mcp.strategy.gateway_async import AsyncGatewayMcpStrategy
 from gearmeshing_ai.info_provider.mcp.strategy import DirectMcpStrategy, GatewayMcpStrategy
+from gearmeshing_ai.info_provider.mcp.strategy.base import AsyncStrategy, SyncStrategy
 
 
 def _mock_transport(state: dict) -> httpx.MockTransport:
@@ -179,6 +182,134 @@ class TestAsyncMCPInfoProvider:
 
         await http_client.aclose()
 
+    @pytest.mark.asyncio
+    async def test_list_tools_page_falls_back_when_strategy_has_no_pagination(self) -> None:
+        class DummyAsyncNoPagination(AsyncStrategy):
+            async def list_tools(self, server_id: str) -> List[McpTool]:  # noqa: ARG002
+                return [
+                    McpTool(
+                        name="t1",
+                        description="",
+                        mutating=False,
+                        arguments=[],
+                        raw_parameters_schema={},
+                    )
+                ]
+
+            async def call_tool(self, server_id: str, tool_name: str, args: dict[str, Any]) -> ToolCallResult:  # noqa: ARG002
+                return ToolCallResult(ok=True, data={"called": tool_name, "args": args})
+
+            def stream_events(self, server_id: str, path: str = "/sse", **_: Any) -> AsyncIterator[str]:  # noqa: ARG002
+                async def _gen() -> AsyncIterator[str]:
+                    yield "data: ok"
+
+                return _gen()
+
+            def stream_events_parsed(self, server_id: str, path: str = "/sse", **_: Any) -> AsyncIterator[Dict[str, Any]]:  # noqa: ARG002
+                async def _gen() -> AsyncIterator[Dict[str, Any]]:
+                    yield {"data": "ok"}
+
+                return _gen()
+
+        client = AsyncMCPInfoProvider(strategies=[DummyAsyncNoPagination()])
+
+        page = await client.list_tools_page("s1")
+        assert isinstance(page, ToolsPage)
+        assert [t.name for t in page.items] == ["t1"]
+        assert page.next_cursor is None
+
+    @pytest.mark.asyncio
+    async def test_list_tools_page_uses_native_pagination_when_available(self) -> None:
+        class DummyAsyncWithPagination(AsyncStrategy):
+            async def list_tools(self, server_id: str) -> List[McpTool]:  # noqa: ARG002
+                return []
+
+            async def call_tool(self, server_id: str, tool_name: str, args: dict[str, Any]) -> ToolCallResult:  # noqa: ARG002
+                return ToolCallResult(ok=True, data={"called": tool_name})
+
+            async def list_tools_page(self, server_id: str, *, cursor: str | None = None, limit: int | None = None) -> ToolsPage:  # type: ignore[override]
+                items = [
+                    McpTool(
+                        name="t2",
+                        description="",
+                        mutating=False,
+                        arguments=[],
+                        raw_parameters_schema={},
+                    )
+                ]
+                return ToolsPage(items=items, next_cursor="next" if cursor is None else None)
+
+            def stream_events(self, server_id: str, path: str = "/sse", **_: Any) -> AsyncIterator[str]:  # noqa: ARG002
+                async def _gen() -> AsyncIterator[str]:
+                    yield "data: ok"
+
+                return _gen()
+
+            def stream_events_parsed(self, server_id: str, path: str = "/sse", **_: Any) -> AsyncIterator[Dict[str, Any]]:  # noqa: ARG002
+                async def _gen() -> AsyncIterator[Dict[str, Any]]:
+                    yield {"data": "ok"}
+
+                return _gen()
+
+        client = AsyncMCPInfoProvider(strategies=[DummyAsyncWithPagination()])
+
+        page = await client.list_tools_page("s1", cursor=None, limit=1)
+        assert [t.name for t in page.items] == ["t2"]
+        assert page.next_cursor == "next"
+
+    @pytest.mark.asyncio
+    async def test_list_tools_raises_server_not_found_when_no_strategy_succeeds(self) -> None:
+        client = AsyncMCPInfoProvider(strategies=[])
+
+        with pytest.raises(ServerNotFoundError):
+            await client.list_tools("unknown")
+
+    @pytest.mark.asyncio
+    async def test_call_tool_raises_server_not_found_when_no_strategy(self) -> None:
+        client = AsyncMCPInfoProvider(strategies=[])
+
+        with pytest.raises(ServerNotFoundError):
+            await client.call_tool("s1", "t", {})
+
+    @pytest.mark.asyncio
+    async def test_stream_events_and_parsed_delegate_to_strategy(self) -> None:
+        class DummyAsyncStream(AsyncStrategy):
+            async def list_tools(self, server_id: str) -> List[McpTool]:  # noqa: ARG002
+                return []
+
+            async def call_tool(self, server_id: str, tool_name: str, args: dict[str, Any]) -> ToolCallResult:  # noqa: ARG002
+                return ToolCallResult(ok=True, data={})
+
+            def stream_events(self, server_id: str, path: str = "/sse", **_: Any) -> AsyncIterator[str]:  # noqa: ARG002
+                async def _gen() -> AsyncIterator[str]:
+                    yield "data: line"
+
+                return _gen()
+
+            def stream_events_parsed(self, server_id: str, path: str = "/sse", **_: Any) -> AsyncIterator[Dict[str, Any]]:  # noqa: ARG002
+                async def _gen() -> AsyncIterator[Dict[str, Any]]:
+                    yield {"event": "msg", "data": "ok"}
+
+                return _gen()
+
+        client = AsyncMCPInfoProvider(strategies=[DummyAsyncStream()])
+
+        # raw stream
+        raw: List[str] = []
+        raw_stream = await client.stream_events("s1")
+        async for ln in raw_stream:
+            raw.append(ln)
+            break
+        assert raw == ["data: line"]
+
+        # parsed stream
+        parsed: List[Dict[str, Any]] = []
+        parsed_stream = await client.stream_events_parsed("s1")
+        async for evt in parsed_stream:
+            parsed.append(evt)
+            break
+        assert parsed and parsed[0]["event"] == "msg"
+
 
 class TestSyncMCPInfoProvider:
 
@@ -296,3 +427,70 @@ class TestSyncMCPInfoProvider:
             client.call_tool("s1", "create_issue", {}, agent_id="agent")
 
         http_client.close()
+
+    def test_list_tools_page_falls_back_when_strategy_has_no_pagination(self) -> None:
+        class DummySyncNoPagination(SyncStrategy):
+            def list_servers(self) -> Iterable[McpTool]:  # type: ignore[override]
+                return []
+
+            def list_tools(self, server_id: str) -> Iterable[McpTool]:  # noqa: ARG002
+                return [
+                    McpTool(
+                        name="t1",
+                        description="",
+                        mutating=False,
+                        arguments=[],
+                        raw_parameters_schema={},
+                    )
+                ]
+
+            def call_tool(self, server_id: str, tool_name: str, args: dict[str, Any], *, agent_id: str | None = None) -> ToolCallResult:  # noqa: ARG002
+                return ToolCallResult(ok=True, data={"called": tool_name, "args": args})
+
+        client = MCPInfoProvider(strategies=[DummySyncNoPagination()])
+
+        page = client.list_tools_page("s1")
+        assert isinstance(page, ToolsPage)
+        assert [t.name for t in page.items] == ["t1"]
+        assert page.next_cursor is None
+
+    def test_list_tools_page_uses_native_pagination_when_available(self) -> None:
+        class DummySyncWithPagination(SyncStrategy):
+            def list_servers(self) -> Iterable[McpTool]:  # type: ignore[override]
+                return []
+
+            def list_tools(self, server_id: str) -> Iterable[McpTool]:  # noqa: ARG002
+                return []
+
+            def call_tool(self, server_id: str, tool_name: str, args: dict[str, Any], *, agent_id: str | None = None) -> ToolCallResult:  # noqa: ARG002
+                return ToolCallResult(ok=True, data={"called": tool_name})
+
+            def list_tools_page(self, server_id: str, *, cursor: str | None = None, limit: int | None = None) -> ToolsPage:  # type: ignore[override]
+                items = [
+                    McpTool(
+                        name="t2",
+                        description="",
+                        mutating=False,
+                        arguments=[],
+                        raw_parameters_schema={},
+                    )
+                ]
+                return ToolsPage(items=items, next_cursor="next" if cursor is None else None)
+
+        client = MCPInfoProvider(strategies=[DummySyncWithPagination()])
+
+        page = client.list_tools_page("s1", cursor=None, limit=1)
+        assert [t.name for t in page.items] == ["t2"]
+        assert page.next_cursor == "next"
+
+    def test_list_tools_raises_server_not_found_when_no_strategy_succeeds(self) -> None:
+        client = MCPInfoProvider(strategies=[])
+
+        with pytest.raises(ServerNotFoundError):
+            client.list_tools("unknown")
+
+    def test_call_tool_raises_server_not_found_when_no_strategy(self) -> None:
+        client = MCPInfoProvider(strategies=[])
+
+        with pytest.raises(ServerNotFoundError):
+            client.call_tool("s1", "t", {})
