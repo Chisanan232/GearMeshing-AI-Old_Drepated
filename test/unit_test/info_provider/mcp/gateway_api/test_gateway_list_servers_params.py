@@ -3,7 +3,9 @@ from __future__ import annotations
 import httpx
 
 from gearmeshing_ai.info_provider.mcp.gateway_api.client import GatewayApiClient
-from gearmeshing_ai.info_provider.mcp.gateway_api.models.dto import CatalogListResponseDTO
+from gearmeshing_ai.info_provider.mcp.gateway_api.models.dto import (
+    CatalogListResponseDTO,
+)
 
 
 def _mock_transport(expected_path: str, expected_query: dict[str, str]) -> httpx.MockTransport:
@@ -40,8 +42,6 @@ def test_list_servers_with_query_params() -> None:
     client = httpx.Client(transport=transport, base_url="http://mock")
 
     gw = GatewayApiClient("http://mock", client=client)
-    payload = gw.admin.mcp_registry.list(
-        include_inactive=True, tags="a,b", team_id="team-1", visibility="team"
-    )
+    payload = gw.admin.mcp_registry.list(include_inactive=True, tags="a,b", team_id="team-1", visibility="team")
     assert isinstance(payload, CatalogListResponseDTO)
     assert payload.servers == [] and payload.total == 0

@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
 
-from gearmeshing_ai.info_provider.mcp.gateway_api.models.dto import AdminToolsListResponseDTO, ToolReadDTO, \
-    CatalogListResponseDTO, CatalogServerDTO, GatewayReadDTO
+from gearmeshing_ai.info_provider.mcp.gateway_api.models.dto import (
+    AdminToolsListResponseDTO,
+    CatalogListResponseDTO,
+    CatalogServerDTO,
+    GatewayReadDTO,
+    ToolReadDTO,
+)
 
 
 def _sample_tools_payload() -> dict:
@@ -26,9 +30,27 @@ def _sample_tools_payload() -> dict:
         },
         "gatewaySlug": "gw",
     }
-    t1 = {**base, "id": "t1", "originalName": "workspace.list", "name": "tool-one", "customName": "workspace.list", "customNameSlug": "workspace-list"}
-    t2 = {**base, "id": "t2", "originalName": "get_authorized_teams", "name": "tool-two", "customName": "get_authorized_teams", "customNameSlug": "get-authorized-teams"}
-    return {"data": [t1, t2], "pagination": {"page": 1, "per_page": 50, "total_items": 2, "total_pages": 1}, "links": {"self": "/admin/tools?page=1&per_page=50"}}
+    t1 = {
+        **base,
+        "id": "t1",
+        "originalName": "workspace.list",
+        "name": "tool-one",
+        "customName": "workspace.list",
+        "customNameSlug": "workspace-list",
+    }
+    t2 = {
+        **base,
+        "id": "t2",
+        "originalName": "get_authorized_teams",
+        "name": "tool-two",
+        "customName": "get_authorized_teams",
+        "customNameSlug": "get-authorized-teams",
+    }
+    return {
+        "data": [t1, t2],
+        "pagination": {"page": 1, "per_page": 50, "total_items": 2, "total_pages": 1},
+        "links": {"self": "/admin/tools?page=1&per_page=50"},
+    }
 
 
 def test_admin_tools_list_dto_contract() -> None:

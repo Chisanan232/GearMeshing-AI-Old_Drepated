@@ -94,7 +94,9 @@ def test_init_auto_bearer_skipped_if_token_provider(monkeypatch: pytest.MonkeyPa
     assert client.auth_token == "Bearer dyn"
 
 
-def test_init_auto_bearer_failure_logs_warning(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+def test_init_auto_bearer_failure_logs_warning(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     def failing_check_output(*args, **kwargs):  # type: ignore[no-untyped-def]
         raise RuntimeError("no jwt")
 

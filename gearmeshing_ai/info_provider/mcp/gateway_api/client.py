@@ -49,12 +49,12 @@ typed return DTOs.
 
 from __future__ import annotations
 
-import logging
 import importlib
-from typing import Any, Callable, Dict, List, Optional
+import logging
 import os
 import subprocess
 import sys
+from typing import Any, Callable, Dict, List, Optional
 
 import httpx
 
@@ -131,9 +131,7 @@ class GatewayApiClient:
         # Optionally generate a Bearer token immediately for convenience
         if auth_token is None and token_provider is None and auto_bearer:
             try:
-                self.auth_token = self.generate_bearer_token(
-                    jwt_secret_key, extra_env=token_env, timeout=token_timeout
-                )
+                self.auth_token = self.generate_bearer_token(jwt_secret_key, extra_env=token_env, timeout=token_timeout)
             except Exception as e:  # pragma: no cover - logged, not raised
                 self._logger.warning("GatewayApiClient auto_bearer failed: %s", e)
 
@@ -163,7 +161,9 @@ class GatewayApiClient:
         return headers
 
     @staticmethod
-    def generate_bearer_token(jwt_secret_key: Optional[str] = None, *, extra_env: Optional[Dict[str, str]] = None, timeout: float = 5.0) -> str:
+    def generate_bearer_token(
+        jwt_secret_key: Optional[str] = None, *, extra_env: Optional[Dict[str, str]] = None, timeout: float = 5.0
+    ) -> str:
         """Generate a Bearer JWT via ``mcpgateway.utils.create_jwt_token``.
 
         Behavior
@@ -207,7 +207,9 @@ class GatewayApiClient:
         if extra_env:
             env.update(extra_env)
         try:
-            out = subprocess.check_output([sys.executable, "-m", "mcpgateway.utils.create_jwt_token"], env=env, timeout=timeout)
+            out = subprocess.check_output(
+                [sys.executable, "-m", "mcpgateway.utils.create_jwt_token"], env=env, timeout=timeout
+            )
         except Exception as e:
             raise GatewayApiError(f"Failed to generate JWT via mcpgateway: {e}") from e
         token = out.decode("utf-8").strip()
@@ -385,7 +387,9 @@ class _ToolsNamespace:
     def __init__(self, client: GatewayApiClient) -> None:
         self._client = client
 
-    def list(self, offset: int = 0, limit: int = 50, include_inactive: Optional[bool] = None) -> AdminToolsListResponseDTO:
+    def list(
+        self, offset: int = 0, limit: int = 50, include_inactive: Optional[bool] = None
+    ) -> AdminToolsListResponseDTO:
         """List federated tools available via the Gateway.
 
         API
@@ -425,9 +429,7 @@ class _ToolsNamespace:
             ``ToolReadDTO`` with definition, schemas, metrics, and metadata.
         """
         self._client._ensure_token()
-        r = self._client._client.get(
-            f"{self._client.base_url}/admin/tools/{tool_id}", headers=self._client._headers()
-        )
+        r = self._client._client.get(f"{self._client.base_url}/admin/tools/{tool_id}", headers=self._client._headers())
         r.raise_for_status()
         return ToolReadDTO.model_validate(r.json())
 

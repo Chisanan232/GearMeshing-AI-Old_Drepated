@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-import os
 from datetime import datetime, timezone
 
 import httpx
@@ -16,8 +14,10 @@ from gearmeshing_ai.info_provider.mcp.gateway_api.models.dto import (
     ToolReadDTO,
 )
 
+
 def _sample_tools_payload() -> dict:
     now = datetime.now(timezone.utc).isoformat()
+
     def tool(tool_id: str, name: str, custom: str) -> dict:
         return {
             "id": tool_id,
@@ -41,6 +41,7 @@ def _sample_tools_payload() -> dict:
             "customName": custom,
             "customNameSlug": custom.replace(".", "-"),
         }
+
     return {
         "data": [
             tool("t1", "tool-one", "workspace.list"),
@@ -113,6 +114,7 @@ def _mock_transport() -> httpx.MockTransport:
         return httpx.Response(404, json={"error": "not found"})
 
     return httpx.MockTransport(handler)
+
 
 @pytest.fixture()
 def gw_client() -> GatewayApiClient:
@@ -198,6 +200,7 @@ def test_health_error_raises_gateway_api_error() -> None:
     client = httpx.Client(transport=httpx.MockTransport(handler), base_url="http://mock")
     gw = GatewayApiClient("http://mock", client=client)
     import pytest as _pytest
+
     from gearmeshing_ai.info_provider.mcp.gateway_api.errors import GatewayApiError
 
     with _pytest.raises(GatewayApiError) as ei:

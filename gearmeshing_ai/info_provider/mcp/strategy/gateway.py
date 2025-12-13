@@ -22,6 +22,7 @@ import httpx
 
 from ..gateway_api import GatewayApiClient
 from ..gateway_api.models.domain import GatewayTransport
+from ..gateway_api.models.dto import ServersListPayloadDTO
 from ..schemas.core import (
     McpServerRef,
     McpTool,
@@ -36,7 +37,6 @@ from .models.dto import (
     ToolsListPayloadDTO,
     ToolsListQuery,
 )
-from ..gateway_api.models.dto import ServersListPayloadDTO
 
 
 class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):

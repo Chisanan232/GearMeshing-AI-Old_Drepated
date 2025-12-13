@@ -29,7 +29,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from pydantic import AnyHttpUrl, Field, model_validator, ConfigDict, AliasChoices
+from pydantic import AliasChoices, AnyHttpUrl, ConfigDict, Field, model_validator
 
 from ...schemas.base import BaseSchema
 from .domain import GatewayServer, GatewayTransport
@@ -296,20 +296,31 @@ class CatalogServerDTO(BaseSchema):
       - OpenAPI: components.schemas.CatalogServer
       - Endpoint: ``GET /admin/mcp-registry/servers``
     """
-    id: str = Field(..., description="Catalog identifier (unique within registry).", examples=["clickup"]) 
-    name: str = Field(..., description="Human-readable server name.", examples=["clickup"]) 
-    category: str = Field(..., description="Server category for faceting/filtering.", examples=["Utilities"]) 
-    url: str = Field(..., description="Gateway endpoint or connection URL for this catalog entry.", examples=["http://clickup-mcp:8082/sse/sse"]) 
-    auth_type: str = Field(..., description="Authentication type required by this server (e.g., Open, Bearer, Basic).", examples=["Open"]) 
-    provider: str = Field(..., description="Provider name for catalog grouping.", examples=["E2E"]) 
-    description: str = Field(..., description="Brief description of the server.", examples=["Project management tool"]) 
-    requires_api_key: Optional[bool] = Field(False, description="True if server requires an API key to operate.") 
-    secure: Optional[bool] = Field(False, description="True if transport is considered secure (TLS, etc.).") 
-    tags: Optional[List[str]] = Field(None, description="Associated tags for search and grouping.") 
-    transport: Optional[str] = Field(None, description="Preferred transport type (e.g., SSE, STREAMABLEHTTP).", examples=["SSE"]) 
-    logo_url: Optional[str] = Field(None, description="URL to a logo image if available.") 
-    documentation_url: Optional[str] = Field(None, description="URL to provider documentation if available.") 
-    is_registered: Optional[bool] = Field(False, description="True if this server is already registered in the Gateway.") 
+
+    id: str = Field(..., description="Catalog identifier (unique within registry).", examples=["clickup"])
+    name: str = Field(..., description="Human-readable server name.", examples=["clickup"])
+    category: str = Field(..., description="Server category for faceting/filtering.", examples=["Utilities"])
+    url: str = Field(
+        ...,
+        description="Gateway endpoint or connection URL for this catalog entry.",
+        examples=["http://clickup-mcp:8082/sse/sse"],
+    )
+    auth_type: str = Field(
+        ..., description="Authentication type required by this server (e.g., Open, Bearer, Basic).", examples=["Open"]
+    )
+    provider: str = Field(..., description="Provider name for catalog grouping.", examples=["E2E"])
+    description: str = Field(..., description="Brief description of the server.", examples=["Project management tool"])
+    requires_api_key: Optional[bool] = Field(False, description="True if server requires an API key to operate.")
+    secure: Optional[bool] = Field(False, description="True if transport is considered secure (TLS, etc.).")
+    tags: Optional[List[str]] = Field(None, description="Associated tags for search and grouping.")
+    transport: Optional[str] = Field(
+        None, description="Preferred transport type (e.g., SSE, STREAMABLEHTTP).", examples=["SSE"]
+    )
+    logo_url: Optional[str] = Field(None, description="URL to a logo image if available.")
+    documentation_url: Optional[str] = Field(None, description="URL to provider documentation if available.")
+    is_registered: Optional[bool] = Field(
+        False, description="True if this server is already registered in the Gateway."
+    )
     is_available: Optional[bool] = Field(True, description="True if the server is currently available.")
 
 
@@ -371,6 +382,7 @@ class CatalogListResponseDTO(BaseSchema):
         }
         ```
     """
+
     servers: List[CatalogServerDTO] = Field(..., description="List of catalog servers matching the query.")
     total: int = Field(..., description="Total number of servers that match the filter criteria.")
     categories: List[str] = Field(..., description="Available categories for faceting.")
@@ -401,6 +413,7 @@ class CatalogServerRegisterResponseDTO(BaseSchema):
         }
         ```
     """
+
     success: bool = Field(..., description="True if registration succeeded.")
     server_id: str = Field(..., description="The Gateway-assigned server id after registration.")
     message: str = Field(..., description="Human-readable summary of the registration outcome.")
@@ -412,6 +425,7 @@ class CatalogServerStatusResponseDTO(BaseSchema):
 
     Indicates availability, registration state, and diagnostics.
     """
+
     server_id: str = Field(..., description="Server identifier in the catalog.")
     is_available: bool = Field(..., description="Current availability of the catalog server.")
     is_registered: bool = Field(..., description="Whether the server has been registered in the Gateway.")
@@ -428,6 +442,7 @@ class CatalogBulkRegisterResponseDTO(BaseSchema):
     The ``failed`` field is normalized from an array of free-form objects into a
     list of ``{server_id, error}`` entries in the pre-validation step.
     """
+
     successful: List[str] = Field(..., description="List of server ids that were registered successfully.")
     failed: List["CatalogRegisterFailureDTO"] = Field(..., description="List of failures with server ids and reasons.")
     total_attempted: int = Field(..., description="Number of servers attempted to register.")
@@ -450,6 +465,7 @@ class CatalogBulkRegisterResponseDTO(BaseSchema):
 
 class CatalogRegisterFailureDTO(BaseSchema):
     """Entry describing a single failure during bulk registration."""
+
     server_id: str = Field(..., description="Server identifier for which registration failed.")
     error: str = Field(..., description="Reason for failure.")
 
@@ -466,11 +482,13 @@ class GatewayCapabilitiesDTO(BaseSchema):
     resources, tools, and experimental areas. The shape can evolve, so the
     model is intentionally permissive.
     """
+
     model_config = ConfigDict(extra="allow")
 
 
 class HeaderMapDTO(BaseSchema):
     """Arbitrary header mapping (string → string)."""
+
     model_config = ConfigDict(extra="allow")
 
 
@@ -480,7 +498,10 @@ class OAuthConfigDTO(BaseSchema):
     Contains well-known OAuth parameters but remains extensible to support
     provider-specific fields.
     """
-    grant_type: Optional[str] = Field(None, description="OAuth grant type (e.g., client_credentials, authorization_code).")
+
+    grant_type: Optional[str] = Field(
+        None, description="OAuth grant type (e.g., client_credentials, authorization_code)."
+    )
     client_id: Optional[str] = Field(None, description="OAuth client id.")
     client_secret: Optional[str] = Field(None, description="OAuth client secret (if applicable).")
     authorization_url: Optional[str] = Field(None, description="Authorization endpoint URL.")
@@ -585,7 +606,9 @@ class GatewayReadDTO(BaseSchema):
     enabled: Optional[bool] = Field(True, description="Whether the Gateway is enabled.")
     reachable: Optional[bool] = Field(True, description="Whether the Gateway is currently reachable.")
     lastSeen: Optional[str] = Field(None, description="Last observed active timestamp.")
-    passthroughHeaders: Optional[List[str]] = Field(None, description="Header names to pass through to upstream services.")
+    passthroughHeaders: Optional[List[str]] = Field(
+        None, description="Header names to pass through to upstream services."
+    )
     authType: Optional[str] = Field(None, description="Authentication type configured for the Gateway.")
     authValue: Optional[str] = Field(None, description="Authentication value (masked).")
     authHeaders: Optional[List[HeaderMapDTO]] = Field(None, description="Configured authentication headers (masked).")
@@ -629,6 +652,7 @@ class ToolMetricsDTO(BaseSchema):
     Values may be ``null`` when not yet executed or when the deployment does
     not collect the metric.
     """
+
     totalExecutions: int = Field(..., description="Total number of executions observed.")
     successfulExecutions: int = Field(..., description="Total number of successful executions.")
     failedExecutions: int = Field(..., description="Total number of failed executions.")
@@ -645,6 +669,7 @@ class AuthenticationValuesDTO(BaseSchema):
     Depending on ``authType``, different fields may be populated, such as
     ``token`` (for bearer), ``username``/``password`` (basic), or custom headers.
     """
+
     authType: Optional[str] = Field(None, description="Authentication type (e.g., Bearer, Basic, Custom).")
     authValue: Optional[str] = Field(None, description="Primary auth value (masked).")
     username: Optional[str] = Field(None, description="Username for Basic auth, if applicable.")
@@ -660,16 +685,19 @@ class JSONSchemaDTO(BaseSchema):
     The Gateway exposes JSON schemas for tool inputs/outputs. This model keeps
     the structure permissive to accommodate provider-specific schema features.
     """
+
     model_config = ConfigDict(extra="allow")
 
 
 class FreeformObjectDTO(BaseSchema):
     """Arbitrary JSON object (metadata, annotations, mappings)."""
+
     model_config = ConfigDict(extra="allow")
 
 
 class HeadersDTO(BaseSchema):
     """Arbitrary headers map (string → string)."""
+
     model_config = ConfigDict(extra="allow")
 
 
@@ -950,6 +978,7 @@ class ToolReadDTO(BaseSchema):
         }
         ```
     """
+
     id: str = Field(..., description="Tool identifier inside the Gateway.")
     originalName: str = Field(..., description="Original MCP tool name as exposed by the upstream server.")
     url: Optional[str] = Field(None, description="Gateway URL serving this tool.")
@@ -1008,6 +1037,7 @@ class ToolReadDTO(BaseSchema):
 
 class PaginationDTO(BaseSchema):
     """Pagination metadata (extensible)."""
+
     page: Optional[int] = Field(None, description="Current page number (1-based), if pagination is page-based.")
     perPage: Optional[int] = Field(None, description="Items per page, if pagination is page-based.")
     total: Optional[int] = Field(None, description="Total items matching the filter criteria.")
@@ -1017,6 +1047,7 @@ class PaginationDTO(BaseSchema):
 
 class LinksDTO(BaseSchema):
     """Pagination links (extensible)."""
+
     self: Optional[str] = Field(None, description="Self link for the current page.")
     next: Optional[str] = Field(None, description="Link to the next page, if available.")
     prev: Optional[str] = Field(None, description="Link to the previous page, if available.")
@@ -1573,6 +1604,7 @@ class AdminToolsListResponseDTO(BaseSchema):
         }
         ```
     """
+
     data: Optional[List[ToolReadDTO]] = Field(None, description="List of tools for the current page.")
     pagination: Optional[PaginationDTO] = Field(None, description="Pagination metadata for the list response.")
     links: Optional[LinksDTO] = Field(None, description="Navigation links for the list response.")
