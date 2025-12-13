@@ -80,7 +80,7 @@ class GatewayApiClient:
         """Generate a Bearer JWT using mcpgateway.utils.create_jwt_token.
 
         Args:
-            jwt_secret_key: Optional secret key. If not provided, uses env JWT_SECRET_KEY.
+            jwt_secret_key: Optional secret key. If not provided, uses env MCPGATEWAY_JWT_SECRET.
             extra_env: Optional env vars to inject for the token generation process.
             timeout: Subprocess timeout seconds.
 
@@ -89,7 +89,7 @@ class GatewayApiClient:
         """
         env = os.environ.copy()
         if jwt_secret_key is not None:
-            env["JWT_SECRET_KEY"] = jwt_secret_key
+            env["MCPGATEWAY_JWT_SECRET"] = jwt_secret_key
         if extra_env:
             env.update(extra_env)
         try:
