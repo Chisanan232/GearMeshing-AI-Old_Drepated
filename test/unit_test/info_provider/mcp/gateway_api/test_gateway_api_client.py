@@ -151,3 +151,68 @@ def test_admin_tools_list_and_get(gw_client: GatewayApiClient) -> None:
 def test_gateway_health_ok(gw_client: GatewayApiClient) -> None:
     h = gw_client.health()
     assert h.get("status") == "ok"
+
+
+def test_gateway_list_accepts_list_or_items_and_include_inactive_query() -> None:
+    # First response as list
+    def handler1(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET" and request.url.path == "/admin/gateways"
+        assert request.url.params.get("include_inactive") == "true"
+        return httpx.Response(200, json=[{"id": "g1", "name": "gw", "url": "http://mock"}])
+
+    client1 = httpx.Client(transport=httpx.MockTransport(handler1), base_url="http://mock")
+    gw1 = GatewayApiClient("http://mock", client=client1)
+    lst1 = gw1.admin.gateway.list(include_inactive=True)
+    assert isinstance(lst1[0], GatewayReadDTO)
+
+    # Second response as {items: [...]}
+    def handler2(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET" and request.url.path == "/admin/gateways"
+        assert request.url.params.get("include_inactive") == "false"
+        return httpx.Response(200, json={"items": [{"id": "g2", "name": "gw2", "url": "http://mock2"}]})
+
+    client2 = httpx.Client(transport=httpx.MockTransport(handler2), base_url="http://mock")
+    gw2 = GatewayApiClient("http://mock", client=client2)
+    lst2 = gw2.admin.gateway.list(include_inactive=False)
+    assert isinstance(lst2[0], GatewayReadDTO) and lst2[0].id == "g2"
+
+
+def test_tools_list_include_inactive_query_sets_boolean() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET" and request.url.path == "/admin/tools"
+        assert request.url.params.get("include_inactive") == "true"
+        return httpx.Response(200, json={"data": _sample_tools_payload()["data"]})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler), base_url="http://mock")
+    gw = GatewayApiClient("http://mock", client=client)
+    res = gw.admin.tools.list(include_inactive=True)
+    assert isinstance(res, AdminToolsListResponseDTO)
+
+
+def test_health_error_raises_gateway_api_error() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/health":
+            return httpx.Response(500, json={"error": "down"})
+        return httpx.Response(404)
+
+    client = httpx.Client(transport=httpx.MockTransport(handler), base_url="http://mock")
+    gw = GatewayApiClient("http://mock", client=client)
+    import pytest as _pytest
+    from gearmeshing_ai.info_provider.mcp.gateway_api.errors import GatewayApiError
+
+    with _pytest.raises(GatewayApiError) as ei:
+        gw.health()
+    assert ei.value.status_code == 500
+
+
+def test_health_text_fallback_when_json_decode_fails() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/health":
+            # Return plain text body; json() will fail
+            return httpx.Response(200, content=b"ok-text", headers={"Content-Type": "text/plain"})
+        return httpx.Response(404)
+
+    client = httpx.Client(transport=httpx.MockTransport(handler), base_url="http://mock")
+    gw = GatewayApiClient("http://mock", client=client)
+    resp = gw.health()
+    assert resp == {"status": "ok-text"}
