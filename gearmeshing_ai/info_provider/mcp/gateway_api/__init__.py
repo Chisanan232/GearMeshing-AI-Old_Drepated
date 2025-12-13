@@ -5,7 +5,7 @@ domain/DTO models from the `gateway_api.models` subpackage for convenience.
 """
 
 from .client import GatewayApiClient
-from .errors import GatewayApiError, GatewayServerNotFoundError
+from .errors import GatewayApiError
 from .models import (
     GatewayServer,
     GatewayServerCreate,
@@ -18,5 +18,4 @@ __all__ = [
     "GatewayServerCreate",
     "GatewayTransport",
     "GatewayApiError",
-    "GatewayServerNotFoundError",
 ]
