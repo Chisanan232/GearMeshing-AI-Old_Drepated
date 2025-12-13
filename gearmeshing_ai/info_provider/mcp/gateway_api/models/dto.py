@@ -1,13 +1,28 @@
 """Gateway API DTO models
 
-Pydantic models that define the request/response contracts for the Gateway
-management API. These DTOs centralize serialization/deserialization and provide
-helpers to map into domain models used by the client/strategy layers.
+Overview
+--------
+Pydantic DTOs for the MCP Gateway management API, closely aligned with the
+OpenAPI spec in ``docs/openapi_spec/mcp_gateway.json`` and the interactive API
+docs at ``http://127.0.0.1:4444/docs``. These models centralize the contracts
+for request/response payloads so that higher layers (clients/strategies) can be
+simple, robust, and type-safe.
 
-Guidelines:
-- Keep alias mappings aligned with the Gateway OpenAPI spec (e.g., teamId, isActive).
-- Normalize flexible wire formats into a single structured model (e.g., servers list).
-- Prefer validators over ad-hoc parsing in strategies.
+Design guidelines
+-----------------
+- Keep field names and aliases consistent with wire schema (e.g., ``teamId``, ``isActive``).
+- Normalize flexible list/object shapes with validators at the DTO layer.
+- Use permissive models (``extra=allow``) for provider-specific or evolving areas.
+- Prefer DTO-driven parsing over ad-hoc dict manipulation in strategies.
+
+Endpoint mapping (selected)
+---------------------------
+- ``GET /admin/mcp-registry/servers`` → ``CatalogListResponseDTO``
+- ``POST /admin/mcp-registry/{server_id}/register`` → ``CatalogServerRegisterResponseDTO``
+- ``GET /admin/gateways`` → ``List[GatewayReadDTO]`` (or normalized from object-with-items)
+- ``GET /admin/gateways/{gateway_id}`` → ``GatewayReadDTO``
+- ``GET /admin/tools`` → ``AdminToolsListResponseDTO``
+- ``GET /admin/tools/{tool_id}`` → ``ToolReadDTO``
 """
 
 from __future__ import annotations
@@ -33,8 +48,8 @@ class ListServersQuery(BaseSchema):
         {'includeInactive': 'true', 'tags': 'prod,search', 'teamId': 'team-123', 'visibility': 'team'}
 
     References:
-        - GatewayApiClient.list_servers uses this model's `to_params()` when making requests.
-        - OpenAPI: GET /servers (see docs/openapi_spec/mcp_gateway.json)
+        - Used by clients to build query strings for catalog list endpoints.
+        - OpenAPI: GET /admin/mcp-registry/servers (see docs/openapi_spec/mcp_gateway.json)
     """
 
     include_inactive: Optional[bool] = Field(
@@ -269,6 +284,18 @@ class GatewayServerCreate(BaseSchema):
 
 
 class CatalogServerDTO(BaseSchema):
+    """Catalog server entry in the MCP registry.
+
+    API
+    ---
+    Produced by Catalog list endpoints and used to render discovery UIs.
+    Typical fields include category, provider, transport, and whether the
+    server is already registered/available in the current Gateway.
+
+    References:
+      - OpenAPI: components.schemas.CatalogServer
+      - Endpoint: ``GET /admin/mcp-registry/servers``
+    """
     id: str
     name: str
     category: str
@@ -287,7 +314,19 @@ class CatalogServerDTO(BaseSchema):
 
 
 class CatalogListResponseDTO(BaseSchema):
-    """
+    """Paginated catalog/registry listing result.
+
+    API
+    ---
+    - Method/Path: ``GET /admin/mcp-registry/servers``
+    - Query: ``include_inactive``, ``tags``, ``team_id``, ``visibility``
+
+    Fields
+    ------
+    - ``servers``: list of ``CatalogServerDTO``
+    - ``total``: total matching servers
+    - Faceting fields (``categories``, ``auth_types``, ``providers``, ``all_tags``)
+
     Example:
         ```json
         {
@@ -341,7 +380,17 @@ class CatalogListResponseDTO(BaseSchema):
 
 
 class CatalogServerRegisterResponseDTO(BaseSchema):
-    """
+    """Response for catalog server registration.
+
+    API
+    ---
+    - Method/Path: ``POST /admin/mcp-registry/{server_id}/register``
+
+    Behavior
+    --------
+    Triggers discovery and federation of the underlying MCP server into the Gateway.
+    The message usually contains a summary (e.g., tool count discovered).
+
     Example:
         ```json
         {
@@ -359,6 +408,10 @@ class CatalogServerRegisterResponseDTO(BaseSchema):
 
 
 class CatalogServerStatusResponseDTO(BaseSchema):
+    """Status for a catalog server entry.
+
+    Indicates availability, registration state, and diagnostics.
+    """
     server_id: str
     is_available: bool
     is_registered: bool
@@ -368,6 +421,13 @@ class CatalogServerStatusResponseDTO(BaseSchema):
 
 
 class CatalogBulkRegisterResponseDTO(BaseSchema):
+    """Bulk registration result for multiple catalog servers.
+
+    Notes
+    -----
+    The ``failed`` field is normalized from an array of free-form objects into a
+    list of ``{server_id, error}`` entries in the pre-validation step.
+    """
     successful: List[str]
     failed: List["CatalogRegisterFailureDTO"]
     total_attempted: int
@@ -389,6 +449,7 @@ class CatalogBulkRegisterResponseDTO(BaseSchema):
 
 
 class CatalogRegisterFailureDTO(BaseSchema):
+    """Entry describing a single failure during bulk registration."""
     server_id: str
     error: str
 
@@ -399,17 +460,26 @@ class CatalogRegisterFailureDTO(BaseSchema):
 
 
 class GatewayCapabilitiesDTO(BaseSchema):
-    # Free-form capability map; keep extensible
+    """Free-form capability map for a Gateway instance.
+
+    The Gateway may expose feature flags or capability subtrees for prompts,
+    resources, tools, and experimental areas. The shape can evolve, so the
+    model is intentionally permissive.
+    """
     model_config = ConfigDict(extra="allow")
 
 
 class HeaderMapDTO(BaseSchema):
-    # Map-like object with arbitrary string keys and string values
+    """Arbitrary header mapping (string → string)."""
     model_config = ConfigDict(extra="allow")
 
 
 class OAuthConfigDTO(BaseSchema):
-    # Typical OAuth 2.0 fields; remain extensible
+    """OAuth 2.0 configuration container.
+
+    Contains well-known OAuth parameters but remains extensible to support
+    provider-specific fields.
+    """
     grant_type: Optional[str] = None
     client_id: Optional[str] = None
     client_secret: Optional[str] = None
@@ -423,6 +493,20 @@ class OAuthConfigDTO(BaseSchema):
 
 class GatewayReadDTO(BaseSchema):
     """
+    Gateway instance representation as returned by admin endpoints.
+
+    API
+    ---
+    - Method/Path: ``GET /admin/gateways`` and ``GET /admin/gateways/{gateway_id}``
+
+    Fields
+    ------
+    - Core: ``id``, ``name``, ``url``, ``description``, ``transport``
+    - State: ``enabled``, ``reachable``, ``lastSeen``
+    - Auth: ``authType``, ``authValue``, headers/user credentials and OAuth config
+    - Audit: created/modified metadata, ownership, visibility
+    - Tags and capability maps
+
     Example:
         ```json
         {
@@ -540,6 +624,11 @@ class GatewayReadDTO(BaseSchema):
 
 
 class ToolMetricsDTO(BaseSchema):
+    """Aggregated execution metrics for a Gateway-federated tool.
+
+    Values may be ``null`` when not yet executed or when the deployment does
+    not collect the metric.
+    """
     totalExecutions: int
     successfulExecutions: int
     failedExecutions: int
@@ -551,6 +640,11 @@ class ToolMetricsDTO(BaseSchema):
 
 
 class AuthenticationValuesDTO(BaseSchema):
+    """Authentication material attached to a tool or Gateway entry.
+
+    Depending on ``authType``, different fields may be populated, such as
+    ``token`` (for bearer), ``username``/``password`` (basic), or custom headers.
+    """
     authType: Optional[str] = None
     authValue: Optional[str] = None
     username: Optional[str] = None
@@ -561,22 +655,42 @@ class AuthenticationValuesDTO(BaseSchema):
 
 
 class JSONSchemaDTO(BaseSchema):
-    # Arbitrary JSON schema-like structure
+    """Arbitrary JSON Schema-like structure for tool I/O definitions.
+
+    The Gateway exposes JSON schemas for tool inputs/outputs. This model keeps
+    the structure permissive to accommodate provider-specific schema features.
+    """
     model_config = ConfigDict(extra="allow")
 
 
 class FreeformObjectDTO(BaseSchema):
-    # Arbitrary JSON object (metadata, annotations, mappings)
+    """Arbitrary JSON object (metadata, annotations, mappings)."""
     model_config = ConfigDict(extra="allow")
 
 
 class HeadersDTO(BaseSchema):
-    # Arbitrary headers map (string->string)
+    """Arbitrary headers map (string → string)."""
     model_config = ConfigDict(extra="allow")
 
 
 class ToolReadDTO(BaseSchema):
     """
+    Tool definition federated by a Gateway.
+
+    API
+    ---
+    - Method/Path: ``GET /admin/tools/{tool_id}``
+    - Also appears in list responses from ``GET /admin/tools`` under ``data``.
+
+    Fields
+    ------
+    - Identity: ``id``, ``name``, ``displayName``, ``originalName``, ``gatewaySlug``
+    - Schemas: ``inputSchema``, ``outputSchema`` (JSON Schema-like)
+    - Execution: ``requestType``, ``integrationType``, ``timeoutMs``, passthrough
+    - Auth and headers: ``auth``, ``headers``, mappings
+    - Metrics and status: ``metrics``, ``enabled``, ``reachable``
+    - Metadata: tags, versions, creation/modification info, and freeform ``_meta``
+
     Example:
         ```json
         {
@@ -893,7 +1007,7 @@ class ToolReadDTO(BaseSchema):
 
 
 class PaginationDTO(BaseSchema):
-    # Page info; keep extensible
+    """Pagination metadata (extensible)."""
     page: Optional[int] = None
     perPage: Optional[int] = None
     total: Optional[int] = None
@@ -902,6 +1016,7 @@ class PaginationDTO(BaseSchema):
 
 
 class LinksDTO(BaseSchema):
+    """Pagination links (extensible)."""
     self: Optional[str] = None
     next: Optional[str] = None
     prev: Optional[str] = None
@@ -910,6 +1025,19 @@ class LinksDTO(BaseSchema):
 
 class AdminToolsListResponseDTO(BaseSchema):
     """
+    Admin tools listing response wrapper.
+
+    API
+    ---
+    - Method/Path: ``GET /admin/tools``
+    - Query: ``offset``, ``limit``, ``include_inactive``
+
+    Fields
+    ------
+    - ``data``: list of ``ToolReadDTO``
+    - ``pagination``: optional page metadata
+    - ``links``: optional navigation links
+
     Example:
         ```json
         {
