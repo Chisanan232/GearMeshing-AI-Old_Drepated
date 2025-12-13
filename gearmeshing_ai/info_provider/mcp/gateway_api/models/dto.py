@@ -287,6 +287,51 @@ class CatalogServerDTO(BaseSchema):
 
 
 class CatalogListResponseDTO(BaseSchema):
+    """
+    Example:
+        ```json
+        {
+           "servers":[
+              {
+                 "id":"clickup",
+                 "name":"clickup",
+                 "category":"Utilities",
+                 "url":"http://clickup-mcp:8082/sse/sse",
+                 "auth_type":"Open",
+                 "provider":"E2E",
+                 "description":"Project management tool",
+                 "requires_api_key":false,
+                 "secure":false,
+                 "tags":[
+                    "project-management",
+                    "clickup",
+                    "python"
+                 ],
+                 "transport":"SSE",
+                 "logo_url":null,
+                 "documentation_url":null,
+                 "is_registered":false,
+                 "is_available":true
+              }
+           ],
+           "total":1,
+           "categories":[
+              "Utilities"
+           ],
+           "auth_types":[
+              "Open"
+           ],
+           "providers":[
+              "E2E"
+           ],
+           "all_tags":[
+              "clickup",
+              "project-management",
+              "python"
+           ]
+        }
+        ```
+    """
     servers: List[CatalogServerDTO]
     total: int
     categories: List[str]
@@ -296,6 +341,17 @@ class CatalogListResponseDTO(BaseSchema):
 
 
 class CatalogServerRegisterResponseDTO(BaseSchema):
+    """
+    Example:
+        ```json
+        {
+           "success":true,
+           "server_id":"61a50681abf24f008cf849f857484b12",
+           "message":"Successfully registered clickup with 29 tools discovered",
+           "error":null
+        }
+        ```
+    """
     success: bool
     server_id: str
     message: str
@@ -366,6 +422,74 @@ class OAuthConfigDTO(BaseSchema):
 
 
 class GatewayReadDTO(BaseSchema):
+    """
+    Example:
+        ```json
+        {
+           "id":"61a50681abf24f008cf849f857484b12",
+           "name":"clickup",
+           "url":"http://clickup-mcp:8082/sse/sse",
+           "description":"Project management tool",
+           "transport":"SSE",
+           "capabilities":{
+              "experimental":{
+
+              },
+              "prompts":{
+                 "listChanged":false
+              },
+              "resources":{
+                 "subscribe":false,
+                 "listChanged":false
+              },
+              "tools":{
+                 "listChanged":false
+              }
+           },
+           "createdAt":"2025-12-13T11:41:30.487339",
+           "updatedAt":"2025-12-13T11:41:30.487342",
+           "enabled":true,
+           "reachable":true,
+           "lastSeen":"2025-12-13T11:41:30.484488",
+           "passthroughHeaders":null,
+           "authType":null,
+           "authValue":null,
+           "authHeaders":null,
+           "authHeadersUnmasked":null,
+           "oauthConfig":null,
+           "authUsername":null,
+           "authPassword":null,
+           "authToken":null,
+           "authHeaderKey":null,
+           "authHeaderValue":null,
+           "tags":[
+              "project-management",
+              "clickup",
+              "python"
+           ],
+           "authPasswordUnmasked":null,
+           "authTokenUnmasked":null,
+           "authHeaderValueUnmasked":null,
+           "teamId":null,
+           "team":null,
+           "ownerEmail":null,
+           "visibility":"public",
+           "createdBy":null,
+           "createdFromIp":null,
+           "createdVia":"catalog",
+           "createdUserAgent":null,
+           "modifiedBy":null,
+           "modifiedFromIp":null,
+           "modifiedVia":null,
+           "modifiedUserAgent":null,
+           "importBatchId":null,
+           "federationSource":null,
+           "version":1,
+           "slug":"clickup"
+        }
+        ```
+    """
+
     id: Optional[str] = None
     name: str
     url: str
@@ -452,6 +576,266 @@ class HeadersDTO(BaseSchema):
 
 
 class ToolReadDTO(BaseSchema):
+    """
+    Example:
+        ```json
+        {
+           "id":"3b455b4ff78942d6adb41a41b08ed003",
+           "originalName":"workspace.list",
+           "url":"http://clickup-mcp:8082/sse/sse",
+           "description":"List workspaces (teams) the token can access. Use this first to discover team IDs, then call `space.list` to enumerate spaces. HTTP: GET /team. Returns { workspaces: [{ team_id, name }] }.",
+           "requestType":"SSE",
+           "integrationType":"MCP",
+           "headers":null,
+           "inputSchema":{
+              "properties":{
+
+              },
+              "title":"workspace_listArguments",
+              "type":"object"
+           },
+           "outputSchema":{
+              "$defs":{
+                 "IssueCode":{
+                    "enum":[
+                       "VALIDATION_ERROR",
+                       "PERMISSION_DENIED",
+                       "NOT_FOUND",
+                       "CONFLICT",
+                       "RATE_LIMIT",
+                       "TRANSIENT",
+                       "INTERNAL"
+                    ],
+                    "title":"IssueCode",
+                    "type":"string"
+                 },
+                 "ToolIssue":{
+                    "description":"Tiny issue object for failures.\n\nKeep token-lean but actionable. Codes are strict.",
+                    "examples":[
+                       {
+                          "code":"RATE_LIMIT",
+                          "hint":"Back off and retry",
+                          "message":"Rate limit exceeded",
+                          "retry_after_ms":1200
+                       }
+                    ],
+                    "properties":{
+                       "code":{
+                          "$ref":"#/$defs/IssueCode",
+                          "description":"Canonical error code"
+                       },
+                       "message":{
+                          "description":"End-user readable short message",
+                          "title":"Message",
+                          "type":"string"
+                       },
+                       "hint":{
+                          "anyOf":[
+                             {
+                                "type":"string"
+                             },
+                             {
+                                "type":"null"
+                             }
+                          ],
+                          "default":null,
+                          "description":"Optional one-line remediation hint",
+                          "title":"Hint"
+                       },
+                       "retry_after_ms":{
+                          "anyOf":[
+                             {
+                                "minimum":0,
+                                "type":"integer"
+                             },
+                             {
+                                "type":"null"
+                             }
+                          ],
+                          "default":null,
+                          "description":"Backoff duration in ms (when rate-limited)",
+                          "title":"Retry After Ms"
+                       }
+                    },
+                    "required":[
+                       "code",
+                       "message"
+                    ],
+                    "title":"ToolIssue",
+                    "type":"object"
+                 },
+                 "WorkspaceListItem":{
+                    "description":"Tiny projection for a workspace (team).",
+                    "properties":{
+                       "team_id":{
+                          "description":"Workspace (team) ID",
+                          "examples":[
+                             "team_1",
+                             "9018752317"
+                          ],
+                          "title":"Team Id",
+                          "type":"string"
+                       },
+                       "name":{
+                          "description":"Workspace name",
+                          "examples":[
+                             "Engineering",
+                             "Ops"
+                          ],
+                          "title":"Name",
+                          "type":"string"
+                       }
+                    },
+                    "required":[
+                       "team_id",
+                       "name"
+                    ],
+                    "title":"WorkspaceListItem",
+                    "type":"object"
+                 },
+                 "WorkspaceListResult":{
+                    "description":"Result for workspace.list tool.",
+                    "examples":[
+                       {
+                          "items":[
+                             {
+                                "name":"Engineering",
+                                "team_id":"team_1"
+                             }
+                          ]
+                       }
+                    ],
+                    "properties":{
+                       "items":{
+                          "description":"List of workspaces",
+                          "examples":[
+                             [
+                                {
+                                   "name":"Engineering",
+                                   "team_id":"team_1"
+                                }
+                             ]
+                          ],
+                          "items":{
+                             "$ref":"#/$defs/WorkspaceListItem"
+                          },
+                          "title":"Items",
+                          "type":"array"
+                       }
+                    },
+                    "title":"WorkspaceListResult",
+                    "type":"object"
+                 }
+              },
+              "examples":[
+                 {
+                    "issues":[
+
+                    ],
+                    "ok":true,
+                    "result":null
+                 },
+                 {
+                    "issues":[
+                       {
+                          "code":"PERMISSION_DENIED",
+                          "hint":"Grant the app the required scope",
+                          "message":"Missing scope: tasks:write"
+                       }
+                    ],
+                    "ok":false
+                 }
+              ],
+              "properties":{
+                 "ok":{
+                    "description":"True if the operation succeeded",
+                    "title":"Ok",
+                    "type":"boolean"
+                 },
+                 "result":{
+                    "anyOf":[
+                       {
+                          "$ref":"#/$defs/WorkspaceListResult"
+                       },
+                       {
+                          "type":"null"
+                       }
+                    ],
+                    "default":null,
+                    "description":"Result payload when ok=true"
+                 },
+                 "issues":{
+                    "description":"Business-level issues",
+                    "items":{
+                       "$ref":"#/$defs/ToolIssue"
+                    },
+                    "title":"Issues",
+                    "type":"array"
+                 }
+              },
+              "required":[
+                 "ok"
+              ],
+              "title":"ToolResponse[WorkspaceListResult]",
+              "type":"object"
+           },
+           "annotations":{
+
+           },
+           "jsonpathFilter":"",
+           "auth":null,
+           "createdAt":"2025-12-13T11:41:30.494034",
+           "updatedAt":"2025-12-13T11:41:30.494035",
+           "enabled":true,
+           "reachable":true,
+           "gatewayId":"61a50681abf24f008cf849f857484b12",
+           "executionCount":0,
+           "metrics":{
+              "totalExecutions":0,
+              "successfulExecutions":0,
+              "failedExecutions":0,
+              "failureRate":0.0,
+              "minResponseTime":null,
+              "maxResponseTime":null,
+              "avgResponseTime":null,
+              "lastExecutionTime":null
+           },
+           "name":"clickup-workspace-list",
+           "displayName":"Workspace List",
+           "gatewaySlug":"clickup",
+           "customName":"workspace.list",
+           "customNameSlug":"workspace-list",
+           "tags":[
+
+           ],
+           "createdBy":"system",
+           "createdFromIp":null,
+           "createdVia":"federation",
+           "createdUserAgent":null,
+           "modifiedBy":null,
+           "modifiedFromIp":null,
+           "modifiedVia":null,
+           "modifiedUserAgent":null,
+           "importBatchId":null,
+           "federationSource":"clickup",
+           "version":1,
+           "teamId":null,
+           "team":null,
+           "ownerEmail":null,
+           "visibility":"public",
+           "baseUrl":null,
+           "pathTemplate":null,
+           "queryMapping":null,
+           "headerMapping":null,
+           "timeoutMs":null,
+           "exposePassthrough":true,
+           "allowlist":null,
+           "pluginChainPre":null,
+           "pluginChainPost":null,
+           "_meta":null
+        }
+        ```
+    """
     id: str
     originalName: str
     url: Optional[str] = None
@@ -521,6 +905,542 @@ class LinksDTO(BaseSchema):
 
 
 class AdminToolsListResponseDTO(BaseSchema):
+    """
+    Example:
+        ```json
+        {
+           "data":[
+              {
+                 "id":"3b455b4ff78942d6adb41a41b08ed003",
+                 "originalName":"workspace.list",
+                 "url":"http://clickup-mcp:8082/sse/sse",
+                 "description":"List workspaces (teams) the token can access. Use this first to discover team IDs, then call `space.list` to enumerate spaces. HTTP: GET /team. Returns { workspaces: [{ team_id, name }] }.",
+                 "requestType":"SSE",
+                 "integrationType":"MCP",
+                 "headers":null,
+                 "inputSchema":{
+                    "properties":{
+
+                    },
+                    "title":"workspace_listArguments",
+                    "type":"object"
+                 },
+                 "outputSchema":{
+                    "$defs":{
+                       "IssueCode":{
+                          "enum":[
+                             "VALIDATION_ERROR",
+                             "PERMISSION_DENIED",
+                             "NOT_FOUND",
+                             "CONFLICT",
+                             "RATE_LIMIT",
+                             "TRANSIENT",
+                             "INTERNAL"
+                          ],
+                          "title":"IssueCode",
+                          "type":"string"
+                       },
+                       "ToolIssue":{
+                          "description":"Tiny issue object for failures.\n\nKeep token-lean but actionable. Codes are strict.",
+                          "examples":[
+                             {
+                                "code":"RATE_LIMIT",
+                                "hint":"Back off and retry",
+                                "message":"Rate limit exceeded",
+                                "retry_after_ms":1200
+                             }
+                          ],
+                          "properties":{
+                             "code":{
+                                "$ref":"#/$defs/IssueCode",
+                                "description":"Canonical error code"
+                             },
+                             "message":{
+                                "description":"End-user readable short message",
+                                "title":"Message",
+                                "type":"string"
+                             },
+                             "hint":{
+                                "anyOf":[
+                                   {
+                                      "type":"string"
+                                   },
+                                   {
+                                      "type":"null"
+                                   }
+                                ],
+                                "default":null,
+                                "description":"Optional one-line remediation hint",
+                                "title":"Hint"
+                             },
+                             "retry_after_ms":{
+                                "anyOf":[
+                                   {
+                                      "minimum":0,
+                                      "type":"integer"
+                                   },
+                                   {
+                                      "type":"null"
+                                   }
+                                ],
+                                "default":null,
+                                "description":"Backoff duration in ms (when rate-limited)",
+                                "title":"Retry After Ms"
+                             }
+                          },
+                          "required":[
+                             "code",
+                             "message"
+                          ],
+                          "title":"ToolIssue",
+                          "type":"object"
+                       },
+                       "WorkspaceListItem":{
+                          "description":"Tiny projection for a workspace (team).",
+                          "properties":{
+                             "team_id":{
+                                "description":"Workspace (team) ID",
+                                "examples":[
+                                   "team_1",
+                                   "9018752317"
+                                ],
+                                "title":"Team Id",
+                                "type":"string"
+                             },
+                             "name":{
+                                "description":"Workspace name",
+                                "examples":[
+                                   "Engineering",
+                                   "Ops"
+                                ],
+                                "title":"Name",
+                                "type":"string"
+                             }
+                          },
+                          "required":[
+                             "team_id",
+                             "name"
+                          ],
+                          "title":"WorkspaceListItem",
+                          "type":"object"
+                       },
+                       "WorkspaceListResult":{
+                          "description":"Result for workspace.list tool.",
+                          "examples":[
+                             {
+                                "items":[
+                                   {
+                                      "name":"Engineering",
+                                      "team_id":"team_1"
+                                   }
+                                ]
+                             }
+                          ],
+                          "properties":{
+                             "items":{
+                                "description":"List of workspaces",
+                                "examples":[
+                                   [
+                                      {
+                                         "name":"Engineering",
+                                         "team_id":"team_1"
+                                      }
+                                   ]
+                                ],
+                                "items":{
+                                   "$ref":"#/$defs/WorkspaceListItem"
+                                },
+                                "title":"Items",
+                                "type":"array"
+                             }
+                          },
+                          "title":"WorkspaceListResult",
+                          "type":"object"
+                       }
+                    },
+                    "examples":[
+                       {
+                          "issues":[
+
+                          ],
+                          "ok":true,
+                          "result":null
+                       },
+                       {
+                          "issues":[
+                             {
+                                "code":"PERMISSION_DENIED",
+                                "hint":"Grant the app the required scope",
+                                "message":"Missing scope: tasks:write"
+                             }
+                          ],
+                          "ok":false
+                       }
+                    ],
+                    "properties":{
+                       "ok":{
+                          "description":"True if the operation succeeded",
+                          "title":"Ok",
+                          "type":"boolean"
+                       },
+                       "result":{
+                          "anyOf":[
+                             {
+                                "$ref":"#/$defs/WorkspaceListResult"
+                             },
+                             {
+                                "type":"null"
+                             }
+                          ],
+                          "default":null,
+                          "description":"Result payload when ok=true"
+                       },
+                       "issues":{
+                          "description":"Business-level issues",
+                          "items":{
+                             "$ref":"#/$defs/ToolIssue"
+                          },
+                          "title":"Issues",
+                          "type":"array"
+                       }
+                    },
+                    "required":[
+                       "ok"
+                    ],
+                    "title":"ToolResponse[WorkspaceListResult]",
+                    "type":"object"
+                 },
+                 "annotations":{
+
+                 },
+                 "jsonpathFilter":"",
+                 "auth":null,
+                 "createdAt":"2025-12-13T11:41:30.494034",
+                 "updatedAt":"2025-12-13T11:41:30.494035",
+                 "enabled":true,
+                 "reachable":true,
+                 "gatewayId":"61a50681abf24f008cf849f857484b12",
+                 "executionCount":0,
+                 "metrics":{
+                    "totalExecutions":0,
+                    "successfulExecutions":0,
+                    "failedExecutions":0,
+                    "failureRate":0.0,
+                    "minResponseTime":null,
+                    "maxResponseTime":null,
+                    "avgResponseTime":null,
+                    "lastExecutionTime":null
+                 },
+                 "name":"clickup-workspace-list",
+                 "displayName":"Workspace List",
+                 "gatewaySlug":"clickup",
+                 "customName":"workspace.list",
+                 "customNameSlug":"workspace-list",
+                 "tags":[
+
+                 ],
+                 "createdBy":"system",
+                 "createdFromIp":null,
+                 "createdVia":"federation",
+                 "createdUserAgent":null,
+                 "modifiedBy":null,
+                 "modifiedFromIp":null,
+                 "modifiedVia":null,
+                 "modifiedUserAgent":null,
+                 "importBatchId":null,
+                 "federationSource":"clickup",
+                 "version":1,
+                 "teamId":null,
+                 "team":null,
+                 "ownerEmail":null,
+                 "visibility":"public",
+                 "baseUrl":null,
+                 "pathTemplate":null,
+                 "queryMapping":null,
+                 "headerMapping":null,
+                 "timeoutMs":null,
+                 "exposePassthrough":true,
+                 "allowlist":null,
+                 "pluginChainPre":null,
+                 "pluginChainPost":null,
+                 "_meta":null
+              },
+              {
+                 "id":"f9db3322ce4b40f4bc586aa56f7857a5",
+                 "originalName":"get_authorized_teams",
+                 "url":"http://clickup-mcp:8082/sse/sse",
+                 "description":"Retrieve all teams/workspaces that the authenticated user has access to.",
+                 "requestType":"SSE",
+                 "integrationType":"MCP",
+                 "headers":null,
+                 "inputSchema":{
+                    "properties":{
+
+                    },
+                    "title":"get_authorized_teamsArguments",
+                    "type":"object"
+                 },
+                 "outputSchema":{
+                    "$defs":{
+                       "IssueCode":{
+                          "enum":[
+                             "VALIDATION_ERROR",
+                             "PERMISSION_DENIED",
+                             "NOT_FOUND",
+                             "CONFLICT",
+                             "RATE_LIMIT",
+                             "TRANSIENT",
+                             "INTERNAL"
+                          ],
+                          "title":"IssueCode",
+                          "type":"string"
+                       },
+                       "ToolIssue":{
+                          "description":"Tiny issue object for failures.\n\nKeep token-lean but actionable. Codes are strict.",
+                          "examples":[
+                             {
+                                "code":"RATE_LIMIT",
+                                "hint":"Back off and retry",
+                                "message":"Rate limit exceeded",
+                                "retry_after_ms":1200
+                             }
+                          ],
+                          "properties":{
+                             "code":{
+                                "$ref":"#/$defs/IssueCode",
+                                "description":"Canonical error code"
+                             },
+                             "message":{
+                                "description":"End-user readable short message",
+                                "title":"Message",
+                                "type":"string"
+                             },
+                             "hint":{
+                                "anyOf":[
+                                   {
+                                      "type":"string"
+                                   },
+                                   {
+                                      "type":"null"
+                                   }
+                                ],
+                                "default":null,
+                                "description":"Optional one-line remediation hint",
+                                "title":"Hint"
+                             },
+                             "retry_after_ms":{
+                                "anyOf":[
+                                   {
+                                      "minimum":0,
+                                      "type":"integer"
+                                   },
+                                   {
+                                      "type":"null"
+                                   }
+                                ],
+                                "default":null,
+                                "description":"Backoff duration in ms (when rate-limited)",
+                                "title":"Retry After Ms"
+                             }
+                          },
+                          "required":[
+                             "code",
+                             "message"
+                          ],
+                          "title":"ToolIssue",
+                          "type":"object"
+                       },
+                       "WorkspaceListItem":{
+                          "description":"Tiny projection for a workspace (team).",
+                          "properties":{
+                             "team_id":{
+                                "description":"Workspace (team) ID",
+                                "examples":[
+                                   "team_1",
+                                   "9018752317"
+                                ],
+                                "title":"Team Id",
+                                "type":"string"
+                             },
+                             "name":{
+                                "description":"Workspace name",
+                                "examples":[
+                                   "Engineering",
+                                   "Ops"
+                                ],
+                                "title":"Name",
+                                "type":"string"
+                             }
+                          },
+                          "required":[
+                             "team_id",
+                             "name"
+                          ],
+                          "title":"WorkspaceListItem",
+                          "type":"object"
+                       },
+                       "WorkspaceListResult":{
+                          "description":"Result for workspace.list tool.",
+                          "examples":[
+                             {
+                                "items":[
+                                   {
+                                      "name":"Engineering",
+                                      "team_id":"team_1"
+                                   }
+                                ]
+                             }
+                          ],
+                          "properties":{
+                             "items":{
+                                "description":"List of workspaces",
+                                "examples":[
+                                   [
+                                      {
+                                         "name":"Engineering",
+                                         "team_id":"team_1"
+                                      }
+                                   ]
+                                ],
+                                "items":{
+                                   "$ref":"#/$defs/WorkspaceListItem"
+                                },
+                                "title":"Items",
+                                "type":"array"
+                             }
+                          },
+                          "title":"WorkspaceListResult",
+                          "type":"object"
+                       }
+                    },
+                    "examples":[
+                       {
+                          "issues":[
+
+                          ],
+                          "ok":true,
+                          "result":null
+                       },
+                       {
+                          "issues":[
+                             {
+                                "code":"PERMISSION_DENIED",
+                                "hint":"Grant the app the required scope",
+                                "message":"Missing scope: tasks:write"
+                             }
+                          ],
+                          "ok":false
+                       }
+                    ],
+                    "properties":{
+                       "ok":{
+                          "description":"True if the operation succeeded",
+                          "title":"Ok",
+                          "type":"boolean"
+                       },
+                       "result":{
+                          "anyOf":[
+                             {
+                                "$ref":"#/$defs/WorkspaceListResult"
+                             },
+                             {
+                                "type":"null"
+                             }
+                          ],
+                          "default":null,
+                          "description":"Result payload when ok=true"
+                       },
+                       "issues":{
+                          "description":"Business-level issues",
+                          "items":{
+                             "$ref":"#/$defs/ToolIssue"
+                          },
+                          "title":"Issues",
+                          "type":"array"
+                       }
+                    },
+                    "required":[
+                       "ok"
+                    ],
+                    "title":"ToolResponse[WorkspaceListResult]",
+                    "type":"object"
+                 },
+                 "annotations":{
+
+                 },
+                 "jsonpathFilter":"",
+                 "auth":null,
+                 "createdAt":"2025-12-13T11:41:30.494031",
+                 "updatedAt":"2025-12-13T11:41:30.494031",
+                 "enabled":true,
+                 "reachable":true,
+                 "gatewayId":"61a50681abf24f008cf849f857484b12",
+                 "executionCount":0,
+                 "metrics":{
+                    "totalExecutions":0,
+                    "successfulExecutions":0,
+                    "failedExecutions":0,
+                    "failureRate":0.0,
+                    "minResponseTime":null,
+                    "maxResponseTime":null,
+                    "avgResponseTime":null,
+                    "lastExecutionTime":null
+                 },
+                 "name":"clickup-get-authorized-teams",
+                 "displayName":"Get Authorized Teams",
+                 "gatewaySlug":"clickup",
+                 "customName":"get_authorized_teams",
+                 "customNameSlug":"get-authorized-teams",
+                 "tags":[
+
+                 ],
+                 "createdBy":"system",
+                 "createdFromIp":null,
+                 "createdVia":"federation",
+                 "createdUserAgent":null,
+                 "modifiedBy":null,
+                 "modifiedFromIp":null,
+                 "modifiedVia":null,
+                 "modifiedUserAgent":null,
+                 "importBatchId":null,
+                 "federationSource":"clickup",
+                 "version":1,
+                 "teamId":null,
+                 "team":null,
+                 "ownerEmail":null,
+                 "visibility":"public",
+                 "baseUrl":null,
+                 "pathTemplate":null,
+                 "queryMapping":null,
+                 "headerMapping":null,
+                 "timeoutMs":null,
+                 "exposePassthrough":true,
+                 "allowlist":null,
+                 "pluginChainPre":null,
+                 "pluginChainPost":null,
+                 "_meta":null
+              }
+           ],
+           "pagination":{
+              "page":1,
+              "per_page":50,
+              "total_items":29,
+              "total_pages":1,
+              "has_next":false,
+              "has_prev":false,
+              "next_cursor":null,
+              "prev_cursor":null
+           },
+           "links":{
+              "self":"/admin/tools?page=1&per_page=50",
+              "first":"/admin/tools?page=1&per_page=50",
+              "last":"/admin/tools?page=1&per_page=50",
+              "next":null,
+              "prev":null
+           }
+        }
+        ```
+    """
     data: Optional[List[ToolReadDTO]] = None
     pagination: Optional[PaginationDTO] = None
     links: Optional[LinksDTO] = None
