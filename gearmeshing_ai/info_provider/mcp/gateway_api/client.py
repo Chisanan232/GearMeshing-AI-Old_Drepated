@@ -44,6 +44,11 @@ class GatewayApiClient:
         token_provider: Optional[Callable[[], str]] = None,
         timeout: float = 10.0,
         client: Optional[httpx.Client] = None,
+        # Auto bearer token generation controls
+        auto_bearer: bool = False,
+        jwt_secret_key: Optional[str] = None,
+        token_env: Optional[Dict[str, str]] = None,
+        token_timeout: float = 5.0,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.auth_token = auth_token
@@ -55,6 +60,15 @@ class GatewayApiClient:
         # Admin endpoints
         # ----------------------
         self._admin = _AdminNamespace(self)
+
+        # Optionally generate a Bearer token immediately for convenience
+        if auth_token is None and token_provider is None and auto_bearer:
+            try:
+                self.auth_token = self.generate_bearer_token(
+                    jwt_secret_key, extra_env=token_env, timeout=token_timeout
+                )
+            except Exception as e:  # pragma: no cover - logged, not raised
+                self._logger.warning("GatewayApiClient auto_bearer failed: %s", e)
 
     def _ensure_token(self) -> None:
         """Ensure an auth token is available by invoking the token provider if set."""
