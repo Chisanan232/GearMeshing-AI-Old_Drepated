@@ -16,6 +16,13 @@ import sys
 import httpx
 
 from .errors import GatewayApiError
+from .models.dto import (
+    AdminToolsListResponseDTO,
+    CatalogListResponseDTO,
+    CatalogServerRegisterResponseDTO,
+    GatewayReadDTO,
+    ToolReadDTO,
+)
 
 
 class GatewayApiClient:
@@ -143,7 +150,7 @@ class _McpRegistryNamespace:
         tags: Optional[str] = None,
         team_id: Optional[str] = None,
         visibility: Optional[str] = None,
-    ) -> Dict[str, Any]:
+    ) -> CatalogListResponseDTO:
         self._client._ensure_token()
         params: Dict[str, Any] = {}
         if include_inactive is not None:
@@ -160,23 +167,23 @@ class _McpRegistryNamespace:
             params=params or None,
         )
         r.raise_for_status()
-        return r.json()
+        return CatalogListResponseDTO.model_validate(r.json())
 
-    def register(self, server_id: str) -> Dict[str, Any]:
+    def register(self, server_id: str) -> CatalogServerRegisterResponseDTO:
         self._client._ensure_token()
         r = self._client._client.post(
             f"{self._client.base_url}/admin/mcp-registry/{server_id}/register",
             headers=self._client._headers(),
         )
         r.raise_for_status()
-        return r.json()
+        return CatalogServerRegisterResponseDTO.model_validate(r.json())
 
 
 class _GatewayMgmtNamespace:
     def __init__(self, client: GatewayApiClient) -> None:
         self._client = client
 
-    def list(self, include_inactive: Optional[bool] = None) -> Dict[str, Any]:
+    def list(self, include_inactive: Optional[bool] = None) -> List[GatewayReadDTO]:
         self._client._ensure_token()
         params: Dict[str, Any] = {}
         if include_inactive is not None:
@@ -187,22 +194,26 @@ class _GatewayMgmtNamespace:
             params=params or None,
         )
         r.raise_for_status()
-        return r.json()
+        data = r.json()
+        if isinstance(data, list):
+            return [GatewayReadDTO.model_validate(x) for x in data]
+        items = data.get("items", []) if isinstance(data, dict) else []
+        return [GatewayReadDTO.model_validate(x) for x in items]
 
-    def get(self, gateway_id: str) -> Dict[str, Any]:
+    def get(self, gateway_id: str) -> GatewayReadDTO:
         self._client._ensure_token()
         r = self._client._client.get(
             f"{self._client.base_url}/admin/gateways/{gateway_id}", headers=self._client._headers()
         )
         r.raise_for_status()
-        return r.json()
+        return GatewayReadDTO.model_validate(r.json())
 
 
 class _ToolsNamespace:
     def __init__(self, client: GatewayApiClient) -> None:
         self._client = client
 
-    def list(self, offset: int = 0, limit: int = 50, include_inactive: Optional[bool] = None) -> Dict[str, Any]:
+    def list(self, offset: int = 0, limit: int = 50, include_inactive: Optional[bool] = None) -> AdminToolsListResponseDTO:
         self._client._ensure_token()
         params: Dict[str, Any] = {"offset": offset, "limit": limit}
         if include_inactive is not None:
@@ -213,15 +224,15 @@ class _ToolsNamespace:
             params=params,
         )
         r.raise_for_status()
-        return r.json()
+        return AdminToolsListResponseDTO.model_validate(r.json())
 
-    def get(self, tool_id: str) -> Dict[str, Any]:
+    def get(self, tool_id: str) -> ToolReadDTO:
         self._client._ensure_token()
         r = self._client._client.get(
             f"{self._client.base_url}/admin/tools/{tool_id}", headers=self._client._headers()
         )
         r.raise_for_status()
-        return r.json()
+        return ToolReadDTO.model_validate(r.json())
 
 
 class _AdminNamespace:
