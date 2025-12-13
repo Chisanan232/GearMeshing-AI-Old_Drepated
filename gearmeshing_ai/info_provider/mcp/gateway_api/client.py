@@ -76,17 +76,6 @@ class GatewayApiClient:
         return headers
 
     @staticmethod
-    def basic_auth_token(username: str, password: str) -> str:
-        """Generate a Basic auth token string for Authorization header.
-
-        Returns a string like "Basic base64(user:pass)".
-        """
-        import base64
-
-        raw = f"{username}:{password}".encode("utf-8")
-        return "Basic " + base64.b64encode(raw).decode("ascii")
-
-    @staticmethod
     def generate_bearer_token(jwt_secret_key: Optional[str] = None, *, extra_env: Optional[Dict[str, str]] = None, timeout: float = 5.0) -> str:
         """Generate a Bearer JWT using mcpgateway.utils.create_jwt_token.
 
