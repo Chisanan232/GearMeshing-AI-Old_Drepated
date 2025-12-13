@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from pydantic import AnyHttpUrl, Field, model_validator
+from pydantic import AnyHttpUrl, Field, model_validator, ConfigDict
 
 from ...schemas.base import BaseSchema
 from .domain import GatewayServer, GatewayTransport
@@ -313,14 +313,56 @@ class CatalogServerStatusResponseDTO(BaseSchema):
 
 class CatalogBulkRegisterResponseDTO(BaseSchema):
     successful: List[str]
-    failed: List[Dict[str, str]]
+    failed: List["CatalogRegisterFailureDTO"]
     total_attempted: int
     total_successful: int
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_failed(cls, v):
+        # API returns failed as a list of objects with additionalProperties: string
+        # We normalize into list of {server_id, error}
+        if isinstance(v, dict) and isinstance(v.get("failed"), list):
+            failed_list = []
+            for item in v["failed"]:
+                if isinstance(item, dict):
+                    for k, err in item.items():
+                        failed_list.append({"server_id": k, "error": err})
+            v = {**v, "failed": failed_list}
+        return v
+
+
+class CatalogRegisterFailureDTO(BaseSchema):
+    server_id: str
+    error: str
 
 
 # -----------------------------
 # Admin: Gateways
 # -----------------------------
+
+
+class GatewayCapabilitiesDTO(BaseSchema):
+    # Free-form capability map; keep extensible
+    model_config = ConfigDict(extra="allow")
+
+
+class HeaderMapDTO(BaseSchema):
+    # Map-like object with arbitrary string keys and string values
+    model_config = ConfigDict(extra="allow")
+
+
+class OAuthConfigDTO(BaseSchema):
+    # Typical OAuth 2.0 fields; remain extensible
+    grant_type: Optional[str] = None
+    client_id: Optional[str] = None
+    client_secret: Optional[str] = None
+    authorization_url: Optional[str] = None
+    token_url: Optional[str] = None
+    scopes: Optional[List[str]] = None
+    redirect_uri: Optional[str] = None
+    audience: Optional[str] = None
+    model_config = ConfigDict(extra="allow")
 
 
 class GatewayReadDTO(BaseSchema):
@@ -329,7 +371,7 @@ class GatewayReadDTO(BaseSchema):
     url: str
     description: Optional[str] = None
     transport: str = "SSE"
-    capabilities: Optional[Dict[str, Any]] = None
+    capabilities: Optional[GatewayCapabilitiesDTO] = None
     createdAt: Optional[str] = None
     updatedAt: Optional[str] = None
     enabled: Optional[bool] = True
@@ -338,9 +380,9 @@ class GatewayReadDTO(BaseSchema):
     passthroughHeaders: Optional[List[str]] = None
     authType: Optional[str] = None
     authValue: Optional[str] = None
-    authHeaders: Optional[List[Dict[str, str]]] = None
-    authHeadersUnmasked: Optional[List[Dict[str, str]]] = None
-    oauthConfig: Optional[Dict[str, Any]] = None
+    authHeaders: Optional[List[HeaderMapDTO]] = None
+    authHeadersUnmasked: Optional[List[HeaderMapDTO]] = None
+    oauthConfig: Optional[OAuthConfigDTO] = None
     authUsername: Optional[str] = None
     authPassword: Optional[str] = None
     authToken: Optional[str] = None
@@ -373,7 +415,112 @@ class GatewayReadDTO(BaseSchema):
 # -----------------------------
 
 
+class ToolMetricsDTO(BaseSchema):
+    totalExecutions: int
+    successfulExecutions: int
+    failedExecutions: int
+    failureRate: float
+    minResponseTime: Optional[float] = None
+    maxResponseTime: Optional[float] = None
+    avgResponseTime: Optional[float] = None
+    lastExecutionTime: Optional[str] = None
+
+
+class AuthenticationValuesDTO(BaseSchema):
+    authType: Optional[str] = None
+    authValue: Optional[str] = None
+    username: Optional[str] = None
+    password: Optional[str] = None
+    token: Optional[str] = None
+    authHeaderKey: Optional[str] = None
+    authHeaderValue: Optional[str] = None
+
+
+class JSONSchemaDTO(BaseSchema):
+    # Arbitrary JSON schema-like structure
+    model_config = ConfigDict(extra="allow")
+
+
+class FreeformObjectDTO(BaseSchema):
+    # Arbitrary JSON object (metadata, annotations, mappings)
+    model_config = ConfigDict(extra="allow")
+
+
+class HeadersDTO(BaseSchema):
+    # Arbitrary headers map (string->string)
+    model_config = ConfigDict(extra="allow")
+
+
+class ToolReadDTO(BaseSchema):
+    id: str
+    originalName: str
+    url: Optional[str] = None
+    description: Optional[str] = None
+    requestType: str
+    integrationType: str
+    headers: Optional[HeadersDTO] = None
+    inputSchema: JSONSchemaDTO
+    outputSchema: Optional[JSONSchemaDTO] = None
+    annotations: Optional[FreeformObjectDTO] = None
+    jsonpathFilter: Optional[str] = None
+    auth: Optional[AuthenticationValuesDTO] = None
+    createdAt: str
+    updatedAt: str
+    enabled: bool
+    reachable: bool
+    gatewayId: Optional[str] = None
+    executionCount: int
+    metrics: ToolMetricsDTO
+    name: str
+    displayName: Optional[str] = None
+    gatewaySlug: str
+    customName: str
+    customNameSlug: str
+    tags: Optional[List[str]] = None
+    createdBy: Optional[str] = None
+    createdFromIp: Optional[str] = None
+    createdVia: Optional[str] = None
+    createdUserAgent: Optional[str] = None
+    modifiedBy: Optional[str] = None
+    modifiedFromIp: Optional[str] = None
+    modifiedVia: Optional[str] = None
+    modifiedUserAgent: Optional[str] = None
+    importBatchId: Optional[str] = None
+    federationSource: Optional[str] = None
+    version: Optional[int] = 1
+    teamId: Optional[str] = None
+    team: Optional[str] = None
+    ownerEmail: Optional[str] = None
+    visibility: Optional[str] = None
+    baseUrl: Optional[str] = None
+    pathTemplate: Optional[str] = None
+    queryMapping: Optional[FreeformObjectDTO] = None
+    headerMapping: Optional[FreeformObjectDTO] = None
+    timeoutMs: Optional[int] = 20000
+    exposePassthrough: Optional[bool] = True
+    allowlist: Optional[List[str]] = None
+    pluginChainPre: Optional[List[str]] = None
+    pluginChainPost: Optional[List[str]] = None
+    _meta: Optional[FreeformObjectDTO] = Field(default=None, alias="_meta")
+
+
+class PaginationDTO(BaseSchema):
+    # Page info; keep extensible
+    page: Optional[int] = None
+    perPage: Optional[int] = None
+    total: Optional[int] = None
+    totalPages: Optional[int] = None
+    model_config = ConfigDict(extra="allow")
+
+
+class LinksDTO(BaseSchema):
+    self: Optional[str] = None
+    next: Optional[str] = None
+    prev: Optional[str] = None
+    model_config = ConfigDict(extra="allow")
+
+
 class AdminToolsListResponseDTO(BaseSchema):
-    data: Optional[List[Dict[str, Any]]] = None
-    pagination: Optional[Dict[str, Any]] = None
-    links: Optional[Dict[str, Any]] = None
+    data: Optional[List[ToolReadDTO]] = None
+    pagination: Optional[PaginationDTO] = None
+    links: Optional[LinksDTO] = None
