@@ -6,6 +6,7 @@ from typing import Any, Dict
 import pytest
 
 from gearmeshing_ai.info_provider.mcp.gateway_api.client import GatewayApiClient
+from gearmeshing_ai.info_provider.mcp.gateway_api.errors import GatewayApiError
 
 
 def test_generate_bearer_token_success_sets_env_key(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -71,3 +72,37 @@ def test_init_auto_bearer_skipped_if_token_provider(monkeypatch: pytest.MonkeyPa
     # _ensure_token should set the token via provider; no subprocess call
     client._ensure_token()
     assert client.auth_token == "Bearer dyn"
+
+
+def test_init_auto_bearer_failure_logs_warning(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+    def failing_check_output(*args, **kwargs):  # type: ignore[no-untyped-def]
+        raise RuntimeError("no jwt")
+
+    monkeypatch.setattr(subprocess, "check_output", failing_check_output)
+    caplog.clear()
+    caplog.set_level("WARNING")
+    client = GatewayApiClient("http://mock", auto_bearer=True, jwt_secret_key="s")
+    # Should not raise; should log warning and leave auth_token unset
+    assert client.auth_token is None
+    assert any("auto_bearer failed" in rec.message for rec in caplog.records)
+
+
+def test_token_provider_failure_logs_warning(caplog: pytest.LogCaptureFixture) -> None:
+    def provider():  # type: ignore[no-untyped-def]
+        raise RuntimeError("boom")
+
+    client = GatewayApiClient("http://mock", token_provider=provider)
+    caplog.clear()
+    caplog.set_level("WARNING")
+    client._ensure_token()
+    assert client.auth_token is None
+    assert any("token_provider failed" in rec.message for rec in caplog.records)
+
+
+def test_generate_bearer_token_raises_gateway_error_on_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    def failing_check_output(*args, **kwargs):  # type: ignore[no-untyped-def]
+        raise RuntimeError("subprocess error")
+
+    monkeypatch.setattr(subprocess, "check_output", failing_check_output)
+    with pytest.raises(GatewayApiError):
+        GatewayApiClient.generate_bearer_token(jwt_secret_key="k")
