@@ -13,14 +13,14 @@ from gearmeshing_ai.info_provider.mcp.gateway_api.errors import GatewayApiError
 def test_generate_bearer_token_success_sets_env_key(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: Dict[str, Any] = {}
 
-    def fake_check_output(cmd, env=None, timeout=None):  # type: ignore[no-untyped-def]
+    def fake_check_output(cmd, env=None, timeout=None):
         captured["cmd"] = cmd
         captured["env"] = env or {}
         captured["timeout"] = timeout
         assert captured["env"].get("MCPGATEWAY_JWT_SECRET") == "abc123"
         return b"jwt-token"
 
-    def fake_import_module(name: str):  # type: ignore[no-untyped-def]
+    def fake_import_module(name: str):
         # Simulate mcpgateway presence
         if name in ("mcpgateway", "mcpgateway.utils.create_jwt_token"):
             return object()
@@ -38,12 +38,12 @@ essential_env = {"MCPGATEWAY_JWT_SECRET": "k", "FOO": "bar"}
 
 
 def test_generate_bearer_token_merges_extra_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    def fake_check_output(cmd, env=None, timeout=None):  # type: ignore[no-untyped-def]
+    def fake_check_output(cmd, env=None, timeout=None):
         for k, v in essential_env.items():
             assert env[k] == v
         return b"t"
 
-    def fake_import_module(name: str):  # type: ignore[no-untyped-def]
+    def fake_import_module(name: str):
         if name in ("mcpgateway", "mcpgateway.utils.create_jwt_token"):
             return object()
         raise ImportError
@@ -55,10 +55,10 @@ def test_generate_bearer_token_merges_extra_env(monkeypatch: pytest.MonkeyPatch)
 
 
 def test_init_auto_bearer_sets_auth_token(monkeypatch: pytest.MonkeyPatch) -> None:
-    def fake_check_output(cmd, env=None, timeout=None):  # type: ignore[no-untyped-def]
+    def fake_check_output(cmd, env=None, timeout=None):
         return b"abc"
 
-    def fake_import_module(name: str):  # type: ignore[no-untyped-def]
+    def fake_import_module(name: str):
         if name in ("mcpgateway", "mcpgateway.utils.create_jwt_token"):
             return object()
         raise ImportError
@@ -73,7 +73,7 @@ def test_init_auto_bearer_sets_auth_token(monkeypatch: pytest.MonkeyPatch) -> No
 
 
 def test_init_auto_bearer_skipped_if_auth_token(monkeypatch: pytest.MonkeyPatch) -> None:
-    def raise_if_called(*args, **kwargs):  # type: ignore[no-untyped-def]
+    def raise_if_called(*args, **kwargs):
         raise AssertionError("subprocess.check_output should not be called")
 
     monkeypatch.setattr(subprocess, "check_output", raise_if_called)
@@ -83,7 +83,7 @@ def test_init_auto_bearer_skipped_if_auth_token(monkeypatch: pytest.MonkeyPatch)
 
 
 def test_init_auto_bearer_skipped_if_token_provider(monkeypatch: pytest.MonkeyPatch) -> None:
-    def raise_if_called(*args, **kwargs):  # type: ignore[no-untyped-def]
+    def raise_if_called(*args, **kwargs):
         raise AssertionError("subprocess.check_output should not be called")
 
     monkeypatch.setattr(subprocess, "check_output", raise_if_called)
@@ -97,10 +97,10 @@ def test_init_auto_bearer_skipped_if_token_provider(monkeypatch: pytest.MonkeyPa
 def test_init_auto_bearer_failure_logs_warning(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    def failing_check_output(*args, **kwargs):  # type: ignore[no-untyped-def]
+    def failing_check_output(*args, **kwargs):
         raise RuntimeError("no jwt")
 
-    def fake_import_module(name: str):  # type: ignore[no-untyped-def]
+    def fake_import_module(name: str):
         if name in ("mcpgateway", "mcpgateway.utils.create_jwt_token"):
             return object()
         raise ImportError
@@ -116,7 +116,7 @@ def test_init_auto_bearer_failure_logs_warning(
 
 
 def test_token_provider_failure_logs_warning(caplog: pytest.LogCaptureFixture) -> None:
-    def provider():  # type: ignore[no-untyped-def]
+    def provider():
         raise RuntimeError("boom")
 
     client = GatewayApiClient("http://mock", token_provider=provider)
@@ -128,10 +128,10 @@ def test_token_provider_failure_logs_warning(caplog: pytest.LogCaptureFixture) -
 
 
 def test_generate_bearer_token_raises_gateway_error_on_failure(monkeypatch: pytest.MonkeyPatch) -> None:
-    def failing_check_output(*args, **kwargs):  # type: ignore[no-untyped-def]
+    def failing_check_output(*args, **kwargs):
         raise RuntimeError("subprocess error")
 
-    def fake_import_module(name: str):  # type: ignore[no-untyped-def]
+    def fake_import_module(name: str):
         if name in ("mcpgateway", "mcpgateway.utils.create_jwt_token"):
             return object()
         raise ImportError
@@ -143,7 +143,7 @@ def test_generate_bearer_token_raises_gateway_error_on_failure(monkeypatch: pyte
 
 
 def test_generate_bearer_token_raises_if_import_fails(monkeypatch: pytest.MonkeyPatch) -> None:
-    def fake_import_module(name: str):  # type: ignore[no-untyped-def]
+    def fake_import_module(name: str):
         raise ImportError("missing")
 
     monkeypatch.setattr(importlib, "import_module", fake_import_module)
