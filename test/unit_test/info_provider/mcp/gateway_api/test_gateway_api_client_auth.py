@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import subprocess
 from typing import Any, Dict
 
@@ -19,6 +20,13 @@ def test_generate_bearer_token_success_sets_env_key(monkeypatch: pytest.MonkeyPa
         assert captured["env"].get("MCPGATEWAY_JWT_SECRET") == "abc123"
         return b"jwt-token"
 
+    def fake_import_module(name: str):  # type: ignore[no-untyped-def]
+        # Simulate mcpgateway presence
+        if name in ("mcpgateway", "mcpgateway.utils.create_jwt_token"):
+            return object()
+        raise ImportError
+
+    monkeypatch.setattr(importlib, "import_module", fake_import_module)
     monkeypatch.setattr(subprocess, "check_output", fake_check_output)
 
     token = GatewayApiClient.generate_bearer_token(jwt_secret_key="abc123")
@@ -35,6 +43,12 @@ def test_generate_bearer_token_merges_extra_env(monkeypatch: pytest.MonkeyPatch)
             assert env[k] == v
         return b"t"
 
+    def fake_import_module(name: str):  # type: ignore[no-untyped-def]
+        if name in ("mcpgateway", "mcpgateway.utils.create_jwt_token"):
+            return object()
+        raise ImportError
+
+    monkeypatch.setattr(importlib, "import_module", fake_import_module)
     monkeypatch.setattr(subprocess, "check_output", fake_check_output)
     token = GatewayApiClient.generate_bearer_token(jwt_secret_key="k", extra_env={"FOO": "bar"})
     assert token == "Bearer t"
@@ -44,6 +58,12 @@ def test_init_auto_bearer_sets_auth_token(monkeypatch: pytest.MonkeyPatch) -> No
     def fake_check_output(cmd, env=None, timeout=None):  # type: ignore[no-untyped-def]
         return b"abc"
 
+    def fake_import_module(name: str):  # type: ignore[no-untyped-def]
+        if name in ("mcpgateway", "mcpgateway.utils.create_jwt_token"):
+            return object()
+        raise ImportError
+
+    monkeypatch.setattr(importlib, "import_module", fake_import_module)
     monkeypatch.setattr(subprocess, "check_output", fake_check_output)
 
     client = GatewayApiClient("http://mock", auto_bearer=True, jwt_secret_key="s")
@@ -78,6 +98,12 @@ def test_init_auto_bearer_failure_logs_warning(monkeypatch: pytest.MonkeyPatch, 
     def failing_check_output(*args, **kwargs):  # type: ignore[no-untyped-def]
         raise RuntimeError("no jwt")
 
+    def fake_import_module(name: str):  # type: ignore[no-untyped-def]
+        if name in ("mcpgateway", "mcpgateway.utils.create_jwt_token"):
+            return object()
+        raise ImportError
+
+    monkeypatch.setattr(importlib, "import_module", fake_import_module)
     monkeypatch.setattr(subprocess, "check_output", failing_check_output)
     caplog.clear()
     caplog.set_level("WARNING")
@@ -103,6 +129,21 @@ def test_generate_bearer_token_raises_gateway_error_on_failure(monkeypatch: pyte
     def failing_check_output(*args, **kwargs):  # type: ignore[no-untyped-def]
         raise RuntimeError("subprocess error")
 
+    def fake_import_module(name: str):  # type: ignore[no-untyped-def]
+        if name in ("mcpgateway", "mcpgateway.utils.create_jwt_token"):
+            return object()
+        raise ImportError
+
+    monkeypatch.setattr(importlib, "import_module", fake_import_module)
     monkeypatch.setattr(subprocess, "check_output", failing_check_output)
+    with pytest.raises(GatewayApiError):
+        GatewayApiClient.generate_bearer_token(jwt_secret_key="k")
+
+
+def test_generate_bearer_token_raises_if_import_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_import_module(name: str):  # type: ignore[no-untyped-def]
+        raise ImportError("missing")
+
+    monkeypatch.setattr(importlib, "import_module", fake_import_module)
     with pytest.raises(GatewayApiError):
         GatewayApiClient.generate_bearer_token(jwt_secret_key="k")

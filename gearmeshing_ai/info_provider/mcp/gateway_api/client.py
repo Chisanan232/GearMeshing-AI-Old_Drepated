@@ -8,6 +8,7 @@ used by strategies to discover or register servers and propagate auth.
 from __future__ import annotations
 
 import logging
+import importlib
 from typing import Any, Callable, Dict, List, Optional
 import os
 import subprocess
@@ -101,6 +102,16 @@ class GatewayApiClient:
         Returns:
             Authorization header value like: "Bearer <jwt>".
         """
+        # Ensure mcpgateway tooling is importable before attempting to execute it
+        try:
+            # Import the package and the module used by `-m`
+            importlib.import_module("mcpgateway")
+            importlib.import_module("mcpgateway.utils.create_jwt_token")
+        except Exception as e:
+            raise GatewayApiError(
+                "mcpgateway.utils.create_jwt_token is not importable. Please install/configure 'mcpgateway'."
+            ) from e
+
         env = os.environ.copy()
         if jwt_secret_key is not None:
             env["MCPGATEWAY_JWT_SECRET"] = jwt_secret_key
