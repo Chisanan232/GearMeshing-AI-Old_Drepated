@@ -11,8 +11,8 @@ from gearmeshing_ai.info_provider.mcp.strategy.gateway import GatewayMcpStrategy
 
 def _mock_transport() -> httpx.MockTransport:
     def handler(request: httpx.Request) -> httpx.Response:
-        # Management API
-        if request.method == "GET" and request.url.path == "/servers":
+        # Management API (admin registry)
+        if request.method == "GET" and request.url.path == "/admin/mcp-registry/servers":
             data = [
                 {
                     "id": "s1",

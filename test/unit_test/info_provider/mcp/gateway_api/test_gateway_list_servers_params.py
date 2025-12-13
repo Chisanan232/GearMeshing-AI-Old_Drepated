@@ -12,8 +12,8 @@ def _mock_transport(expected_path: str, expected_query: dict[str, str]) -> httpx
         # Verify query params
         for k, v in expected_query.items():
             assert request.url.params.get(k) == v
-        # Return empty list
-        return httpx.Response(200, json=[])
+        # Return empty catalog payload
+        return httpx.Response(200, json={"items": []})
 
     return httpx.MockTransport(handler)
 
@@ -25,9 +25,12 @@ def test_list_servers_with_query_params() -> None:
         "team_id": "team-1",
         "visibility": "team",
     }
-    transport = _mock_transport("/servers", expected_query)
+    transport = _mock_transport("/admin/mcp-registry/servers", expected_query)
     client = httpx.Client(transport=transport, base_url="http://mock")
 
     gw = GatewayApiClient("http://mock", client=client)
-    res = gw.list_servers(include_inactive=True, tags="a,b", team_id="team-1", visibility="team")
-    assert res == []
+    payload = gw.admin.mcp_registry.list(
+        include_inactive=True, tags="a,b", team_id="team-1", visibility="team"
+    )
+    assert isinstance(payload, dict)
+    assert payload.get("items") == []
