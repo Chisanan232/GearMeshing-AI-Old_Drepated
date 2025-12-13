@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from pydantic import AnyHttpUrl, Field, model_validator, ConfigDict
+from pydantic import AnyHttpUrl, Field, model_validator, ConfigDict, AliasChoices
 
 from ...schemas.base import BaseSchema
 from .domain import GatewayServer, GatewayTransport
@@ -885,7 +885,11 @@ class ToolReadDTO(BaseSchema):
     allowlist: Optional[List[str]] = None
     pluginChainPre: Optional[List[str]] = None
     pluginChainPost: Optional[List[str]] = None
-    _meta: Optional[FreeformObjectDTO] = Field(default=None, alias="_meta")
+    meta: Optional[FreeformObjectDTO] = Field(
+        default=None,
+        validation_alias=AliasChoices("_meta", "meta"),
+        serialization_alias="_meta",
+    )
 
 
 class PaginationDTO(BaseSchema):
