@@ -261,3 +261,119 @@ class GatewayServerCreate(BaseSchema):
         description="Team ID to associate with this server.",
         max_length=128,
     )
+
+
+# -----------------------------
+# Admin: Catalog (Registry)
+# -----------------------------
+
+
+class CatalogServerDTO(BaseSchema):
+    id: str
+    name: str
+    category: str
+    url: str
+    auth_type: str
+    provider: str
+    description: str
+    requires_api_key: Optional[bool] = False
+    secure: Optional[bool] = False
+    tags: Optional[List[str]] = None
+    transport: Optional[str] = None
+    logo_url: Optional[str] = None
+    documentation_url: Optional[str] = None
+    is_registered: Optional[bool] = False
+    is_available: Optional[bool] = True
+
+
+class CatalogListResponseDTO(BaseSchema):
+    servers: List[CatalogServerDTO]
+    total: int
+    categories: List[str]
+    auth_types: List[str]
+    providers: List[str]
+    all_tags: Optional[List[str]] = None
+
+
+class CatalogServerRegisterResponseDTO(BaseSchema):
+    success: bool
+    server_id: str
+    message: str
+    error: Optional[str] = None
+
+
+class CatalogServerStatusResponseDTO(BaseSchema):
+    server_id: str
+    is_available: bool
+    is_registered: bool
+    last_checked: Optional[str] = None
+    response_time_ms: Optional[float] = None
+    error: Optional[str] = None
+
+
+class CatalogBulkRegisterResponseDTO(BaseSchema):
+    successful: List[str]
+    failed: List[Dict[str, str]]
+    total_attempted: int
+    total_successful: int
+
+
+# -----------------------------
+# Admin: Gateways
+# -----------------------------
+
+
+class GatewayReadDTO(BaseSchema):
+    id: Optional[str] = None
+    name: str
+    url: str
+    description: Optional[str] = None
+    transport: str = "SSE"
+    capabilities: Optional[Dict[str, Any]] = None
+    createdAt: Optional[str] = None
+    updatedAt: Optional[str] = None
+    enabled: Optional[bool] = True
+    reachable: Optional[bool] = True
+    lastSeen: Optional[str] = None
+    passthroughHeaders: Optional[List[str]] = None
+    authType: Optional[str] = None
+    authValue: Optional[str] = None
+    authHeaders: Optional[List[Dict[str, str]]] = None
+    authHeadersUnmasked: Optional[List[Dict[str, str]]] = None
+    oauthConfig: Optional[Dict[str, Any]] = None
+    authUsername: Optional[str] = None
+    authPassword: Optional[str] = None
+    authToken: Optional[str] = None
+    authHeaderKey: Optional[str] = None
+    authHeaderValue: Optional[str] = None
+    tags: Optional[List[str]] = None
+    authPasswordUnmasked: Optional[str] = None
+    authTokenUnmasked: Optional[str] = None
+    authHeaderValueUnmasked: Optional[str] = None
+    teamId: Optional[str] = None
+    team: Optional[str] = None
+    ownerEmail: Optional[str] = None
+    visibility: Optional[str] = None
+    createdBy: Optional[str] = None
+    createdFromIp: Optional[str] = None
+    createdVia: Optional[str] = None
+    createdUserAgent: Optional[str] = None
+    modifiedBy: Optional[str] = None
+    modifiedFromIp: Optional[str] = None
+    modifiedVia: Optional[str] = None
+    modifiedUserAgent: Optional[str] = None
+    importBatchId: Optional[str] = None
+    federationSource: Optional[str] = None
+    version: Optional[int] = 1
+    slug: Optional[str] = None
+
+
+# -----------------------------
+# Admin: Tools
+# -----------------------------
+
+
+class AdminToolsListResponseDTO(BaseSchema):
+    data: Optional[List[Dict[str, Any]]] = None
+    pagination: Optional[Dict[str, Any]] = None
+    links: Optional[Dict[str, Any]] = None
