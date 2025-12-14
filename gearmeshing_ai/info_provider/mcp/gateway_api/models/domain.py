@@ -112,10 +112,3 @@ class GatewayServer(BaseSchema):
             transport=t,
             endpoint_url=f"{base_url}/servers/{self.id}/mcp/",
         )
-
-
-# Backward-compatible re-export for tests and call sites that import from models.domain
-# The actual request DTO now lives in models/dto.py
-from .dto import (  # noqa: E402  (import after definitions to avoid circular import)
-    GatewayServerCreate,
-)
