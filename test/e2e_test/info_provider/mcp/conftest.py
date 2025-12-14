@@ -159,8 +159,9 @@ def _wait_gateway_ready(base_url: str, timeout: float = 30.0) -> None:
     last: Exception | None = None
     while time.time() - start < timeout:
         try:
+            user = os.getenv("BASIC_AUTH_USER", "admin")
             secret = os.getenv("MCPGATEWAY_JWT_SECRET", "my-test-key")
-            token = GatewayApiClient.generate_bearer_token(jwt_secret_key=secret)
+            token = GatewayApiClient.generate_bearer_token(jwt_secret_key=secret, username=user)
             r = httpx.get(f"{base_url}/health", headers={"Authorization": token}, timeout=3.0)
             if r.status_code == 200:
                 return

@@ -10,18 +10,23 @@ from gearmeshing_ai.info_provider.mcp.gateway_api.client import GatewayApiClient
 from gearmeshing_ai.info_provider.mcp.gateway_api.errors import GatewayApiError
 
 
-def test_generate_bearer_token_success_sets_env_key(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_generate_bearer_token_passes_cli_username_and_secret(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: Dict[str, Any] = {}
 
     def fake_check_output(cmd, env=None, timeout=None):
-        captured["cmd"] = cmd
+        captured["cmd"] = list(cmd)
         captured["env"] = env or {}
         captured["timeout"] = timeout
-        assert captured["env"].get("MCPGATEWAY_JWT_SECRET") == "abc123"
+        # Ensure CLI args include username and secret
+        assert "--username" in captured["cmd"]
+        assert "--secret" in captured["cmd"]
+        u_idx = captured["cmd"].index("--username") + 1
+        s_idx = captured["cmd"].index("--secret") + 1
+        assert captured["cmd"][u_idx] == "bob"
+        assert captured["cmd"][s_idx] == "abc123"
         return b"jwt-token"
 
     def fake_import_module(name: str):
-        # Simulate mcpgateway presence
         if name in ("mcpgateway", "mcpgateway.utils.create_jwt_token"):
             return object()
         raise ImportError
@@ -29,7 +34,7 @@ def test_generate_bearer_token_success_sets_env_key(monkeypatch: pytest.MonkeyPa
     monkeypatch.setattr(importlib, "import_module", fake_import_module)
     monkeypatch.setattr(subprocess, "check_output", fake_check_output)
 
-    token = GatewayApiClient.generate_bearer_token(jwt_secret_key="abc123")
+    token = GatewayApiClient.generate_bearer_token(jwt_secret_key="abc123", username="bob")
     assert token == "Bearer jwt-token"
     assert captured["timeout"] == 5.0
 
@@ -37,10 +42,18 @@ def test_generate_bearer_token_success_sets_env_key(monkeypatch: pytest.MonkeyPa
 essential_env = {"MCPGATEWAY_JWT_SECRET": "k", "FOO": "bar"}
 
 
-def test_generate_bearer_token_merges_extra_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_generate_bearer_token_merges_extra_env_and_defaults_username(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: Dict[str, Any] = {}
+
     def fake_check_output(cmd, env=None, timeout=None):
-        for k, v in essential_env.items():
-            assert env[k] == v
+        captured["cmd"] = list(cmd)
+        captured["env"] = env or {}
+        # Only require extra env to be merged
+        assert captured["env"]["FOO"] == "bar"
+        # Default username should be present when not provided (admin)
+        assert "--username" in captured["cmd"] and captured["cmd"][captured["cmd"].index("--username") + 1] == "admin"
+        # Secret passed via CLI arg
+        assert "--secret" in captured["cmd"] and captured["cmd"][captured["cmd"].index("--secret") + 1] == "k"
         return b"t"
 
     def fake_import_module(name: str):
@@ -70,6 +83,28 @@ def test_init_auto_bearer_sets_auth_token(monkeypatch: pytest.MonkeyPatch) -> No
     assert client.auth_token == "Bearer abc"
     headers = client._headers()
     assert headers.get("Authorization") == "Bearer abc"
+
+
+def test_init_auto_bearer_uses_bearer_username(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: Dict[str, Any] = {}
+
+    def fake_check_output(cmd, env=None, timeout=None):
+        captured["cmd"] = list(cmd)
+        return b"abc"
+
+    def fake_import_module(name: str):
+        if name in ("mcpgateway", "mcpgateway.utils.create_jwt_token"):
+            return object()
+        raise ImportError
+
+    monkeypatch.setattr(importlib, "import_module", fake_import_module)
+    monkeypatch.setattr(subprocess, "check_output", fake_check_output)
+
+    client = GatewayApiClient("http://mock", auto_bearer=True, jwt_secret_key="s", bearer_username="carol")
+    assert client.auth_token == "Bearer abc"
+    # Ensure username flowed to CLI
+    assert "--username" in captured["cmd"]
+    assert captured["cmd"][captured["cmd"].index("--username") + 1] == "carol"
 
 
 def test_init_auto_bearer_skipped_if_auth_token(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -149,3 +184,21 @@ def test_generate_bearer_token_raises_if_import_fails(monkeypatch: pytest.Monkey
     monkeypatch.setattr(importlib, "import_module", fake_import_module)
     with pytest.raises(GatewayApiError):
         GatewayApiClient.generate_bearer_token(jwt_secret_key="k")
+
+
+def test_generate_bearer_token_raises_if_secret_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_import_module(name: str):
+        if name in ("mcpgateway", "mcpgateway.utils.create_jwt_token"):
+            return object()
+        raise ImportError
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("subprocess.check_output should not be called when secret missing")
+
+    monkeypatch.setattr(importlib, "import_module", fake_import_module)
+    monkeypatch.setattr(subprocess, "check_output", fail_if_called)
+    # Ensure no env secret present
+    monkeypatch.delenv("MCPGATEWAY_JWT_SECRET", raising=False)
+
+    with pytest.raises(GatewayApiError):
+        GatewayApiClient.generate_bearer_token(jwt_secret_key=None)

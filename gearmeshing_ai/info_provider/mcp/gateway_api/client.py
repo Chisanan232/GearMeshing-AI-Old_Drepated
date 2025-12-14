@@ -98,6 +98,7 @@ class GatewayApiClient:
         # Auto bearer token generation controls
         auto_bearer: bool = False,
         jwt_secret_key: Optional[str] = None,
+        bearer_username: Optional[str] = None,
         token_env: Optional[Dict[str, str]] = None,
         token_timeout: float = 5.0,
     ) -> None:
@@ -114,6 +115,8 @@ class GatewayApiClient:
                 token via ``python -m mcpgateway.utils.create_jwt_token``.
             jwt_secret_key: Secret injected as ``MCPGATEWAY_JWT_SECRET`` when generating
                 a token. If omitted, environment is used.
+            bearer_username: Username to embed in the generated JWT when ``auto_bearer`` is used.
+                If omitted, falls back to environment variable ``BASIC_AUTH_USER`` or ``"admin"``.
             token_env: Extra environment variables for the token generation subprocess.
             token_timeout: Subprocess timeout for token generation in seconds.
         """
@@ -131,7 +134,12 @@ class GatewayApiClient:
         # Optionally generate a Bearer token immediately for convenience
         if auth_token is None and token_provider is None and auto_bearer:
             try:
-                self.auth_token = self.generate_bearer_token(jwt_secret_key, extra_env=token_env, timeout=token_timeout)
+                self.auth_token = self.generate_bearer_token(
+                    jwt_secret_key,
+                    username=bearer_username or os.environ.get("BASIC_AUTH_USER"),
+                    extra_env=token_env,
+                    timeout=token_timeout,
+                )
             except Exception as e:  # pragma: no cover - logged, not raised
                 self._logger.warning("GatewayApiClient auto_bearer failed: %s", e)
 
@@ -162,16 +170,19 @@ class GatewayApiClient:
 
     @staticmethod
     def generate_bearer_token(
-        jwt_secret_key: Optional[str] = None, *, extra_env: Optional[Dict[str, str]] = None, timeout: float = 5.0
+        jwt_secret_key: Optional[str] = None,
+        username: Optional[str] = None,
+        *,
+        extra_env: Optional[Dict[str, str]] = None,
+        timeout: float = 5.0,
     ) -> str:
-        """Generate a Bearer JWT via ``mcpgateway.utils.create_jwt_token``.
+        """Generate a Bearer JWT via ``mcpgateway.utils.create_jwt_token`` CLI.
 
         Behavior
         --------
-        Spawns ``python -m mcpgateway.utils.create_jwt_token`` in a subprocess,
-        merging the current environment with ``extra_env`` and injecting
-        ``MCPGATEWAY_JWT_SECRET`` when ``jwt_secret_key`` is provided. On success,
-        returns a string suitable for the ``Authorization`` header: ``"Bearer <jwt>"``.
+        Spawns ``python -m mcpgateway.utils.create_jwt_token --username <user> --secret <secret>`` in a subprocess,
+        merging the current environment with ``extra_env``. On success, returns a string suitable for the
+        ``Authorization`` header: ``"Bearer <jwt>"``.
 
         Pre-checks
         ----------
@@ -180,8 +191,10 @@ class GatewayApiClient:
         a ``GatewayApiError`` is raised.
 
         Args:
-            jwt_secret_key: Secret used by the JWT generator. If ``None``, the
-                environment variable ``MCPGATEWAY_JWT_SECRET`` must be set by the caller.
+            jwt_secret_key: Secret used by the JWT generator. If ``None``, attempts to read
+                from environment variable ``MCPGATEWAY_JWT_SECRET``; if still missing, raises ``GatewayApiError``.
+            username: Username to embed in the token claims. If ``None``, attempts to read
+                from environment variable ``BASIC_AUTH_USER``; defaults to ``"admin"`` as a last resort.
             extra_env: Additional environment variables to pass to the subprocess.
             timeout: Subprocess timeout in seconds.
 
@@ -202,13 +215,29 @@ class GatewayApiClient:
             ) from e
 
         env = os.environ.copy()
-        if jwt_secret_key is not None:
-            env["MCPGATEWAY_JWT_SECRET"] = jwt_secret_key
         if extra_env:
             env.update(extra_env)
+
+        # Resolve required arguments
+        secret = jwt_secret_key or env.get("MCPGATEWAY_JWT_SECRET")
+        if not secret:
+            raise GatewayApiError(
+                "JWT secret missing: provide 'jwt_secret_key' or set MCPGATEWAY_JWT_SECRET in environment."
+            )
+        user = username or env.get("BASIC_AUTH_USER") or "admin"
         try:
             out = subprocess.check_output(
-                [sys.executable, "-m", "mcpgateway.utils.create_jwt_token"], env=env, timeout=timeout
+                [
+                    sys.executable,
+                    "-m",
+                    "mcpgateway.utils.create_jwt_token",
+                    "--username",
+                    user,
+                    "--secret",
+                    secret,
+                ],
+                env=env,
+                timeout=timeout,
             )
         except Exception as e:
             raise GatewayApiError(f"Failed to generate JWT via mcpgateway: {e}") from e
