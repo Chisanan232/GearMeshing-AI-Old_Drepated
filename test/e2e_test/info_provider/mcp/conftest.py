@@ -5,11 +5,9 @@ import time
 from pathlib import Path
 from typing import Iterable, List
 
-import httpx
 import pytest
 from testcontainers.compose import DockerCompose
 
-from gearmeshing_ai.info_provider.mcp.gateway_api.client import GatewayApiClient
 from gearmeshing_ai.info_provider.mcp.schemas.config import ServerConfig
 from gearmeshing_ai.info_provider.mcp.strategy import DirectMcpStrategy
 from gearmeshing_ai.info_provider.mcp.transport.mcp import SseMCPTransport
