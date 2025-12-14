@@ -1,16 +1,13 @@
 from __future__ import annotations
 
 import os
-import tempfile
 import time
 from pathlib import Path
 from typing import Iterable, List
 
-import httpx
 import pytest
 from testcontainers.compose import DockerCompose
 
-from gearmeshing_ai.info_provider.mcp.gateway_api.client import GatewayApiClient
 from gearmeshing_ai.info_provider.mcp.schemas.config import ServerConfig
 from gearmeshing_ai.info_provider.mcp.strategy import DirectMcpStrategy
 from gearmeshing_ai.info_provider.mcp.transport.mcp import SseMCPTransport
@@ -65,6 +62,7 @@ def wait_clickup_ready(urls: Iterable[str], timeout: float = 30.0) -> str:
 def _compose_env() -> Iterable[None]:
     # Provide env vars required by docker-compose_e2e.yml services
     prev: dict[str, str] = {}
+
     def _set(k: str, v: str) -> None:
         if k in os.environ:
             prev[k] = os.environ[k]
@@ -97,22 +95,24 @@ def _compose_env() -> Iterable[None]:
     try:
         yield
     finally:
-        for k in list({
-            "POSTGRES_DB",
-            "POSTGRES_USER",
-            "POSTGRES_PASSWORD",
-            "MCPGATEWAY_JWT_SECRET",
-            "MCPGATEWAY_ADMIN_PASSWORD",
-            "MCPGATEWAY_ADMIN_EMAIL",
-            "MCPGATEWAY_ADMIN_FULL_NAME",
-            "MCPGATEWAY_DB_URL",
-            "MCPGATEWAY_REDIS_URL",
-            "CLICKUP_SERVER_HOST",
-            "CLICKUP_SERVER_PORT",
-            "CLICKUP_MCP_TRANSPORT",
-            "CLICKUP_API_TOKEN",
-            "MQ_BACKEND",
-        }):
+        for k in list(
+            {
+                "POSTGRES_DB",
+                "POSTGRES_USER",
+                "POSTGRES_PASSWORD",
+                "MCPGATEWAY_JWT_SECRET",
+                "MCPGATEWAY_ADMIN_PASSWORD",
+                "MCPGATEWAY_ADMIN_EMAIL",
+                "MCPGATEWAY_ADMIN_FULL_NAME",
+                "MCPGATEWAY_DB_URL",
+                "MCPGATEWAY_REDIS_URL",
+                "CLICKUP_SERVER_HOST",
+                "CLICKUP_SERVER_PORT",
+                "CLICKUP_MCP_TRANSPORT",
+                "CLICKUP_API_TOKEN",
+                "MQ_BACKEND",
+            }
+        ):
             if k in prev:
                 os.environ[k] = prev[k]
             else:
@@ -132,12 +132,12 @@ def compose_stack(_compose_env: Iterable[None]) -> Iterable[DockerCompose]:
 
 
 @pytest.fixture
-def clickup_container(compose_stack: DockerCompose) -> DockerCompose:  # type: ignore[type-arg]
+def clickup_container(compose_stack: DockerCompose) -> DockerCompose:
     return compose_stack
 
 
 @pytest.fixture
-def clickup_base_url(clickup_container: DockerCompose) -> str:  # type: ignore[type-arg]
+def clickup_base_url(clickup_container: DockerCompose) -> str:
     port_int = clickup_port()
     base = wait_clickup_ready(endpoint_candidates("127.0.0.1", port_int), timeout=20.0)
     return base
@@ -152,31 +152,31 @@ def _write_catalog_for_gateway(clickup_base_url: str) -> Path:
     return Path("./configs/mcp_gateway/mcp-catalog_e2e.yml").resolve()
 
 
-def _wait_gateway_ready(base_url: str, timeout: float = 30.0) -> None:
-    start = time.time()
-    last: Exception | None = None
-    while time.time() - start < timeout:
-        try:
-            secret = os.getenv("MCPGATEWAY_JWT_SECRET", "my-test-key")
-            token = GatewayApiClient.generate_bearer_token(jwt_secret_key=secret)
-            r = httpx.get(f"{base_url}/health", headers={"Authorization": token}, timeout=3.0)
-            if r.status_code == 200:
-                return
-        except Exception as e:
-            last = e
-        time.sleep(0.5)
-    if last:
-        raise last
-    raise RuntimeError("Gateway not ready and no error captured")
+# def _wait_gateway_ready(base_url: str, timeout: float = 30.0) -> None:
+#     start = time.time()
+#     last: Exception | None = None
+#     while time.time() - start < timeout:
+#         try:
+#             secret = os.getenv("MCPGATEWAY_JWT_SECRET", "my-test-key")
+#             token = GatewayApiClient.generate_bearer_token(jwt_secret_key=secret)
+#             r = httpx.get(f"{base_url}/health", headers={"Authorization": token}, timeout=3.0)
+#             if r.status_code == 200:
+#                 return
+#         except Exception as e:
+#             last = e
+#         time.sleep(0.5)
+#     if last:
+#         raise last
+#     raise RuntimeError("Gateway not ready and no error captured")
 
 
 @pytest.fixture
-def gateway_container(compose_stack: DockerCompose, clickup_base_url: str) -> DockerCompose:  # type: ignore[type-arg]
+def gateway_container(compose_stack: DockerCompose, clickup_base_url: str) -> DockerCompose:
     return compose_stack
 
 
-@pytest.fixture
-def gateway_base_url(gateway_container: DockerCompose) -> str:  # type: ignore[type-arg]
-    base = f"http://127.0.0.1:{gateway_port()}"
-    _wait_gateway_ready(base, timeout=30.0)
-    return base
+# @pytest.fixture
+# def gateway_base_url(gateway_container: DockerCompose) -> str:
+#     base = f"http://127.0.0.1:{gateway_port()}"
+#     _wait_gateway_ready(base, timeout=30.0)
+#     return base
