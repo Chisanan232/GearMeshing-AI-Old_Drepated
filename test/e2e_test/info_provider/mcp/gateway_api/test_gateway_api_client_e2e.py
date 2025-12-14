@@ -55,9 +55,9 @@ def test_gateway_admin_gateways_list_and_get(gateway_client_with_register_server
     assert getattr(gw0, "url", None)
 
     # Verify get by id returns a matching entity
-    if getattr(gw0, "id", None):
-        gw = gateway_client_with_register_servers.admin.gateway.get(gw0.id)
-        assert gw.name == gw0.name
+    # if getattr(gw0, "id", None):
+    gw = gateway_client_with_register_servers.admin.gateway.get(gw0.id)
+    assert gw.name == gw0.name
 
 
 @pytest.mark.e2e

@@ -54,7 +54,7 @@ def _mock_transport() -> httpx.MockTransport:
             }
             return httpx.Response(200, json=data)
         if request.method == "GET" and request.url.path == "/servers":
-            data = [
+            data: List[Dict[str, Any]] = [  # type: ignore[no-redef]
                 {
                     "id": "s1",
                     "name": "gateway-s1",

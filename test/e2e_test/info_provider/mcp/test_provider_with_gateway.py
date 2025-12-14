@@ -52,6 +52,7 @@ def test_sync_provider_gateway_lists_tools(gateway_client: GatewayApiClient) -> 
 async def test_async_provider_gateway_lists_tools(gateway_client: GatewayApiClient) -> None:
     cfg = McpClientConfig(gateway=GatewayConfig(base_url=gateway_client.base_url, auth_token=gateway_client.auth_token))
 
+    assert cfg.gateway
     http_client = httpx.AsyncClient(base_url=cfg.gateway.base_url)
     sse_client = httpx.AsyncClient(base_url=cfg.gateway.base_url)
 

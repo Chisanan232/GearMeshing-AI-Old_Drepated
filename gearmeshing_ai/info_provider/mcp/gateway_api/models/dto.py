@@ -523,7 +523,7 @@ class GatewayReadDTO(BaseSchema):
         ```
     """
 
-    id: Optional[str] = Field(None, description="Gateway identifier.")
+    id: str = Field(..., description="Gateway identifier.")
     name: str = Field(..., description="Gateway name (human-readable).")
     url: str = Field(..., description="Gateway connection URL (e.g., SSE endpoint).")
     description: Optional[str] = Field(None, description="Description of the Gateway instance.")
