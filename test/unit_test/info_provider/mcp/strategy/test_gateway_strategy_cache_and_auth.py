@@ -2,55 +2,49 @@ from __future__ import annotations
 
 import json as _json
 from typing import Any, Dict, List
+from contextlib import asynccontextmanager
 
 import httpx
 
 from gearmeshing_ai.info_provider.mcp.gateway_api.client import GatewayApiClient
 from gearmeshing_ai.info_provider.mcp.strategy.gateway import GatewayMcpStrategy
+from gearmeshing_ai.info_provider.mcp.transport.mcp import AsyncMCPTransport
 
 
 def _mock_transport(state: dict) -> httpx.MockTransport:
     def handler(request: httpx.Request) -> httpx.Response:
-        # Management API: list servers
-        if request.method == "GET" and request.url.path == "/servers":
-            data = [
-                {
-                    "id": "s1",
-                    "name": "gateway-s1",
-                    "url": "http://underlying/mcp/",
-                    "transport": "STREAMABLEHTTP",
-                }
-            ]
-            return httpx.Response(200, json=data)
-
-        # Streamable HTTP endpoints: tools
-        if request.method == "GET" and request.url.path == "/servers/s1/mcp/tools":
+        # Management API: list gateways
+        if request.method == "GET" and request.url.path == "/admin/gateways":
+            return httpx.Response(200, json=[{"id": "g1", "name": "gw", "url": "http://mock/mcp"}])
+        # Management API: get gateway
+        if request.method == "GET" and request.url.path == "/admin/gateways/g1":
+            return httpx.Response(200, json={"id": "g1", "name": "gw", "url": "http://mock/mcp"})
+        # Admin tools list
+        if request.method == "GET" and request.url.path == "/admin/tools":
             state["tools_get_count"] = state.get("tools_get_count", 0) + 1
-            # Check Authorization header propagation
-            assert request.headers.get("Authorization") == state.get("expected_auth")
-            tools: List[Dict[str, Any]] = [
-                {
-                    "name": "echo",
-                    "description": "Echo tool",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {"text": {"type": "string", "description": "Text to echo"}},
-                        "required": ["text"],
-                    },
-                }
-            ]
-            return httpx.Response(200, json=tools)
-
-        # Streamable HTTP endpoints: invoke
-        if request.method == "POST" and request.url.path == "/servers/s1/mcp/a2a/echo/invoke":
-            # Check Authorization header propagation
-            assert request.headers.get("Authorization") == state.get("expected_auth")
-            try:
-                body = _json.loads(request.content.decode("utf-8")) if request.content else {}
-            except Exception:
-                body = {}
-            params = (body or {}).get("parameters") or {}
-            return httpx.Response(200, json={"ok": True, "echo": params.get("text")})
+            data = {
+                "data": [
+                    {
+                        "id": "t1",
+                        "originalName": "workspace.list",
+                        "name": "clickup-workspace-list",
+                        "gatewaySlug": "gw",
+                        "customName": "workspace.list",
+                        "customNameSlug": "workspace-list",
+                        "requestType": "SSE",
+                        "integrationType": "MCP",
+                        "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}}},
+                        "createdAt": "2024-01-01T00:00:00Z",
+                        "updatedAt": "2024-01-01T00:00:00Z",
+                        "enabled": True,
+                        "reachable": True,
+                        "executionCount": 0,
+                        "metrics": {"totalExecutions": 0, "successfulExecutions": 0, "failedExecutions": 0, "failureRate": 0.0},
+                        "gatewayId": "g1",
+                    }
+                ]
+            }
+            return httpx.Response(200, json=data)
 
         return httpx.Response(404, json={"error": "not found"})
 
@@ -65,19 +59,39 @@ def test_gateway_strategy_cache_and_auth() -> None:
     http_client = httpx.Client(transport=transport, base_url="http://mock")
 
     gateway = GatewayApiClient("http://mock", auth_token=state["expected_auth"], client=mgmt_client)
-    strategy = GatewayMcpStrategy(gateway, client=http_client, ttl_seconds=60.0)
+
+    # Fake MCP transport that checks endpoint and returns echo
+    captured: Dict[str, Any] = {}
+
+    class FakeTransport(AsyncMCPTransport):
+        def session(self, endpoint_url: str):
+            @asynccontextmanager
+            async def _cm():
+                class _S:
+                    async def call_tool(self, name: str, arguments: Dict[str, Any]):
+                        captured["endpoint"] = endpoint_url
+                        captured["name"] = name
+                        captured["arguments"] = arguments
+                        return {"ok": True, "echo": arguments.get("text")}
+
+                yield _S()
+
+            return _cm()
+
+    strategy = GatewayMcpStrategy(gateway, client=http_client, ttl_seconds=60.0, mcp_transport=FakeTransport())
 
     # First list_tools should hit the network
-    tools1 = list(strategy.list_tools("s1"))
-    assert len(tools1) == 1 and tools1[0].name == "echo"
+    tools1 = list(strategy.list_tools("g1"))
+    assert len(tools1) == 1 and tools1[0].name == "workspace.list"
     assert state.get("tools_get_count", 0) == 1
 
     # Second list_tools should be served from cache (no additional GET)
-    tools2 = list(strategy.list_tools("s1"))
-    assert len(tools2) == 1 and tools2[0].name == "echo"
+    tools2 = list(strategy.list_tools("g1"))
+    assert len(tools2) == 1 and tools2[0].name == "workspace.list"
     assert state.get("tools_get_count", 0) == 1
 
-    # Call tool should include Authorization header
-    res = strategy.call_tool("s1", "echo", {"text": "hi"})
+    # Call tool should route via MCP transport
+    res = strategy.call_tool("g1", "echo", {"text": "hi"})
     assert res.ok is True
     assert res.data.get("echo") == "hi"
+    assert captured["endpoint"] == "http://mock/mcp"

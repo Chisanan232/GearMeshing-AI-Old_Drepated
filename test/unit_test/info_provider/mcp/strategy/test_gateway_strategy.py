@@ -2,51 +2,49 @@ from __future__ import annotations
 
 import json as _json
 from typing import Any, Dict, List
+from contextlib import asynccontextmanager
 
 import httpx
 
 from gearmeshing_ai.info_provider.mcp.gateway_api.client import GatewayApiClient
 from gearmeshing_ai.info_provider.mcp.strategy.gateway import GatewayMcpStrategy
+from gearmeshing_ai.info_provider.mcp.transport.mcp import AsyncMCPTransport
 
 
-def _mock_transport() -> httpx.MockTransport:
+def _mock_transport(state: dict) -> httpx.MockTransport:
     def handler(request: httpx.Request) -> httpx.Response:
-        # Management API (admin registry)
-        if request.method == "GET" and request.url.path == "/admin/mcp-registry/servers":
-            data = [
-                {
-                    "id": "s1",
-                    "name": "gateway-s1",
-                    "url": "http://underlying/mcp/",
-                    "transport": "STREAMABLEHTTP",
-                }
-            ]
+        # Management API: list gateways
+        if request.method == "GET" and request.url.path == "/admin/gateways":
+            return httpx.Response(200, json=[{"id": "g1", "name": "gw", "url": "http://mock/mcp"}])
+        # Management API: get gateway
+        if request.method == "GET" and request.url.path == "/admin/gateways/g1":
+            return httpx.Response(200, json={"id": "g1", "name": "gw", "url": "http://mock/mcp"})
+        # Management API: tools list
+        if request.method == "GET" and request.url.path == "/admin/tools":
+            state["tools_get_count"] = state.get("tools_get_count", 0) + 1
+            data = {
+                "data": [
+                    {
+                        "id": "t1",
+                        "originalName": "workspace.list",
+                        "name": "clickup-workspace-list",
+                        "gatewaySlug": "gw",
+                        "customName": "workspace.list",
+                        "customNameSlug": "workspace-list",
+                        "requestType": "SSE",
+                        "integrationType": "MCP",
+                        "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}}},
+                        "createdAt": "2024-01-01T00:00:00Z",
+                        "updatedAt": "2024-01-01T00:00:00Z",
+                        "enabled": True,
+                        "reachable": True,
+                        "executionCount": 0,
+                        "metrics": {"totalExecutions": 0, "successfulExecutions": 0, "failedExecutions": 0, "failureRate": 0.0},
+                        "gatewayId": "g1",
+                    }
+                ]
+            }
             return httpx.Response(200, json=data)
-
-        # Streamable HTTP endpoints under the Gateway
-        if request.method == "GET" and request.url.path == "/servers/s1/mcp/tools":
-            tools: List[Dict[str, Any]] = [
-                {
-                    "name": "echo",
-                    "description": "Echo tool",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {"text": {"type": "string", "description": "Text to echo"}},
-                        "required": ["text"],
-                    },
-                }
-            ]
-            return httpx.Response(200, json=tools)
-
-        if request.method == "POST" and request.url.path == "/servers/s1/mcp/a2a/echo/invoke":
-            body: Dict[str, Any] = {}
-            if request.content:
-                try:
-                    body = _json.loads(request.content.decode("utf-8"))
-                except Exception:
-                    body = {}
-            params = (body or {}).get("parameters") or {}
-            return httpx.Response(200, json={"ok": True, "echo": params.get("text")})
 
         return httpx.Response(404, json={"error": "not found"})
 
@@ -54,24 +52,44 @@ def _mock_transport() -> httpx.MockTransport:
 
 
 def test_gateway_strategy_list_and_call() -> None:
-    transport = _mock_transport()
+    state: dict = {}
+    transport = _mock_transport(state)
 
     mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
     http_client = httpx.Client(transport=transport, base_url="http://mock")
 
+    # Fake MCP transport to capture calls
+    captured: Dict[str, Any] = {}
+
+    class FakeTransport(AsyncMCPTransport):
+        def session(self, endpoint_url: str):
+            @asynccontextmanager
+            async def _cm():
+                class _S:
+                    async def call_tool(self, name: str, arguments: Dict[str, Any]):
+                        captured["endpoint"] = endpoint_url
+                        captured["name"] = name
+                        captured["arguments"] = arguments
+                        return {"ok": True, "echo": arguments.get("text")}
+
+                yield _S()
+
+            return _cm()
+
     gateway = GatewayApiClient("http://mock", client=mgmt_client)
-    strategy = GatewayMcpStrategy(gateway, client=http_client)
+    strategy = GatewayMcpStrategy(gateway, client=http_client, mcp_transport=FakeTransport())
 
     servers = list(strategy.list_servers())
     assert len(servers) == 1
-    assert servers[0].id == "s1"
-    assert str(servers[0].endpoint_url).endswith("/servers/s1/mcp/")
+    assert servers[0].id == "g1"
+    assert str(servers[0].endpoint_url) == "http://mock/mcp"
 
-    tools = list(strategy.list_tools("s1"))
+    tools = list(strategy.list_tools("g1"))
     assert len(tools) == 1
-    assert tools[0].name == "echo"
+    assert tools[0].name == "workspace.list"
     assert tools[0].raw_parameters_schema["properties"]["text"]["type"] == "string"
 
-    res = strategy.call_tool("s1", "echo", {"text": "hi"})
+    res = strategy.call_tool("g1", "echo", {"text": "hi"})
     assert res.ok is True
     assert res.data.get("echo") == "hi"
+    assert captured["endpoint"] == "http://mock/mcp"

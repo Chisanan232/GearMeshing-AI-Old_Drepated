@@ -40,7 +40,61 @@ from gearmeshing_ai.info_provider.mcp.transport.mcp import SseMCPTransport
 
 def _mock_transport(state: dict) -> httpx.MockTransport:
     def handler(request: httpx.Request) -> httpx.Response:
-        # Streamable HTTP endpoints under the Gateway
+        # Admin tools list used by Gateway strategies
+        if request.method == "GET" and request.url.path == "/admin/tools":
+            data = {
+                "data": [
+                    {
+                        "id": "t_create",
+                        "originalName": "create_issue",
+                        "name": "issue-create",
+                        "gatewaySlug": "gw",
+                        "customName": "create_issue",
+                        "customNameSlug": "create-issue",
+                        "requestType": "SSE",
+                        "integrationType": "MCP",
+                        "inputSchema": {"type": "object"},
+                        "createdAt": "2024-01-01T00:00:00Z",
+                        "updatedAt": "2024-01-01T00:00:00Z",
+                        "enabled": True,
+                        "reachable": True,
+                        "executionCount": 0,
+                        "metrics": {
+                            "totalExecutions": 0,
+                            "successfulExecutions": 0,
+                            "failedExecutions": 0,
+                            "failureRate": 0.0,
+                        },
+                        "gatewayId": "g1",
+                    },
+                    {
+                        "id": "t_get",
+                        "originalName": "get_issue",
+                        "name": "issue-get",
+                        "gatewaySlug": "gw",
+                        "customName": "get_issue",
+                        "customNameSlug": "get-issue",
+                        "requestType": "SSE",
+                        "integrationType": "MCP",
+                        "inputSchema": {"type": "object"},
+                        "createdAt": "2024-01-01T00:00:00Z",
+                        "updatedAt": "2024-01-01T00:00:00Z",
+                        "enabled": True,
+                        "reachable": True,
+                        "executionCount": 0,
+                        "metrics": {
+                            "totalExecutions": 0,
+                            "successfulExecutions": 0,
+                            "failedExecutions": 0,
+                            "failureRate": 0.0,
+                        },
+                        "gatewayId": "g1",
+                    },
+                ]
+            }
+            return httpx.Response(200, json=data)
+
+        # Legacy: streamable HTTP endpoints under the Gateway
         if request.method == "GET" and request.url.path == "/servers/s1/mcp/tools":
             assert request.headers.get("Authorization") == state.get("expected_auth")
             tools: List[Dict[str, Any]] = [
@@ -213,6 +267,7 @@ class TestAsyncMCPInfoProvider:
 
         # Async HTTP client for streamable endpoints
         http_client = httpx.AsyncClient(transport=transport, base_url="http://mock")
+        mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
 
         cfg = McpClientConfig(
             gateway=GatewayConfig(base_url="http://mock", auth_token=state["expected_auth"]),
@@ -225,12 +280,14 @@ class TestAsyncMCPInfoProvider:
             mcp_transport=SseMCPTransport(),
             agent_policies=policies,
             gateway_http_client=http_client,
+            gateway_mgmt_client=mgmt_client,
         )
 
         tools = await client.list_tools("s1", agent_id="agent")
         assert {t.name for t in tools} == {"create_issue", "get_issue"}
 
         await http_client.aclose()
+        mgmt_client.close()
 
     @pytest.mark.asyncio
     async def test_list_tools_applies_allowed_tools_policy(self) -> None:
@@ -238,6 +295,7 @@ class TestAsyncMCPInfoProvider:
         transport = _mock_transport(state)
 
         http_client = httpx.AsyncClient(transport=transport, base_url="http://mock")
+        mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
 
         cfg = McpClientConfig(
             gateway=GatewayConfig(base_url="http://mock", auth_token=state["expected_auth"]),
@@ -250,6 +308,7 @@ class TestAsyncMCPInfoProvider:
             mcp_transport=SseMCPTransport(),
             agent_policies=policies,
             gateway_http_client=http_client,
+            gateway_mgmt_client=mgmt_client,
         )
 
         tools = await client.list_tools("s1", agent_id="agent")
@@ -262,6 +321,7 @@ class TestAsyncMCPInfoProvider:
         state = {"expected_auth": "Bearer bbb"}
         transport = _mock_transport(state)
         http_client = httpx.AsyncClient(transport=transport, base_url="http://mock")
+        mgmt_client = httpx.Client(transport=transport, base_url="http://mock")
 
         cfg = McpClientConfig(
             gateway=GatewayConfig(base_url="http://mock", auth_token=state["expected_auth"]),
@@ -274,6 +334,7 @@ class TestAsyncMCPInfoProvider:
             mcp_transport=SseMCPTransport(),
             agent_policies=policies,
             gateway_http_client=http_client,
+            gateway_mgmt_client=mgmt_client,
         )
 
         tools = await client.list_tools("s1", agent_id="agent")

@@ -36,6 +36,178 @@ from .domain import GatewayServer, GatewayTransport
 
 
 # -----------------------------
+# Admin: Servers (Gateway-managed)
+# -----------------------------
+
+
+class ListServersQuery(BaseSchema):
+    """Query params for listing servers from the Gateway.
+
+    Use `to_params()` to serialize to HTTP query parameters (booleans are lowercased strings).
+
+    Examples:
+        Build and serialize query params for the Gateway list endpoint.
+
+        >>> q = ListServersQuery(include_inactive=True, tags="prod,search", team_id="team-123", visibility="team")
+        >>> q.to_params()
+        {'include_inactive': 'true', 'tags': 'prod,search', 'team_id': 'team-123', 'visibility': 'team'}
+
+    References:
+        - Used by clients to build query strings for catalog list endpoints.
+        - OpenAPI: GET /admin/mcp-registry/servers (see docs/openapi_spec/mcp_gateway.json)
+    """
+
+    include_inactive: Optional[bool] = Field(
+        default=None,
+        description="If true, include inactive servers in results. If false, only active servers. If omitted, server default applies.",
+        examples=[True, False],
+    )
+    tags: Optional[str] = Field(
+        default=None,
+        description="Comma-separated list of tags to filter servers by (logical OR). e.g., 'prod,search'.",
+        examples=["prod,search"],
+    )
+    team_id: Optional[str] = Field(
+        default=None,
+        description="Team ID scope for the results.",
+        examples=["team-123"],
+    )
+    visibility: Optional[str] = Field(
+        default=None,
+        description="Visibility filter (e.g., public/team/private).",
+        examples=["team"],
+    )
+
+    def to_params(self) -> Dict[str, str]:
+        params: Dict[str, str] = {}
+        if self.include_inactive is not None:
+            params["include_inactive"] = str(self.include_inactive).lower()
+        if self.tags is not None:
+            params["tags"] = self.tags
+        if self.team_id is not None:
+            params["team_id"] = self.team_id
+        if self.visibility is not None:
+            params["visibility"] = self.visibility
+        return params
+
+
+class ServerReadDTO(BaseSchema):
+    """Single Gateway-managed server entry as returned by admin APIs.
+
+    Fields align with the Gateway schema and include alias support for `teamId` and `isActive`.
+    """
+
+    id: str = Field(..., description="Gateway server identifier.")
+    name: str = Field(..., description="Human-readable name of the server.")
+    url: AnyHttpUrl = Field(..., description="Underlying MCP server base URL configured in the Gateway.")
+    transport: GatewayTransport = Field(..., description="Transport used to reach the underlying MCP server.")
+    description: Optional[str] = Field(None, description="Optional description of the server entry.")
+    tags: Optional[List[str]] = Field(None, description="Tags associated with the server entry.")
+    visibility: Optional[str] = Field(None, description="Visibility (public/team/private).")
+    team_id: Optional[str] = Field(
+        default=None,
+        alias="teamId",
+        description="Owning team identifier, if applicable.",
+        examples=["team-123"],
+    )
+    is_active: Optional[bool] = Field(
+        default=None,
+        alias="isActive",
+        description="Whether the server is currently active in the Gateway.",
+        examples=[True],
+    )
+    metrics: Optional[Dict[str, Any]] = Field(
+        default=None, description="Optional metrics object reported by the Gateway for this server."
+    )
+
+    def to_gateway_server(self) -> GatewayServer:
+        """Map this DTO to the `GatewayServer` domain model."""
+        return GatewayServer(
+            id=self.id,
+            name=self.name,
+            url=self.url,
+            transport=self.transport,
+            description=self.description,
+            tags=self.tags,
+            visibility=self.visibility,
+            team_id=self.team_id,
+            is_active=self.is_active,
+            metrics=self.metrics,
+        )
+
+
+class ServersListPayloadDTO(BaseSchema):
+    """Normalized list payload for Gateway servers.
+
+    Accepts multiple wire shapes and normalizes to `{items: [...]}`:
+    - list → `{items: [...]}`
+    - `{items: [...]}` preserved
+    - `{servers: [...]}` → `{items: [...]}`
+    """
+
+    items: List[ServerReadDTO] = Field(
+        ..., description="Normalized list of servers returned by the Gateway list endpoints."
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce(cls, v):
+        """Coerce supported wire shapes into the normalized `{items: [...]}` form."""
+        if isinstance(v, list):
+            return {"items": v}
+        if isinstance(v, dict):
+            if isinstance(v.get("items"), list):
+                return v
+            if isinstance(v.get("servers"), list):
+                nv = dict(v)
+                nv["items"] = nv.pop("servers")
+                return nv
+        return v
+
+
+class GatewayServerCreate(BaseSchema):
+    """DTO for creating/registering a server in the Gateway."""
+
+    name: str = Field(
+        ...,
+        description="Desired human-readable name for the server inside the Gateway.",
+        min_length=1,
+        max_length=128,
+        examples=["clickup-mcp"],
+    )
+    url: AnyHttpUrl = Field(
+        ...,
+        description="Base URL of the MCP server to be registered in the Gateway.",
+        examples=["http://clickup-mcp:8000/mcp/"],
+    )
+    transport: GatewayTransport = Field(
+        ...,
+        description="Transport used to connect the Gateway to the underlying MCP server.",
+        examples=[GatewayTransport.STREAMABLE_HTTP],
+    )
+    auth_token: Optional[str] = Field(
+        None,
+        description="Optional token the Gateway should use when calling the underlying server.",
+        min_length=1,
+        max_length=512,
+        examples=["Bearer ghp_exampletoken"],
+    )
+    tags: Optional[List[str]] = Field(
+        default=None,
+        description="Optional tags to associate with the server upon creation.",
+    )
+    visibility: Optional[str] = Field(
+        default=None,
+        description="Desired visibility (e.g., team/private).",
+    )
+    team_id: Optional[str] = Field(
+        default=None,
+        description="Team ID to associate with this server.",
+        max_length=128,
+    )
+
+
+# -----------------------------
 # Admin: Catalog (Registry)
 # -----------------------------
 
