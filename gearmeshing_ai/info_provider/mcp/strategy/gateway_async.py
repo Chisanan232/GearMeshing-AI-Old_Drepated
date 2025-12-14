@@ -28,6 +28,7 @@ from ..schemas.core import (
     ToolCallResult,
     ToolsPage,
 )
+from ..transport.mcp import AsyncMCPTransport, StreamableHttpMCPTransport
 from .base import AsyncStrategy, StrategyCommonMixin
 from .models.dto import (
     ToolInvokePayloadDTO,
@@ -53,6 +54,7 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         client: Optional[httpx.AsyncClient] = None,
         ttl_seconds: float = 10.0,
         sse_client: Optional[httpx.AsyncClient] = None,
+        mcp_transport: Optional[AsyncMCPTransport] = None,
     ) -> None:
         self._gateway = gateway
         self._http = client or httpx.AsyncClient(timeout=10.0, follow_redirects=True)
@@ -60,6 +62,7 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         self._ttl = ttl_seconds
         self._tools_cache: Dict[str, Tuple[List[McpTool], float]] = {}
         self._sse_client = sse_client
+        self._mcp_transport: AsyncMCPTransport = mcp_transport or StreamableHttpMCPTransport()
 
     def _base_for(self, server_id: str) -> str:
         """Build the Gateway streamable HTTP base URL for a server.
@@ -85,7 +88,7 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         return headers
 
     async def list_tools(self, server_id: str) -> List[McpTool]:
-        """Return tools for a Gateway server, honoring the per-server cache.
+        """Return tools for a Gateway server via admin utility, honoring cache.
 
         Args:
             server_id: The Gateway server identifier.
@@ -103,15 +106,26 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         if cached and cached[1] > now:
             return list(cached[0])
 
-        base = self._base_for(server_id).rstrip("/")
-        self._logger.debug("AsyncGatewayMcpStrategy.list_tools: GET %s/tools", base)
-        r = await self._http.get(f"{base}/tools", headers=self._headers())
-        r.raise_for_status()
-        data = r.json()
-        payload = ToolsListPayloadDTO.model_validate(data)
+        # Use admin tools listing utility
+        from ..gateway_api.models.dto import AdminToolsListResponseDTO
+
+        self._logger.debug("AsyncGatewayMcpStrategy.list_tools: GET admin/tools via client utility")
+        dto: AdminToolsListResponseDTO = self._gateway.admin.tools.list()
         tools: List[McpTool] = []
-        for td in payload.tools:
-            tools.append(td.to_mcp_tool(self._infer_arguments, self._is_mutating_tool_name))
+        for t in dto.data or []:
+            name = t.customName or t.originalName or t.name
+            input_schema = (
+                t.inputSchema.model_dump() if getattr(t.inputSchema, "model_dump", None) else (t.inputSchema or {})
+            )
+            tools.append(
+                McpTool(
+                    name=name,
+                    description=t.description,
+                    mutating=self._is_mutating_tool_name(name),
+                    arguments=self._infer_arguments(input_schema),
+                    raw_parameters_schema=input_schema,
+                )
+            )
         self._tools_cache[server_id] = (tools, now + self._ttl)
         return tools
 
@@ -121,12 +135,7 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         tool_name: str,
         args: Dict[str, Any],
     ) -> ToolCallResult:
-        """Invoke a tool via the Gateway streamable HTTP endpoint.
-
-        - POST `{gateway}/servers/{server_id}/mcp/a2a/{tool}/invoke`
-        - Payload is `ToolInvokeRequestDTO(parameters=args)`
-        - Normalized to `ToolCallResult` via `ToolInvokePayloadDTO`
-        - Invalidates cache on success when tool is mutating
+        """Invoke a tool using the same transport approach as the direct strategy.
 
         Args:
             server_id: The Gateway server identifier.
@@ -141,23 +150,22 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
             httpx.TransportError: For transport-level HTTP issues.
             pydantic.ValidationError: If the invocation payload fails validation.
         """
-        base = self._base_for(server_id).rstrip("/")
-        payload = ToolInvokeRequestDTO(parameters=args or {})
+        gw = self._gateway.admin.gateway.get(server_id)
+        base = (gw.url or "").rstrip("/")
         self._logger.debug(
-            "AsyncGatewayMcpStrategy.call_tool: POST %s/a2a/%s/invoke args_keys=%s",
+            "AsyncGatewayMcpStrategy.call_tool (direct-style): base=%s tool=%s args_keys=%s",
             base,
             tool_name,
             list((args or {}).keys()),
         )
-        r = await self._http.post(
-            f"{base}/a2a/{tool_name}/invoke",
-            headers=self._headers(),
-            json=payload.model_dump(by_alias=True, mode="json"),
-        )
-        r.raise_for_status()
-        body = r.json()
-        inv = ToolInvokePayloadDTO.model_validate(body)
-        result = inv.to_tool_call_result()
+        async with self._mcp_transport.session(base) as session:
+            res = await session.call_tool(name=tool_name, arguments=args or {})
+            if hasattr(res, "model_dump"):
+                result = ToolCallResult(ok=True, data=res.model_dump())
+            elif isinstance(res, dict):
+                result = ToolCallResult(ok=True, data=res)
+            else:
+                result = ToolCallResult(ok=True, data={"ok": res})
 
         # Invalidate cache if mutating tool (prefer cached metadata if available)
         cached = self._tools_cache.get(server_id)
@@ -181,11 +189,7 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
     ) -> ToolsPage:
-        """Return a page of tools for a server when pagination is supported.
-
-        - Query built via `ToolsListQuery(cursor, limit).to_params()`
-        - Returns `ToolsPage(items, next_cursor)`
-        - Updates cache only for non-paginated requests
+        """Return a page of tools using admin utility with pagination.
 
         Args:
             server_id: The Gateway server identifier.
@@ -200,24 +204,47 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
             httpx.TransportError: For transport-level HTTP issues.
             pydantic.ValidationError: If the tools payload fails validation.
         """
-        base = self._base_for(server_id).rstrip("/")
-        q = ToolsListQuery(cursor=cursor, limit=limit)
-        params = q.to_params()
-        self._logger.debug("AsyncGatewayMcpStrategy.list_tools_page: GET %s/tools params=%s", base, params)
-        r = await self._http.get(f"{base}/tools", headers=self._headers(), params=params or None)
-        r.raise_for_status()
-        data = r.json()
-        payload = ToolsListPayloadDTO.model_validate(data)
+        from ..gateway_api.models.dto import AdminToolsListResponseDTO
+
+        # Map cursor to offset
+        offset: int = 0
+        if cursor is not None:
+            try:
+                offset = int(cursor)
+            except Exception:
+                offset = 0
+        self._logger.debug("AsyncGatewayMcpStrategy.list_tools_page: GET admin/tools offset=%s limit=%s", offset, limit)
+        dto: AdminToolsListResponseDTO = self._gateway.admin.tools.list(offset=offset, limit=limit or 50)
         tools: List[McpTool] = []
-        for td in payload.tools:
-            tools.append(td.to_mcp_tool(self._infer_arguments, self._is_mutating_tool_name))
+        for t in dto.data or []:
+            name = t.customName or t.originalName or t.name
+            input_schema = (
+                t.inputSchema.model_dump() if getattr(t.inputSchema, "model_dump", None) else (t.inputSchema or {})
+            )
+            tools.append(
+                McpTool(
+                    name=name,
+                    description=t.description,
+                    mutating=self._is_mutating_tool_name(name),
+                    arguments=self._infer_arguments(input_schema),
+                    raw_parameters_schema=input_schema,
+                )
+            )
         # Only update cache for unpaginated fetches
         if cursor is None and limit is None:
             import time as _time
 
             now = _time.monotonic()
             self._tools_cache[server_id] = (tools, now + self._ttl)
-        return ToolsPage(items=tools, next_cursor=payload.next_cursor)
+        # Derive next cursor from pagination if available
+        next_cursor: Optional[str] = None
+        if dto.pagination and dto.pagination.page is not None and dto.pagination.perPage is not None and dto.pagination.total is not None:
+            page = dto.pagination.page
+            per = dto.pagination.perPage
+            total = dto.pagination.total
+            if (page * per) < total:
+                next_cursor = str(page * per)
+        return ToolsPage(items=tools, next_cursor=next_cursor)
 
     async def stream_events(
         self,
