@@ -154,22 +154,22 @@ def _write_catalog_for_gateway(clickup_base_url: str) -> Path:
     return Path("./configs/mcp_gateway/mcp-catalog_e2e.yml").resolve()
 
 
-def _wait_gateway_ready(base_url: str, timeout: float = 30.0) -> None:
-    start = time.time()
-    last: Exception | None = None
-    while time.time() - start < timeout:
-        try:
-            secret = os.getenv("MCPGATEWAY_JWT_SECRET", "my-test-key")
-            token = GatewayApiClient.generate_bearer_token(jwt_secret_key=secret)
-            r = httpx.get(f"{base_url}/health", headers={"Authorization": token}, timeout=3.0)
-            if r.status_code == 200:
-                return
-        except Exception as e:
-            last = e
-        time.sleep(0.5)
-    if last:
-        raise last
-    raise RuntimeError("Gateway not ready and no error captured")
+# def _wait_gateway_ready(base_url: str, timeout: float = 30.0) -> None:
+#     start = time.time()
+#     last: Exception | None = None
+#     while time.time() - start < timeout:
+#         try:
+#             secret = os.getenv("MCPGATEWAY_JWT_SECRET", "my-test-key")
+#             token = GatewayApiClient.generate_bearer_token(jwt_secret_key=secret)
+#             r = httpx.get(f"{base_url}/health", headers={"Authorization": token}, timeout=3.0)
+#             if r.status_code == 200:
+#                 return
+#         except Exception as e:
+#             last = e
+#         time.sleep(0.5)
+#     if last:
+#         raise last
+#     raise RuntimeError("Gateway not ready and no error captured")
 
 
 @pytest.fixture
@@ -177,8 +177,8 @@ def gateway_container(compose_stack: DockerCompose, clickup_base_url: str) -> Do
     return compose_stack
 
 
-@pytest.fixture
-def gateway_base_url(gateway_container: DockerCompose) -> str:
-    base = f"http://127.0.0.1:{gateway_port()}"
-    _wait_gateway_ready(base, timeout=30.0)
-    return base
+# @pytest.fixture
+# def gateway_base_url(gateway_container: DockerCompose) -> str:
+#     base = f"http://127.0.0.1:{gateway_port()}"
+#     _wait_gateway_ready(base, timeout=30.0)
+#     return base
