@@ -1584,8 +1584,6 @@ dev = [
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "pytest-rerunfailures" },
-]
-e2e-test = [
     { name = "testcontainers" },
 ]
 pre-commit-ci = [
@@ -1626,8 +1624,8 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=0.23.6" },
     { name = "pytest-cov", specifier = ">=5.0.0,<8" },
     { name = "pytest-rerunfailures", specifier = "~=16.0" },
+    { name = "testcontainers", specifier = ">=4.7.2" },
 ]
-e2e-test = [{ name = "testcontainers", specifier = ">=4.7.2" }]
 pre-commit-ci = [
     { name = "mypy", specifier = ">=1.2.0,<2" },
     { name = "pre-commit", specifier = ">=3.5.0,<5" },
