@@ -88,7 +88,7 @@ def _compose_env() -> Iterable[None]:
 
     # ClickUp MCP
     _set("CLICKUP_SERVER_HOST", os.getenv("CLICKUP_SERVER_HOST", "0.0.0.0"))
-    _set("CLICKUP_SERVER_PORT", os.getenv("CLICKUP_SERVER_PORT", "9000"))
+    _set("CLICKUP_SERVER_PORT", os.getenv("CLICKUP_SERVER_PORT", "8082"))
     _set("CLICKUP_MCP_TRANSPORT", os.getenv("CLICKUP_MCP_TRANSPORT", "sse"))
     # Token must be provided by env for real runs; default for CI/e2e
     _set("CLICKUP_API_TOKEN", os.getenv("CLICKUP_API_TOKEN", os.getenv("GM_CLICKUP_API_TOKEN", "e2e-test-token")))
@@ -159,7 +159,7 @@ def _wait_gateway_ready(base_url: str, timeout: float = 30.0) -> None:
     last: Exception | None = None
     while time.time() - start < timeout:
         try:
-            user = os.getenv("BASIC_AUTH_USER", "admin")
+            user = os.getenv("MCPGATEWAY_ADMIN_EMAIL", "admin@example.com")
             secret = os.getenv("MCPGATEWAY_JWT_SECRET", "my-test-key")
             token = GatewayApiClient.generate_bearer_token(jwt_secret_key=secret, username=user)
             r = httpx.get(f"{base_url}/health", headers={"Authorization": token}, timeout=3.0)
@@ -173,13 +173,46 @@ def _wait_gateway_ready(base_url: str, timeout: float = 30.0) -> None:
     raise RuntimeError("Gateway not ready and no error captured")
 
 
+@pytest.fixture(scope="session")
+def gateway_client(compose_stack: DockerCompose):
+    base = f"http://127.0.0.1:{gateway_port()}"
+    # Generate token once
+    secret = os.getenv("MCPGATEWAY_JWT_SECRET", "my-test-key")
+    user = os.getenv("MCPGATEWAY_ADMIN_EMAIL", "admin@example.com")
+    token = GatewayApiClient.generate_bearer_token(jwt_secret_key=secret, username=user)
+
+    mgmt_client = httpx.Client(base_url=base)
+    client = GatewayApiClient(base, client=mgmt_client, auth_token=token)
+
+    # Ensure health before yielding
+    start = time.time()
+    last_err: Exception | None = None
+    while time.time() - start < 30.0:
+        try:
+            h = client.health()
+            if h:
+                break
+        except Exception as e:
+            last_err = e
+            time.sleep(0.5)
+            continue
+    if last_err and time.time() - start >= 30.0:
+        raise last_err
+
+    try:
+        yield client
+    finally:
+        try:
+            mgmt_client.close()
+        except Exception:
+            pass
+
+
 @pytest.fixture
 def gateway_container(compose_stack: DockerCompose, clickup_base_url: str) -> DockerCompose:
     return compose_stack
 
 
 @pytest.fixture
-def gateway_base_url(gateway_container: DockerCompose) -> str:
-    base = f"http://127.0.0.1:{gateway_port()}"
-    _wait_gateway_ready(base, timeout=30.0)
-    return base
+def gateway_base_url(gateway_container: DockerCompose, gateway_client) -> str:
+    return gateway_client.base_url
