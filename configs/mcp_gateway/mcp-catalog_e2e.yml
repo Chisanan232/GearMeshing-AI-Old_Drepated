@@ -1,0 +1,16 @@
+# Default MCP servers to preload in the MCP Gateway
+# Adjust hostnames and ports to match your docker-compose services and env
+catalog_servers:
+  - id: clickup
+    name: "clickup"
+    category: "Utilities"
+    url: "http://clickup-mcp:8082/sse/sse"
+    transport: "SSE"
+    auth_type: "Open"
+    provider: "E2E"
+    description: "Project management tool"
+    requires_api_key: false
+    tags:
+      - "project-management"
+      - "clickup"
+      - "python"

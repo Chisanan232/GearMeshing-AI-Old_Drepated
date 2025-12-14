@@ -1,0 +1,256 @@
+services:
+  # -------------------------------------------------------
+  # Core Infrastructure
+  # -------------------------------------------------------
+  postgres:
+    image: postgres:18
+    container_name: postgres
+    restart: unless-stopped
+    networks:
+      - ai-dev-net
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:8
+    container_name: redis
+    restart: unless-stopped
+    networks:
+      - ai-dev-net
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
+#  zookeeper:
+#    image: zookeeper:3.9
+#    container_name: zookeeper
+#    restart: unless-stopped
+#    networks:
+#      - ai-dev-net
+#    environment:
+#      - ALLOW_ANONYMOUS_LOGIN=yes
+#    ports:
+#      - "2181:2181"
+#    volumes:
+#      - zookeeper_data:/bitnami/zookeeper
+
+#  kafka:
+#    image: apache/kafka:4.1.1
+#    container_name: kafka
+#    restart: unless-stopped
+#    networks:
+#      - ai-dev-net
+#    depends_on:
+#      - zookeeper
+#    environment:
+#      - KAFKA_NODE_ID=1
+#      - KAFKA_PROCESS_ROLES=broker,controller
+#      - KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+#      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+#      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+#      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+#      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9093
+#      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+#      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+#      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+#      - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+#      - KAFKA_NUM_PARTITIONS=3
+#    ports:
+#      - "9092:9092"
+#    volumes:
+#      - kafka_data:/bitnami/kafka
+
+  # -------------------------------------------------------
+  # MCP Gateway (ContextForge)
+  # -------------------------------------------------------
+  mcp-gateway:
+    # Replace this with your actual gateway image or build context
+    image: ghcr.io/ibm/mcp-context-forge:0.9.0
+    container_name: mcp-gateway
+    restart: unless-stopped
+    networks:
+      - ai-dev-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      HOST: 0.0.0.0
+      PORT: 4444
+
+      BASIC_AUTH_USER: admin
+      BASIC_AUTH_PASSWORD: ${MCPGATEWAY_ADMIN_PASSWORD}
+      AUTH_REQUIRED: "true"
+      JWT_SECRET_KEY: ${MCPGATEWAY_JWT_SECRET}
+
+      PLATFORM_ADMIN_EMAIL: ${MCPGATEWAY_ADMIN_EMAIL}
+      PLATFORM_ADMIN_PASSWORD: ${MCPGATEWAY_ADMIN_PASSWORD}
+      PLATFORM_ADMIN_FULL_NAME: ${MCPGATEWAY_ADMIN_FULL_NAME}
+
+      DB_URL: ${MCPGATEWAY_DB_URL}
+      CACHE_TYPE: redis
+      REDIS_URL: ${MCPGATEWAY_REDIS_URL}
+      MCPGATEWAY_UI_ENABLED: "true"
+      MCPGATEWAY_ADMIN_API_ENABLED: "true"
+      # Preload default MCP servers into the gateway from catalog
+      MCPGATEWAY_CATALOG_ENABLED: "true"
+      MCPGATEWAY_CATALOG_FILE: /data/mcp-catalog.yml
+    ports:
+      - "4444:4444"
+    volumes:
+      - ./configs/mcp_gateway/mcp-catalog_e2e.yml:/data/mcp-catalog.yml:ro
+
+  # -------------------------------------------------------
+  # AI Orchestrator (Agent Service)
+  # -------------------------------------------------------
+#  ai-orchestrator:
+#    build:
+#      context: ./gearmeshing_ai
+#    container_name: gearmeshing-ai
+#    restart: unless-stopped
+#    networks:
+#      - ai-dev-net
+#    depends_on:
+#      - mcp-gateway
+#    environment:
+#      MCP_GATEWAY_URL: ${MCP_GATEWAY_URL}
+#      MCP_GATEWAY_TOKEN: ${MCP_GATEWAY_TOKEN}
+#      APP_DB_URL: ${APP_DB_URL}
+#      APP_REDIS_URL: ${APP_REDIS_URL}
+#    ports:
+#      - "8000:8000"
+
+  # -------------------------------------------------------
+  # MCP Servers
+  # -------------------------------------------------------
+
+  # Communication tools
+  # --------------------------
+
+  # Slack MCP Server
+#  slack-mcp:
+#    image: chisanan232/slack-mcp-server:0.1.0
+#    container_name: slack-mcp
+#    restart: unless-stopped
+#    networks:
+#      - ai-dev-net
+#    environment:
+#      # MCP server configuration
+#      MCP_HOST: ${SLACK_MCP_HOST}
+#      MCP_PORT: ${SLACK_MCP_PORT}
+#      MCP_TRANSPORT: ${SLACK_MCP_TRANSPORT}
+#      MCP_INTEGRATED: true
+#      # For Slack configuration
+#      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
+#      SLACK_SIGNING_SECRET: ${SLACK_SIGNING_SECRET}
+#      MQ_BACKEND: ${MQ_BACKEND}
+#      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+#      KAFKA_TOPIC: ${SLACK_KAFKA_TOPIC}
+#    depends_on:
+#      - kafka
+#    ports:
+#      - ${SLACK_MCP_PORT}:${SLACK_MCP_PORT}
+
+  # Project management tools
+  # --------------------------
+
+  # ClickUp MCP Server
+  clickup-mcp:
+    image: chisanan232/clickup-mcp-server:0.1.0
+    container_name: clickup-mcp
+    restart: unless-stopped
+    networks:
+      - ai-dev-net
+    environment:
+      # MCP server configuration
+      SERVER_HOST: ${CLICKUP_SERVER_HOST}
+      SERVER_PORT: ${CLICKUP_SERVER_PORT}
+      MCP_TRANSPORT: ${CLICKUP_MCP_TRANSPORT}
+      # For ClickUp configuration
+      CLICKUP_API_TOKEN: ${CLICKUP_API_TOKEN}
+      MQ_BACKEND: ${MQ_BACKEND}
+#      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+#      KAFKA_TOPIC: ${CLICKUP_KAFKA_TOPIC}
+#    depends_on:
+#      - kafka
+    ports:
+      - ${CLICKUP_SERVER_PORT}:${CLICKUP_SERVER_PORT}
+
+  # Atlassian / Jira MCP Server
+#  atlassian-mcp:
+#    image: ghcr.io/sooperset/mcp-atlassian:0.11.9
+#    container_name: atlassian-mcp
+#    restart: unless-stopped
+#    networks:
+#      - ai-dev-net
+#    environment:
+#      ATLASSIAN_BASE_URL: ${ATLASSIAN_BASE_URL}
+#      ATLASSIAN_EMAIL: ${ATLASSIAN_EMAIL}
+#      ATLASSIAN_API_TOKEN: ${ATLASSIAN_API_TOKEN}
+
+  # Source code versioning management tools
+  # --------------------------
+
+  # GitHub MCP Server
+#  github-mcp:
+#    image: ghcr.io/github/github-mcp-server
+#    container_name: github-mcp
+#    stdin_open: true
+#    tty: true
+#    restart: on-failure
+#    networks:
+#      - ai-dev-net
+#    environment:
+#      GITHUB_PERSONAL_ACCESS_TOKEN: ${GITHUB_TOKEN}
+#      GITHUB_TOOLSETS: "all"
+##      GITHUB_HOST: ${GITHUB_DEFAULT_REPO}
+
+  # Observability tools
+  # --------------------------
+
+  # Grafana MCP Server
+#  grafana-mcp:
+#    build:
+#      context: ./mcp/mcp-grafana
+#    container_name: grafana-mcp
+#    restart: unless-stopped
+#    networks:
+#      - ai-dev-net
+#    environment:
+#      GRAFANA_URL: ${GRAFANA_URL}
+#      GRAFANA_API_TOKEN: ${GRAFANA_API_TOKEN}
+
+  # Loki MCP Server
+#  loki-mcp:
+#    build:
+#      context: ./mcp/loki-mcp
+#    container_name: loki-mcp
+#    restart: unless-stopped
+#    networks:
+#      - ai-dev-net
+#    environment:
+#      LOKI_URL: ${LOKI_URL}
+#      LOKI_API_TOKEN: ${LOKI_API_TOKEN}
+
+networks:
+  ai-dev-net:
+    driver: bridge
+
+volumes:
+  pgdata:
+  redisdata:
+  zookeeper_data:
+  kafka_data:
