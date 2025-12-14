@@ -211,8 +211,10 @@ def gateway_client(compose_stack: DockerCompose):
 @pytest.fixture(scope="session")
 def gateway_client_with_register_servers(gateway_client: GatewayApiClient):
     # pre-prcoess
-    mcp_registry = gateway_client.admin.mcp_registry.list()
-    for mr in mcp_registry.servers:
-        register_result = gateway_client.admin.mcp_registry.register(mr.id)
-        assert register_result.success, f"Register the MCP server fail. Please check it. Error: {register_result.error}"
+    gateway_list = gateway_client.admin.gateway.list()
+    if not gateway_list:
+        mcp_registry = gateway_client.admin.mcp_registry.list()
+        for mr in mcp_registry.servers:
+            register_result = gateway_client.admin.mcp_registry.register(mr.id)
+            assert register_result.success, f"Register the MCP server fail. Please check it. Error: {register_result.error}"
     return gateway_client
