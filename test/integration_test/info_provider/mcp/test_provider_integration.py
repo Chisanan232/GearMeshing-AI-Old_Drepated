@@ -20,6 +20,35 @@ from gearmeshing_ai.info_provider.mcp.strategy import (
 def _mock_transport() -> httpx.MockTransport:
     def handler(request: httpx.Request) -> httpx.Response:
         # Gateway management API
+        if request.method == "GET" and request.url.path == "/admin/tools":
+            data = {
+                "data": [
+                    {
+                        "id": "t_g_echo",
+                        "originalName": "g_echo",
+                        "name": "g-echo",
+                        "gatewaySlug": "gw",
+                        "customName": "g_echo",
+                        "customNameSlug": "g-echo",
+                        "requestType": "SSE",
+                        "integrationType": "MCP",
+                        "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]},
+                        "createdAt": "2024-01-01T00:00:00Z",
+                        "updatedAt": "2024-01-01T00:00:00Z",
+                        "enabled": True,
+                        "reachable": True,
+                        "executionCount": 0,
+                        "metrics": {
+                            "totalExecutions": 0,
+                            "successfulExecutions": 0,
+                            "failedExecutions": 0,
+                            "failureRate": 0.0,
+                        },
+                        "gatewayId": "g1",
+                    }
+                ]
+            }
+            return httpx.Response(200, json=data)
         if request.method == "GET" and request.url.path == "/servers":
             data = [
                 {
