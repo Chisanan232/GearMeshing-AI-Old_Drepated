@@ -134,12 +134,12 @@ def compose_stack(_compose_env: Iterable[None]) -> Iterable[DockerCompose]:
 
 
 @pytest.fixture
-def clickup_container(compose_stack: DockerCompose) -> DockerCompose:  # type: ignore[type-arg]
+def clickup_container(compose_stack: DockerCompose) -> DockerCompose:
     return compose_stack
 
 
 @pytest.fixture
-def clickup_base_url(clickup_container: DockerCompose) -> str:  # type: ignore[type-arg]
+def clickup_base_url(clickup_container: DockerCompose) -> str:
     port_int = clickup_port()
     base = wait_clickup_ready(endpoint_candidates("127.0.0.1", port_int), timeout=20.0)
     return base
@@ -173,12 +173,12 @@ def _wait_gateway_ready(base_url: str, timeout: float = 30.0) -> None:
 
 
 @pytest.fixture
-def gateway_container(compose_stack: DockerCompose, clickup_base_url: str) -> DockerCompose:  # type: ignore[type-arg]
+def gateway_container(compose_stack: DockerCompose, clickup_base_url: str) -> DockerCompose:
     return compose_stack
 
 
 @pytest.fixture
-def gateway_base_url(gateway_container: DockerCompose) -> str:  # type: ignore[type-arg]
+def gateway_base_url(gateway_container: DockerCompose) -> str:
     base = f"http://127.0.0.1:{gateway_port()}"
     _wait_gateway_ready(base, timeout=30.0)
     return base
