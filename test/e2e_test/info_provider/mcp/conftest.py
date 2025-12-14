@@ -206,13 +206,3 @@ def gateway_client(compose_stack: DockerCompose):
             mgmt_client.close()
         except Exception:
             pass
-
-
-@pytest.fixture
-def gateway_container(compose_stack: DockerCompose, clickup_base_url: str) -> DockerCompose:
-    return compose_stack
-
-
-@pytest.fixture
-def gateway_base_url(gateway_container: DockerCompose, gateway_client) -> str:
-    return gateway_client.base_url
