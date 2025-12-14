@@ -116,7 +116,6 @@ class GatewayApiClient:
             jwt_secret_key: Secret injected as ``MCPGATEWAY_JWT_SECRET`` when generating
                 a token. If omitted, environment is used.
             bearer_username: Username to embed in the generated JWT when ``auto_bearer`` is used.
-                If omitted, falls back to environment variable ``BASIC_AUTH_USER`` or ``"admin"``.
             token_env: Extra environment variables for the token generation subprocess.
             token_timeout: Subprocess timeout for token generation in seconds.
         """
@@ -136,7 +135,7 @@ class GatewayApiClient:
             try:
                 self.auth_token = self.generate_bearer_token(
                     jwt_secret_key,
-                    username=bearer_username or os.environ.get("BASIC_AUTH_USER"),
+                    username=bearer_username,
                     extra_env=token_env,
                     timeout=token_timeout,
                 )
