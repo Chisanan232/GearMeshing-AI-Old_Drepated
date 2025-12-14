@@ -4,8 +4,14 @@ import httpx
 import pytest
 
 from gearmeshing_ai.info_provider.mcp.gateway_api.client import GatewayApiClient
-from gearmeshing_ai.info_provider.mcp.provider import AsyncMCPInfoProvider, MCPInfoProvider
-from gearmeshing_ai.info_provider.mcp.schemas.config import GatewayConfig, McpClientConfig
+from gearmeshing_ai.info_provider.mcp.provider import (
+    AsyncMCPInfoProvider,
+    MCPInfoProvider,
+)
+from gearmeshing_ai.info_provider.mcp.schemas.config import (
+    GatewayConfig,
+    McpClientConfig,
+)
 from gearmeshing_ai.info_provider.mcp.transport.mcp import SseMCPTransport
 
 

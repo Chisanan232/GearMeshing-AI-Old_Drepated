@@ -32,7 +32,11 @@ def _mock_transport() -> httpx.MockTransport:
                         "customNameSlug": "g-echo",
                         "requestType": "SSE",
                         "integrationType": "MCP",
-                        "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]},
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {"text": {"type": "string"}},
+                            "required": ["text"],
+                        },
                         "createdAt": "2024-01-01T00:00:00Z",
                         "updatedAt": "2024-01-01T00:00:00Z",
                         "enabled": True,

@@ -30,12 +30,6 @@ from ..schemas.core import (
 )
 from ..transport.mcp import AsyncMCPTransport, StreamableHttpMCPTransport
 from .base import AsyncStrategy, StrategyCommonMixin
-from .models.dto import (
-    ToolInvokePayloadDTO,
-    ToolInvokeRequestDTO,
-    ToolsListPayloadDTO,
-    ToolsListQuery,
-)
 
 
 class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
@@ -238,7 +232,12 @@ class AsyncGatewayMcpStrategy(StrategyCommonMixin, AsyncStrategy):
             self._tools_cache[server_id] = (tools, now + self._ttl)
         # Derive next cursor from pagination if available
         next_cursor: Optional[str] = None
-        if dto.pagination and dto.pagination.page is not None and dto.pagination.perPage is not None and dto.pagination.total is not None:
+        if (
+            dto.pagination
+            and dto.pagination.page is not None
+            and dto.pagination.perPage is not None
+            and dto.pagination.total is not None
+        ):
             page = dto.pagination.page
             per = dto.pagination.perPage
             total = dto.pagination.total

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import json as _json
-from typing import Any, Dict, List
 from contextlib import asynccontextmanager
+from typing import Any, Dict
 
 import httpx
 
@@ -39,7 +38,12 @@ def _mock_transport(state: dict) -> httpx.MockTransport:
                         "enabled": True,
                         "reachable": True,
                         "executionCount": 0,
-                        "metrics": {"totalExecutions": 0, "successfulExecutions": 0, "failedExecutions": 0, "failureRate": 0.0},
+                        "metrics": {
+                            "totalExecutions": 0,
+                            "successfulExecutions": 0,
+                            "failedExecutions": 0,
+                            "failureRate": 0.0,
+                        },
                         "gatewayId": "g1",
                     }
                 ]

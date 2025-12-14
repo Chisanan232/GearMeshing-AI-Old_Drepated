@@ -29,7 +29,12 @@ def _mock_transport_paginated() -> httpx.MockTransport:
                     "enabled": True,
                     "reachable": True,
                     "executionCount": 0,
-                    "metrics": {"totalExecutions": 0, "successfulExecutions": 0, "failedExecutions": 0, "failureRate": 0.0},
+                    "metrics": {
+                        "totalExecutions": 0,
+                        "successfulExecutions": 0,
+                        "failedExecutions": 0,
+                        "failureRate": 0.0,
+                    },
                 },
                 {
                     "id": "t_b",
@@ -46,7 +51,12 @@ def _mock_transport_paginated() -> httpx.MockTransport:
                     "enabled": True,
                     "reachable": True,
                     "executionCount": 0,
-                    "metrics": {"totalExecutions": 0, "successfulExecutions": 0, "failedExecutions": 0, "failureRate": 0.0},
+                    "metrics": {
+                        "totalExecutions": 0,
+                        "successfulExecutions": 0,
+                        "failedExecutions": 0,
+                        "failureRate": 0.0,
+                    },
                 },
                 {
                     "id": "t_c",
@@ -63,10 +73,15 @@ def _mock_transport_paginated() -> httpx.MockTransport:
                     "enabled": True,
                     "reachable": True,
                     "executionCount": 0,
-                    "metrics": {"totalExecutions": 0, "successfulExecutions": 0, "failedExecutions": 0, "failureRate": 0.0},
+                    "metrics": {
+                        "totalExecutions": 0,
+                        "successfulExecutions": 0,
+                        "failedExecutions": 0,
+                        "failureRate": 0.0,
+                    },
                 },
             ]
-            page_items = all_tools[offset: offset + limit]
+            page_items = all_tools[offset : offset + limit]
             page_num = (offset // limit) + 1 if limit else 1
             total = len(all_tools)
             data = {"data": page_items, "pagination": {"page": page_num, "perPage": limit, "total": total}}

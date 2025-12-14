@@ -3,7 +3,9 @@ from __future__ import annotations
 import pytest
 
 from gearmeshing_ai.info_provider.mcp.gateway_api.client import GatewayApiClient
-from gearmeshing_ai.info_provider.mcp.strategy.gateway_async import AsyncGatewayMcpStrategy
+from gearmeshing_ai.info_provider.mcp.strategy.gateway_async import (
+    AsyncGatewayMcpStrategy,
+)
 
 
 @pytest.mark.e2e

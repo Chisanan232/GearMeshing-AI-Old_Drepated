@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import os
 import time
-import httpx
 from pathlib import Path
 from typing import Iterable, List
 
+import httpx
 import pytest
 from testcontainers.compose import DockerCompose
 
+from gearmeshing_ai.info_provider.mcp.gateway_api import GatewayApiClient
 from gearmeshing_ai.info_provider.mcp.schemas.config import ServerConfig
 from gearmeshing_ai.info_provider.mcp.strategy import DirectMcpStrategy
 from gearmeshing_ai.info_provider.mcp.transport.mcp import SseMCPTransport
-from gearmeshing_ai.info_provider.mcp.gateway_api import GatewayApiClient
 
 
 def clickup_port() -> int:
@@ -216,5 +216,7 @@ def gateway_client_with_register_servers(gateway_client: GatewayApiClient):
         mcp_registry = gateway_client.admin.mcp_registry.list()
         for mr in mcp_registry.servers:
             register_result = gateway_client.admin.mcp_registry.register(mr.id)
-            assert register_result.success, f"Register the MCP server fail. Please check it. Error: {register_result.error}"
+            assert (
+                register_result.success
+            ), f"Register the MCP server fail. Please check it. Error: {register_result.error}"
     return gateway_client

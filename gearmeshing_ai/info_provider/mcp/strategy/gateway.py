@@ -33,12 +33,6 @@ from ..schemas.core import (
 )
 from ..transport.mcp import AsyncMCPTransport, StreamableHttpMCPTransport
 from .base import StrategyCommonMixin, SyncStrategy
-from .models.dto import (
-    ToolInvokePayloadDTO,
-    ToolInvokeRequestDTO,
-    ToolsListPayloadDTO,
-    ToolsListQuery,
-)
 
 
 class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
@@ -57,7 +51,11 @@ class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
     """
 
     def __init__(
-        self, gateway: GatewayApiClient, *, client: Optional[httpx.Client] = None, ttl_seconds: float = 10.0,
+        self,
+        gateway: GatewayApiClient,
+        *,
+        client: Optional[httpx.Client] = None,
+        ttl_seconds: float = 10.0,
         mcp_transport: Optional[AsyncMCPTransport] = None,
     ) -> None:
         self._gateway = gateway
@@ -208,11 +206,17 @@ class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
         # Only update cache for unpaginated fetches
         if cursor is None and limit is None:
             import time as _time
+
             now = _time.monotonic()
             self._tools_cache[server_id] = (tools, now + self._ttl)
         # Derive next cursor from pagination if available
         next_cursor: Optional[str] = None
-        if dto.pagination and dto.pagination.page is not None and dto.pagination.perPage is not None and dto.pagination.total is not None:
+        if (
+            dto.pagination
+            and dto.pagination.page is not None
+            and dto.pagination.perPage is not None
+            and dto.pagination.total is not None
+        ):
             page = dto.pagination.page
             per = dto.pagination.perPage
             total = dto.pagination.total

@@ -34,7 +34,6 @@ from pydantic import AliasChoices, AnyHttpUrl, ConfigDict, Field, model_validato
 from ...schemas.base import BaseSchema
 from .domain import GatewayServer, GatewayTransport
 
-
 # -----------------------------
 # Admin: Servers (Gateway-managed)
 # -----------------------------
