@@ -46,7 +46,7 @@ def test_mcp_registry_register_server(gateway_client: GatewayApiClient) -> None:
 
 @pytest.mark.e2e
 def test_gateway_admin_gateways_list_and_get(gateway_client_with_register_servers: GatewayApiClient) -> None:
-    gws = gateway_client.admin.gateway.list()
+    gws = gateway_client_with_register_servers.admin.gateway.list()
     assert isinstance(gws, list)
     assert len(gws) >= 1
 
@@ -56,7 +56,7 @@ def test_gateway_admin_gateways_list_and_get(gateway_client_with_register_server
 
     # Verify get by id returns a matching entity
     if getattr(gw0, "id", None):
-        gw = gateway_client.admin.gateway.get(gw0.id)
+        gw = gateway_client_with_register_servers.admin.gateway.get(gw0.id)
         assert gw.name == gw0.name
 
 
