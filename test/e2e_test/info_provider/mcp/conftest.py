@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import tempfile
 import time
 from pathlib import Path
 from typing import Iterable, List
@@ -65,6 +64,7 @@ def wait_clickup_ready(urls: Iterable[str], timeout: float = 30.0) -> str:
 def _compose_env() -> Iterable[None]:
     # Provide env vars required by docker-compose_e2e.yml services
     prev: dict[str, str] = {}
+
     def _set(k: str, v: str) -> None:
         if k in os.environ:
             prev[k] = os.environ[k]
@@ -97,22 +97,24 @@ def _compose_env() -> Iterable[None]:
     try:
         yield
     finally:
-        for k in list({
-            "POSTGRES_DB",
-            "POSTGRES_USER",
-            "POSTGRES_PASSWORD",
-            "MCPGATEWAY_JWT_SECRET",
-            "MCPGATEWAY_ADMIN_PASSWORD",
-            "MCPGATEWAY_ADMIN_EMAIL",
-            "MCPGATEWAY_ADMIN_FULL_NAME",
-            "MCPGATEWAY_DB_URL",
-            "MCPGATEWAY_REDIS_URL",
-            "CLICKUP_SERVER_HOST",
-            "CLICKUP_SERVER_PORT",
-            "CLICKUP_MCP_TRANSPORT",
-            "CLICKUP_API_TOKEN",
-            "MQ_BACKEND",
-        }):
+        for k in list(
+            {
+                "POSTGRES_DB",
+                "POSTGRES_USER",
+                "POSTGRES_PASSWORD",
+                "MCPGATEWAY_JWT_SECRET",
+                "MCPGATEWAY_ADMIN_PASSWORD",
+                "MCPGATEWAY_ADMIN_EMAIL",
+                "MCPGATEWAY_ADMIN_FULL_NAME",
+                "MCPGATEWAY_DB_URL",
+                "MCPGATEWAY_REDIS_URL",
+                "CLICKUP_SERVER_HOST",
+                "CLICKUP_SERVER_PORT",
+                "CLICKUP_MCP_TRANSPORT",
+                "CLICKUP_API_TOKEN",
+                "MQ_BACKEND",
+            }
+        ):
             if k in prev:
                 os.environ[k] = prev[k]
             else:
