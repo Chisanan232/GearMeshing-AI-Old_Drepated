@@ -30,7 +30,7 @@ repos:
           - --in-place
 
   - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 25.11.0
+    rev: 25.12.0
     hooks:
       - id: black
         args: # arguments to configure black
@@ -48,7 +48,7 @@ repos:
             dist"""
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.18.2
+    rev: v1.19.1
     hooks:
       - id: mypy
         package: gearmeshing_ai,test
@@ -60,6 +60,6 @@ repos:
 
   - repo: https://github.com/astral-sh/uv-pre-commit
     # uv version.
-    rev: 0.9.11
+    rev: 0.9.17
     hooks:
       - id: uv-lock
