@@ -31,6 +31,8 @@ classifiers = [
 dependencies = [
     # MCP SDK
     "mcp[cli]>=1.10.1",
+    # MCP gateway service
+    "mcp-contextforge-gateway>=0.7.0",
     # dotenv for secret values loading
     "python-dotenv>=1.0.0",
     # HTTP client
@@ -55,6 +57,8 @@ dev = [
 #    "pytest-html>=4.1.1,<5",
     "pytest-rerunfailures~=16.0",
     "coverage~=7.10",
+    # Testcontainers for real contract tests
+    "testcontainers>=4.7.2",
 ]
 # Dependencies for the pre-commit CI in development environment
 pre-commit-ci = [
@@ -92,12 +96,6 @@ contract-test-with-ai-frameworks = [
     "google-adk>=1.20.0",
     # Pydantic AI by FastAPI Pydantic team
     "pydantic-ai>=1.27.0",
-]
-
-# Optional group for end-to-end tests.
-e2e-test = [
-    # Testcontainers for real contract tests
-    "testcontainers>=4.7.2",
 ]
 
 [tool.uv]

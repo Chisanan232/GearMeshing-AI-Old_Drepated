@@ -5,9 +5,11 @@ import time
 from pathlib import Path
 from typing import Iterable, List
 
+import httpx
 import pytest
 from testcontainers.compose import DockerCompose
 
+from gearmeshing_ai.info_provider.mcp.gateway_api import GatewayApiClient
 from gearmeshing_ai.info_provider.mcp.schemas.config import ServerConfig
 from gearmeshing_ai.info_provider.mcp.strategy import DirectMcpStrategy
 from gearmeshing_ai.info_provider.mcp.transport.mcp import SseMCPTransport
@@ -86,7 +88,7 @@ def _compose_env() -> Iterable[None]:
 
     # ClickUp MCP
     _set("CLICKUP_SERVER_HOST", os.getenv("CLICKUP_SERVER_HOST", "0.0.0.0"))
-    _set("CLICKUP_SERVER_PORT", os.getenv("CLICKUP_SERVER_PORT", "9000"))
+    _set("CLICKUP_SERVER_PORT", os.getenv("CLICKUP_SERVER_PORT", "8082"))
     _set("CLICKUP_MCP_TRANSPORT", os.getenv("CLICKUP_MCP_TRANSPORT", "sse"))
     # Token must be provided by env for real runs; default for CI/e2e
     _set("CLICKUP_API_TOKEN", os.getenv("CLICKUP_API_TOKEN", os.getenv("GM_CLICKUP_API_TOKEN", "e2e-test-token")))
@@ -152,31 +154,69 @@ def _write_catalog_for_gateway(clickup_base_url: str) -> Path:
     return Path("./configs/mcp_gateway/mcp-catalog_e2e.yml").resolve()
 
 
-# def _wait_gateway_ready(base_url: str, timeout: float = 30.0) -> None:
-#     start = time.time()
-#     last: Exception | None = None
-#     while time.time() - start < timeout:
-#         try:
-#             secret = os.getenv("MCPGATEWAY_JWT_SECRET", "my-test-key")
-#             token = GatewayApiClient.generate_bearer_token(jwt_secret_key=secret)
-#             r = httpx.get(f"{base_url}/health", headers={"Authorization": token}, timeout=3.0)
-#             if r.status_code == 200:
-#                 return
-#         except Exception as e:
-#             last = e
-#         time.sleep(0.5)
-#     if last:
-#         raise last
-#     raise RuntimeError("Gateway not ready and no error captured")
+def _wait_gateway_ready(base_url: str, timeout: float = 30.0) -> None:
+    start = time.time()
+    last: Exception | None = None
+    while time.time() - start < timeout:
+        try:
+            user = os.getenv("MCPGATEWAY_ADMIN_EMAIL", "admin@example.com")
+            secret = os.getenv("MCPGATEWAY_JWT_SECRET", "my-test-key")
+            token = GatewayApiClient.generate_bearer_token(jwt_secret_key=secret, username=user)
+            r = httpx.get(f"{base_url}/health", headers={"Authorization": token}, timeout=3.0)
+            if r.status_code == 200:
+                return
+        except Exception as e:
+            last = e
+        time.sleep(0.5)
+    if last:
+        raise last
+    raise RuntimeError("Gateway not ready and no error captured")
 
 
-@pytest.fixture
-def gateway_container(compose_stack: DockerCompose, clickup_base_url: str) -> DockerCompose:
-    return compose_stack
+@pytest.fixture(scope="session")
+def gateway_client(compose_stack: DockerCompose):
+    base = f"http://127.0.0.1:{gateway_port()}"
+    # Generate token once
+    secret = os.getenv("MCPGATEWAY_JWT_SECRET", "my-test-key")
+    user = os.getenv("MCPGATEWAY_ADMIN_EMAIL", "admin@example.com")
+    token = GatewayApiClient.generate_bearer_token(jwt_secret_key=secret, username=user)
+
+    mgmt_client = httpx.Client(base_url=base)
+    client = GatewayApiClient(base, client=mgmt_client, auth_token=token)
+
+    # Ensure health before yielding
+    start = time.time()
+    last_err: Exception | None = None
+    while time.time() - start < 30.0:
+        try:
+            h = client.health()
+            if h:
+                break
+        except Exception as e:
+            last_err = e
+            time.sleep(0.5)
+            continue
+    if last_err and time.time() - start >= 30.0:
+        raise last_err
+
+    try:
+        yield client
+    finally:
+        try:
+            mgmt_client.close()
+        except Exception:
+            pass
 
 
-# @pytest.fixture
-# def gateway_base_url(gateway_container: DockerCompose) -> str:
-#     base = f"http://127.0.0.1:{gateway_port()}"
-#     _wait_gateway_ready(base, timeout=30.0)
-#     return base
+@pytest.fixture(scope="session")
+def gateway_client_with_register_servers(gateway_client: GatewayApiClient):
+    # pre-prcoess
+    gateway_list = gateway_client.admin.gateway.list()
+    if not gateway_list:
+        mcp_registry = gateway_client.admin.mcp_registry.list()
+        for mr in mcp_registry.servers:
+            register_result = gateway_client.admin.mcp_registry.register(mr.id)
+            assert (
+                register_result.success
+            ), f"Register the MCP server fail. Please check it. Error: {register_result.error}"
+    return gateway_client

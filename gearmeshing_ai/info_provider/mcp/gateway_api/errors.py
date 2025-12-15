@@ -29,15 +29,3 @@ class GatewayApiError(Exception):
         super().__init__(message)
         self.status_code = status_code
         self.details = details
-
-
-class GatewayServerNotFoundError(GatewayApiError):
-    """Raised when the requested Gateway server cannot be found (HTTP 404).
-
-    Args:
-        server_id: The server identifier that was not found.
-    """
-
-    def __init__(self, server_id: str) -> None:
-        super().__init__(f"Gateway server not found: {server_id}", status_code=404)
-        self.server_id = server_id

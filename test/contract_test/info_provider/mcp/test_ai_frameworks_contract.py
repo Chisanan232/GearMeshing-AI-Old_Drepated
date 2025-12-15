@@ -48,8 +48,41 @@ def _mock_transport_direct() -> httpx.MockTransport:
 
 def _mock_transport_gateway() -> httpx.MockTransport:
     def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "GET" and request.url.path == "/admin/tools":
+            data = {
+                "data": [
+                    {
+                        "id": "t_echo",
+                        "originalName": "echo",
+                        "name": "echo",
+                        "gatewaySlug": "gw",
+                        "customName": "echo",
+                        "customNameSlug": "echo",
+                        "requestType": "SSE",
+                        "integrationType": "MCP",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {"text": {"type": "string"}},
+                            "required": ["text"],
+                        },
+                        "createdAt": "2024-01-01T00:00:00Z",
+                        "updatedAt": "2024-01-01T00:00:00Z",
+                        "enabled": True,
+                        "reachable": True,
+                        "executionCount": 0,
+                        "metrics": {
+                            "totalExecutions": 0,
+                            "successfulExecutions": 0,
+                            "failedExecutions": 0,
+                            "failureRate": 0.0,
+                        },
+                        "gatewayId": "g1",
+                    }
+                ]
+            }
+            return httpx.Response(200, json=data)
         if request.method == "GET" and request.url.path == "/servers":
-            data = [
+            data: List[Dict[str, Any]] = [  # type: ignore[no-redef]
                 {
                     "id": "s1",
                     "name": "gateway-s1",
