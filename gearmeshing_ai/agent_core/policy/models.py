@@ -14,6 +14,14 @@ class ToolPolicy(BaseSchema):
         default=None,
         description="If set, only these capabilities may be executed.",
     )
+    allowed_mcp_servers: Optional[set[str]] = Field(
+        default=None,
+        description="If set, MCP calls must target one of these server ids/slugs.",
+    )
+    blocked_mcp_servers: set[str] = Field(
+        default_factory=set,
+        description="MCP calls targeting these server ids/slugs will be blocked.",
+    )
 
 
 class ApprovalPolicy(BaseSchema):
