@@ -1,0 +1,70 @@
+# Default MCP servers to preload in the MCP Gateway
+# Adjust hostnames and ports to match your docker-compose services and env
+catalog_servers:
+  - id: clickup
+    name: "clickup"
+    category: "Utilities"
+    url: "http://clickup-mcp:8082/sse/sse"
+    transport: "SSE"
+    auth_type: "Open"
+    provider: "E2E"
+    description: "Project management tool"
+    requires_api_key: false
+    tags:
+      - "project-management"
+      - "clickup"
+      - "python"
+  - id: slack
+    name: "slack"
+    category: "Utilities"
+    url: "http://slack-mcp:8081/mcp/sse"
+    transport: "SSE"
+    auth_type: "Open"
+    provider: "E2E"
+    description: "Team communication tool"
+    requires_api_key: false
+    tags:
+      - "team-communication"
+      - "slack"
+      - "python"
+  - id: github
+    name: "github"
+    category: "Utilities"
+    url: "http://github-mcp:8081/mcp/sse"
+    transport: "SSE"
+    auth_type: "Open"
+    provider: "E2E"
+    description: "Code remote repository platform"
+    requires_api_key: false
+    tags:
+      - "code-remote-repository"
+      - "github"
+      - "go"
+  - id: grafana
+    name: "grafana"
+    category: "Utilities"
+    url: "http://grafana-mcp:8081/mcp/sse"
+    transport: "SSE"
+    auth_type: "Open"
+    provider: "E2E"
+    description: "Monitor"
+    requires_api_key: false
+    tags:
+      - "monitor"
+      - "grafana"
+      - "go"
+  - id: loki
+    name: "loki"
+    category: "Utilities"
+    url: "http://loki-mcp:8081/mcp/sse"
+    transport: "SSE"
+    auth_type: "Open"
+    provider: "E2E"
+    description: "Log parsing tool"
+    requires_api_key: false
+    tags:
+      - "monitor"
+      - "log"
+      - "loki"
+      - "grafana"
+      - "go"
