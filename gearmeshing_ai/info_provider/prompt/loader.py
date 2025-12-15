@@ -6,7 +6,7 @@ from typing import Iterable
 
 from importlib import metadata
 
-from .builtin import BuiltinPromptProvider
+from .provider import BuiltinPromptProvider
 from .base import PromptProvider
 
 

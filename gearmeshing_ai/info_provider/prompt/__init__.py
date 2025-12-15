@@ -1,4 +1,4 @@
-from .builtin import BuiltinPromptProvider
+from .provider import BuiltinPromptProvider
 from .loader import load_prompt_provider
 from .base import PromptProvider
 from .reload import HotReloadWrapper
