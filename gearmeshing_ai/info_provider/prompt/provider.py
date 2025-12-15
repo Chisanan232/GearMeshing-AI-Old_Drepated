@@ -19,7 +19,6 @@ from __future__ import annotations
 import logging
 import threading
 import time
-
 from typing import Dict, Optional
 
 from .base import PromptProvider

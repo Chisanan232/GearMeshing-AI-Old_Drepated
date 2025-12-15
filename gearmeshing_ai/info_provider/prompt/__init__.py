@@ -16,9 +16,9 @@ Higher layers (API server, agents) should import from this module rather than
 individual implementation files to keep the integration surface stable.
 """
 
-from .provider import BuiltinPromptProvider, StackedPromptProvider, HotReloadWrapper
-from .loader import load_prompt_provider
 from .base import PromptProvider
+from .loader import load_prompt_provider
+from .provider import BuiltinPromptProvider, HotReloadWrapper, StackedPromptProvider
 
 __all__ = [
     "PromptProvider",

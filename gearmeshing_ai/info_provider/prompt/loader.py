@@ -22,13 +22,11 @@ from __future__ import annotations
 
 import logging
 import os
+from importlib import metadata
 from typing import Iterable
 
-from importlib import metadata
-
-from .provider import BuiltinPromptProvider
 from .base import PromptProvider
-
+from .provider import BuiltinPromptProvider
 
 _LOGGER = logging.getLogger(__name__)
 

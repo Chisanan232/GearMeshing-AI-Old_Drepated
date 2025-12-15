@@ -4,9 +4,12 @@ import logging
 import time
 
 import pytest
+
 from gearmeshing_ai.info_provider.prompt import (
     BuiltinPromptProvider,
-    StackedPromptProvider, PromptProvider, HotReloadWrapper,
+    HotReloadWrapper,
+    PromptProvider,
+    StackedPromptProvider,
 )
 
 
@@ -123,7 +126,9 @@ def test_hot_reload_wrapper_throttles_refresh(monkeypatch: pytest.MonkeyPatch) -
     assert base.refresh_count == 2
 
 
-def test_hot_reload_wrapper_logs_without_prompt_leak(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_hot_reload_wrapper_logs_without_prompt_leak(
+    caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
     class _FailingProvider(PromptProvider):
         def __init__(self) -> None:
             self._version = "v-fail"
@@ -198,7 +203,9 @@ def test_hot_reload_wrapper_double_check_inside_lock_can_skip_refresh(monkeypatc
     assert base.refresh_count == 0
 
 
-def test_hot_reload_wrapper_safe_version_handles_version_error(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+def test_hot_reload_wrapper_safe_version_handles_version_error(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     class _BadVersionProvider(PromptProvider):
         def get(self, name: str, locale: str = "en", tenant: str | None = None) -> str:  # noqa: ARG002
             raise KeyError(name)
