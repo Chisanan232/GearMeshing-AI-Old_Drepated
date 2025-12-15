@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, Dict, Iterable, List
+from typing import Any, Dict, Iterable, List
 
 import httpx
 import pytest

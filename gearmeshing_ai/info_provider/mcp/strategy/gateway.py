@@ -21,7 +21,6 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 import httpx
 
 from ..gateway_api import GatewayApiClient
-from ..gateway_api.models.domain import GatewayTransport
 from ..gateway_api.models.dto import AdminToolsListResponseDTO
 from ..schemas.core import (
     McpServerRef,

@@ -1,14 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
 
 import httpx
-import pytest
-
-from gearmeshing_ai.info_provider.mcp.gateway_api.client import GatewayApiClient
-from gearmeshing_ai.info_provider.mcp.strategy.gateway_async import (
-    AsyncGatewayMcpStrategy,
-)
 
 
 def _mock_transport() -> httpx.MockTransport:
