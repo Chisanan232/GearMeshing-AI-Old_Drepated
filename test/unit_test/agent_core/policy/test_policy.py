@@ -6,7 +6,11 @@ import pytest
 
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
-from gearmeshing_ai.agent_core.schemas.domain import AutonomyProfile, CapabilityName, RiskLevel
+from gearmeshing_ai.agent_core.schemas.domain import (
+    AutonomyProfile,
+    CapabilityName,
+    RiskLevel,
+)
 
 
 def test_redaction_masks_known_tokens() -> None:

@@ -7,7 +7,6 @@ from typing import Any, Dict, Optional
 from ..schemas.domain import CapabilityName, RiskLevel
 from .models import PolicyConfig, PolicyDecision, risk_requires_approval
 
-
 _SECRET_PATTERNS = (
     re.compile(r"sk-[A-Za-z0-9]{10,}"),
     re.compile(r"ghp_[A-Za-z0-9]{10,}"),
