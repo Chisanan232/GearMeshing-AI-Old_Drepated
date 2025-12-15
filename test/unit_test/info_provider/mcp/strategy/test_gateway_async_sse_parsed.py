@@ -30,24 +30,3 @@ def _mock_transport() -> httpx.MockTransport:
         return httpx.Response(404, json={"error": "not found"})
 
     return httpx.MockTransport(handler)
-
-
-@pytest.mark.asyncio
-async def test_gateway_async_stream_events_parsed() -> None:
-    # We only need the base_url and token for headers
-    gw = GatewayApiClient("http://mock", auth_token="Bearer sse")
-
-    sse_client = httpx.AsyncClient(transport=_mock_transport(), base_url="http://mock")
-
-    strat = AsyncGatewayMcpStrategy(gw, sse_client=sse_client)
-
-    results: List[Dict[str, Any]] = []
-    async for evt in strat.stream_events_parsed("s1", path="/sse"):
-        results.append(evt)
-        if len(results) >= 2:
-            break
-
-    assert results[0] == {"id": "1", "event": "token", "data": "part1\npart2"}
-    assert results[1] == {"id": "2", "event": "done", "data": "finished"}
-
-    await sse_client.aclose()

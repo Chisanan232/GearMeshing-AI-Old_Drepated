@@ -140,23 +140,6 @@ class AsyncDummyBase(AsyncStrategy):
     ) -> ToolCallResult:  # noqa: ARG002
         return ToolCallResult(ok=True, data={}, error=None)
 
-    def stream_events(self, server_id: str, path: str = "/sse", **_: Any) -> AsyncIterator[str]:  # noqa: ARG002
-        async def _gen() -> AsyncIterator[str]:
-            yield "data: ok"
-
-        return _gen()
-
-    def stream_events_parsed(
-        self,
-        server_id: str,
-        path: str = "/sse",
-        **_: Any,
-    ) -> AsyncIterator[Dict[str, Any]]:  # noqa: ARG002
-        async def _gen() -> AsyncIterator[Dict[str, Any]]:
-            yield {"data": "ok"}
-
-        return _gen()
-
 
 class SyncDummyBase(SyncStrategy):
     """Concrete SyncStrategy test double with no-op implementations.
