@@ -66,7 +66,7 @@ def _mock_transport_paginated(state: dict | None = None) -> httpx.MockTransport:
             offset = int(request.url.params.get("offset", "0"))
             limit = int(request.url.params.get("limit", "50"))
             if state is not None:
-                offsets: list[int] = state.setdefault("offsets", [])  # type: ignore[assignment]
+                offsets: list[int] = state.setdefault("offsets", [])
                 offsets.append(offset)
             all_tools = [
                 {
@@ -239,7 +239,7 @@ async def test_async_gateway_strategy_call_tool_handles_model_dump_result() -> N
             return self._payload
 
     class FakeTransport(AsyncMCPTransport):
-        def session(self, endpoint_url: str):  # type: ignore[override]
+        def session(self, endpoint_url: str):
             @asynccontextmanager
             async def _cm():
                 class _S:
@@ -282,7 +282,7 @@ async def test_async_gateway_strategy_call_tool_wraps_non_dict_result() -> None:
     captured: Dict[str, Any] = {}
 
     class FakeTransport(AsyncMCPTransport):
-        def session(self, endpoint_url: str):  # type: ignore[override]
+        def session(self, endpoint_url: str):
             @asynccontextmanager
             async def _cm():
                 class _S:

@@ -14,7 +14,7 @@ def _mock_transport_paginated(state: dict | None = None) -> httpx.MockTransport:
             offset = int(request.url.params.get("offset", "0"))
             limit = int(request.url.params.get("limit", "50"))
             if state is not None:
-                offsets: list[int] = state.setdefault("offsets", [])  # type: ignore[assignment]
+                offsets: list[int] = state.setdefault("offsets", [])
                 offsets.append(offset)
             all_tools = [
                 {
