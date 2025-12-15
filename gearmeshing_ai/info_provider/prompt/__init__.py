@@ -1,4 +1,5 @@
 from .builtin import BuiltinPromptProvider
+from .loader import load_prompt_provider
 from .provider import PromptProvider
 from .reload import HotReloadWrapper
 from .stacked import StackedPromptProvider
@@ -8,5 +9,6 @@ __all__ = [
     "BuiltinPromptProvider",
     "StackedPromptProvider",
     "HotReloadWrapper",
+    "load_prompt_provider",
 ]
 
