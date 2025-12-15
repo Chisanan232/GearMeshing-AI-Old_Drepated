@@ -79,9 +79,9 @@ class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
         gateways = self._gateway.admin.gateway.list()
         for gw in gateways:
             transport = TransportType.SSE
-            if (gw.transport or "SSE") == "STREAMABLEHTTP":
+            if (gw.transport.upper() or "SSE") == "STREAMABLEHTTP":
                 transport = TransportType.STREAMABLE_HTTP
-            elif (gw.transport or "SSE") == "STDIO":
+            elif (gw.transport.upper() or "SSE") == "STDIO":
                 transport = TransportType.STDIO
             yield McpServerRef(
                 id=gw.id or gw.slug or gw.name,
