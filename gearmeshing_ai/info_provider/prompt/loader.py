@@ -1,3 +1,23 @@
+"""Provider loader utilities.
+
+This module contains the logic that maps configuration (primarily the
+``GEARMESH_PROMPT_PROVIDER`` environment variable) to a concrete
+``PromptProvider`` implementation.
+
+Two sources of providers are supported:
+
+* The in-repo :class:`BuiltinPromptProvider`, always available as a safe
+  fallback.
+* External packages that register a factory via the
+  ``gearmesh.prompt_providers`` entry-point group. This is how commercial
+  prompt bundles are plugged into the system without modifying the OSS
+  codebase.
+
+The loader is deliberately defensive: failures to resolve or import a
+commercial provider never prevent the system from starting; it simply falls
+back to the builtin provider and emits a redacted warning.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -14,6 +34,17 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def _iter_entry_points(group: str) -> Iterable[metadata.EntryPoint]:  # type: ignore[name-defined]
+    """Return entry points for ``group`` across Python versions.
+
+    ``importlib.metadata.entry_points`` changed shape across Python versions
+    (from a simple mapping to an object with ``select``). This helper hides
+    that detail so tests and the loader only need to reason about an
+    iterable of entry points.
+
+    The function is also used as an indirection point in tests so that
+    behavior can be controlled without relying on the real environment.
+    """
+
     try:
         eps = metadata.entry_points()
     except Exception:  # pragma: no cover - very defensive
@@ -27,14 +58,26 @@ def _iter_entry_points(group: str) -> Iterable[metadata.EntryPoint]:  # type: ig
 
 
 def load_prompt_provider(builtin: PromptProvider | None = None) -> PromptProvider:
-    """Load the configured `PromptProvider`.
+    """Load the configured :class:`PromptProvider` instance.
 
-    Behavior:
-    - Reads `GEARMESH_PROMPT_PROVIDER` env var.
-    - If unset or `"builtin"`, returns `BuiltinPromptProvider`.
-    - Otherwise, tries to load a provider from entry points group
-      `gearmesh.prompt_providers` with that name.
-    - On any failure, logs redacted metadata and falls back to builtin.
+    Resolution algorithm:
+
+    1. Read ``GEARMESH_PROMPT_PROVIDER`` from the environment; default to
+       ``"builtin"`` when unset.
+    2. If the key is empty or ``"builtin"``, construct and return a
+       :class:`BuiltinPromptProvider` (or the ``builtin`` override, if
+       provided).
+    3. Otherwise, search the ``gearmesh.prompt_providers`` entry-point group
+       for a matching ``ep.name``. If found, call ``ep.load()`` to obtain a
+       factory, then call the factory without arguments to build the
+       provider.
+    4. If the resulting object conforms to :class:`PromptProvider`, use it.
+       Otherwise, log a warning and fall back to the builtin provider.
+    5. Any import/initialization error results in a warning and a fallback to
+       the builtin provider.
+
+    This function never logs prompt text; warnings mention only the provider
+    key, entry-point name and exception type.
     """
 
     provider_key = os.getenv("GEARMESH_PROMPT_PROVIDER") or "builtin"
