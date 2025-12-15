@@ -12,7 +12,7 @@ from gearmeshing_ai.info_provider.mcp.schemas.config import (
     GatewayConfig,
     McpClientConfig,
 )
-from gearmeshing_ai.info_provider.mcp.transport.mcp import SseMCPTransport
+from gearmeshing_ai.info_provider.mcp.transport import SseMCPTransport
 
 
 def _first_gateway_id(gateway_client: GatewayApiClient) -> str:

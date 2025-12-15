@@ -9,7 +9,7 @@ import pytest
 from gearmeshing_ai.info_provider.mcp.gateway_api.client import GatewayApiClient
 from gearmeshing_ai.info_provider.mcp.schemas.core import TransportType
 from gearmeshing_ai.info_provider.mcp.strategy.gateway import GatewayMcpStrategy
-from gearmeshing_ai.info_provider.mcp.transport.mcp import AsyncMCPTransport
+from gearmeshing_ai.info_provider.mcp.transport import AsyncMCPTransport
 
 
 def _mock_transport(state: dict) -> httpx.MockTransport:
@@ -122,7 +122,7 @@ def test_gateway_strategy_list_servers_transport_mapping(wire_transport: str, ex
         def __init__(self, dto: _FakeGatewayDto) -> None:
             self._dto = dto
 
-        def list(self) -> List[_FakeGatewayDto]:  # type: ignore[override]
+        def list(self) -> List[_FakeGatewayDto]:
             return [self._dto]
 
     class _FakeAdmin:
@@ -161,7 +161,7 @@ def test_gateway_strategy_call_tool_handles_model_dump_result() -> None:
             return self._payload
 
     class FakeTransport(AsyncMCPTransport):
-        def session(self, endpoint_url: str):  # type: ignore[override]
+        def session(self, endpoint_url: str):
             @asynccontextmanager
             async def _cm():
                 class _S:
@@ -193,7 +193,7 @@ def test_gateway_strategy_call_tool_wraps_non_dict_result() -> None:
     captured: Dict[str, Any] = {}
 
     class FakeTransport(AsyncMCPTransport):
-        def session(self, endpoint_url: str):  # type: ignore[override]
+        def session(self, endpoint_url: str):
             @asynccontextmanager
             async def _cm():
                 class _S:

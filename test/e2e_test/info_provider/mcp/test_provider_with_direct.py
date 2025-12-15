@@ -10,7 +10,7 @@ from gearmeshing_ai.info_provider.mcp.schemas.config import (
     McpClientConfig,
     ServerConfig,
 )
-from gearmeshing_ai.info_provider.mcp.transport.mcp import SseMCPTransport
+from gearmeshing_ai.info_provider.mcp.transport import SseMCPTransport
 
 
 @pytest.mark.e2e

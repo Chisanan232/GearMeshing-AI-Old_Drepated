@@ -4,7 +4,7 @@ import pytest
 
 from gearmeshing_ai.info_provider.mcp.schemas.config import ServerConfig
 from gearmeshing_ai.info_provider.mcp.strategy import DirectMcpStrategy
-from gearmeshing_ai.info_provider.mcp.transport.mcp import SseMCPTransport
+from gearmeshing_ai.info_provider.mcp.transport import SseMCPTransport
 
 
 @pytest.mark.e2e

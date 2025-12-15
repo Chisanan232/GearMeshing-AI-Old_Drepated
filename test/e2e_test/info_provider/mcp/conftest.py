@@ -12,7 +12,7 @@ from testcontainers.compose import DockerCompose
 from gearmeshing_ai.info_provider.mcp.gateway_api import GatewayApiClient
 from gearmeshing_ai.info_provider.mcp.schemas.config import ServerConfig
 from gearmeshing_ai.info_provider.mcp.strategy import DirectMcpStrategy
-from gearmeshing_ai.info_provider.mcp.transport.mcp import SseMCPTransport
+from gearmeshing_ai.info_provider.mcp.transport import SseMCPTransport
 
 
 def clickup_port() -> int:

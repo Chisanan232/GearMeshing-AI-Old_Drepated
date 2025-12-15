@@ -5,7 +5,7 @@ from typing import Any, AsyncIterator, Callable, Tuple
 
 import pytest
 
-from gearmeshing_ai.info_provider.mcp.transport import mcp as m_mod
+from gearmeshing_ai.info_provider.mcp import transport as m_mod
 
 
 class _FakeClientSession:

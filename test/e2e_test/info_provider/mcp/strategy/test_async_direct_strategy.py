@@ -6,7 +6,7 @@ from gearmeshing_ai.info_provider.mcp.schemas.config import ServerConfig
 from gearmeshing_ai.info_provider.mcp.strategy.direct_async import (
     AsyncDirectMcpStrategy,
 )
-from gearmeshing_ai.info_provider.mcp.transport.mcp import SseMCPTransport
+from gearmeshing_ai.info_provider.mcp.transport import SseMCPTransport
 
 
 @pytest.mark.e2e

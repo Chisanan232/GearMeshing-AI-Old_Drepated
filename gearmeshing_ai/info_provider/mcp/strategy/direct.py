@@ -51,7 +51,7 @@ from gearmeshing_ai.info_provider.mcp.schemas.core import (
     TransportType,
 )
 
-from ..transport.mcp import AsyncMCPTransport, StreamableHttpMCPTransport
+from ..transport import AsyncMCPTransport, StreamableHttpMCPTransport
 from .base import StrategyCommonMixin, SyncStrategy
 
 

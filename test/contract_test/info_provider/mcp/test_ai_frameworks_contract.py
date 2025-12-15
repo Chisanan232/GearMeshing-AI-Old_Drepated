@@ -17,7 +17,7 @@ from gearmeshing_ai.info_provider.mcp.schemas.config import (
 )
 from gearmeshing_ai.info_provider.mcp.schemas.core import McpTool
 from gearmeshing_ai.info_provider.mcp.strategy import DirectMcpStrategy
-from gearmeshing_ai.info_provider.mcp.transport.mcp import SseMCPTransport
+from gearmeshing_ai.info_provider.mcp.transport import SseMCPTransport
 
 # ------------------------------
 # Mock transports for Direct and Gateway
