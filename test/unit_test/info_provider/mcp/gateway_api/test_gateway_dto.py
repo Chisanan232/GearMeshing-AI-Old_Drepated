@@ -4,7 +4,9 @@ from datetime import datetime, timezone
 
 from gearmeshing_ai.info_provider.mcp.gateway_api.models.dto import (
     AdminToolsListResponseDTO,
+    CatalogBulkRegisterResponseDTO,
     CatalogListResponseDTO,
+    CatalogRegisterFailureDTO,
     CatalogServerDTO,
     GatewayReadDTO,
     ToolReadDTO,
@@ -109,3 +111,83 @@ def test_gateway_read_dto_contract_minimal() -> None:
     }
     dto = GatewayReadDTO.model_validate(data)
     assert dto.id == "g1" and dto.name == "gw" and dto.transport == "SSE"
+
+
+def test_catalog_bulk_register_response_dto_normalizes_failed_objects() -> None:
+    raw = {
+        "successful": ["s3"],
+        "failed": [{"s1": "error-one"}, {"s2": "error-two"}],
+        "total_attempted": 3,
+        "total_successful": 1,
+    }
+
+    dto = CatalogBulkRegisterResponseDTO.model_validate(raw)
+
+    assert dto.successful == ["s3"]
+    assert dto.total_attempted == 3
+    assert dto.total_successful == 1
+
+    assert len(dto.failed) == 2
+    first: CatalogRegisterFailureDTO = dto.failed[0]
+    second: CatalogRegisterFailureDTO = dto.failed[1]
+
+    assert first.server_id == "s1" and first.error == "error-one"
+    assert second.server_id == "s2" and second.error == "error-two"
+
+
+def test_catalog_bulk_register_response_dto_ignores_non_dict_failed_entries() -> None:
+    raw = {
+        "successful": [],
+        "failed": [
+            {"s1": "error-one"},
+            "not-a-dict",
+            123,
+            {"s2": "error-two"},
+        ],
+        "total_attempted": 2,
+        "total_successful": 0,
+    }
+
+    dto = CatalogBulkRegisterResponseDTO.model_validate(raw)
+
+    # Only dict entries should be normalized
+    assert len(dto.failed) == 2
+    ids = {f.server_id for f in dto.failed}
+    errors = {f.error for f in dto.failed}
+    assert ids == {"s1", "s2"}
+    assert errors == {"error-one", "error-two"}
+
+
+def test_catalog_bulk_register_response_dto_handles_additional_properties_map_shape() -> None:
+    raw = {
+        "successful": ["s1"],
+        # Gateway API may return failed as objects with additionalProperties: string
+        # e.g. [{"s2": "e2", "s3": "e3"}]
+        "failed": [
+            {"s2": "e2", "s3": "e3"},
+        ],
+        "total_attempted": 3,
+        "total_successful": 1,
+    }
+
+    dto = CatalogBulkRegisterResponseDTO.model_validate(raw)
+
+    assert dto.successful == ["s1"]
+    assert dto.total_attempted == 3
+    assert dto.total_successful == 1
+
+    ids = {f.server_id for f in dto.failed}
+    errors = {f.error for f in dto.failed}
+    assert ids == {"s2", "s3"}
+    assert errors == {"e2", "e3"}
+
+
+def test_catalog_bulk_register_response_dto_validator_noop_for_non_dict_root() -> None:
+    # Directly exercise the pre-validation hook: non-dict input should be passed through unchanged
+    payload = [
+        {"s1": "e1"},
+    ]
+
+    result = CatalogBulkRegisterResponseDTO._coerce_failed(payload)  # type: ignore[arg-type]
+
+    assert result is payload
