@@ -30,7 +30,7 @@ from .schemas.core import (
     ToolsPage,
 )
 from .strategy.base import is_mutating_tool_name
-from .transport.mcp import AsyncMCPTransport
+from .transport import AsyncMCPTransport
 
 
 @runtime_checkable

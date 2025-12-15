@@ -81,7 +81,7 @@ from .strategy import DirectMcpStrategy, GatewayMcpStrategy
 from .strategy.base import AsyncStrategy, SyncStrategy, is_mutating_tool_name
 from .strategy.direct_async import AsyncDirectMcpStrategy
 from .strategy.gateway_async import AsyncGatewayMcpStrategy
-from .transport.mcp import AsyncMCPTransport
+from .transport import AsyncMCPTransport
 
 logger = logging.getLogger(__name__)
 

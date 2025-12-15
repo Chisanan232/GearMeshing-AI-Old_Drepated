@@ -28,7 +28,7 @@ from ..schemas.core import (
     ToolCallResult,
     ToolsPage,
 )
-from ..transport.mcp import AsyncMCPTransport, StreamableHttpMCPTransport
+from ..transport import AsyncMCPTransport, StreamableHttpMCPTransport
 from .base import AsyncStrategy, StrategyCommonMixin
 
 

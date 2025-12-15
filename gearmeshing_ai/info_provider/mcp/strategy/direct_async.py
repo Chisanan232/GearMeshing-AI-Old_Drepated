@@ -33,7 +33,7 @@ from mcp.types import ListToolsResult
 
 from ..schemas.config import ServerConfig
 from ..schemas.core import McpTool, ToolCallResult, ToolsPage
-from ..transport.mcp import AsyncMCPTransport, StreamableHttpMCPTransport
+from ..transport import AsyncMCPTransport, StreamableHttpMCPTransport
 from .base import AsyncStrategy, StrategyCommonMixin
 
 

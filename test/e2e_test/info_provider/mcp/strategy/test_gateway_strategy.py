@@ -4,7 +4,7 @@ import pytest
 
 from gearmeshing_ai.info_provider.mcp.gateway_api.client import GatewayApiClient
 from gearmeshing_ai.info_provider.mcp.strategy.gateway import GatewayMcpStrategy
-from gearmeshing_ai.info_provider.mcp.transport.mcp import SseMCPTransport
+from gearmeshing_ai.info_provider.mcp.transport import SseMCPTransport
 
 
 @pytest.mark.e2e

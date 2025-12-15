@@ -30,7 +30,7 @@ from ..schemas.core import (
     ToolsPage,
     TransportType,
 )
-from ..transport.mcp import AsyncMCPTransport, StreamableHttpMCPTransport
+from ..transport import AsyncMCPTransport, StreamableHttpMCPTransport
 from .base import StrategyCommonMixin, SyncStrategy
 
 

@@ -35,7 +35,7 @@ from gearmeshing_ai.info_provider.mcp.strategy.direct_async import (
 from gearmeshing_ai.info_provider.mcp.strategy.gateway_async import (
     AsyncGatewayMcpStrategy,
 )
-from gearmeshing_ai.info_provider.mcp.transport.mcp import SseMCPTransport
+from gearmeshing_ai.info_provider.mcp.transport import SseMCPTransport
 
 
 def _mock_transport(state: dict) -> httpx.MockTransport:
