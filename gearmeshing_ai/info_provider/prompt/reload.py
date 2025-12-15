@@ -5,7 +5,7 @@ import threading
 import time
 from typing import Optional
 
-from .provider import PromptProvider
+from .base import PromptProvider
 
 
 class HotReloadWrapper(PromptProvider):

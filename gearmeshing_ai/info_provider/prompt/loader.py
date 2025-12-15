@@ -7,7 +7,7 @@ from typing import Iterable
 from importlib import metadata
 
 from .builtin import BuiltinPromptProvider
-from .provider import PromptProvider
+from .base import PromptProvider
 
 
 _LOGGER = logging.getLogger(__name__)

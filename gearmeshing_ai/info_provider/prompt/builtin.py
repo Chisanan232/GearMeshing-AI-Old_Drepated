@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Dict, Optional
 
-from .provider import PromptProvider
+from .base import PromptProvider
 
 # Minimal, non-sensitive builtin prompts so OSS deployments can run in
 # "basic" mode without any commercial bundle. These are intentionally
