@@ -40,6 +40,24 @@ class GlobalPolicy:
                     block_reason=f"capability not allowed: {capability}",
                 )
 
+        if capability == CapabilityName.mcp_call:
+            server_id = str(args.get("server_id") or "")
+            if server_id and server_id in self._cfg.tool_policy.blocked_mcp_servers:
+                return PolicyDecision(
+                    risk=RiskLevel.low,
+                    require_approval=False,
+                    block=True,
+                    block_reason=f"mcp server blocked: {server_id}",
+                )
+            if self._cfg.tool_policy.allowed_mcp_servers is not None:
+                if server_id not in self._cfg.tool_policy.allowed_mcp_servers:
+                    return PolicyDecision(
+                        risk=RiskLevel.low,
+                        require_approval=False,
+                        block=True,
+                        block_reason=f"mcp server not allowed: {server_id}",
+                    )
+
         risk = self.classify_risk(capability, args=args)
         require = risk_requires_approval(risk, profile=self._cfg.autonomy_profile, policy=self._cfg.approval_policy)
         return PolicyDecision(risk=risk, require_approval=require, block=False, block_reason=None)
