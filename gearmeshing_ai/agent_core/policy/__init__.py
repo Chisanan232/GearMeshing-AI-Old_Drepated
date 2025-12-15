@@ -1,5 +1,6 @@
 """Policy subsystem for agent autonomy, safety, and approvals."""
 
+from .global_policy import GlobalPolicy
 from .models import (
     ApprovalPolicy,
     BudgetPolicy,
@@ -9,6 +10,7 @@ from .models import (
 )
 
 __all__ = [
+    "GlobalPolicy",
     "PolicyConfig",
     "ToolPolicy",
     "ApprovalPolicy",
