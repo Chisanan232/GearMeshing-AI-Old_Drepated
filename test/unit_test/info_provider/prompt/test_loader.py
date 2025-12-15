@@ -50,7 +50,7 @@ def test_load_prompt_provider_loads_entry_point(monkeypatch: pytest.MonkeyPatch)
 
     dummy = _DummyProvider()
 
-    def _fake_iter(group: str) -> List[SimpleNamespace]:  # type: ignore[override]
+    def _fake_iter(group: str) -> List[SimpleNamespace]:
         assert group == "gearmesh.prompt_providers"
         return [_make_entry_point("commercial", lambda: dummy)]
 
@@ -65,7 +65,7 @@ def test_load_prompt_provider_loads_entry_point(monkeypatch: pytest.MonkeyPatch)
 def test_load_prompt_provider_falls_back_when_entry_point_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("GEARMESH_PROMPT_PROVIDER", "missing")
 
-    def _fake_iter(group: str) -> List[SimpleNamespace]:  # type: ignore[override]
+    def _fake_iter(group: str) -> List[SimpleNamespace]:
         assert group == "gearmesh.prompt_providers"
         return []
 
@@ -81,7 +81,7 @@ def test_load_prompt_provider_falls_back_on_broken_entry_point(monkeypatch: pyte
     def _broken_loader() -> None:
         raise RuntimeError("boom")
 
-    def _fake_iter(group: str) -> List[SimpleNamespace]:  # type: ignore[override]
+    def _fake_iter(group: str) -> List[SimpleNamespace]:
         assert group == "gearmesh.prompt_providers"
         return [_make_entry_point("broken", _broken_loader)]
 

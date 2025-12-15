@@ -36,7 +36,7 @@ def test_builtin_prompt_provider_raises_for_unknown_prompt() -> None:
 
 def test_stacked_prompt_provider_falls_back_to_builtin() -> None:
     class _Primary(BuiltinPromptProvider):
-        def get(self, name: str, locale: str = "en", tenant: str | None = None) -> str:  # type: ignore[override]
+        def get(self, name: str, locale: str = "en", tenant: str | None = None) -> str:
             if name == "pm/system":
                 return "primary-pm"
             raise KeyError(name)
@@ -65,7 +65,7 @@ def test_stacked_prompt_provider_refresh_calls_both() -> None:
             super().__init__()
             self.refreshed = 0
 
-        def refresh(self) -> None:  # type: ignore[override]
+        def refresh(self) -> None:
             self.refreshed += 1
 
     class _F(BuiltinPromptProvider):
@@ -73,7 +73,7 @@ def test_stacked_prompt_provider_refresh_calls_both() -> None:
             super().__init__()
             self.refreshed = 0
 
-        def refresh(self) -> None:  # type: ignore[override]
+        def refresh(self) -> None:
             self.refreshed += 1
 
     primary = _P()

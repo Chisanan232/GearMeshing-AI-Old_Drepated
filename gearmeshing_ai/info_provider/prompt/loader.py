@@ -31,7 +31,7 @@ from .provider import BuiltinPromptProvider
 _LOGGER = logging.getLogger(__name__)
 
 
-def _iter_entry_points(group: str) -> Iterable[metadata.EntryPoint]:  # type: ignore[name-defined]
+def _iter_entry_points(group: str) -> Iterable[metadata.EntryPoint]:
     """Return entry points for ``group`` across Python versions.
 
     ``importlib.metadata.entry_points`` changed shape across Python versions
@@ -49,10 +49,7 @@ def _iter_entry_points(group: str) -> Iterable[metadata.EntryPoint]:  # type: ig
         return []
 
     # Python 3.10+ provides the selectable interface.
-    select = getattr(eps, "select", None)
-    if callable(select):
-        return select(group=group)
-    return eps.get(group, [])  # type: ignore[no-any-return]
+    return eps.select(group=group)
 
 
 def load_prompt_provider(builtin: PromptProvider | None = None) -> PromptProvider:
@@ -89,7 +86,7 @@ def load_prompt_provider(builtin: PromptProvider | None = None) -> PromptProvide
             continue
         try:
             factory = ep.load()
-            provider = factory()  # type: ignore[call-arg]
+            provider = factory()
             if isinstance(provider, PromptProvider):
                 return provider
             _LOGGER.warning(
