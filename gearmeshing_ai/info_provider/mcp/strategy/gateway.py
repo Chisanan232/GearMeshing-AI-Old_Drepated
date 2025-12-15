@@ -67,21 +67,6 @@ class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
         self._tools_cache: Dict[str, Tuple[List[McpTool], float]] = {}
         self._mcp_transport: AsyncMCPTransport = mcp_transport or StreamableHttpMCPTransport()
 
-    def _map_transport(self, t: GatewayTransport) -> TransportType:
-        """Map a Gateway transport enum to the core `TransportType`.
-
-        Args:
-            t: Gateway transport value reported by the management API.
-
-        Returns:
-            The corresponding `TransportType` used by domain references.
-        """
-        if t == GatewayTransport.STREAMABLE_HTTP:
-            return TransportType.STREAMABLE_HTTP
-        if t == GatewayTransport.SSE:
-            return TransportType.SSE
-        return TransportType.STDIO
-
     def list_servers(self) -> Iterable[McpServerRef]:
         """Yield `McpServerRef` entries using Gateway admin utility.
 
@@ -285,26 +270,3 @@ class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
         if is_mut and result.ok:
             self._tools_cache.pop(server_id, None)
         return result
-
-    def _base_for(self, server_id: str) -> str:
-        """Construct the Gateway streamable HTTP base URL for a server.
-
-        Args:
-            server_id: The Gateway server identifier.
-
-        Returns:
-            The base URL where MCP endpoints for the server are exposed.
-        """
-        return f"{self._gateway.base_url}/servers/{server_id}/mcp"
-
-    def _headers(self) -> Dict[str, str]:
-        """Build standard JSON headers; propagate Gateway auth if configured.
-
-        Returns:
-            A dictionary with `Content-Type` and optional `Authorization` header.
-        """
-        headers: Dict[str, str] = {"Content-Type": "application/json"}
-        token = self._gateway.auth_token
-        if token:
-            headers["Authorization"] = token
-        return headers
