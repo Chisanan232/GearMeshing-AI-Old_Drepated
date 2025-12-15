@@ -1,3 +1,19 @@
+"""Concrete prompt provider implementations.
+
+This module contains the built-in, non-sensitive prompt provider used by
+open-source and local deployments, as well as composition helpers:
+
+* :class:`BuiltinPromptProvider` – in-process, dictionary-backed provider
+  with a small set of generic prompts.
+* :class:`StackedPromptProvider` – combines two providers with fallback
+  semantics (typically commercial over builtin).
+* :class:`HotReloadWrapper` – wraps another provider to call ``refresh``
+  periodically in a thread-safe way.
+
+Higher-level code is expected to access these via the
+``gearmeshing_ai.info_provider.prompt`` facade.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -10,7 +26,8 @@ from .base import PromptProvider
 
 # Minimal, non-sensitive builtin prompts so OSS deployments can run in
 # "basic" mode without any commercial bundle. These are intentionally
-# terse and generic.
+# terse and generic. In commercial deployments these are usually
+# overshadowed by a richer provider via StackedPromptProvider.
 
 
 _BUILTIN_PROMPTS: Dict[str, Dict[str, str]] = {
@@ -25,8 +42,16 @@ _BUILTIN_PROMPTS: Dict[str, Dict[str, str]] = {
 class BuiltinPromptProvider(PromptProvider):
     """In-repo builtin prompts for basic/local usage.
 
-    The version is derived from a static identifier so that callers can record
-    which builtin prompt set was used in a given run.
+    This provider keeps a small dictionary of prompts in memory, keyed by
+    locale and prompt name. It is intended to be safe to ship in the
+    open-source repository:
+
+    - No tenant-specific content.
+    - No secrets or proprietary wording.
+
+    The :meth:`version` string is a lightweight identifier (e.g. a migration
+    label) that can be recorded alongside runs, allowing operators to
+    correlate behavior with a given builtin prompt set.
     """
 
     def __init__(self, *, prompts: Optional[Dict[str, Dict[str, str]]] = None, version_id: str = "builtin-v1") -> None:
@@ -52,9 +77,25 @@ class BuiltinPromptProvider(PromptProvider):
 class StackedPromptProvider(PromptProvider):
     """Chains providers with fallback semantics.
 
-    Typically used as `StackedPromptProvider(commercial, builtin)` so that
-    commercial prompts override builtin ones, while preserving a working
-    baseline when commercial bundles are unavailable.
+    This helper composes two :class:`PromptProvider` implementations into a
+    single provider. Resolution semantics:
+
+    - ``get`` first asks ``primary``; if it raises ``KeyError`` the
+      ``fallback`` provider is queried.
+    - ``version`` returns a combined identifier
+      (``"stacked:<primary>+<fallback>"``) so tooling can understand which
+      providers contributed.
+    - ``refresh`` forwards the call to both providers in order.
+
+    Typical usage pattern::
+
+        commercial = CommercialPromptProvider(...)
+        builtin = BuiltinPromptProvider()
+        provider = StackedPromptProvider(commercial, builtin)
+
+    This ensures that commercial prompts take precedence when available,
+    while still providing a fully functional fallback when the commercial
+    provider is misconfigured or missing a particular key.
     """
 
     def __init__(self, primary: PromptProvider, fallback: PromptProvider) -> None:
@@ -78,10 +119,24 @@ class StackedPromptProvider(PromptProvider):
 
 
 class HotReloadWrapper(PromptProvider):
-    """Lightweight, thread-safe wrapper that calls `refresh` periodically.
+    """Lightweight, thread-safe wrapper that periodically refreshes a provider.
 
-    The wrapper delegates `get`/`version` to the inner provider but ensures
-    `refresh` is invoked at most once per `interval_seconds` across threads.
+    Hot reload is useful for commercial providers that fetch prompt bundles
+    from a remote source (e.g. HTTP+ETag, object storage, database) and need
+    to pick up new versions without restarting the process.
+
+    Design notes:
+
+    - The wrapper calls ``inner.refresh()`` at most once per
+      ``interval_seconds`` across all threads and requests.
+    - ``get`` and ``version`` both trigger a background refresh check before
+      delegating to the underlying provider.
+    - Errors from ``refresh`` are logged in a redacted form; prompt text and
+      error messages are never logged.
+
+    This wrapper does not itself implement ETag or integrity validation; that
+    is the responsibility of the underlying provider's :meth:`refresh`
+    implementation.
     """
 
     def __init__(
@@ -98,6 +153,13 @@ class HotReloadWrapper(PromptProvider):
         self._last_refresh: float = 0.0
 
     def _maybe_refresh(self) -> None:
+        """Trigger a refresh on the underlying provider if the interval elapsed.
+
+        This method is safe to call on every "read" operation. It uses
+        ``time.monotonic`` and a double-checked lock to avoid calling
+        :meth:`PromptProvider.refresh` more than necessary, and to ensure that
+        only one thread performs the refresh at a time.
+        """
         if self._interval <= 0:
             return
         now = time.monotonic()
@@ -122,6 +184,12 @@ class HotReloadWrapper(PromptProvider):
                 self._last_refresh = time.monotonic()
 
     def _safe_version(self) -> str:
+        """Return the inner provider's version, guarding against errors.
+
+        If :meth:`PromptProvider.version` raises for any reason, this returns
+        ``"<unknown>"`` so that logs remain fully redacted while still
+        conveying that the version was unavailable.
+        """
         try:
             return self._inner.version()
         except Exception:  # pragma: no cover - defensive
@@ -136,7 +204,14 @@ class HotReloadWrapper(PromptProvider):
         return self._inner.version()
 
     def refresh(self) -> None:
-        # Explicit refresh always bypasses throttling.
+        """Explicitly refresh the inner provider, bypassing throttling.
+
+        Callers that expose administrative endpoints or management commands
+        may want to force a refresh immediately (for example after a config
+        change) rather than waiting for the interval-based background logic.
+        This helper always calls :meth:`PromptProvider.refresh` and resets the
+        internal timer so subsequent calls are throttled again.
+        """
         try:
             self._inner.refresh()
         finally:
