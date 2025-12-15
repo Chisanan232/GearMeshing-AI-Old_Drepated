@@ -105,8 +105,13 @@ services:
       REDIS_URL: ${MCPGATEWAY_REDIS_URL}
       MCPGATEWAY_UI_ENABLED: "true"
       MCPGATEWAY_ADMIN_API_ENABLED: "true"
+      # Preload default MCP servers into the gateway from catalog
+      MCPGATEWAY_CATALOG_ENABLED: "true"
+      MCPGATEWAY_CATALOG_FILE: /data/mcp-catalog.yml
     ports:
       - "4444:4444"
+    volumes:
+      - ./configs/mcp_gateway/mcp-catalog.yml:/data/mcp-catalog.yml:ro
 
   # -------------------------------------------------------
   # AI Orchestrator (Agent Service)
