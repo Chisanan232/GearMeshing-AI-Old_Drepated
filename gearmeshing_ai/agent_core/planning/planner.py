@@ -27,9 +27,9 @@ class StructuredPlanner:
                 }
             ]
 
-        agent: Agent[List[PlanStep]] = Agent(
+        agent: Agent = Agent(
             self._model,
-            result_type=List[PlanStep],
+            output_type=List[PlanStep],
             system_prompt=(
                 "You are an expert planner for an autonomous software engineering agent. "
                 "Return a minimal, safe sequence of capability steps as JSON."
@@ -44,5 +44,5 @@ class StructuredPlanner:
                 f"objective={objective}\n"
             )
         )
-        steps = result.data
+        steps = result.output
         return [s.model_dump() for s in steps]
