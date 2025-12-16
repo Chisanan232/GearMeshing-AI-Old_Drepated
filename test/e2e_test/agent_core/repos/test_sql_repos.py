@@ -156,6 +156,12 @@ async def test_checkpoints_save_and_latest(session_factory, repos, run: AgentRun
 
 
 @pytest.mark.asyncio
+async def test_checkpoints_latest_returns_none_when_missing(repos, run: AgentRun) -> None:
+    missing = await repos.checkpoints.latest(run.id)
+    assert missing is None
+
+
+@pytest.mark.asyncio
 async def test_approvals_create_get_and_resolve(session_factory, repos, run: AgentRun) -> None:
     approval = Approval(
         run_id=run.id,
@@ -185,6 +191,12 @@ async def test_approvals_create_get_and_resolve(session_factory, repos, run: Age
     async with session_factory() as s:
         res = await s.execute(select(ApprovalRow).where(ApprovalRow.run_id == run.id))
         assert res.scalar_one_or_none() is not None
+
+
+@pytest.mark.asyncio
+async def test_approvals_get_returns_none_when_missing(repos) -> None:
+    missing = await repos.approvals.get("missing")
+    assert missing is None
 
 
 @pytest.mark.asyncio
