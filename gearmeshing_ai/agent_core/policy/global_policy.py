@@ -23,7 +23,7 @@ class GlobalPolicy:
         return self._cfg
 
     def classify_risk(self, capability: CapabilityName, *, args: Dict[str, Any]) -> RiskLevel:
-        if capability in {CapabilityName.shell_exec, CapabilityName.codegen}:
+        if capability in {CapabilityName.shell_exec, CapabilityName.codegen, CapabilityName.code_execution}:
             return RiskLevel.high
         if capability in {CapabilityName.mcp_call}:
             return RiskLevel.medium

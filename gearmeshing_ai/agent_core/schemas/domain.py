@@ -43,10 +43,12 @@ class ApprovalDecision(str, Enum):
 
 class CapabilityName(str, Enum):
     web_search = "web_search"
+    web_fetch = "web_fetch"
     docs_read = "docs_read"
     summarize = "summarize"
     mcp_call = "mcp_call"
     codegen = "codegen"
+    code_execution = "code_execution"
     shell_exec = "shell_exec"
 
 
