@@ -44,7 +44,6 @@ jobs:
       test_type: contract-test
       test_folder: './test/contract_test'
       python-versions: '["3.12", "3.13"]'
-      operating-systems: '["ubuntu-latest", "ubuntu-22.04"]'
       install_dependency_with_group: 'contract-test-with-ai-frameworks'
 
   run_e2e-test:
@@ -69,6 +68,7 @@ jobs:
       test_type: evaluation-test
       test_folder: './test/evaluation_test'
       python-versions: '["3.12", "3.13"]'
+      operating-systems: '["ubuntu-latest", "ubuntu-22.04"]'
       install_dependency_with_group: 'dev'
 
 #  run_script-test:
