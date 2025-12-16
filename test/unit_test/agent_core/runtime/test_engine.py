@@ -313,9 +313,20 @@ async def test_node_finish_honors_terminal_status_failed(engine_runtime: AgentEn
 
 
 def test_route_after_execute_prefers_pause_then_finish_then_continue(engine_runtime: AgentEngine) -> None:
-    assert engine_runtime._route_after_execute({"run_id": "r", "plan": [], "idx": 0, "awaiting_approval_id": "a"}) == "pause"
-    assert engine_runtime._route_after_execute({"run_id": "r", "plan": [], "idx": 0, "awaiting_approval_id": None, "_finished": True}) == "finish"
-    assert engine_runtime._route_after_execute({"run_id": "r", "plan": [], "idx": 0, "awaiting_approval_id": None}) == "continue"
+    assert (
+        engine_runtime._route_after_execute({"run_id": "r", "plan": [], "idx": 0, "awaiting_approval_id": "a"})
+        == "pause"
+    )
+    assert (
+        engine_runtime._route_after_execute(
+            {"run_id": "r", "plan": [], "idx": 0, "awaiting_approval_id": None, "_finished": True}
+        )
+        == "finish"
+    )
+    assert (
+        engine_runtime._route_after_execute({"run_id": "r", "plan": [], "idx": 0, "awaiting_approval_id": None})
+        == "continue"
+    )
 
 
 @pytest.mark.asyncio

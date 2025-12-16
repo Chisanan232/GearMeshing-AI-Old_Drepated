@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, TypedDict
-from typing import NotRequired, Required
+from typing import Any, Dict, List, NotRequired, Optional, Required, TypedDict
 
 from ..capabilities import CapabilityRegistry
 from ..repos import (
