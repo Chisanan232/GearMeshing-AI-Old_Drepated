@@ -5,6 +5,7 @@ from typing import Any, Dict
 
 import pytest
 
+from gearmeshing_ai.agent_core.capabilities.base import CapabilityContext
 from gearmeshing_ai.agent_core.capabilities.builtin import (
     CodeExecutionCapability,
     CodegenCapability,
@@ -13,7 +14,6 @@ from gearmeshing_ai.agent_core.capabilities.builtin import (
     WebFetchCapability,
     WebSearchCapability,
 )
-from gearmeshing_ai.agent_core.capabilities.base import CapabilityContext
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
 from gearmeshing_ai.agent_core.schemas.domain import AgentRun
@@ -155,7 +155,9 @@ class TestWebFetchCapability:
         assert "content" in res.output
 
     @pytest.mark.asyncio
-    async def test_non_dict_result_wrapped_as_content(self, cap: WebFetchCapability, deps_non_dict: _DepsNonDict) -> None:
+    async def test_non_dict_result_wrapped_as_content(
+        self, cap: WebFetchCapability, deps_non_dict: _DepsNonDict
+    ) -> None:
         res = await cap.execute(_ctx(deps_non_dict), args={"url": "https://example.com"})
         assert res.ok
         assert res.output["content"] == "<html>ok</html>"
@@ -211,7 +213,9 @@ class TestCodeExecutionCapability:
         assert res.output["error"] == "shell_exec not configured"
 
     @pytest.mark.asyncio
-    async def test_bash_non_dict_result_wrapped(self, cap: CodeExecutionCapability, deps_non_dict: _DepsNonDict) -> None:
+    async def test_bash_non_dict_result_wrapped(
+        self, cap: CodeExecutionCapability, deps_non_dict: _DepsNonDict
+    ) -> None:
         res = await cap.execute(_ctx(deps_non_dict), args={"language": "bash", "code": "echo hi"})
         assert res.ok
         assert res.output["result"] == "shell-ok"
@@ -291,4 +295,3 @@ class TestShellExecCapability:
         res = await cap.execute(_ctx(deps_non_dict), args={"command": "echo hi"})
         assert res.ok
         assert res.output["result"] == "shell-ok"
-

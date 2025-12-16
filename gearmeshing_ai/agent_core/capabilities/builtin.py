@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict
 
-from .base import Capability, CapabilityContext, CapabilityResult
 from ..schemas.domain import CapabilityName
+from .base import CapabilityContext, CapabilityResult
 
 
 @dataclass(frozen=True)
