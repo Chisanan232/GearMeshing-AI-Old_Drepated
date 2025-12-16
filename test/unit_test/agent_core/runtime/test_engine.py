@@ -5,7 +5,10 @@ from typing import Any, Dict, List, Optional
 
 import pytest
 
-from gearmeshing_ai.agent_core.capabilities.base import Capability, CapabilityContext, CapabilityResult
+from gearmeshing_ai.agent_core.capabilities.base import (
+    CapabilityContext,
+    CapabilityResult,
+)
 from gearmeshing_ai.agent_core.capabilities.registry import CapabilityRegistry
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig

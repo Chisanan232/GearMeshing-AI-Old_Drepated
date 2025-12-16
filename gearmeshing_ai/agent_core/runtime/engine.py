@@ -4,7 +4,6 @@ from typing import Any
 
 from langgraph.graph import END, StateGraph
 
-from .models import EngineDeps, _GraphState
 from ..capabilities.base import CapabilityContext
 from ..policy.global_policy import GlobalPolicy
 from ..schemas.domain import (
@@ -18,6 +17,7 @@ from ..schemas.domain import (
     Checkpoint,
     ToolInvocation,
 )
+from .models import EngineDeps, _GraphState
 
 
 class AgentEngine:
@@ -148,7 +148,9 @@ class AgentEngine:
                 )
             )
 
-            cp = Checkpoint(run_id=run_id, node="pause_for_approval", state=dict(state, awaiting_approval_id=approval.id))
+            cp = Checkpoint(
+                run_id=run_id, node="pause_for_approval", state=dict(state, awaiting_approval_id=approval.id)
+            )
             await self._deps.checkpoints.save(cp)
             await self._deps.events.append(
                 AgentEvent(run_id=run_id, type=AgentEventType.checkpoint_saved, payload={"checkpoint_id": cp.id})

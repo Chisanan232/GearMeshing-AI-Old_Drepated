@@ -6,15 +6,27 @@ import pytest
 from sqlalchemy import select
 from testcontainers.postgres import PostgresContainer
 
-from gearmeshing_ai.agent_core.capabilities.base import CapabilityContext, CapabilityResult
+from gearmeshing_ai.agent_core.capabilities.base import (
+    CapabilityContext,
+    CapabilityResult,
+)
 from gearmeshing_ai.agent_core.capabilities.registry import CapabilityRegistry
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
 from gearmeshing_ai.agent_core.repos.models import EventRow, ToolInvocationRow
-from gearmeshing_ai.agent_core.repos.sql import build_sql_repos, create_all, create_engine, create_sessionmaker
+from gearmeshing_ai.agent_core.repos.sql import (
+    build_sql_repos,
+    create_all,
+    create_engine,
+    create_sessionmaker,
+)
 from gearmeshing_ai.agent_core.runtime import EngineDeps
 from gearmeshing_ai.agent_core.runtime.engine import AgentEngine
-from gearmeshing_ai.agent_core.schemas.domain import AgentRun, AgentRunStatus, CapabilityName
+from gearmeshing_ai.agent_core.schemas.domain import (
+    AgentRun,
+    AgentRunStatus,
+    CapabilityName,
+)
 
 
 class _OkCapability:
@@ -64,7 +76,9 @@ async def test_engine_multi_step_happy_path_executes_all_steps_and_finishes() ->
 
         async with session_factory() as s:
             inv = await s.execute(
-                select(ToolInvocationRow).where(ToolInvocationRow.run_id == run.id).order_by(ToolInvocationRow.created_at)
+                select(ToolInvocationRow)
+                .where(ToolInvocationRow.run_id == run.id)
+                .order_by(ToolInvocationRow.created_at)
             )
             inv_rows = list(inv.scalars().all())
             assert len(inv_rows) == 2

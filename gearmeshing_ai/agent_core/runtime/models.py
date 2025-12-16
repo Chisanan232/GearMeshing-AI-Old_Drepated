@@ -4,8 +4,13 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, TypedDict
 
 from ..capabilities import CapabilityRegistry
-from ..repos import RunRepository, EventRepository, ApprovalRepository, CheckpointRepository, \
-    ToolInvocationRepository
+from ..repos import (
+    ApprovalRepository,
+    CheckpointRepository,
+    EventRepository,
+    RunRepository,
+    ToolInvocationRepository,
+)
 
 
 @dataclass(frozen=True)
