@@ -82,6 +82,7 @@ class AgentEngine:
 
         state = cast(_GraphState, dict(cp.state))
         state["awaiting_approval_id"] = None
+        state["_resume_skip_approval"] = True
         await self._deps.events.append(
             AgentEvent(run_id=run_id, type=AgentEventType.state_transition, payload={"resume": True})
         )
@@ -131,7 +132,9 @@ class AgentEngine:
             state["_terminal_status"] = AgentRunStatus.failed.value
             return state
 
-        if decision.require_approval:
+        skip_approval = bool(state.get("_resume_skip_approval"))
+        state.pop("_resume_skip_approval", None)
+        if decision.require_approval and not skip_approval:
             approval = Approval(
                 run_id=run_id,
                 risk=decision.risk,

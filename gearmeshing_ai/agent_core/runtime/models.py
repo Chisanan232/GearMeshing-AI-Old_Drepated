@@ -31,3 +31,4 @@ class _GraphState(TypedDict):
     awaiting_approval_id: Required[Optional[str]]
     _finished: NotRequired[bool]
     _terminal_status: NotRequired[str]
+    _resume_skip_approval: NotRequired[bool]
