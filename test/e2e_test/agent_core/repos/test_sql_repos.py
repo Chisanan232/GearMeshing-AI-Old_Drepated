@@ -168,13 +168,17 @@ async def test_approvals_create_get_and_resolve(session_factory, repos, run: Age
     approval_loaded = await repos.approvals.get(approval.id)
     assert approval_loaded is not None
     assert str(getattr(approval_loaded.risk, "value", approval_loaded.risk)) == RiskLevel.medium.value
-    assert str(getattr(approval_loaded.capability, "value", approval_loaded.capability)) == CapabilityName.mcp_call.value
+    assert (
+        str(getattr(approval_loaded.capability, "value", approval_loaded.capability)) == CapabilityName.mcp_call.value
+    )
     assert approval_loaded.decision is None
 
     await repos.approvals.resolve(approval.id, decision=ApprovalDecision.approved.value, decided_by="tester")
     approval_resolved = await repos.approvals.get(approval.id)
     assert approval_resolved is not None
-    assert str(getattr(approval_resolved.decision, "value", approval_resolved.decision)) == ApprovalDecision.approved.value
+    assert (
+        str(getattr(approval_resolved.decision, "value", approval_resolved.decision)) == ApprovalDecision.approved.value
+    )
     assert approval_resolved.decided_by == "tester"
     assert approval_resolved.decided_at is not None
 

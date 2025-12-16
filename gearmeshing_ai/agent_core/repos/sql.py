@@ -12,8 +12,14 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from .models import Base, RunRow, EventRow, ToolInvocationRow, ApprovalRow, CheckpointRow, UsageRow
-from ..schemas.domain import AgentEvent, AgentRun, Approval, Checkpoint, ToolInvocation, UsageLedgerEntry
+from ..schemas.domain import (
+    AgentEvent,
+    AgentRun,
+    Approval,
+    Checkpoint,
+    ToolInvocation,
+    UsageLedgerEntry,
+)
 from .interfaces import (
     ApprovalRepository,
     CheckpointRepository,
@@ -21,6 +27,15 @@ from .interfaces import (
     RunRepository,
     ToolInvocationRepository,
     UsageRepository,
+)
+from .models import (
+    ApprovalRow,
+    Base,
+    CheckpointRow,
+    EventRow,
+    RunRow,
+    ToolInvocationRow,
+    UsageRow,
 )
 
 
@@ -44,7 +59,6 @@ def create_sessionmaker(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]
 async def create_all(engine: AsyncEngine) -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-
 
 
 def _utc_now_naive() -> datetime:
@@ -138,7 +152,9 @@ class SqlApprovalRepository(ApprovalRepository):
                     reason=approval.reason,
                     requested_at=approval.requested_at,
                     expires_at=approval.expires_at,
-                    decision=(str(getattr(approval.decision, "value", approval.decision)) if approval.decision else None),
+                    decision=(
+                        str(getattr(approval.decision, "value", approval.decision)) if approval.decision else None
+                    ),
                     decided_at=approval.decided_at,
                     decided_by=approval.decided_by,
                 )
