@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 import pytest
 
 from gearmeshing_ai.agent_core.capabilities.base import (
+    Capability,
     CapabilityContext,
     CapabilityResult,
 )
@@ -13,7 +14,7 @@ from gearmeshing_ai.agent_core.capabilities.registry import CapabilityRegistry
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
 from gearmeshing_ai.agent_core.runtime.engine import AgentEngine
-from gearmeshing_ai.agent_core.runtime.models import EngineDeps
+from gearmeshing_ai.agent_core.runtime.models import EngineDeps, _GraphState
 from gearmeshing_ai.agent_core.schemas.domain import (
     AgentEvent,
     AgentEventType,
@@ -100,7 +101,7 @@ class _ToolInvocationsRepo:
         self.invocations.append(invocation)
 
 
-class _DummyCapability:
+class _DummyCapability(Capability):
     name = CapabilityName.summarize
 
     def __init__(self, *, ok: bool = True, output: Optional[Dict[str, Any]] = None) -> None:
@@ -128,7 +129,7 @@ def repos() -> Dict[str, Any]:
 def registry() -> tuple[CapabilityRegistry, _DummyCapability]:
     reg = CapabilityRegistry()
     cap = _DummyCapability()
-    reg.register(cap)  # type: ignore[arg-type]
+    reg.register(cap)
     return reg, cap
 
 
@@ -155,9 +156,9 @@ def engine_runtime(repos, registry, policy: GlobalPolicy) -> AgentEngine:
 
 @pytest.mark.asyncio
 async def test_node_execute_next_run_missing_raises(engine_runtime: AgentEngine) -> None:
-    state: Dict[str, Any] = {"run_id": "missing", "plan": [], "idx": 0, "awaiting_approval_id": None}
+    state: _GraphState = {"run_id": "missing", "plan": [], "idx": 0, "awaiting_approval_id": None}
     with pytest.raises(ValueError, match="run not found"):
-        await engine_runtime._node_execute_next(state)  # type: ignore[attr-defined]
+        await engine_runtime._node_execute_next(state)
 
 
 @pytest.mark.asyncio
@@ -165,8 +166,8 @@ async def test_node_execute_next_marks_finished_when_idx_out_of_range(engine_run
     run = AgentRun(role="dev", objective="x")
     await repos["runs"].create(run)
 
-    state: Dict[str, Any] = {"run_id": run.id, "plan": [], "idx": 0, "awaiting_approval_id": None}
-    out = await engine_runtime._node_execute_next(state)  # type: ignore[attr-defined]
+    state: _GraphState = {"run_id": run.id, "plan": [], "idx": 0, "awaiting_approval_id": None}
+    out = await engine_runtime._node_execute_next(state)
     assert out.get("_finished") is True
 
 
@@ -190,8 +191,8 @@ async def test_node_execute_next_blocked_capability_fails_run(repos, registry) -
     await repos["runs"].create(run)
 
     plan = [{"capability": CapabilityName.shell_exec.value, "args": {"cmd": "echo hi"}}]
-    state: Dict[str, Any] = {"run_id": run.id, "plan": plan, "idx": 0, "awaiting_approval_id": None}
-    out = await engine_runtime._node_execute_next(state)  # type: ignore[attr-defined]
+    state: _GraphState = {"run_id": run.id, "plan": plan, "idx": 0, "awaiting_approval_id": None}
+    out = await engine_runtime._node_execute_next(state)
 
     assert out.get("_finished") is True
     assert out.get("_terminal_status") == AgentRunStatus.failed.value
@@ -220,8 +221,8 @@ async def test_node_execute_next_invalid_args_fails_run(repos, registry) -> None
     await repos["runs"].create(run)
 
     plan = [{"capability": CapabilityName.summarize.value, "args": {"text": "xx"}}]
-    state: Dict[str, Any] = {"run_id": run.id, "plan": plan, "idx": 0, "awaiting_approval_id": None}
-    out = await engine_runtime._node_execute_next(state)  # type: ignore[attr-defined]
+    state: _GraphState = {"run_id": run.id, "plan": plan, "idx": 0, "awaiting_approval_id": None}
+    out = await engine_runtime._node_execute_next(state)
 
     assert out.get("_finished") is True
     assert out.get("_terminal_status") == AgentRunStatus.failed.value
@@ -250,8 +251,8 @@ async def test_node_execute_next_requires_approval_creates_checkpoint_and_pauses
     await repos["runs"].create(run)
 
     plan = [{"capability": CapabilityName.summarize.value, "args": {"text": "hello"}}]
-    state: Dict[str, Any] = {"run_id": run.id, "plan": plan, "idx": 0, "awaiting_approval_id": None}
-    out = await engine_runtime._node_execute_next(state)  # type: ignore[attr-defined]
+    state: _GraphState = {"run_id": run.id, "plan": plan, "idx": 0, "awaiting_approval_id": None}
+    out = await engine_runtime._node_execute_next(state)
 
     assert out.get("awaiting_approval_id")
     assert repos["runs"].status_updates[-1] == (run.id, AgentRunStatus.paused_for_approval.value)
@@ -272,8 +273,8 @@ async def test_node_execute_next_executes_capability_and_appends_tool_invocation
     await repos["runs"].create(run)
 
     plan = [{"capability": CapabilityName.summarize.value, "args": {"text": "hello"}}]
-    state: Dict[str, Any] = {"run_id": run.id, "plan": plan, "idx": 0, "awaiting_approval_id": None}
-    out = await engine_runtime._node_execute_next(state)  # type: ignore[attr-defined]
+    state: _GraphState = {"run_id": run.id, "plan": plan, "idx": 0, "awaiting_approval_id": None}
+    out = await engine_runtime._node_execute_next(state)
 
     assert out["idx"] == 1
     assert cap.calls == [{"run_id": run.id, "args": {"text": "hello"}}]
@@ -287,8 +288,8 @@ async def test_node_finish_marks_succeeded_and_emits_completed_event(engine_runt
     run = AgentRun(role="dev", objective="x")
     await repos["runs"].create(run)
 
-    state: Dict[str, Any] = {"run_id": run.id, "plan": [], "idx": 0, "awaiting_approval_id": None}
-    await engine_runtime._node_finish(state)  # type: ignore[attr-defined]
+    state: _GraphState = {"run_id": run.id, "plan": [], "idx": 0, "awaiting_approval_id": None}
+    await engine_runtime._node_finish(state)
 
     assert repos["runs"].status_updates[-1] == (run.id, AgentRunStatus.succeeded.value)
     assert any(e.type == AgentEventType.run_completed for e in repos["events"].events)
@@ -299,39 +300,22 @@ async def test_node_finish_honors_terminal_status_failed(engine_runtime: AgentEn
     run = AgentRun(role="dev", objective="x")
     await repos["runs"].create(run)
 
-    state: Dict[str, Any] = {
+    state: _GraphState = {
         "run_id": run.id,
         "plan": [],
         "idx": 0,
         "awaiting_approval_id": None,
         "_terminal_status": AgentRunStatus.failed.value,
     }
-    await engine_runtime._node_finish(state)  # type: ignore[attr-defined]
-
-    assert repos["runs"].status_updates[-1] == (run.id, AgentRunStatus.failed.value)
-
-
-@pytest.mark.asyncio
-async def test_node_finish_honors_terminal_status_failed(engine_runtime: AgentEngine, repos) -> None:
-    run = AgentRun(role="dev", objective="x")
-    await repos["runs"].create(run)
-
-    state: Dict[str, Any] = {
-        "run_id": run.id,
-        "plan": [],
-        "idx": 0,
-        "awaiting_approval_id": None,
-        "_terminal_status": AgentRunStatus.failed.value,
-    }
-    await engine_runtime._node_finish(state)  # type: ignore[attr-defined]
+    await engine_runtime._node_finish(state)
 
     assert repos["runs"].status_updates[-1] == (run.id, AgentRunStatus.failed.value)
 
 
 def test_route_after_execute_prefers_pause_then_finish_then_continue(engine_runtime: AgentEngine) -> None:
-    assert engine_runtime._route_after_execute({"awaiting_approval_id": "a"}) == "pause"
-    assert engine_runtime._route_after_execute({"_finished": True}) == "finish"
-    assert engine_runtime._route_after_execute({}) == "continue"
+    assert engine_runtime._route_after_execute({"run_id": "r", "plan": [], "idx": 0, "awaiting_approval_id": "a"}) == "pause"
+    assert engine_runtime._route_after_execute({"run_id": "r", "plan": [], "idx": 0, "awaiting_approval_id": None, "_finished": True}) == "finish"
+    assert engine_runtime._route_after_execute({"run_id": "r", "plan": [], "idx": 0, "awaiting_approval_id": None}) == "continue"
 
 
 @pytest.mark.asyncio

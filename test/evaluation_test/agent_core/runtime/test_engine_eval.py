@@ -58,7 +58,7 @@ async def test_eval_end_to_end_graph_happy_path_selects_and_runs_tools() -> None
         repos = build_sql_repos(session_factory=session_factory)
 
         reg = CapabilityRegistry()
-        reg.register(_DeterministicSummarize())  # type: ignore[arg-type]
+        reg.register(_DeterministicSummarize())
 
         cfg = PolicyConfig()
         cfg.tool_policy.allowed_capabilities = {CapabilityName.summarize}

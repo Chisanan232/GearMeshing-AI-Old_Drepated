@@ -4,11 +4,11 @@ from dataclasses import dataclass
 from typing import Any, Dict
 
 from ..schemas.domain import CapabilityName
-from .base import CapabilityContext, CapabilityResult
+from .base import Capability, CapabilityContext, CapabilityResult
 
 
 @dataclass(frozen=True)
-class SummarizeCapability:
+class SummarizeCapability(Capability):
     name: CapabilityName = CapabilityName.summarize
 
     async def execute(self, ctx: CapabilityContext, *, args: Dict[str, Any]) -> CapabilityResult:
@@ -21,7 +21,7 @@ class SummarizeCapability:
 
 
 @dataclass(frozen=True)
-class WebSearchCapability:
+class WebSearchCapability(Capability):
     name: CapabilityName = CapabilityName.web_search
 
     async def execute(self, ctx: CapabilityContext, *, args: Dict[str, Any]) -> CapabilityResult:
@@ -40,7 +40,7 @@ class WebSearchCapability:
 
 
 @dataclass(frozen=True)
-class ShellExecCapability:
+class ShellExecCapability(Capability):
     name: CapabilityName = CapabilityName.shell_exec
 
     async def execute(self, ctx: CapabilityContext, *, args: Dict[str, Any]) -> CapabilityResult:
@@ -59,7 +59,7 @@ class ShellExecCapability:
 
 
 @dataclass(frozen=True)
-class WebFetchCapability:
+class WebFetchCapability(Capability):
     name: CapabilityName = CapabilityName.web_fetch
 
     async def execute(self, ctx: CapabilityContext, *, args: Dict[str, Any]) -> CapabilityResult:
@@ -78,7 +78,7 @@ class WebFetchCapability:
 
 
 @dataclass(frozen=True)
-class CodeExecutionCapability:
+class CodeExecutionCapability(Capability):
     name: CapabilityName = CapabilityName.code_execution
 
     async def execute(self, ctx: CapabilityContext, *, args: Dict[str, Any]) -> CapabilityResult:
@@ -108,7 +108,7 @@ class CodeExecutionCapability:
 
 
 @dataclass(frozen=True)
-class CodegenCapability:
+class CodegenCapability(Capability):
     name: CapabilityName = CapabilityName.codegen
 
     async def execute(self, ctx: CapabilityContext, *, args: Dict[str, Any]) -> CapabilityResult:

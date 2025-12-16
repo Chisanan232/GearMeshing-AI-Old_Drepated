@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from langgraph.graph import END, StateGraph
 
@@ -80,7 +80,7 @@ class AgentEngine:
         if cp is None:
             raise ValueError("no checkpoint")
 
-        state = dict(cp.state)
+        state = cast(_GraphState, dict(cp.state))
         state["awaiting_approval_id"] = None
         await self._deps.events.append(
             AgentEvent(run_id=run_id, type=AgentEventType.state_transition, payload={"resume": True})

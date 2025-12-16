@@ -47,7 +47,7 @@ async def test_engine_multi_step_happy_path_executes_all_steps_and_finishes() ->
         repos = build_sql_repos(session_factory=session_factory)
 
         reg = CapabilityRegistry()
-        reg.register(_OkCapability())  # type: ignore[arg-type]
+        reg.register(_OkCapability())
 
         cfg = PolicyConfig()
         cfg.tool_policy.allowed_capabilities = {CapabilityName.summarize}
@@ -105,7 +105,7 @@ async def test_engine_empty_plan_happy_path_finishes_immediately() -> None:
         repos = build_sql_repos(session_factory=session_factory)
 
         reg = CapabilityRegistry()
-        reg.register(_OkCapability())  # type: ignore[arg-type]
+        reg.register(_OkCapability())
 
         cfg = PolicyConfig()
         cfg.tool_policy.allowed_capabilities = {CapabilityName.summarize}
@@ -146,7 +146,7 @@ async def test_engine_blocked_capability_results_in_failed_run() -> None:
         repos = build_sql_repos(session_factory=session_factory)
 
         reg = CapabilityRegistry()
-        reg.register(_OkCapability())  # type: ignore[arg-type]
+        reg.register(_OkCapability())
 
         cfg = PolicyConfig()
         cfg.tool_policy.allowed_capabilities = {CapabilityName.summarize}
@@ -184,7 +184,7 @@ async def test_engine_too_large_args_results_in_failed_run() -> None:
         repos = build_sql_repos(session_factory=session_factory)
 
         reg = CapabilityRegistry()
-        reg.register(_OkCapability())  # type: ignore[arg-type]
+        reg.register(_OkCapability())
 
         cfg = PolicyConfig()
         cfg.tool_policy.allowed_capabilities = {CapabilityName.summarize}
