@@ -414,6 +414,7 @@ async def test_resume_run_happy_path_restores_checkpoint_and_invokes_graph(repos
             self.state = dict(restored_state)
 
     repos["checkpoints"].latest_by_run_id[run.id] = _Checkpoint(id="cp1", state=dict(restored_state))
+
     async def _latest(_run_id: str):
         if _run_id != run.id:
             return None

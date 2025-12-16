@@ -8,9 +8,9 @@ from sqlalchemy import select
 from testcontainers.postgres import PostgresContainer
 
 from gearmeshing_ai.agent_core.capabilities.base import (
+    Capability,
     CapabilityContext,
     CapabilityResult,
-    Capability,
 )
 from gearmeshing_ai.agent_core.capabilities.registry import CapabilityRegistry
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
