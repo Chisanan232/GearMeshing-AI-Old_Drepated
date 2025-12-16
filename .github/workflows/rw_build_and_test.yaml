@@ -26,6 +26,7 @@ jobs:
       test_type: unit-test
       test_folder: './test/unit_test'
       install_dependency_with_group: 'dev'
+      python-versions: '["3.12", "3.13"]'
 
   run_integration-test:
 #    name: Run all integration test items
@@ -33,6 +34,7 @@ jobs:
     with:
       test_type: integration-test
       test_folder: './test/integration_test'
+      python-versions: '["3.12", "3.13"]'
       install_dependency_with_group: 'dev'
 
   run_contract-test:
@@ -41,6 +43,7 @@ jobs:
     with:
       test_type: contract-test
       test_folder: './test/contract_test'
+      python-versions: '["3.12", "3.13"]'
       install_dependency_with_group: 'contract-test-with-ai-frameworks'
 
   run_e2e-test:
@@ -51,6 +54,7 @@ jobs:
       test_type: e2e-test
       test_folder: './test/e2e_test'
       install_dependency_with_group: 'dev'
+      python-versions: '["3.12", "3.13"]'
       operating-systems: '["ubuntu-latest", "ubuntu-22.04"]'
 #      max-parallel: 1
       with-environment-variables: ${{ inputs.with-environment-variables }}
@@ -63,6 +67,7 @@ jobs:
     with:
       test_type: evaluation-test
       test_folder: './test/evaluation_test'
+      python-versions: '["3.12", "3.13"]'
       install_dependency_with_group: 'dev'
 
 #  run_script-test:
