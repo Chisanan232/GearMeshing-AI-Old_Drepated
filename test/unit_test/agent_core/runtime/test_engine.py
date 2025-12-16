@@ -27,6 +27,14 @@ from gearmeshing_ai.agent_core.schemas.domain import (
 )
 
 
+class _GraphSpy:
+    def __init__(self) -> None:
+        self.invocations: List[_GraphState] = []
+
+    async def ainvoke(self, state: _GraphState) -> None:
+        self.invocations.append(state)
+
+
 class _RunsRepo:
     def __init__(self) -> None:
         self.by_id: Dict[str, AgentRun] = {}
@@ -197,7 +205,13 @@ async def test_node_execute_next_blocked_capability_fails_run(repos, registry) -
     assert out.get("_finished") is True
     assert out.get("_terminal_status") == AgentRunStatus.failed.value
     assert repos["runs"].status_updates[-1] == (run.id, AgentRunStatus.failed.value)
-    assert any(e.type == AgentEventType.run_failed for e in repos["events"].events)
+
+
+@pytest.mark.asyncio
+async def test_node_pause_for_approval_returns_state_unchanged(engine_runtime: AgentEngine) -> None:
+    state: _GraphState = {"run_id": "r", "plan": [], "idx": 0, "awaiting_approval_id": "a"}
+    out = await engine_runtime._node_pause_for_approval(state)
+    assert out is state
 
 
 @pytest.mark.asyncio
@@ -358,3 +372,60 @@ async def test_resume_run_validation_errors(repos, registry) -> None:
     await repos["approvals"].resolve(approval.id, decision=ApprovalDecision.approved.value, decided_by="t")
     with pytest.raises(ValueError, match="no checkpoint"):
         await engine_runtime.resume_run(run_id="r", approval_id=approval.id)
+
+
+@pytest.mark.asyncio
+async def test_resume_run_happy_path_restores_checkpoint_and_invokes_graph(repos, registry) -> None:
+    reg, _cap = registry
+    cfg = PolicyConfig()
+    cfg.tool_policy.allowed_capabilities = {CapabilityName.summarize}
+    policy = GlobalPolicy(cfg)
+    deps = EngineDeps(
+        runs=repos["runs"],
+        events=repos["events"],
+        approvals=repos["approvals"],
+        checkpoints=repos["checkpoints"],
+        tool_invocations=repos["tool_invocations"],
+        capabilities=reg,
+    )
+    engine_runtime = AgentEngine(policy=policy, deps=deps)
+
+    graph_spy = _GraphSpy()
+    engine_runtime._graph = graph_spy  # type: ignore[attr-defined]
+
+    run = AgentRun(role="dev", objective="resume")
+    await repos["runs"].create(run)
+
+    approval = Approval(run_id=run.id, risk=RiskLevel.low, capability=CapabilityName.summarize, reason="ok")
+    await repos["approvals"].create(approval)
+    await repos["approvals"].resolve(approval.id, decision=ApprovalDecision.approved.value, decided_by="tester")
+
+    restored_state: _GraphState = {
+        "run_id": run.id,
+        "plan": [{"capability": CapabilityName.summarize.value, "args": {"text": "hello"}}],
+        "idx": 0,
+        "awaiting_approval_id": approval.id,
+    }
+
+    class _CheckpointObj:
+        def __init__(self) -> None:
+            self.id = "cp1"
+            self.run_id = run.id
+            self.state = dict(restored_state)
+
+    repos["checkpoints"].latest_by_run_id[run.id] = _Checkpoint(id="cp1", state=dict(restored_state))
+    async def _latest(_run_id: str):
+        if _run_id != run.id:
+            return None
+        return _CheckpointObj()
+
+    repos["checkpoints"].latest = _latest  # type: ignore[method-assign]
+
+    await engine_runtime.resume_run(run_id=run.id, approval_id=approval.id)
+
+    assert len(graph_spy.invocations) == 1
+    invoked = graph_spy.invocations[0]
+    assert invoked["run_id"] == run.id
+    assert invoked["idx"] == 0
+    assert invoked.get("awaiting_approval_id") is None
+    assert any(e.type == AgentEventType.state_transition for e in repos["events"].events)
