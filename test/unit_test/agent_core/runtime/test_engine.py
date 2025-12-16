@@ -391,7 +391,7 @@ async def test_resume_run_happy_path_restores_checkpoint_and_invokes_graph(repos
     engine_runtime = AgentEngine(policy=policy, deps=deps)
 
     graph_spy = _GraphSpy()
-    engine_runtime._graph = graph_spy  # type: ignore[attr-defined]
+    engine_runtime._graph = graph_spy
 
     run = AgentRun(role="dev", objective="resume")
     await repos["runs"].create(run)
@@ -420,7 +420,7 @@ async def test_resume_run_happy_path_restores_checkpoint_and_invokes_graph(repos
             return None
         return _CheckpointObj()
 
-    repos["checkpoints"].latest = _latest  # type: ignore[method-assign]
+    repos["checkpoints"].latest = _latest
 
     await engine_runtime.resume_run(run_id=run.id, approval_id=approval.id)
 
