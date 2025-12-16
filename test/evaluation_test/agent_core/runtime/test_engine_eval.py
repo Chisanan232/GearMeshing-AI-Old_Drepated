@@ -10,6 +10,7 @@ from testcontainers.postgres import PostgresContainer
 from gearmeshing_ai.agent_core.capabilities.base import (
     CapabilityContext,
     CapabilityResult,
+    Capability,
 )
 from gearmeshing_ai.agent_core.capabilities.registry import CapabilityRegistry
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
@@ -35,7 +36,7 @@ def _eval_enabled() -> bool:
     return v in {"1", "true", "yes", "on"}
 
 
-class _DeterministicSummarize:
+class _DeterministicSummarize(Capability):
     name = CapabilityName.summarize
 
     async def execute(self, ctx: CapabilityContext, *, args: Dict[str, Any]) -> CapabilityResult:
