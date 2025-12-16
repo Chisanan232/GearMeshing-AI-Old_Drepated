@@ -1,16 +1,25 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any, Dict
 
 import pytest
 
+from gearmeshing_ai.agent_core.capabilities.base import (
+    Capability,
+    CapabilityContext,
+    CapabilityResult,
+)
 from gearmeshing_ai.agent_core.capabilities.registry import CapabilityRegistry
 from gearmeshing_ai.agent_core.schemas.domain import CapabilityName
 
 
 @dataclass(frozen=True)
-class _DummyCapability:
+class _DummyCapability(Capability):
     name: CapabilityName
+
+    async def execute(self, ctx: CapabilityContext, *, args: Dict[str, Any]) -> CapabilityResult:
+        return CapabilityResult(ok=True, output={"result": "just mock"})
 
 
 def test_registry_empty_has_false() -> None:
