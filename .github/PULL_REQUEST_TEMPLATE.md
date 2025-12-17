@@ -41,6 +41,7 @@
     * [ ] 💼 Core feature
         * [ ] 👮🏻‍♂️ Abstraction or base objects
         * [ ] 🤖 AI agent
+        * [ ] 📲 Info Provider
         * [ ] 🕸️ Web server
         * [ ] 📲 MCP client
         * [ ] 🪡 API client
