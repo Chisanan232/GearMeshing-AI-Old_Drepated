@@ -30,9 +30,21 @@ def normalize_plan(plan: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     for raw in plan:
         kind = raw.get("kind")
         if kind is None:
-            out.append(ActionStep(kind="action", capability=CapabilityName(raw["capability"]), args=dict(raw.get("args") or {}), server_id=raw.get("server_id"), tool_name=raw.get("tool_name")).model_dump())
+            out.append(
+                ActionStep(
+                    kind="action",
+                    capability=CapabilityName(raw["capability"]),
+                    args=dict(raw.get("args") or {}),
+                    server_id=raw.get("server_id"),
+                    tool_name=raw.get("tool_name"),
+                ).model_dump()
+            )
             continue
         if kind == "thought":
+            forbidden = {"capability", "server_id", "tool_name"}
+            present = forbidden.intersection(raw.keys())
+            if present:
+                raise ValueError(f"thought step cannot contain action fields: {sorted(present)}")
             out.append(ThoughtStep(**raw).model_dump())
             continue
         if kind == "action":
