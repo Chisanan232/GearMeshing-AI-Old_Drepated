@@ -1,5 +1,15 @@
 from __future__ import annotations
 
+"""Convenience factories for wiring the agent core.
+
+This module contains small helpers to build the default capability registry
+and instantiate an ``AgentEngine`` from a ``PolicyConfig``.
+
+The intent is to keep application wiring and tests concise, while still
+allowing advanced deployments to provide their own registry, policy
+configuration, and dependency bundles.
+"""
+
 from .capabilities.builtin import (
     CodeExecutionCapability,
     CodegenCapability,
@@ -16,6 +26,11 @@ from .runtime.engine import AgentEngine
 
 
 def build_default_registry() -> CapabilityRegistry:
+    """Build the default ``CapabilityRegistry``.
+
+    The default registry includes the built-in capabilities shipped with the
+    repository (summarization, web search/fetch, shell execution, etc.).
+    """
     reg = CapabilityRegistry()
     reg.register(SummarizeCapability())
     reg.register(WebSearchCapability())
@@ -27,5 +42,6 @@ def build_default_registry() -> CapabilityRegistry:
 
 
 def build_engine(*, policy_config: PolicyConfig, deps: EngineDeps) -> AgentEngine:
+    """Construct an ``AgentEngine`` from config and dependencies."""
     policy = GlobalPolicy(policy_config)
     return AgentEngine(policy=policy, deps=deps)
