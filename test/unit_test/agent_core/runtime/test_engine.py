@@ -180,6 +180,22 @@ async def test_node_execute_next_marks_finished_when_idx_out_of_range(engine_run
 
 
 @pytest.mark.asyncio
+async def test_node_execute_next_thought_step_emits_artifact_and_never_invokes_tools(engine_runtime: AgentEngine, repos) -> None:
+    run = AgentRun(role="dev", objective="x")
+    await repos["runs"].create(run)
+
+    plan = [{"kind": "thought", "thought": "design", "args": {"note": "n"}}]
+    state: _GraphState = {"run_id": run.id, "plan": plan, "idx": 0, "awaiting_approval_id": None}
+    out = await engine_runtime._node_execute_next(state)
+
+    assert out["idx"] == 1
+    assert repos["approvals"].created == []
+    assert repos["tool_invocations"].invocations == []
+    assert any(e.type == AgentEventType.thought_executed for e in repos["events"].events)
+    assert any(e.type == AgentEventType.artifact_created for e in repos["events"].events)
+
+
+@pytest.mark.asyncio
 async def test_node_execute_next_blocked_capability_fails_run(repos, registry) -> None:
     reg, _cap = registry
     cfg = PolicyConfig()

@@ -111,11 +111,19 @@ class AgentEngine:
         step = dict(plan[idx])
         kind = str(step.get("kind") or "action")
         if kind == "thought":
+            thought = str(step.get("thought") or "")
             await self._deps.events.append(
                 AgentEvent(
                     run_id=run_id,
                     type=AgentEventType.thought_executed,
-                    payload={"thought": str(step.get("thought") or ""), "idx": idx},
+                    payload={"thought": thought, "idx": idx},
+                )
+            )
+            await self._deps.events.append(
+                AgentEvent(
+                    run_id=run_id,
+                    type=AgentEventType.artifact_created,
+                    payload={"kind": "thought", "thought": thought, "idx": idx, "data": dict(step.get("args") or {})},
                 )
             )
             state["idx"] = idx + 1
