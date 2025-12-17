@@ -7,12 +7,19 @@ import pytest
 from gearmeshing_ai.agent_core.agent_registry import AgentRegistry
 from gearmeshing_ai.agent_core.factory import build_agent_registry
 from gearmeshing_ai.agent_core.router import Router
-from gearmeshing_ai.agent_core.schemas.domain import AgentRun
+from gearmeshing_ai.agent_core.schemas.domain import AgentRole, AgentRun
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
 from gearmeshing_ai.agent_core.schemas.domain import AutonomyProfile
 from gearmeshing_ai.agent_core.runtime.models import EngineDeps
 from gearmeshing_ai.agent_core.service import AgentServiceDeps
 from gearmeshing_ai.agent_core.planning.planner import StructuredPlanner
+from gearmeshing_ai.agent_core.role_provider import (
+    CognitiveProfile,
+    RoleDefinition,
+    RolePermissions,
+    StaticAgentRoleProvider,
+)
+from gearmeshing_ai.agent_core.schemas.domain import CapabilityName
 
 
 @dataclass
@@ -77,3 +84,74 @@ def test_build_agent_registry_builds_service_with_run_autonomy_profile() -> None
     svc = router.route(run=run)
     assert svc._policy_config.autonomy_profile == AutonomyProfile.unrestricted
     assert base_cfg.autonomy_profile == AutonomyProfile.strict
+
+
+def test_build_agent_registry_applies_role_capabilities_and_intersects_with_base() -> None:
+    base_cfg = PolicyConfig()
+    base_cfg.tool_policy.allowed_capabilities = {CapabilityName.summarize}
+
+    provider = StaticAgentRoleProvider(
+        definitions={
+            AgentRole.dev: RoleDefinition(
+                role=AgentRole.dev,
+                cognitive=CognitiveProfile(system_prompt_key="dev/system"),
+                permissions=RolePermissions(allowed_capabilities={CapabilityName.summarize, CapabilityName.codegen}),
+            )
+        }
+    )
+
+    deps = AgentServiceDeps(
+        engine_deps=EngineDeps(
+            runs=object(),  # type: ignore[arg-type]
+            events=object(),  # type: ignore[arg-type]
+            approvals=object(),  # type: ignore[arg-type]
+            checkpoints=object(),  # type: ignore[arg-type]
+            tool_invocations=object(),  # type: ignore[arg-type]
+            capabilities=object(),  # type: ignore[arg-type]
+        ),
+        planner=StructuredPlanner(model=None),
+    )
+
+    registry = build_agent_registry(base_policy_config=base_cfg, deps=deps, role_provider=provider)
+    router = Router(registry=registry)
+
+    run = AgentRun(role="dev", objective="x")
+    svc = router.route(run=run)
+    assert svc._policy_config.tool_policy.allowed_capabilities == {CapabilityName.summarize}
+
+
+def test_build_agent_registry_applies_role_tools_and_intersects_with_base() -> None:
+    base_cfg = PolicyConfig()
+    base_cfg.tool_policy.allowed_tools = {"scm.create_pr", "scm.merge_pr"}
+
+    provider = StaticAgentRoleProvider(
+        definitions={
+            AgentRole.dev: RoleDefinition(
+                role=AgentRole.dev,
+                cognitive=CognitiveProfile(system_prompt_key="dev/system"),
+                permissions=RolePermissions(
+                    allowed_capabilities={CapabilityName.summarize},
+                    allowed_tools={"scm.create_pr"},
+                ),
+            )
+        }
+    )
+
+    deps = AgentServiceDeps(
+        engine_deps=EngineDeps(
+            runs=object(),  # type: ignore[arg-type]
+            events=object(),  # type: ignore[arg-type]
+            approvals=object(),  # type: ignore[arg-type]
+            checkpoints=object(),  # type: ignore[arg-type]
+            tool_invocations=object(),  # type: ignore[arg-type]
+            capabilities=object(),  # type: ignore[arg-type]
+        ),
+        planner=StructuredPlanner(model=None),
+    )
+
+    registry = build_agent_registry(base_policy_config=base_cfg, deps=deps, role_provider=provider)
+    router = Router(registry=registry)
+
+    run = AgentRun(role="dev", objective="x")
+    svc = router.route(run=run)
+    assert svc._policy_config.tool_policy.allowed_tools == {"scm.create_pr"}
