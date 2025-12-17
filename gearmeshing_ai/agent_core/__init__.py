@@ -41,6 +41,8 @@ from .schemas.domain import (
     RiskLevel,
 )
 
+from .agent_registry import AgentRegistry
+
 __all__ = [
     "AgentRun",
     "AgentEvent",
@@ -49,4 +51,5 @@ __all__ = [
     "AutonomyProfile",
     "CapabilityName",
     "RiskLevel",
+    "AgentRegistry",
 ]
