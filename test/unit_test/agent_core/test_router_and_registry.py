@@ -53,6 +53,25 @@ def test_router_defaults_when_role_is_blank() -> None:
     assert svc.name == "planner"  # type: ignore[union-attr]
 
 
+def test_router_intent_routing_selects_dev_when_enabled() -> None:
+    reg = AgentRegistry()
+    reg.register("planner", lambda _run: _Svc("planner"))  # type: ignore[arg-type]
+    reg.register("dev", lambda _run: _Svc("dev"))  # type: ignore[arg-type]
+
+    router = Router(registry=reg, default_role="planner", enable_intent_routing=True)
+    svc = router.route(run=AgentRun(role="", objective="Fix bug in payment flow"))
+    assert svc.name == "dev"  # type: ignore[union-attr]
+
+
+def test_router_intent_routing_falls_back_when_inferred_role_missing() -> None:
+    reg = AgentRegistry()
+    reg.register("planner", lambda _run: _Svc("planner"))  # type: ignore[arg-type]
+
+    router = Router(registry=reg, default_role="planner", enable_intent_routing=True)
+    svc = router.route(run=AgentRun(role="", objective="Investigate incident and monitor metrics"))
+    assert svc.name == "planner"  # type: ignore[union-attr]
+
+
 def test_router_raises_for_unknown_role() -> None:
     reg = AgentRegistry()
     router = Router(registry=reg, default_role="planner")
@@ -147,6 +166,7 @@ def test_build_agent_registry_applies_role_tools_and_intersects_with_base() -> N
             checkpoints=object(),  # type: ignore[arg-type]
             tool_invocations=object(),  # type: ignore[arg-type]
             capabilities=object(),  # type: ignore[arg-type]
+            usage=None,
         ),
         planner=StructuredPlanner(model=None),
     )
