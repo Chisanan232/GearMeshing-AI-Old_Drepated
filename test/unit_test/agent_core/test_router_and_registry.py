@@ -1,0 +1,48 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+import pytest
+
+from gearmeshing_ai.agent_core.agent_registry import AgentRegistry
+from gearmeshing_ai.agent_core.router import Router
+from gearmeshing_ai.agent_core.schemas.domain import AgentRun
+
+
+@dataclass
+class _Svc:
+    name: str
+
+
+def test_registry_register_and_has_and_get() -> None:
+    reg = AgentRegistry()
+    reg.register("dev", lambda _run: _Svc("dev"))  # type: ignore[arg-type]
+
+    assert reg.has("dev")
+    assert reg.get("dev")(AgentRun(role="dev", objective="x")).name == "dev"  # type: ignore[union-attr]
+
+
+def test_router_routes_to_registered_role() -> None:
+    reg = AgentRegistry()
+    reg.register("dev", lambda _run: _Svc("dev"))  # type: ignore[arg-type]
+
+    router = Router(registry=reg, default_role="planner")
+    svc = router.route(run=AgentRun(role="dev", objective="x"))
+    assert svc.name == "dev"  # type: ignore[union-attr]
+
+
+def test_router_defaults_when_role_is_blank() -> None:
+    reg = AgentRegistry()
+    reg.register("planner", lambda _run: _Svc("planner"))  # type: ignore[arg-type]
+
+    router = Router(registry=reg, default_role="planner")
+    svc = router.route(run=AgentRun(role="", objective="x"))
+    assert svc.name == "planner"  # type: ignore[union-attr]
+
+
+def test_router_raises_for_unknown_role() -> None:
+    reg = AgentRegistry()
+    router = Router(registry=reg, default_role="planner")
+
+    with pytest.raises(KeyError, match="unknown role"):
+        router.route(run=AgentRun(role="missing", objective="x"))
