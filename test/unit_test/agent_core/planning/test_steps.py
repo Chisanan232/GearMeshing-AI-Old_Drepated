@@ -17,6 +17,7 @@ def test_normalize_plan_legacy_action_step_is_converted_to_kind_action() -> None
             "kind": "action",
             "capability": CapabilityName.summarize,
             "args": {"text": "x"},
+            "logical_tool": None,
             "server_id": None,
             "tool_name": None,
         }

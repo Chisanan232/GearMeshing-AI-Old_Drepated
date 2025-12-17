@@ -72,6 +72,7 @@ class ActionStep(BaseSchema):
     kind: Literal["action"] = "action"
     capability: CapabilityName
     args: Dict[str, Any] = Field(default_factory=dict)
+    logical_tool: str | None = None
     server_id: str | None = None
     tool_name: str | None = None
 
@@ -113,13 +114,14 @@ def normalize_plan(plan: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                     kind="action",
                     capability=CapabilityName(raw["capability"]),
                     args=dict(raw.get("args") or {}),
+                    logical_tool=raw.get("logical_tool"),
                     server_id=raw.get("server_id"),
                     tool_name=raw.get("tool_name"),
                 ).model_dump()
             )
             continue
         if kind == "thought":
-            forbidden = {"capability", "server_id", "tool_name"}
+            forbidden = {"capability", "logical_tool", "server_id", "tool_name"}
             present = forbidden.intersection(raw.keys())
             if present:
                 raise ValueError(f"thought step cannot contain action fields: {sorted(present)}")
