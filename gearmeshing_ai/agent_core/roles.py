@@ -4,8 +4,8 @@ from typing import Dict, Set
 
 from pydantic import Field
 
-from .schemas.domain import CapabilityName, AgentRole
 from .schemas.base import BaseSchema
+from .schemas.domain import AgentRole, CapabilityName
 
 
 class RoleSpec(BaseSchema):

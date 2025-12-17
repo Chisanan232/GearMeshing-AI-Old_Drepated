@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import pytest
 
-from gearmeshing_ai.agent_core.roles import ROLE_CAPABILITIES, ROLE_SPECS, coerce_role, get_role_spec
+from gearmeshing_ai.agent_core.roles import (
+    ROLE_CAPABILITIES,
+    ROLE_SPECS,
+    coerce_role,
+    get_role_spec,
+)
 from gearmeshing_ai.agent_core.schemas.domain import AgentRole, CapabilityName
 
 
