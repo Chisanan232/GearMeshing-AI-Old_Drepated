@@ -5,8 +5,14 @@ from dataclasses import dataclass
 import pytest
 
 from gearmeshing_ai.agent_core.agent_registry import AgentRegistry
+from gearmeshing_ai.agent_core.factory import build_agent_registry
 from gearmeshing_ai.agent_core.router import Router
 from gearmeshing_ai.agent_core.schemas.domain import AgentRun
+from gearmeshing_ai.agent_core.policy.models import PolicyConfig
+from gearmeshing_ai.agent_core.schemas.domain import AutonomyProfile
+from gearmeshing_ai.agent_core.runtime.models import EngineDeps
+from gearmeshing_ai.agent_core.service import AgentServiceDeps
+from gearmeshing_ai.agent_core.planning.planner import StructuredPlanner
 
 
 @dataclass
@@ -46,3 +52,28 @@ def test_router_raises_for_unknown_role() -> None:
 
     with pytest.raises(KeyError, match="unknown role"):
         router.route(run=AgentRun(role="missing", objective="x"))
+
+
+def test_build_agent_registry_builds_service_with_run_autonomy_profile() -> None:
+    base_cfg = PolicyConfig()
+    base_cfg.autonomy_profile = AutonomyProfile.strict
+
+    deps = AgentServiceDeps(
+        engine_deps=EngineDeps(
+            runs=object(),  # type: ignore[arg-type]
+            events=object(),  # type: ignore[arg-type]
+            approvals=object(),  # type: ignore[arg-type]
+            checkpoints=object(),  # type: ignore[arg-type]
+            tool_invocations=object(),  # type: ignore[arg-type]
+            capabilities=object(),  # type: ignore[arg-type]
+        ),
+        planner=StructuredPlanner(model=None),
+    )
+
+    registry = build_agent_registry(base_policy_config=base_cfg, deps=deps)
+    router = Router(registry=registry)
+
+    run = AgentRun(role="planner", objective="x", autonomy_profile=AutonomyProfile.unrestricted)
+    svc = router.route(run=run)
+    assert svc._policy_config.autonomy_profile == AutonomyProfile.unrestricted
+    assert base_cfg.autonomy_profile == AutonomyProfile.strict
