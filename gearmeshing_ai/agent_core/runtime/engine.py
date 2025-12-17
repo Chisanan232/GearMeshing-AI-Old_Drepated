@@ -110,6 +110,10 @@ class AgentEngine:
 
         normalized_plan = normalize_plan(plan)
 
+        await self._deps.events.append(
+            AgentEvent(run_id=run.id, type=AgentEventType.plan_created, payload={"plan": normalized_plan})
+        )
+
         state: _GraphState = {
             "run_id": run.id,
             "plan": normalized_plan,
@@ -131,6 +135,18 @@ class AgentEngine:
             raise ValueError("approval not found")
         if approval.decision != ApprovalDecision.approved:
             raise ValueError("approval not approved")
+
+        await self._deps.events.append(
+            AgentEvent(
+                run_id=run_id,
+                type=AgentEventType.approval_resolved,
+                payload={
+                    "approval_id": approval.id,
+                    "decision": approval.decision,
+                    "decided_by": approval.decided_by,
+                },
+            )
+        )
 
         cp = await self._deps.checkpoints.latest(run_id)
         if cp is None:
