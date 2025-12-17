@@ -2,16 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from pydantic import Field
 from pydantic_ai import Agent
 
-from ..schemas.base import BaseSchema
-from ..schemas.domain import CapabilityName
-
-
-class PlanStep(BaseSchema):
-    capability: CapabilityName
-    args: Dict[str, Any] = Field(default_factory=dict)
+from .steps import ActionStep, ThoughtStep
 
 
 class StructuredPlanner:
@@ -21,18 +14,15 @@ class StructuredPlanner:
     async def plan(self, *, objective: str, role: str) -> List[Dict[str, Any]]:
         if self._model is None:
             return [
-                {
-                    "capability": CapabilityName.summarize,
-                    "args": {"text": objective, "role": role},
-                }
+                ThoughtStep(thought="summarize", args={"text": objective, "role": role}).model_dump()
             ]
 
         agent: Agent = Agent(
             self._model,
-            output_type=List[PlanStep],
+            output_type=List[ActionStep],
             system_prompt=(
                 "You are an expert planner for an autonomous software engineering agent. "
-                "Return a minimal, safe sequence of capability steps as JSON."
+                "Return a minimal, safe sequence of action steps as JSON."
             ),
         )
 

@@ -5,7 +5,7 @@ from typing import Any, List
 
 import pytest
 
-from gearmeshing_ai.agent_core.planning.planner import PlanStep, StructuredPlanner
+from gearmeshing_ai.agent_core.planning import ActionStep, StructuredPlanner, ThoughtStep
 from gearmeshing_ai.agent_core.schemas.domain import CapabilityName
 
 
@@ -16,7 +16,8 @@ async def test_planner_fallback_when_model_is_none() -> None:
 
     assert steps == [
         {
-            "capability": CapabilityName.summarize,
+            "kind": "thought",
+            "thought": "summarize",
             "args": {"text": "do x", "role": "dev"},
         }
     ]
@@ -28,7 +29,7 @@ async def test_planner_uses_pydantic_ai_agent_and_model_dump(monkeypatch: pytest
 
     @dataclass
     class _FakeResult:
-        output: List[PlanStep]
+        output: List[ActionStep]
 
     class _FakeAgent:
         def __init__(self, model: Any, *, output_type: Any, system_prompt: str):
@@ -41,8 +42,8 @@ async def test_planner_uses_pydantic_ai_agent_and_model_dump(monkeypatch: pytest
             self.last_prompt = prompt
             return _FakeResult(
                 output=[
-                    PlanStep(capability=CapabilityName.web_search, args={"query": "hello"}),
-                    PlanStep(capability=CapabilityName.summarize, args={"text": "done"}),
+                    ActionStep(capability=CapabilityName.web_search, args={"query": "hello"}),
+                    ActionStep(capability=CapabilityName.summarize, args={"text": "done"}),
                 ]
             )
 
@@ -54,8 +55,8 @@ async def test_planner_uses_pydantic_ai_agent_and_model_dump(monkeypatch: pytest
     out = await planner.plan(objective="Find info", role="market")
 
     assert out == [
-        {"capability": CapabilityName.web_search, "args": {"query": "hello"}},
-        {"capability": CapabilityName.summarize, "args": {"text": "done"}},
+        {"kind": "action", "capability": CapabilityName.web_search, "args": {"query": "hello"}, "server_id": None, "tool_name": None},
+        {"kind": "action", "capability": CapabilityName.summarize, "args": {"text": "done"}, "server_id": None, "tool_name": None},
     ]
 
 
@@ -72,9 +73,11 @@ async def test_planner_with_testmodel_produces_valid_steps() -> None:
 
     step0 = out[0]
     assert isinstance(step0, dict)
-    assert "capability" in step0
+    assert "kind" in step0
     assert "args" in step0
-    assert isinstance(step0["capability"], CapabilityName)
+    assert step0["kind"] in {"thought", "action"}
+    if step0["kind"] == "action":
+        assert isinstance(step0["capability"], CapabilityName)
     assert isinstance(step0["args"], dict)
 
 
@@ -94,8 +97,8 @@ async def test_planner_with_functionmodel_returns_expected_plan() -> None:
                     "final_result",
                     {
                         "response": [
-                            {"capability": "web_search", "args": {"query": "pydantic ai testing"}},
-                            {"capability": "summarize", "args": {"text": "summary me"}},
+                            {"kind": "action", "capability": "web_search", "args": {"query": "pydantic ai testing"}},
+                            {"kind": "action", "capability": "summarize", "args": {"text": "summary me"}},
                         ]
                     },
                 )
@@ -106,6 +109,6 @@ async def test_planner_with_functionmodel_returns_expected_plan() -> None:
     out = await planner.plan(objective="Write tests", role="dev")
 
     assert out == [
-        {"capability": CapabilityName.web_search, "args": {"query": "pydantic ai testing"}},
-        {"capability": CapabilityName.summarize, "args": {"text": "summary me"}},
+        {"kind": "action", "capability": CapabilityName.web_search, "args": {"query": "pydantic ai testing"}, "server_id": None, "tool_name": None},
+        {"kind": "action", "capability": CapabilityName.summarize, "args": {"text": "summary me"}, "server_id": None, "tool_name": None},
     ]
