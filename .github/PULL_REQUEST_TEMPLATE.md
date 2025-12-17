@@ -53,6 +53,7 @@
         * [ ] 🧪 Integration testing
         * [ ] 🧪 End-to-end testing
         * [ ] 🧪 Contract testing
+        * [ ] 🧪 Evaluation testing
     * [ ] 📚 Documentation
     * [ ] 🚀 Building
         * [ ] 🤖 CI/CD
