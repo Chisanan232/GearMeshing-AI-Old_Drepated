@@ -41,6 +41,7 @@
     * [ ] 💼 Core feature
         * [ ] 👮🏻‍♂️ Abstraction or base objects
         * [ ] 🤖 AI agent
+        * [ ] 📲 Info Provider
         * [ ] 🕸️ Web server
         * [ ] 📲 MCP client
         * [ ] 🪡 API client
@@ -52,6 +53,7 @@
         * [ ] 🧪 Integration testing
         * [ ] 🧪 End-to-end testing
         * [ ] 🧪 Contract testing
+        * [ ] 🧪 Evaluation testing
     * [ ] 📚 Documentation
     * [ ] 🚀 Building
         * [ ] 🤖 CI/CD
