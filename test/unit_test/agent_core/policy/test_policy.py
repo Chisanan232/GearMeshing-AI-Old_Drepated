@@ -84,7 +84,7 @@ def test_decide_unrestricted_never_requires_approval() -> None:
     p = GlobalPolicy(cfg)
 
     assert p.decide(CapabilityName.summarize, args={}).require_approval is False
-    assert p.decide(CapabilityName.shell_exec, args={}).require_approval is False
+    assert p.decide(CapabilityName.shell_exec, args={}).require_approval is True
 
 
 def test_decide_strict_always_requires_approval() -> None:
@@ -174,3 +174,36 @@ def test_mcp_server_governance_blocks_when_not_in_allowlist() -> None:
     assert decision.block is True
     assert decision.block_reason is not None
     assert decision.block_reason.startswith("mcp server not allowed:")
+
+
+def test_tool_allowlist_blocks_when_not_in_allowed_tools() -> None:
+    cfg = PolicyConfig()
+    cfg.tool_policy.allowed_tools = {"scm.create_pr"}
+    p = GlobalPolicy(cfg)
+
+    d = p.decide(CapabilityName.mcp_call, args={"server_id": "clickup"}, logical_tool="tracker.update_task")
+    assert d.block is True
+    assert d.block_reason == "tool not allowed: tracker.update_task"
+
+
+def test_tool_blocklist_blocks_even_when_in_allowlist() -> None:
+    cfg = PolicyConfig()
+    cfg.tool_policy.allowed_tools = {"scm.create_pr", "scm.merge_pr"}
+    cfg.tool_policy.blocked_tools = {"scm.merge_pr"}
+    p = GlobalPolicy(cfg)
+
+    d = p.decide(CapabilityName.mcp_call, args={"server_id": "clickup"}, logical_tool="scm.merge_pr")
+    assert d.block is True
+    assert d.block_reason == "tool blocked: scm.merge_pr"
+
+
+def test_tool_risk_override_changes_approval_requirement() -> None:
+    cfg = PolicyConfig()
+    cfg.autonomy_profile = AutonomyProfile.balanced
+    cfg.approval_policy.require_for_risk_at_or_above = RiskLevel.high
+    cfg.approval_policy.tool_risk_overrides = {"scm.merge_pr": RiskLevel.high}
+    p = GlobalPolicy(cfg)
+
+    d = p.decide(CapabilityName.mcp_call, args={"server_id": "clickup"}, logical_tool="scm.merge_pr")
+    assert d.risk == RiskLevel.high
+    assert d.require_approval is True
