@@ -6,6 +6,7 @@ from pydantic import Field
 
 from .schemas.base import BaseSchema
 from .schemas.domain import AgentRole, CapabilityName
+from .role_provider import DEFAULT_ROLE_PROVIDER
 
 
 class RoleSpec(BaseSchema):
@@ -16,36 +17,13 @@ class RoleSpec(BaseSchema):
 
 
 ROLE_SPECS: Dict[AgentRole, RoleSpec] = {
-    AgentRole.planner: RoleSpec(
-        role=AgentRole.planner,
-        allowed_capabilities={CapabilityName.summarize, CapabilityName.docs_read, CapabilityName.web_search},
-        system_prompt_key="planner/system",
-    ),
-    AgentRole.market: RoleSpec(
-        role=AgentRole.market,
-        allowed_capabilities={CapabilityName.web_search, CapabilityName.summarize},
-        system_prompt_key="market/system",
-    ),
-    AgentRole.dev: RoleSpec(
-        role=AgentRole.dev,
-        allowed_capabilities={CapabilityName.codegen, CapabilityName.mcp_call, CapabilityName.summarize},
-        system_prompt_key="dev/system",
-    ),
-    AgentRole.dev_lead: RoleSpec(
-        role=AgentRole.dev_lead,
-        allowed_capabilities={CapabilityName.codegen, CapabilityName.mcp_call, CapabilityName.summarize},
-        system_prompt_key="dev_lead/system",
-    ),
-    AgentRole.qa: RoleSpec(
-        role=AgentRole.qa,
-        allowed_capabilities={CapabilityName.docs_read, CapabilityName.summarize},
-        system_prompt_key="qa/system",
-    ),
-    AgentRole.sre: RoleSpec(
-        role=AgentRole.sre,
-        allowed_capabilities={CapabilityName.shell_exec, CapabilityName.mcp_call, CapabilityName.summarize},
-        system_prompt_key="sre/system",
-    ),
+    r: RoleSpec(
+        role=r,
+        allowed_capabilities=set(DEFAULT_ROLE_PROVIDER.get(r).permissions.allowed_capabilities),
+        system_prompt_key=DEFAULT_ROLE_PROVIDER.get(r).cognitive.system_prompt_key,
+        done_when=DEFAULT_ROLE_PROVIDER.get(r).cognitive.done_when,
+    )
+    for r in DEFAULT_ROLE_PROVIDER.list_roles()
 }
 
 
