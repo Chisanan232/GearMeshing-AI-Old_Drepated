@@ -42,6 +42,7 @@ from .schemas.domain import (
 )
 
 from .agent_registry import AgentRegistry
+from .router import Router
 
 __all__ = [
     "AgentRun",
@@ -52,4 +53,5 @@ __all__ = [
     "CapabilityName",
     "RiskLevel",
     "AgentRegistry",
+    "Router",
 ]
