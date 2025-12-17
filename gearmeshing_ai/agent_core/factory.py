@@ -21,6 +21,7 @@ from .capabilities.builtin import (
 from .capabilities.registry import CapabilityRegistry
 from .policy.global_policy import GlobalPolicy
 from .policy.models import PolicyConfig
+from .policy.provider import PolicyProvider
 from .runtime import EngineDeps
 from .runtime.engine import AgentEngine
 from .schemas.domain import AgentRole, AgentRun
@@ -56,12 +57,17 @@ def build_agent_registry(
     base_policy_config: PolicyConfig,
     deps: AgentServiceDeps,
     role_provider: AgentRoleProvider = DEFAULT_ROLE_PROVIDER,
+    policy_provider: PolicyProvider | None = None,
 ) -> AgentRegistry:
     reg = AgentRegistry()
 
     def _make_factory(_role: str):
         def _factory(run: AgentRun) -> AgentService:
-            cfg = base_policy_config.model_copy(deep=True)
+            cfg = (
+                policy_provider.get(run).model_copy(deep=True)
+                if policy_provider is not None
+                else base_policy_config.model_copy(deep=True)
+            )
             cfg.autonomy_profile = run.autonomy_profile
 
             role_def = role_provider.get(_role)
@@ -79,7 +85,7 @@ def build_agent_registry(
                 else:
                     cfg.tool_policy.allowed_tools = set(cfg.tool_policy.allowed_tools).intersection(role_tools)
 
-            return AgentService(policy_config=cfg, deps=deps)
+            return AgentService(policy_config=cfg, deps=deps, policy_provider=policy_provider)
 
         return _factory
 
