@@ -1,5 +1,36 @@
 from __future__ import annotations
 
+"""LangGraph runtime engine.
+
+``AgentEngine`` executes a normalized plan produced by the planning subsystem.
+
+Execution model
+--------------
+
+- The engine runs a LangGraph state machine over a mutable ``_GraphState``.
+- Each iteration executes exactly one plan step at index ``idx``.
+
+Thought vs Action
+-----------------
+
+- Thought steps (``kind="thought"``) are non-side-effecting. The engine records
+  them as events/artifacts and advances the index.
+- Action steps (``kind="action"``) are side-effecting. The engine:
+
+  1. Evaluates policy (allow/deny + risk + approval requirement).
+  2. Validates safety constraints (e.g. argument size).
+  3. Optionally pauses for approval and stores a checkpoint.
+  4. Executes the capability and persists tool invocation logs.
+
+Pause/resume
+------------
+
+When an action requires approval, the engine writes an ``Approval`` and a
+``Checkpoint`` and transitions the run to ``paused_for_approval``. Resuming a
+run restores the checkpointed state, clears the awaiting approval id, and
+continues execution.
+"""
+
 from typing import Any, cast
 
 from langgraph.graph import END, StateGraph
@@ -22,12 +53,20 @@ from .models import EngineDeps, _GraphState
 
 
 class AgentEngine:
+    """Execute an agent run plan with policy enforcement and persistence.
+
+    The engine is deliberately small and orchestration-oriented: it delegates
+    policy decisions to ``GlobalPolicy`` and delegates actual work to
+    capability implementations registered in ``EngineDeps.capabilities``.
+    """
+
     def __init__(self, *, policy: GlobalPolicy, deps: EngineDeps) -> None:
         self._policy = policy
         self._deps = deps
         self._graph = self._build_graph()
 
     def _build_graph(self):
+        """Build and compile the LangGraph state machine."""
         g: StateGraph = StateGraph(_GraphState)
         g.add_node("start", self._node_start)
         g.add_node("execute", self._node_execute_next)
@@ -56,6 +95,14 @@ class AgentEngine:
         run: AgentRun,
         plan: list[dict[str, Any]],
     ) -> str:
+        """Persist a new run and execute its plan.
+
+        Notes
+        -----
+        The provided plan is normalized via ``normalize_plan`` before execution
+        to enforce the thought/action boundary and maintain backward
+        compatibility.
+        """
         await self._deps.runs.create(run)
         await self._deps.events.append(
             AgentEvent(run_id=run.id, type=AgentEventType.run_started, payload={"role": run.role})
@@ -73,6 +120,12 @@ class AgentEngine:
         return run.id
 
     async def resume_run(self, *, run_id: str, approval_id: str) -> None:
+        """Resume a paused run after approval.
+
+        The engine validates that the referenced approval exists and has been
+        approved, restores the latest checkpoint state, and continues execution
+        from that state.
+        """
         approval = await self._deps.approvals.get(approval_id)
         if approval is None:
             raise ValueError("approval not found")
@@ -93,9 +146,18 @@ class AgentEngine:
         await self._graph.ainvoke(state)
 
     async def _node_start(self, state: _GraphState) -> _GraphState:
+        """Graph entry node. Currently a no-op."""
         return state
 
     async def _node_execute_next(self, state: _GraphState) -> _GraphState:
+        """Execute the next plan step.
+
+        This node is responsible for:
+
+        - detecting terminal conditions (idx >= len(plan)),
+        - executing thought steps (event/artifact emission only),
+        - executing action steps (policy/approval/capability).
+        """
         run_id = str(state["run_id"])
         run = await self._deps.runs.get(run_id)
         if run is None:
@@ -219,9 +281,18 @@ class AgentEngine:
         return state
 
     async def _node_pause_for_approval(self, state: _GraphState) -> _GraphState:
+        """Pause node.
+
+        The graph transitions to END after this node; pause/resume coordination
+        is managed outside the graph via persisted checkpoints.
+        """
         return state
 
     async def _node_finish(self, state: _GraphState) -> _GraphState:
+        """Finish node.
+
+        Updates the run status and emits the run completion event.
+        """
         run_id = str(state["run_id"])
         status = str(state.get("_terminal_status") or AgentRunStatus.succeeded.value)
         await self._deps.runs.update_status(run_id, status=status)
@@ -229,6 +300,7 @@ class AgentEngine:
         return state
 
     def _route_after_execute(self, state: _GraphState) -> str:
+        """Route to pause/finish/continue after executing a step."""
         if state.get("awaiting_approval_id"):
             return "pause"
         if state.get("_finished"):

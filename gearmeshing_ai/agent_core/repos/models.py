@@ -1,5 +1,24 @@
 from __future__ import annotations
 
+"""SQLAlchemy ORM models for agent persistence.
+
+These ORM models define the SQL schema used by the SQL repository
+implementation in ``gearmeshing_ai.agent_core.repos.sql``.
+
+Design
+------
+
+The schema is optimized for auditability and pause/resume:
+
+- Runs store coarse-grained run metadata and status.
+- Events form an append-only timeline.
+- Approvals and checkpoints allow pausing and resuming a run.
+- Tool invocations provide an auditable record of side-effecting operations.
+- Usage ledger records token/cost accounting.
+
+Table names are prefixed with ``gm_`` to avoid collisions in shared databases.
+"""
+
 from datetime import datetime
 from typing import Any, Dict, Optional
 
@@ -9,10 +28,21 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
-    pass
+    """Declarative base for all ORM models."""
 
 
 class RunRow(Base):
+    """Row model for ``gm_agent_runs``.
+
+    Stores the lifecycle and metadata of an agent run.
+
+    Key fields:
+
+    - ``status``: coarse runtime status (running/paused/succeeded/failed).
+    - ``role``/``autonomy_profile``: behavior and approval posture context.
+    - ``objective``: the user objective being solved.
+    """
+
     __tablename__ = "gm_agent_runs"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -33,6 +63,14 @@ class RunRow(Base):
 
 
 class EventRow(Base):
+    """Row model for ``gm_agent_events``.
+
+    Append-only event stream for a run.
+
+    ``payload`` is stored as JSONB to capture structured details for auditing
+    and debugging.
+    """
+
     __tablename__ = "gm_agent_events"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -46,6 +84,11 @@ class EventRow(Base):
 
 
 class ToolInvocationRow(Base):
+    """Row model for ``gm_tool_invocations``.
+
+    Records side-effecting invocations made by Action steps.
+    """
+
     __tablename__ = "gm_tool_invocations"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -64,6 +107,11 @@ class ToolInvocationRow(Base):
 
 
 class ApprovalRow(Base):
+    """Row model for ``gm_approvals``.
+
+    Stores approval requests and resolutions.
+    """
+
     __tablename__ = "gm_approvals"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -83,6 +131,11 @@ class ApprovalRow(Base):
 
 
 class CheckpointRow(Base):
+    """Row model for ``gm_checkpoints``.
+
+    Checkpoints store serialized LangGraph state required for pause/resume.
+    """
+
     __tablename__ = "gm_checkpoints"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -95,6 +148,11 @@ class CheckpointRow(Base):
 
 
 class UsageRow(Base):
+    """Row model for ``gm_usage_ledger``.
+
+    Append-only token/cost accounting per run.
+    """
+
     __tablename__ = "gm_usage_ledger"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
