@@ -71,6 +71,7 @@ async def test_eval_end_to_end_graph_happy_path_selects_and_runs_tools() -> None
                 approvals=repos.approvals,
                 checkpoints=repos.checkpoints,
                 tool_invocations=repos.tool_invocations,
+                usage=repos.usage,
                 capabilities=reg,
             ),
         )
@@ -87,7 +88,9 @@ async def test_eval_end_to_end_graph_happy_path_selects_and_runs_tools() -> None
         assert str(getattr(loaded.status, "value", loaded.status)) == AgentRunStatus.succeeded.value
 
         # Path selection: should not pause for approval
-        assert await repos.checkpoints.latest(run.id) is None
+        cp = await repos.checkpoints.latest(run.id)
+        assert cp is not None
+        assert cp.state.get("awaiting_approval_id") is None
 
         # Tool selection/execution: should have exactly two persisted invocations
         # (this is our proxy for "tools selected and run as expected")

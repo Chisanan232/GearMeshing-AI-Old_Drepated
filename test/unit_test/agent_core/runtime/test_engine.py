@@ -44,6 +44,7 @@ async def test_start_run_emits_plan_created_event(repos, registry, policy: Globa
         approvals=repos["approvals"],
         checkpoints=repos["checkpoints"],
         tool_invocations=repos["tool_invocations"],
+        usage=repos["usage"],
         capabilities=reg,
     )
     engine = AgentEngine(policy=policy, deps=deps)
@@ -55,6 +56,8 @@ async def test_start_run_emits_plan_created_event(repos, registry, policy: Globa
     await engine.start_run(run=run, plan=[{"capability": CapabilityName.summarize.value, "args": {"text": "hi"}}])
 
     assert any(e.type == AgentEventType.plan_created for e in repos["events"].events)
+    assert any(e.type == AgentEventType.checkpoint_saved for e in repos["events"].events)
+    assert repos["checkpoints"].saved
     plan_events = [e for e in repos["events"].events if e.type == AgentEventType.plan_created]
     assert len(plan_events) == 1
     assert plan_events[0].payload.get("plan")
@@ -134,6 +137,14 @@ class _ToolInvocationsRepo:
         self.invocations.append(invocation)
 
 
+class _UsageRepo:
+    def __init__(self) -> None:
+        self.entries: List[Any] = []
+
+    async def append(self, usage) -> None:
+        self.entries.append(usage)
+
+
 class _DummyCapability(Capability):
     name = CapabilityName.summarize
 
@@ -155,6 +166,7 @@ def repos() -> Dict[str, Any]:
         "approvals": _ApprovalsRepo(),
         "checkpoints": _CheckpointsRepo(),
         "tool_invocations": _ToolInvocationsRepo(),
+        "usage": _UsageRepo(),
     }
 
 
@@ -182,9 +194,48 @@ def engine_runtime(repos, registry, policy: GlobalPolicy) -> AgentEngine:
         approvals=repos["approvals"],
         checkpoints=repos["checkpoints"],
         tool_invocations=repos["tool_invocations"],
+        usage=repos["usage"],
         capabilities=reg,
     )
     return AgentEngine(policy=policy, deps=deps)
+
+
+@pytest.mark.asyncio
+async def test_node_execute_next_persists_usage_when_capability_emits_usage(repos, registry, policy: GlobalPolicy) -> None:
+    reg, _cap = registry
+    usage_cap = _DummyCapability(
+        output={
+            "result": "ok",
+            "usage": {"provider": "p", "model": "m", "prompt_tokens": 1, "completion_tokens": 2, "cost_usd": 0.01},
+        }
+    )
+    reg = CapabilityRegistry()
+    reg.register(usage_cap)
+
+    deps = EngineDeps(
+        runs=repos["runs"],
+        events=repos["events"],
+        approvals=repos["approvals"],
+        checkpoints=repos["checkpoints"],
+        tool_invocations=repos["tool_invocations"],
+        usage=repos["usage"],
+        capabilities=reg,
+    )
+    engine = AgentEngine(policy=policy, deps=deps)
+
+    run = AgentRun(role="dev", objective="x")
+    await repos["runs"].create(run)
+
+    state: _GraphState = {
+        "run_id": run.id,
+        "plan": [{"kind": "action", "capability": CapabilityName.summarize.value, "args": {"text": "hi"}}],
+        "idx": 0,
+        "awaiting_approval_id": None,
+    }
+    await engine._node_execute_next(state)
+
+    assert repos["usage"].entries
+    assert any(e.type == AgentEventType.usage_recorded for e in repos["events"].events)
 
 
 @pytest.mark.asyncio

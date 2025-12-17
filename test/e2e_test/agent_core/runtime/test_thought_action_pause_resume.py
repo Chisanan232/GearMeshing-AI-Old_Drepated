@@ -42,6 +42,7 @@ async def test_mixed_thought_then_action_pause_and_resume_round_trip() -> None:
             approvals=repos.approvals,
             checkpoints=repos.checkpoints,
             tool_invocations=repos.tool_invocations,
+            usage=repos.usage,
             capabilities=build_default_registry(),
         )
 

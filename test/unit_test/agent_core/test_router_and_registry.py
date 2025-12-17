@@ -73,6 +73,7 @@ def test_build_agent_registry_builds_service_with_run_autonomy_profile() -> None
             checkpoints=object(),  # type: ignore[arg-type]
             tool_invocations=object(),  # type: ignore[arg-type]
             capabilities=object(),  # type: ignore[arg-type]
+            usage=None,
         ),
         planner=StructuredPlanner(model=None),
     )
@@ -108,6 +109,7 @@ def test_build_agent_registry_applies_role_capabilities_and_intersects_with_base
             checkpoints=object(),  # type: ignore[arg-type]
             tool_invocations=object(),  # type: ignore[arg-type]
             capabilities=object(),  # type: ignore[arg-type]
+            usage=None,
         ),
         planner=StructuredPlanner(model=None),
     )

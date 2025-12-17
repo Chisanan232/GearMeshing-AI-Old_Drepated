@@ -31,6 +31,7 @@ def test_build_engine_wires_policy_config_and_deps() -> None:
         approvals=object(),  # type: ignore[arg-type]
         checkpoints=object(),  # type: ignore[arg-type]
         tool_invocations=object(),  # type: ignore[arg-type]
+        usage=None,
         capabilities=build_default_registry(),
     )
 
@@ -83,6 +84,7 @@ async def test_agent_service_run_calls_planner_and_engine(monkeypatch: pytest.Mo
             approvals=object(),  # type: ignore[arg-type]
             checkpoints=object(),  # type: ignore[arg-type]
             tool_invocations=object(),  # type: ignore[arg-type]
+            usage=None,
             capabilities=build_default_registry(),
         ),
         planner=planner,
@@ -120,6 +122,7 @@ async def test_agent_service_resume_calls_engine(monkeypatch: pytest.MonkeyPatch
             approvals=object(),  # type: ignore[arg-type]
             checkpoints=object(),  # type: ignore[arg-type]
             tool_invocations=object(),  # type: ignore[arg-type]
+            usage=None,
             capabilities=build_default_registry(),
         ),
         planner=_FakePlanner(plan_result=[]),
