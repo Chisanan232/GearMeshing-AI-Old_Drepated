@@ -5,6 +5,7 @@ from typing import Any, cast
 from langgraph.graph import END, StateGraph
 
 from ..capabilities.base import CapabilityContext
+from ..planning.steps import normalize_plan
 from ..policy.global_policy import GlobalPolicy
 from ..schemas.domain import (
     AgentEvent,
@@ -60,9 +61,11 @@ class AgentEngine:
             AgentEvent(run_id=run.id, type=AgentEventType.run_started, payload={"role": run.role})
         )
 
+        normalized_plan = normalize_plan(plan)
+
         state: _GraphState = {
             "run_id": run.id,
-            "plan": plan,
+            "plan": normalized_plan,
             "idx": 0,
             "awaiting_approval_id": None,
         }
@@ -81,6 +84,7 @@ class AgentEngine:
             raise ValueError("no checkpoint")
 
         state = cast(_GraphState, dict(cp.state))
+        state["plan"] = normalize_plan(list(state.get("plan") or []))
         state["awaiting_approval_id"] = None
         state["_resume_skip_approval"] = True
         await self._deps.events.append(
@@ -105,6 +109,21 @@ class AgentEngine:
             return state
 
         step = dict(plan[idx])
+        kind = str(step.get("kind") or "action")
+        if kind == "thought":
+            await self._deps.events.append(
+                AgentEvent(
+                    run_id=run_id,
+                    type=AgentEventType.thought_executed,
+                    payload={"thought": str(step.get("thought") or ""), "idx": idx},
+                )
+            )
+            state["idx"] = idx + 1
+            return state
+
+        if kind != "action":
+            raise ValueError(f"unknown step kind: {kind}")
+
         cap = CapabilityName(step["capability"])
         args = dict(step.get("args") or {})
 
