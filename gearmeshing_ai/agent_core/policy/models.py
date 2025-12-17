@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import Optional
 
 from pydantic import Field
 
 from ..schemas.base import BaseSchema
 from ..schemas.domain import AutonomyProfile, CapabilityName, RiskLevel
+
+
+class ToolRiskKind(str, Enum):
+    read = "read"
+    write = "write"
+    high = "high"
 
 
 class ToolPolicy(BaseSchema):
@@ -48,6 +55,14 @@ class ApprovalPolicy(BaseSchema):
         ),
     )
 
+    tool_risk_kinds: dict[str, ToolRiskKind] = Field(
+        default_factory=dict,
+        description=(
+            "Optional per-logical-tool risk kind classification. Keys are logical tool names "
+            "(e.g. 'tracker.update_task') and values are ToolRiskKind (read/write/high)."
+        ),
+    )
+
 
 class SafetyPolicy(BaseSchema):
     block_prompt_injection: bool = True
@@ -80,6 +95,14 @@ class PolicyDecision:
 def _risk_ge(a: RiskLevel, b: RiskLevel) -> bool:
     order = {RiskLevel.low: 0, RiskLevel.medium: 1, RiskLevel.high: 2}
     return order[a] >= order[b]
+
+
+def risk_from_kind(kind: ToolRiskKind) -> RiskLevel:
+    if kind == ToolRiskKind.read:
+        return RiskLevel.low
+    if kind == ToolRiskKind.write:
+        return RiskLevel.medium
+    return RiskLevel.high
 
 
 def risk_requires_approval(risk: RiskLevel, *, profile: AutonomyProfile, policy: ApprovalPolicy) -> bool:
