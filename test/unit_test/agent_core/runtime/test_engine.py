@@ -35,6 +35,31 @@ class _GraphSpy:
         self.invocations.append(state)
 
 
+@pytest.mark.asyncio
+async def test_start_run_emits_plan_created_event(repos, registry, policy: GlobalPolicy) -> None:
+    reg, _cap = registry
+    deps = EngineDeps(
+        runs=repos["runs"],
+        events=repos["events"],
+        approvals=repos["approvals"],
+        checkpoints=repos["checkpoints"],
+        tool_invocations=repos["tool_invocations"],
+        capabilities=reg,
+    )
+    engine = AgentEngine(policy=policy, deps=deps)
+
+    graph_spy = _GraphSpy()
+    engine._graph = graph_spy
+
+    run = AgentRun(role="dev", objective="x")
+    await engine.start_run(run=run, plan=[{"capability": CapabilityName.summarize.value, "args": {"text": "hi"}}])
+
+    assert any(e.type == AgentEventType.plan_created for e in repos["events"].events)
+    plan_events = [e for e in repos["events"].events if e.type == AgentEventType.plan_created]
+    assert len(plan_events) == 1
+    assert plan_events[0].payload.get("plan")
+
+
 class _RunsRepo:
     def __init__(self) -> None:
         self.by_id: Dict[str, AgentRun] = {}
@@ -448,3 +473,8 @@ async def test_resume_run_happy_path_restores_checkpoint_and_invokes_graph(repos
     assert invoked["idx"] == 0
     assert invoked.get("awaiting_approval_id") is None
     assert any(e.type == AgentEventType.state_transition for e in repos["events"].events)
+    assert any(e.type == AgentEventType.approval_resolved for e in repos["events"].events)
+    resolved = [e for e in repos["events"].events if e.type == AgentEventType.approval_resolved][0]
+    assert resolved.payload.get("approval_id") == approval.id
+    assert resolved.payload.get("decision") == ApprovalDecision.approved
+    assert resolved.payload.get("decided_by") == "tester"
