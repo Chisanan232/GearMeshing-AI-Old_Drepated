@@ -14,6 +14,18 @@ class ToolPolicy(BaseSchema):
         default=None,
         description="If set, only these capabilities may be executed.",
     )
+
+    allowed_tools: Optional[set[str]] = Field(
+        default=None,
+        description=(
+            "If set, only these logical tool names may be executed. "
+            "Logical tool names are free-form strings like 'scm.create_pr'."
+        ),
+    )
+    blocked_tools: set[str] = Field(
+        default_factory=set,
+        description="Logical tool names in this set will be blocked.",
+    )
     allowed_mcp_servers: Optional[set[str]] = Field(
         default=None,
         description="If set, MCP calls must target one of these server ids/slugs.",
@@ -25,8 +37,16 @@ class ToolPolicy(BaseSchema):
 
 
 class ApprovalPolicy(BaseSchema):
-    require_for_risk_at_or_above: RiskLevel = RiskLevel.high
+    require_for_risk_at_or_above: RiskLevel = RiskLevel.medium
     approval_ttl_seconds: float = Field(default=900.0, ge=0.0, le=86400.0)
+
+    tool_risk_overrides: dict[str, RiskLevel] = Field(
+        default_factory=dict,
+        description=(
+            "Optional per-logical-tool risk overrides. Keys are logical tool names "
+            "(e.g. 'scm.merge_pr') and values are RiskLevel." 
+        ),
+    )
 
 
 class SafetyPolicy(BaseSchema):
@@ -64,7 +84,7 @@ def _risk_ge(a: RiskLevel, b: RiskLevel) -> bool:
 
 def risk_requires_approval(risk: RiskLevel, *, profile: AutonomyProfile, policy: ApprovalPolicy) -> bool:
     if profile == AutonomyProfile.unrestricted:
-        return False
+        return _risk_ge(risk, RiskLevel.high)
     if profile == AutonomyProfile.strict:
         return True
     return _risk_ge(risk, policy.require_for_risk_at_or_above)
