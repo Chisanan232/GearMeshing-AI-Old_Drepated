@@ -5,7 +5,10 @@ from typing import Any, List
 
 import pytest
 
-from gearmeshing_ai.agent_core.planning import ActionStep, StructuredPlanner, ThoughtStep
+from gearmeshing_ai.agent_core.planning import (
+    ActionStep,
+    StructuredPlanner,
+)
 from gearmeshing_ai.agent_core.schemas.domain import CapabilityName
 
 
@@ -55,8 +58,20 @@ async def test_planner_uses_pydantic_ai_agent_and_model_dump(monkeypatch: pytest
     out = await planner.plan(objective="Find info", role="market")
 
     assert out == [
-        {"kind": "action", "capability": CapabilityName.web_search, "args": {"query": "hello"}, "server_id": None, "tool_name": None},
-        {"kind": "action", "capability": CapabilityName.summarize, "args": {"text": "done"}, "server_id": None, "tool_name": None},
+        {
+            "kind": "action",
+            "capability": CapabilityName.web_search,
+            "args": {"query": "hello"},
+            "server_id": None,
+            "tool_name": None,
+        },
+        {
+            "kind": "action",
+            "capability": CapabilityName.summarize,
+            "args": {"text": "done"},
+            "server_id": None,
+            "tool_name": None,
+        },
     ]
 
 
@@ -109,6 +124,18 @@ async def test_planner_with_functionmodel_returns_expected_plan() -> None:
     out = await planner.plan(objective="Write tests", role="dev")
 
     assert out == [
-        {"kind": "action", "capability": CapabilityName.web_search, "args": {"query": "pydantic ai testing"}, "server_id": None, "tool_name": None},
-        {"kind": "action", "capability": CapabilityName.summarize, "args": {"text": "summary me"}, "server_id": None, "tool_name": None},
+        {
+            "kind": "action",
+            "capability": CapabilityName.web_search,
+            "args": {"query": "pydantic ai testing"},
+            "server_id": None,
+            "tool_name": None,
+        },
+        {
+            "kind": "action",
+            "capability": CapabilityName.summarize,
+            "args": {"text": "summary me"},
+            "server_id": None,
+            "tool_name": None,
+        },
     ]

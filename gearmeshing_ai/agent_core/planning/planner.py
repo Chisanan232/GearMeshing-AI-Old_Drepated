@@ -13,9 +13,7 @@ class StructuredPlanner:
 
     async def plan(self, *, objective: str, role: str) -> List[Dict[str, Any]]:
         if self._model is None:
-            return [
-                ThoughtStep(thought="summarize", args={"text": objective, "role": role}).model_dump()
-            ]
+            return [ThoughtStep(thought="summarize", args={"text": objective, "role": role}).model_dump()]
 
         agent: Agent = Agent(
             self._model,

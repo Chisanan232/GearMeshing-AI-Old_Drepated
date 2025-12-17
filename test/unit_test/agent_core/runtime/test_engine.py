@@ -180,7 +180,9 @@ async def test_node_execute_next_marks_finished_when_idx_out_of_range(engine_run
 
 
 @pytest.mark.asyncio
-async def test_node_execute_next_thought_step_emits_artifact_and_never_invokes_tools(engine_runtime: AgentEngine, repos) -> None:
+async def test_node_execute_next_thought_step_emits_artifact_and_never_invokes_tools(
+    engine_runtime: AgentEngine, repos
+) -> None:
     run = AgentRun(role="dev", objective="x")
     await repos["runs"].create(run)
 
