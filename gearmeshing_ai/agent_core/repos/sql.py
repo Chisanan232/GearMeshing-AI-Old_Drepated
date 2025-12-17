@@ -1,5 +1,30 @@
 from __future__ import annotations
 
+"""SQLAlchemy async repository implementations.
+
+This module provides a Postgres-backed persistence implementation for the
+repository interfaces defined in ``gearmeshing_ai.agent_core.repos.interfaces``.
+
+Usage
+-----
+
+Typical wiring (tests or application setup):
+
+- Create an async engine with ``create_engine``.
+- Create tables with ``create_all`` (for tests/dev; production typically uses
+  migrations).
+- Create a session factory with ``create_sessionmaker``.
+- Build repository instances with ``build_sql_repos``.
+
+Transaction model
+-----------------
+
+Each repository method opens an ``AsyncSession``, performs its operation, and
+commits. This keeps persistence boundaries simple for the runtime engine and
+guarantees that each persisted artifact (event, checkpoint, etc.) is durable
+when the method returns.
+"""
+
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -41,15 +66,26 @@ from .models import (
 
 
 def create_engine(db_url: str) -> AsyncEngine:
+    """Create an async SQLAlchemy engine.
+
+    The helper normalizes Postgres URLs to ensure the async driver is used.
+    For example, it rewrites ``postgresql://`` and other variants to
+    ``postgresql+asyncpg://``.
+    """
     url = re.sub(r"^postgres(?:ql)?(?:\+[a-z0-9_]+)?://", "postgresql+asyncpg://", db_url, count=1)
     return create_async_engine(url, pool_pre_ping=True)
 
 
 def create_sessionmaker(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
+    """Create an ``async_sessionmaker`` with safe defaults for this project."""
     return async_sessionmaker(engine, expire_on_commit=False)
 
 
 async def create_all(engine: AsyncEngine) -> None:
+    """Create all tables for the current ORM metadata.
+
+    This is mainly intended for tests and local development.
+    """
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
@@ -61,6 +97,7 @@ def _utc_now_naive() -> datetime:
 
 @dataclass(frozen=True)
 class SqlRunRepository(RunRepository):
+    """SQL implementation of ``RunRepository``."""
     session_factory: async_sessionmaker[AsyncSession]
 
     async def create(self, run: AgentRun) -> None:
@@ -113,6 +150,7 @@ class SqlRunRepository(RunRepository):
 
 @dataclass(frozen=True)
 class SqlEventRepository(EventRepository):
+    """SQL implementation of ``EventRepository`` (append-only)."""
     session_factory: async_sessionmaker[AsyncSession]
 
     async def append(self, event: AgentEvent) -> None:
@@ -132,6 +170,7 @@ class SqlEventRepository(EventRepository):
 
 @dataclass(frozen=True)
 class SqlApprovalRepository(ApprovalRepository):
+    """SQL implementation of ``ApprovalRepository``."""
     session_factory: async_sessionmaker[AsyncSession]
 
     async def create(self, approval: Approval) -> None:
@@ -185,6 +224,11 @@ class SqlApprovalRepository(ApprovalRepository):
 
 @dataclass(frozen=True)
 class SqlCheckpointRepository(CheckpointRepository):
+    """SQL implementation of ``CheckpointRepository``.
+
+    Checkpoints store serialized graph state used by the engine to resume a
+    paused run.
+    """
     session_factory: async_sessionmaker[AsyncSession]
 
     async def save(self, checkpoint: Checkpoint) -> None:
@@ -217,6 +261,7 @@ class SqlCheckpointRepository(CheckpointRepository):
 
 @dataclass(frozen=True)
 class SqlToolInvocationRepository(ToolInvocationRepository):
+    """SQL implementation of ``ToolInvocationRepository``."""
     session_factory: async_sessionmaker[AsyncSession]
 
     async def append(self, invocation: ToolInvocation) -> None:
@@ -239,6 +284,7 @@ class SqlToolInvocationRepository(ToolInvocationRepository):
 
 @dataclass(frozen=True)
 class SqlUsageRepository(UsageRepository):
+    """SQL implementation of ``UsageRepository`` (append-only ledger)."""
     session_factory: async_sessionmaker[AsyncSession]
 
     async def append(self, usage: UsageLedgerEntry) -> None:
@@ -261,6 +307,7 @@ class SqlUsageRepository(UsageRepository):
 
 @dataclass(frozen=True)
 class SqlRepoBundle:
+    """Convenience bundle of all SQL repositories for dependency injection."""
     runs: SqlRunRepository
     events: SqlEventRepository
     approvals: SqlApprovalRepository
@@ -270,6 +317,7 @@ class SqlRepoBundle:
 
 
 def build_sql_repos(*, session_factory: async_sessionmaker[AsyncSession]) -> SqlRepoBundle:
+    """Build a ``SqlRepoBundle`` from a session factory."""
     return SqlRepoBundle(
         runs=SqlRunRepository(session_factory=session_factory),
         events=SqlEventRepository(session_factory=session_factory),
