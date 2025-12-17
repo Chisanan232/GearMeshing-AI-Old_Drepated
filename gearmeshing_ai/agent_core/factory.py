@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from ..info_provider.prompt import PromptProvider
-
 from .capabilities.builtin import (
     CodeExecutionCapability,
     CodegenCapability,
@@ -13,8 +11,8 @@ from .capabilities.builtin import (
 from .capabilities.registry import CapabilityRegistry
 from .policy.global_policy import GlobalPolicy
 from .policy.models import PolicyConfig
-from .runtime.engine import AgentEngine
 from .runtime import EngineDeps
+from .runtime.engine import AgentEngine
 
 
 def build_default_registry() -> CapabilityRegistry:
