@@ -21,6 +21,7 @@ from ..repos import (
     EventRepository,
     RunRepository,
     ToolInvocationRepository,
+    UsageRepository,
 )
 
 
@@ -41,8 +42,9 @@ class EngineDeps:
     approvals: ApprovalRepository
     checkpoints: CheckpointRepository
     tool_invocations: ToolInvocationRepository
-
     capabilities: CapabilityRegistry
+
+    usage: Optional[UsageRepository] = None
 
 
 class _GraphState(TypedDict):
