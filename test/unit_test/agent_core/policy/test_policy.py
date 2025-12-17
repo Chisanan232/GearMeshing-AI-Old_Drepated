@@ -6,6 +6,7 @@ import pytest
 
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
+from gearmeshing_ai.agent_core.policy.models import ToolRiskKind
 from gearmeshing_ai.agent_core.schemas.domain import (
     AutonomyProfile,
     CapabilityName,
@@ -207,3 +208,26 @@ def test_tool_risk_override_changes_approval_requirement() -> None:
     d = p.decide(CapabilityName.mcp_call, args={"server_id": "clickup"}, logical_tool="scm.merge_pr")
     assert d.risk == RiskLevel.high
     assert d.require_approval is True
+
+
+def test_tool_risk_kind_maps_to_risk_level() -> None:
+    cfg = PolicyConfig()
+    cfg.approval_policy.tool_risk_kinds = {
+        "tracker.get_task": ToolRiskKind.read,
+        "tracker.update_task": ToolRiskKind.write,
+        "scm.merge_pr": ToolRiskKind.high,
+    }
+    p = GlobalPolicy(cfg)
+
+    assert p.classify_risk(CapabilityName.mcp_call, args={}, logical_tool="tracker.get_task") == RiskLevel.low
+    assert p.classify_risk(CapabilityName.mcp_call, args={}, logical_tool="tracker.update_task") == RiskLevel.medium
+    assert p.classify_risk(CapabilityName.mcp_call, args={}, logical_tool="scm.merge_pr") == RiskLevel.high
+
+
+def test_tool_risk_override_takes_precedence_over_kind() -> None:
+    cfg = PolicyConfig()
+    cfg.approval_policy.tool_risk_kinds = {"scm.merge_pr": ToolRiskKind.high}
+    cfg.approval_policy.tool_risk_overrides = {"scm.merge_pr": RiskLevel.low}
+    p = GlobalPolicy(cfg)
+
+    assert p.classify_risk(CapabilityName.mcp_call, args={}, logical_tool="scm.merge_pr") == RiskLevel.low
