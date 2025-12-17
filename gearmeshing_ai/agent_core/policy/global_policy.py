@@ -25,7 +25,7 @@ import re
 from typing import Any, Dict, Optional
 
 from ..schemas.domain import CapabilityName, RiskLevel
-from .models import PolicyConfig, PolicyDecision, risk_requires_approval
+from .models import PolicyConfig, PolicyDecision, risk_from_kind, risk_requires_approval
 
 _SECRET_PATTERNS = (
     re.compile(r"sk-[A-Za-z0-9]{10,}"),
@@ -65,6 +65,10 @@ class GlobalPolicy:
             override = self._cfg.approval_policy.tool_risk_overrides.get(logical_tool)
             if override is not None:
                 return override
+
+            kind = self._cfg.approval_policy.tool_risk_kinds.get(logical_tool)
+            if kind is not None:
+                return risk_from_kind(kind)
 
         if capability in {CapabilityName.shell_exec, CapabilityName.codegen, CapabilityName.code_execution}:
             return RiskLevel.high
