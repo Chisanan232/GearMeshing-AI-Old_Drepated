@@ -40,6 +40,7 @@ class GlobalPolicy:
     ``GlobalPolicy`` is configured by ``PolicyConfig`` and provides helper
     methods used by the runtime engine.
     """
+
     def __init__(self, config: PolicyConfig) -> None:
         self._cfg = config
 

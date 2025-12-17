@@ -46,6 +46,7 @@ class ThoughtStep(BaseSchema):
     - Must not require approval.
     - May only emit events/artifacts.
     """
+
     kind: Literal["thought"] = "thought"
     thought: str
     args: Dict[str, Any] = Field(default_factory=dict)
@@ -67,6 +68,7 @@ class ActionStep(BaseSchema):
         Optional transport identifiers used when an action maps to an MCP tool.
         These are persisted in tool invocation logs for auditability.
     """
+
     kind: Literal["action"] = "action"
     capability: CapabilityName
     args: Dict[str, Any] = Field(default_factory=dict)

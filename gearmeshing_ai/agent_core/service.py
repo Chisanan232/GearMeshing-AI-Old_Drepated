@@ -41,12 +41,14 @@ class AgentServiceDeps:
     - persistence/capability dependencies for the runtime engine,
     - a planner implementation.
     """
+
     engine_deps: EngineDeps
     planner: StructuredPlanner
 
 
 class AgentService:
     """Orchestrate planning + execution for a single agent run."""
+
     def __init__(self, *, policy_config: PolicyConfig, deps: AgentServiceDeps) -> None:
         self._policy_config = policy_config
         self._deps = deps

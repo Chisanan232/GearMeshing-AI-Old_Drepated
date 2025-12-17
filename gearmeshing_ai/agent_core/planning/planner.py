@@ -43,6 +43,7 @@ class StructuredPlanner:
     The returned list is suitable for passing directly into
     ``AgentEngine.start_run(plan=...)``.
     """
+
     def __init__(self, *, model: Any | None = None) -> None:
         self._model = model
 

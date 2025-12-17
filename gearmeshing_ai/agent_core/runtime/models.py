@@ -35,6 +35,7 @@ class EngineDeps:
       invocations)
     - the capability registry used to resolve Action steps.
     """
+
     runs: RunRepository
     events: EventRepository
     approvals: ApprovalRepository
@@ -60,6 +61,7 @@ class _GraphState(TypedDict):
     - ``_resume_skip_approval``: internal one-shot flag used to avoid re-pausing
       immediately after a resume.
     """
+
     run_id: Required[str]
     plan: Required[List[Dict[str, Any]]]
     idx: Required[int]

@@ -37,6 +37,7 @@ class CapabilityContext:
         Runtime dependencies (repositories and registries) bundled in
         ``EngineDeps``.
     """
+
     run: AgentRun
     policy: GlobalPolicy
     deps: Any
@@ -45,12 +46,14 @@ class CapabilityContext:
 @dataclass(frozen=True)
 class CapabilityResult:
     """Structured capability execution result."""
+
     ok: bool
     output: Dict[str, Any]
 
 
 class Capability(Protocol):
     """Protocol for capability implementations."""
+
     name: CapabilityName
 
     async def execute(self, ctx: CapabilityContext, *, args: Dict[str, Any]) -> CapabilityResult: ...

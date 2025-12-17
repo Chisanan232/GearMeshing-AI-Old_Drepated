@@ -29,7 +29,6 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 class Base(DeclarativeBase):
     """Declarative base for all ORM models."""
-    pass
 
 
 class RunRow(Base):
@@ -43,6 +42,7 @@ class RunRow(Base):
     - ``role``/``autonomy_profile``: behavior and approval posture context.
     - ``objective``: the user objective being solved.
     """
+
     __tablename__ = "gm_agent_runs"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -70,6 +70,7 @@ class EventRow(Base):
     ``payload`` is stored as JSONB to capture structured details for auditing
     and debugging.
     """
+
     __tablename__ = "gm_agent_events"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -87,6 +88,7 @@ class ToolInvocationRow(Base):
 
     Records side-effecting invocations made by Action steps.
     """
+
     __tablename__ = "gm_tool_invocations"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -109,6 +111,7 @@ class ApprovalRow(Base):
 
     Stores approval requests and resolutions.
     """
+
     __tablename__ = "gm_approvals"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -132,6 +135,7 @@ class CheckpointRow(Base):
 
     Checkpoints store serialized LangGraph state required for pause/resume.
     """
+
     __tablename__ = "gm_checkpoints"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -148,6 +152,7 @@ class UsageRow(Base):
 
     Append-only token/cost accounting per run.
     """
+
     __tablename__ = "gm_usage_ledger"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)

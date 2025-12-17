@@ -23,6 +23,7 @@ class CapabilityRegistry:
     - ``register`` overwrites any existing mapping for the capability name.
     - ``get`` will raise ``KeyError`` if the capability is missing.
     """
+
     def __init__(self) -> None:
         self._caps: Dict[CapabilityName, Capability] = {}
 

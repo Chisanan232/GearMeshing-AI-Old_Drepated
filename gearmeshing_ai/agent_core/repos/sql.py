@@ -98,6 +98,7 @@ def _utc_now_naive() -> datetime:
 @dataclass(frozen=True)
 class SqlRunRepository(RunRepository):
     """SQL implementation of ``RunRepository``."""
+
     session_factory: async_sessionmaker[AsyncSession]
 
     async def create(self, run: AgentRun) -> None:
@@ -151,6 +152,7 @@ class SqlRunRepository(RunRepository):
 @dataclass(frozen=True)
 class SqlEventRepository(EventRepository):
     """SQL implementation of ``EventRepository`` (append-only)."""
+
     session_factory: async_sessionmaker[AsyncSession]
 
     async def append(self, event: AgentEvent) -> None:
@@ -171,6 +173,7 @@ class SqlEventRepository(EventRepository):
 @dataclass(frozen=True)
 class SqlApprovalRepository(ApprovalRepository):
     """SQL implementation of ``ApprovalRepository``."""
+
     session_factory: async_sessionmaker[AsyncSession]
 
     async def create(self, approval: Approval) -> None:
@@ -229,6 +232,7 @@ class SqlCheckpointRepository(CheckpointRepository):
     Checkpoints store serialized graph state used by the engine to resume a
     paused run.
     """
+
     session_factory: async_sessionmaker[AsyncSession]
 
     async def save(self, checkpoint: Checkpoint) -> None:
@@ -262,6 +266,7 @@ class SqlCheckpointRepository(CheckpointRepository):
 @dataclass(frozen=True)
 class SqlToolInvocationRepository(ToolInvocationRepository):
     """SQL implementation of ``ToolInvocationRepository``."""
+
     session_factory: async_sessionmaker[AsyncSession]
 
     async def append(self, invocation: ToolInvocation) -> None:
@@ -285,6 +290,7 @@ class SqlToolInvocationRepository(ToolInvocationRepository):
 @dataclass(frozen=True)
 class SqlUsageRepository(UsageRepository):
     """SQL implementation of ``UsageRepository`` (append-only ledger)."""
+
     session_factory: async_sessionmaker[AsyncSession]
 
     async def append(self, usage: UsageLedgerEntry) -> None:
@@ -308,6 +314,7 @@ class SqlUsageRepository(UsageRepository):
 @dataclass(frozen=True)
 class SqlRepoBundle:
     """Convenience bundle of all SQL repositories for dependency injection."""
+
     runs: SqlRunRepository
     events: SqlEventRepository
     approvals: SqlApprovalRepository

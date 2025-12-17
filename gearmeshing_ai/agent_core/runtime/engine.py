@@ -59,6 +59,7 @@ class AgentEngine:
     policy decisions to ``GlobalPolicy`` and delegates actual work to
     capability implementations registered in ``EngineDeps.capabilities``.
     """
+
     def __init__(self, *, policy: GlobalPolicy, deps: EngineDeps) -> None:
         self._policy = policy
         self._deps = deps
