@@ -66,6 +66,8 @@ class AgentEventType(str, Enum):
     run_failed = "run.failed"
     state_transition = "state.transition"
     plan_created = "plan.created"
+    thought_executed = "thought.executed"
+    artifact_created = "artifact.created"
     capability_requested = "capability.requested"
     capability_executed = "capability.executed"
     tool_invoked = "tool.invoked"
