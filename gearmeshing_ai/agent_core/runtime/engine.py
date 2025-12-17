@@ -48,6 +48,7 @@ from ..schemas.domain import (
     CapabilityName,
     Checkpoint,
     ToolInvocation,
+    UsageLedgerEntry,
 )
 from .models import EngineDeps, _GraphState
 
@@ -112,6 +113,16 @@ class AgentEngine:
 
         await self._deps.events.append(
             AgentEvent(run_id=run.id, type=AgentEventType.plan_created, payload={"plan": normalized_plan})
+        )
+
+        cp = Checkpoint(
+            run_id=run.id,
+            node="start",
+            state={"run_id": run.id, "plan": normalized_plan, "idx": 0, "awaiting_approval_id": None},
+        )
+        await self._deps.checkpoints.save(cp)
+        await self._deps.events.append(
+            AgentEvent(run_id=run.id, type=AgentEventType.checkpoint_saved, payload={"checkpoint_id": cp.id})
         )
 
         state: _GraphState = {
@@ -293,6 +304,42 @@ class AgentEngine:
                 risk=decision.risk,
             )
         )
+
+        if self._deps.usage is not None:
+            usage_payload = dict(res.output.get("usage") or {}) if isinstance(res.output.get("usage"), dict) else {}
+            prompt_tokens = usage_payload.get("prompt_tokens", res.output.get("prompt_tokens"))
+            completion_tokens = usage_payload.get("completion_tokens", res.output.get("completion_tokens"))
+            total_tokens = usage_payload.get("total_tokens", res.output.get("total_tokens"))
+            cost_usd = usage_payload.get("cost_usd", res.output.get("cost_usd"))
+            provider = usage_payload.get("provider", res.output.get("provider"))
+            model = usage_payload.get("model", res.output.get("model"))
+
+            if any(v is not None for v in (prompt_tokens, completion_tokens, total_tokens, cost_usd, provider, model)):
+                entry = UsageLedgerEntry(
+                    run_id=run_id,
+                    provider=str(provider) if provider is not None else None,
+                    model=str(model) if model is not None else None,
+                    prompt_tokens=int(prompt_tokens or 0),
+                    completion_tokens=int(completion_tokens or 0),
+                    total_tokens=int(total_tokens or (int(prompt_tokens or 0) + int(completion_tokens or 0))),
+                    cost_usd=float(cost_usd) if cost_usd is not None else None,
+                )
+                await self._deps.usage.append(entry)
+                await self._deps.events.append(
+                    AgentEvent(
+                        run_id=run_id,
+                        type=AgentEventType.usage_recorded,
+                        payload={
+                            "usage_id": entry.id,
+                            "provider": entry.provider,
+                            "model": entry.model,
+                            "prompt_tokens": entry.prompt_tokens,
+                            "completion_tokens": entry.completion_tokens,
+                            "total_tokens": entry.total_tokens,
+                            "cost_usd": entry.cost_usd,
+                        },
+                    )
+                )
 
         state["idx"] = idx + 1
         return state
