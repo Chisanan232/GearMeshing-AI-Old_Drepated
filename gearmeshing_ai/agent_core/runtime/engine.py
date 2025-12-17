@@ -196,8 +196,9 @@ class AgentEngine:
 
         cap = CapabilityName(step["capability"])
         args = dict(step.get("args") or {})
+        logical_tool = cast(str | None, step.get("logical_tool"))
 
-        decision = self._policy.decide(cap, args=args)
+        decision = self._policy.decide(cap, args=args, logical_tool=logical_tool)
         if decision.block:
             await self._deps.events.append(
                 AgentEvent(
@@ -269,7 +270,7 @@ class AgentEngine:
             ToolInvocation(
                 run_id=run_id,
                 server_id=str(step.get("server_id") or ""),
-                tool_name=str(step.get("tool_name") or cap.value),
+                tool_name=str(step.get("tool_name") or logical_tool or cap.value),
                 args=args,
                 ok=res.ok,
                 result=res.output,
