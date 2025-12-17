@@ -6,6 +6,7 @@ from typing import Any
 import pytest
 
 from gearmeshing_ai.agent_core.factory import build_default_registry, build_engine
+from gearmeshing_ai.agent_core.planning import StructuredPlanner
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
 from gearmeshing_ai.agent_core.runtime import EngineDeps
 from gearmeshing_ai.agent_core.schemas.domain import AgentRole, AgentRun, CapabilityName
@@ -25,21 +26,21 @@ def test_build_default_registry_registers_all_builtin_capabilities() -> None:
 def test_build_engine_wires_policy_config_and_deps() -> None:
     cfg = PolicyConfig()
     deps = EngineDeps(
-        runs=object(),
-        events=object(),
-        approvals=object(),
-        checkpoints=object(),
-        tool_invocations=object(),
+        runs=object(),  # type: ignore[arg-type]
+        events=object(),  # type: ignore[arg-type]
+        approvals=object(),  # type: ignore[arg-type]
+        checkpoints=object(),  # type: ignore[arg-type]
+        tool_invocations=object(),  # type: ignore[arg-type]
         capabilities=build_default_registry(),
     )
 
     engine = build_engine(policy_config=cfg, deps=deps)
-    assert engine._deps is deps  # type: ignore[attr-defined]
-    assert engine._policy.config is cfg  # type: ignore[attr-defined]
+    assert engine._deps is deps
+    assert engine._policy.config is cfg
 
 
 @dataclass
-class _FakePlanner:
+class _FakePlanner(StructuredPlanner):
     plan_result: list[dict[str, Any]]
     last_objective: str | None = None
     last_role: str | None = None
@@ -77,11 +78,11 @@ async def test_agent_service_run_calls_planner_and_engine(monkeypatch: pytest.Mo
     planner = _FakePlanner(plan_result=[{"capability": CapabilityName.summarize, "args": {"text": "x"}}])
     deps = AgentServiceDeps(
         engine_deps=EngineDeps(
-            runs=object(),
-            events=object(),
-            approvals=object(),
-            checkpoints=object(),
-            tool_invocations=object(),
+            runs=object(),  # type: ignore[arg-type]
+            events=object(),  # type: ignore[arg-type]
+            approvals=object(),  # type: ignore[arg-type]
+            checkpoints=object(),  # type: ignore[arg-type]
+            tool_invocations=object(),  # type: ignore[arg-type]
             capabilities=build_default_registry(),
         ),
         planner=planner,
@@ -114,11 +115,11 @@ async def test_agent_service_resume_calls_engine(monkeypatch: pytest.MonkeyPatch
 
     deps = AgentServiceDeps(
         engine_deps=EngineDeps(
-            runs=object(),
-            events=object(),
-            approvals=object(),
-            checkpoints=object(),
-            tool_invocations=object(),
+            runs=object(),  # type: ignore[arg-type]
+            events=object(),  # type: ignore[arg-type]
+            approvals=object(),  # type: ignore[arg-type]
+            checkpoints=object(),  # type: ignore[arg-type]
+            tool_invocations=object(),  # type: ignore[arg-type]
             capabilities=build_default_registry(),
         ),
         planner=_FakePlanner(plan_result=[]),
