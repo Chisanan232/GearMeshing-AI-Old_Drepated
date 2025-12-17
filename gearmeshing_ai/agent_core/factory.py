@@ -26,6 +26,7 @@ from .runtime.engine import AgentEngine
 from .schemas.domain import AgentRole, AgentRun
 from .service import AgentService, AgentServiceDeps
 from .agent_registry import AgentRegistry
+from .role_provider import AgentRoleProvider, DEFAULT_ROLE_PROVIDER
 
 
 def build_default_registry() -> CapabilityRegistry:
@@ -50,13 +51,34 @@ def build_engine(*, policy_config: PolicyConfig, deps: EngineDeps) -> AgentEngin
     return AgentEngine(policy=policy, deps=deps)
 
 
-def build_agent_registry(*, base_policy_config: PolicyConfig, deps: AgentServiceDeps) -> AgentRegistry:
+def build_agent_registry(
+    *,
+    base_policy_config: PolicyConfig,
+    deps: AgentServiceDeps,
+    role_provider: AgentRoleProvider = DEFAULT_ROLE_PROVIDER,
+) -> AgentRegistry:
     reg = AgentRegistry()
 
     def _make_factory(_role: str):
         def _factory(run: AgentRun) -> AgentService:
             cfg = base_policy_config.model_copy(deep=True)
             cfg.autonomy_profile = run.autonomy_profile
+
+            role_def = role_provider.get(_role)
+
+            role_caps = set(role_def.permissions.allowed_capabilities)
+            if cfg.tool_policy.allowed_capabilities is None:
+                cfg.tool_policy.allowed_capabilities = role_caps
+            else:
+                cfg.tool_policy.allowed_capabilities = set(cfg.tool_policy.allowed_capabilities).intersection(role_caps)
+
+            role_tools = set(role_def.permissions.allowed_tools)
+            if role_tools:
+                if cfg.tool_policy.allowed_tools is None:
+                    cfg.tool_policy.allowed_tools = role_tools
+                else:
+                    cfg.tool_policy.allowed_tools = set(cfg.tool_policy.allowed_tools).intersection(role_tools)
+
             return AgentService(policy_config=cfg, deps=deps)
 
         return _factory
