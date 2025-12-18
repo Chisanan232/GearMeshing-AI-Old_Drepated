@@ -201,7 +201,9 @@ def engine_runtime(repos, registry, policy: GlobalPolicy) -> AgentEngine:
 
 
 @pytest.mark.asyncio
-async def test_node_execute_next_persists_usage_when_capability_emits_usage(repos, registry, policy: GlobalPolicy) -> None:
+async def test_node_execute_next_persists_usage_when_capability_emits_usage(
+    repos, registry, policy: GlobalPolicy
+) -> None:
     reg, _cap = registry
     usage_cap = _DummyCapability(
         output={

@@ -51,7 +51,7 @@ class ApprovalPolicy(BaseSchema):
         default_factory=dict,
         description=(
             "Optional per-logical-tool risk overrides. Keys are logical tool names "
-            "(e.g. 'scm.merge_pr') and values are RiskLevel." 
+            "(e.g. 'scm.merge_pr') and values are RiskLevel."
         ),
     )
 

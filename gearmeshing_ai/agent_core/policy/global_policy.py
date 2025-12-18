@@ -76,7 +76,9 @@ class GlobalPolicy:
             return RiskLevel.medium
         return RiskLevel.low
 
-    def decide(self, capability: CapabilityName, *, args: Dict[str, Any], logical_tool: str | None = None) -> PolicyDecision:
+    def decide(
+        self, capability: CapabilityName, *, args: Dict[str, Any], logical_tool: str | None = None
+    ) -> PolicyDecision:
         """Compute a policy decision for an action.
 
         The decision includes:
@@ -102,7 +104,10 @@ class GlobalPolicy:
                     block=True,
                     block_reason=f"tool blocked: {logical_tool}",
                 )
-            if self._cfg.tool_policy.allowed_tools is not None and logical_tool not in self._cfg.tool_policy.allowed_tools:
+            if (
+                self._cfg.tool_policy.allowed_tools is not None
+                and logical_tool not in self._cfg.tool_policy.allowed_tools
+            ):
                 return PolicyDecision(
                     risk=RiskLevel.low,
                     require_approval=False,

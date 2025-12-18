@@ -10,6 +10,7 @@ allowing advanced deployments to provide their own registry, policy
 configuration, and dependency bundles.
 """
 
+from .agent_registry import AgentRegistry
 from .capabilities.builtin import (
     CodeExecutionCapability,
     CodegenCapability,
@@ -22,12 +23,11 @@ from .capabilities.registry import CapabilityRegistry
 from .policy.global_policy import GlobalPolicy
 from .policy.models import PolicyConfig
 from .policy.provider import PolicyProvider
+from .role_provider import DEFAULT_ROLE_PROVIDER, AgentRoleProvider
 from .runtime import EngineDeps
 from .runtime.engine import AgentEngine
 from .schemas.domain import AgentRole, AgentRun
 from .service import AgentService, AgentServiceDeps
-from .agent_registry import AgentRegistry
-from .role_provider import AgentRoleProvider, DEFAULT_ROLE_PROVIDER
 
 
 def build_default_registry() -> CapabilityRegistry:

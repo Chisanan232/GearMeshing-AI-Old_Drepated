@@ -5,7 +5,6 @@ from typing import Callable, Dict
 from .schemas.domain import AgentRun
 from .service import AgentService
 
-
 AgentServiceFactory = Callable[[AgentRun], AgentService]
 
 

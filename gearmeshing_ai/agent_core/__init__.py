@@ -31,6 +31,8 @@ the full run:
 4. If approval is required, resume after approval resolution.
 """
 
+from .agent_registry import AgentRegistry
+from .router import Router
 from .schemas.domain import (
     AgentEvent,
     AgentRun,
@@ -40,9 +42,6 @@ from .schemas.domain import (
     CapabilityName,
     RiskLevel,
 )
-
-from .agent_registry import AgentRegistry
-from .router import Router
 
 __all__ = [
     "AgentRun",

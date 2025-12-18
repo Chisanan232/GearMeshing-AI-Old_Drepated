@@ -34,10 +34,10 @@ def test_static_policy_provider_prefers_tenant_then_workspace() -> None:
 
 
 def test_agent_service_overrides_autonomy_profile_from_run(monkeypatch) -> None:
-    from gearmeshing_ai.agent_core.service import AgentService, AgentServiceDeps
-    from gearmeshing_ai.agent_core.runtime import EngineDeps
     from gearmeshing_ai.agent_core.factory import build_default_registry
     from gearmeshing_ai.agent_core.planning import StructuredPlanner
+    from gearmeshing_ai.agent_core.runtime import EngineDeps
+    from gearmeshing_ai.agent_core.service import AgentService, AgentServiceDeps
 
     class _FakePlanner(StructuredPlanner):
         async def plan(self, *, objective: str, role: str):

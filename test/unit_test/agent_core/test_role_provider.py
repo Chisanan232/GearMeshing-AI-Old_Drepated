@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import pytest
 
-from gearmeshing_ai.agent_core.role_provider import DEFAULT_ROLE_PROVIDER, StaticAgentRoleProvider
+from gearmeshing_ai.agent_core.role_provider import (
+    DEFAULT_ROLE_PROVIDER,
+    StaticAgentRoleProvider,
+)
 from gearmeshing_ai.agent_core.schemas.domain import AgentRole
 
 

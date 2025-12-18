@@ -62,12 +62,16 @@ DEFAULT_ROLE_PROVIDER: AgentRoleProvider = StaticAgentRoleProvider(
         AgentRole.dev: RoleDefinition(
             role=AgentRole.dev,
             cognitive=CognitiveProfile(system_prompt_key="dev/system"),
-            permissions=RolePermissions(allowed_capabilities={CapabilityName.codegen, CapabilityName.mcp_call, CapabilityName.summarize}),
+            permissions=RolePermissions(
+                allowed_capabilities={CapabilityName.codegen, CapabilityName.mcp_call, CapabilityName.summarize}
+            ),
         ),
         AgentRole.dev_lead: RoleDefinition(
             role=AgentRole.dev_lead,
             cognitive=CognitiveProfile(system_prompt_key="dev_lead/system"),
-            permissions=RolePermissions(allowed_capabilities={CapabilityName.codegen, CapabilityName.mcp_call, CapabilityName.summarize}),
+            permissions=RolePermissions(
+                allowed_capabilities={CapabilityName.codegen, CapabilityName.mcp_call, CapabilityName.summarize}
+            ),
         ),
         AgentRole.qa: RoleDefinition(
             role=AgentRole.qa,
@@ -77,7 +81,9 @@ DEFAULT_ROLE_PROVIDER: AgentRoleProvider = StaticAgentRoleProvider(
         AgentRole.sre: RoleDefinition(
             role=AgentRole.sre,
             cognitive=CognitiveProfile(system_prompt_key="sre/system"),
-            permissions=RolePermissions(allowed_capabilities={CapabilityName.shell_exec, CapabilityName.mcp_call, CapabilityName.summarize}),
+            permissions=RolePermissions(
+                allowed_capabilities={CapabilityName.shell_exec, CapabilityName.mcp_call, CapabilityName.summarize}
+            ),
         ),
     }
 )
