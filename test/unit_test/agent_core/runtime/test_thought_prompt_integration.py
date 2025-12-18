@@ -172,8 +172,8 @@ async def test_thought_step_prompt_keyerror_uses_fallback_prompt(monkeypatch: py
         runs=runs,
         events=events,
         approvals=_NoopRepo(),  # type: ignore[arg-type]
-        checkpoints=_NoopRepo(),  # type: ignore[arg-type]
-        tool_invocations=_NoopRepo(),  # type: ignore[arg-type]
+        checkpoints=_NoopRepo(),
+        tool_invocations=_NoopRepo(),
         capabilities=reg,
         usage=None,
         prompt_provider=_PromptProvider(),
@@ -225,8 +225,8 @@ async def test_thought_step_prompt_provider_exception_disables_agent_call(monkey
         runs=runs,
         events=events,
         approvals=_NoopRepo(),  # type: ignore[arg-type]
-        checkpoints=_NoopRepo(),  # type: ignore[arg-type]
-        tool_invocations=_NoopRepo(),  # type: ignore[arg-type]
+        checkpoints=_NoopRepo(),
+        tool_invocations=_NoopRepo(),
         capabilities=reg,
         usage=None,
         prompt_provider=_PromptProvider(),
@@ -271,8 +271,8 @@ async def test_thought_step_non_dict_agent_output_is_wrapped(monkeypatch: pytest
         runs=runs,
         events=events,
         approvals=_NoopRepo(),  # type: ignore[arg-type]
-        checkpoints=_NoopRepo(),  # type: ignore[arg-type]
-        tool_invocations=_NoopRepo(),  # type: ignore[arg-type]
+        checkpoints=_NoopRepo(),
+        tool_invocations=_NoopRepo(),
         capabilities=reg,
         usage=None,
         prompt_provider=_PromptProvider(prompt="ROLE PROMPT"),

@@ -51,7 +51,7 @@ async def test_start_run_prompt_provider_version_error_is_swallowed(repos, regis
         tool_invocations=repos["tool_invocations"],
         usage=repos["usage"],
         capabilities=reg,
-        prompt_provider=_PromptProvider(),
+        prompt_provider=_PromptProvider(),  # type: ignore[arg-type]
     )
     engine = AgentEngine(policy=policy, deps=deps)
     graph_spy = _GraphSpy()
