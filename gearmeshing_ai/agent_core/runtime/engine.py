@@ -33,9 +33,8 @@ continues execution.
 
 from typing import Any, cast
 
-from pydantic_ai import Agent as PydanticAIAgent
-
 from langgraph.graph import END, StateGraph
+from pydantic_ai import Agent as PydanticAIAgent
 
 from ..capabilities.base import CapabilityContext
 from ..planning.steps import normalize_plan
