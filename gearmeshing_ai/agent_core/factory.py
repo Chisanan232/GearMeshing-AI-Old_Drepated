@@ -14,6 +14,8 @@ from .agent_registry import AgentRegistry
 from .capabilities.builtin import (
     CodeExecutionCapability,
     CodegenCapability,
+    DocsReadCapability,
+    McpCallCapability,
     ShellExecCapability,
     SummarizeCapability,
     WebFetchCapability,
@@ -40,6 +42,8 @@ def build_default_registry() -> CapabilityRegistry:
     reg.register(SummarizeCapability())
     reg.register(WebSearchCapability())
     reg.register(WebFetchCapability())
+    reg.register(DocsReadCapability())
+    reg.register(McpCallCapability())
     reg.register(ShellExecCapability())
     reg.register(CodeExecutionCapability())
     reg.register(CodegenCapability())
