@@ -70,6 +70,12 @@ class GlobalPolicy:
             if kind is not None:
                 return risk_from_kind(kind)
 
+        if capability == CapabilityName.mcp_call:
+            mut = args.get("_mcp_tool_mutating")
+            if mut is False:
+                return RiskLevel.low
+            return RiskLevel.medium
+
         if capability in {CapabilityName.shell_exec, CapabilityName.codegen, CapabilityName.code_execution}:
             return RiskLevel.high
         if capability in {CapabilityName.mcp_call}:
