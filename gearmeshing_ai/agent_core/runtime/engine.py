@@ -33,10 +33,7 @@ continues execution.
 
 from typing import Any, cast
 
-try:
-    from pydantic_ai import Agent as PydanticAIAgent
-except Exception:  # pragma: no cover
-    PydanticAIAgent = None
+from pydantic_ai import Agent as PydanticAIAgent
 
 from langgraph.graph import END, StateGraph
 
