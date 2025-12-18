@@ -33,6 +33,7 @@ async def test_full_agent_run_with_real_persistence() -> None:
             approvals=repos.approvals,
             checkpoints=repos.checkpoints,
             tool_invocations=repos.tool_invocations,
+            usage=repos.usage,
             capabilities=build_default_registry(),
         )
 

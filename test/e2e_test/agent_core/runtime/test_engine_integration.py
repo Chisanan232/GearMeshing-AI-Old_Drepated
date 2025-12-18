@@ -60,6 +60,7 @@ async def test_engine_multi_step_happy_path_executes_all_steps_and_finishes() ->
                 approvals=repos.approvals,
                 checkpoints=repos.checkpoints,
                 tool_invocations=repos.tool_invocations,
+                usage=repos.usage,
                 capabilities=reg,
             ),
         )
@@ -119,6 +120,7 @@ async def test_engine_empty_plan_happy_path_finishes_immediately() -> None:
                 checkpoints=repos.checkpoints,
                 tool_invocations=repos.tool_invocations,
                 capabilities=reg,
+                usage=repos.usage,
             ),
         )
 
@@ -159,6 +161,7 @@ async def test_engine_blocked_capability_results_in_failed_run() -> None:
                 approvals=repos.approvals,
                 checkpoints=repos.checkpoints,
                 tool_invocations=repos.tool_invocations,
+                usage=repos.usage,
                 capabilities=reg,
             ),
         )
