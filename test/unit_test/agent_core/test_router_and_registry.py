@@ -32,47 +32,53 @@ class _Svc:
 
 def test_registry_register_and_has_and_get() -> None:
     reg = AgentRegistry()
-    reg.register("dev", lambda _run: _Svc("dev"))  # type: ignore[arg-type]
+    reg.register("dev", lambda _run: _Svc("dev"))  # type: ignore[arg-type, return-value]
 
     assert reg.has("dev")
-    assert reg.get("dev")(AgentRun(role="dev", objective="x")).name == "dev"  # type: ignore[union-attr]
+    dev_svc = reg.get("dev")(AgentRun(role="dev", objective="x"))
+    assert isinstance(dev_svc, _Svc)
+    assert dev_svc.name == "dev"
 
 
 def test_router_routes_to_registered_role() -> None:
     reg = AgentRegistry()
-    reg.register("dev", lambda _run: _Svc("dev"))  # type: ignore[arg-type]
+    reg.register("dev", lambda _run: _Svc("dev"))  # type: ignore[arg-type, return-value]
 
     router = Router(registry=reg, default_role="planner")
     svc = router.route(run=AgentRun(role="dev", objective="x"))
-    assert svc.name == "dev"  # type: ignore[union-attr]
+    assert isinstance(svc, _Svc)
+    assert svc.name == "dev"
 
 
 def test_router_defaults_when_role_is_blank() -> None:
     reg = AgentRegistry()
-    reg.register("planner", lambda _run: _Svc("planner"))  # type: ignore[arg-type]
+    reg.register("planner", lambda _run: _Svc("planner"))  # type: ignore[arg-type, return-value]
 
     router = Router(registry=reg, default_role="planner")
     svc = router.route(run=AgentRun(role="", objective="x"))
-    assert svc.name == "planner"  # type: ignore[union-attr]
+    assert isinstance(svc, _Svc)
+    assert svc.name == "planner"
 
 
 def test_router_intent_routing_selects_dev_when_enabled() -> None:
     reg = AgentRegistry()
-    reg.register("planner", lambda _run: _Svc("planner"))  # type: ignore[arg-type]
-    reg.register("dev", lambda _run: _Svc("dev"))  # type: ignore[arg-type]
+    reg.register("planner", lambda _run: _Svc("planner"))  # type: ignore[arg-type, return-value]
+    reg.register("dev", lambda _run: _Svc("dev"))  # type: ignore[arg-type, return-value]
 
     router = Router(registry=reg, default_role="planner", enable_intent_routing=True)
     svc = router.route(run=AgentRun(role="", objective="Fix bug in payment flow"))
-    assert svc.name == "dev"  # type: ignore[union-attr]
+    assert isinstance(svc, _Svc)
+    assert svc.name == "dev"
 
 
 def test_router_intent_routing_falls_back_when_inferred_role_missing() -> None:
     reg = AgentRegistry()
-    reg.register("planner", lambda _run: _Svc("planner"))  # type: ignore[arg-type]
+    reg.register("planner", lambda _run: _Svc("planner"))  # type: ignore[arg-type, return-value]
 
     router = Router(registry=reg, default_role="planner", enable_intent_routing=True)
     svc = router.route(run=AgentRun(role="", objective="Investigate incident and monitor metrics"))
-    assert svc.name == "planner"  # type: ignore[union-attr]
+    assert isinstance(svc, _Svc)
+    assert svc.name == "planner"
 
 
 def test_router_raises_for_unknown_role() -> None:
