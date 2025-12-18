@@ -119,7 +119,7 @@ def test_router_route_branching(
 ) -> None:
     reg = AgentRegistry()
     for r in registered:
-        reg.register(r, lambda _run, _r=r: _Svc(_r))  # type: ignore[arg-type, return-value]
+        reg.register(r, lambda _run, _r=r: _Svc(_r))  # type: ignore[arg-type, misc]
 
     router = Router(registry=reg, default_role="planner", enable_intent_routing=enable_intent)
     svc = router.route(run=AgentRun(role=run_role, objective=objective))
