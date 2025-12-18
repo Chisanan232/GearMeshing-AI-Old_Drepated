@@ -12,9 +12,10 @@ checkpointed for pause/resume.
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, NotRequired, Optional, Required, TypedDict
+from typing import Any, Awaitable, Callable, Dict, List, NotRequired, Optional, Required, TypedDict
 
 from ..capabilities import CapabilityRegistry
+from ..role_provider import AgentRoleProvider
 from ..repos import (
     ApprovalRepository,
     CheckpointRepository,
@@ -23,6 +24,8 @@ from ..repos import (
     ToolInvocationRepository,
     UsageRepository,
 )
+from ...info_provider.mcp.base import BaseAsyncMCPInfoProvider
+from ...info_provider.prompt.base import PromptProvider
 
 
 @dataclass(frozen=True)
@@ -45,6 +48,12 @@ class EngineDeps:
     capabilities: CapabilityRegistry
 
     usage: Optional[UsageRepository] = None
+
+    prompt_provider: Optional[PromptProvider] = None
+    role_provider: Optional[AgentRoleProvider] = None
+    thought_model: Any | None = None
+    mcp_info_provider: Optional[BaseAsyncMCPInfoProvider] = None
+    mcp_call: Optional[Callable[[str, str, Dict[str, Any]], Awaitable[Any]]] = None
 
 
 class _GraphState(TypedDict):
