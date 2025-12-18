@@ -136,7 +136,9 @@ async def test_agent_service_resume_calls_engine(monkeypatch: pytest.MonkeyPatch
 
 
 @pytest.mark.asyncio
-async def test_agent_service_resume_uses_policy_provider_when_run_can_be_loaded(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_agent_service_resume_uses_policy_provider_when_run_can_be_loaded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     captured: dict[str, Any] = {}
 
     import gearmeshing_ai.agent_core.factory as factory_mod
@@ -176,7 +178,9 @@ async def test_agent_service_resume_uses_policy_provider_when_run_can_be_loaded(
 
 
 @pytest.mark.asyncio
-async def test_agent_service_resume_falls_back_to_base_policy_when_run_is_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_agent_service_resume_falls_back_to_base_policy_when_run_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     captured: dict[str, Any] = {}
 
     import gearmeshing_ai.agent_core.factory as factory_mod
