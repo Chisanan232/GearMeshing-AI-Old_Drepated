@@ -99,8 +99,8 @@ async def test_thought_step_uses_prompt_provider_and_model_when_configured(monke
         runs=runs,
         events=events,
         approvals=_NoopRepo(),  # type: ignore[arg-type]
-        checkpoints=_NoopRepo(),  # type: ignore[arg-type]
-        tool_invocations=_NoopRepo(),  # type: ignore[arg-type]
+        checkpoints=_NoopRepo(),
+        tool_invocations=_NoopRepo(),
         capabilities=reg,
         usage=None,
         prompt_provider=_PromptProvider(prompt="ROLE PROMPT"),

@@ -187,7 +187,7 @@ def _build_mcp_strategy(variant: str) -> tuple[_AsyncMcpLike, dict]:
         return strat, state
 
     if variant == "direct_sync":
-        strat = DirectMcpStrategy(
+        strat = DirectMcpStrategy(  # type: ignore[assignment]
             [ServerConfig(name="s1", endpoint_url="http://mock/mcp")],
             ttl_seconds=0.0,
             mcp_transport=mcp_transport,
@@ -200,14 +200,14 @@ def _build_mcp_strategy(variant: str) -> tuple[_AsyncMcpLike, dict]:
 
     if variant == "gateway_async":
         http_client = httpx.AsyncClient(transport=transport, base_url="http://mock")
-        strat = AsyncGatewayMcpStrategy(gw, client=http_client, ttl_seconds=0.0, mcp_transport=mcp_transport)
+        strat = AsyncGatewayMcpStrategy(gw, client=http_client, ttl_seconds=0.0, mcp_transport=mcp_transport)  # type: ignore[assignment]
         state["_close_http_client"] = http_client
         state["_close_mgmt_client"] = mgmt_client
         return strat, state
 
     if variant == "gateway_sync":
         http_client = httpx.Client(transport=transport, base_url="http://mock")
-        strat = GatewayMcpStrategy(gw, client=http_client, ttl_seconds=0.0, mcp_transport=mcp_transport)
+        strat = GatewayMcpStrategy(gw, client=http_client, ttl_seconds=0.0, mcp_transport=mcp_transport)  # type: ignore[assignment]
         state["_close_http_client"] = http_client
         state["_close_mgmt_client"] = mgmt_client
         return _SyncToAsyncMcpAdapter(strat), state
