@@ -78,6 +78,21 @@ class WebFetchCapability(Capability):
 
 
 @dataclass(frozen=True)
+class DocsReadCapability(Capability):
+    name: CapabilityName = CapabilityName.docs_read
+
+    async def execute(self, ctx: CapabilityContext, *, args: Dict[str, Any]) -> CapabilityResult:
+        fn = getattr(ctx.deps, "docs_read", None)
+        if fn is None:
+            return CapabilityResult(ok=False, output={"error": "docs_read not configured"})
+
+        result = await fn(**args)
+        if isinstance(result, dict):
+            return CapabilityResult(ok=True, output=result)
+        return CapabilityResult(ok=True, output={"result": result})
+
+
+@dataclass(frozen=True)
 class CodeExecutionCapability(Capability):
     name: CapabilityName = CapabilityName.code_execution
 
@@ -124,3 +139,37 @@ class CodegenCapability(Capability):
         if isinstance(result, dict):
             return CapabilityResult(ok=True, output=result)
         return CapabilityResult(ok=True, output={"code": result})
+
+
+@dataclass(frozen=True)
+class McpCallCapability(Capability):
+    name: CapabilityName = CapabilityName.mcp_call
+
+    async def execute(self, ctx: CapabilityContext, *, args: Dict[str, Any]) -> CapabilityResult:
+        mcp_call = ctx.deps.mcp_call
+        if mcp_call is None:
+            return CapabilityResult(ok=False, output={"error": "mcp_call not configured"})
+
+        server_id = str(args.get("server_id") or "").strip()
+        tool_name = str(args.get("tool_name") or "").strip()
+        tool_args = args.get("tool_args")
+        if tool_args is None:
+            tool_args = args.get("args")
+        if tool_args is None:
+            tool_args = {}
+
+        if not server_id:
+            return CapabilityResult(ok=False, output={"error": "missing server_id"})
+        if not tool_name:
+            return CapabilityResult(ok=False, output={"error": "missing tool_name"})
+        if not isinstance(tool_args, dict):
+            return CapabilityResult(ok=False, output={"error": "tool_args must be a dict"})
+
+        res = await mcp_call(server_id, tool_name, dict(tool_args))
+        ok = bool(getattr(res, "ok", True))
+        data = getattr(res, "data", None)
+        if isinstance(data, dict):
+            return CapabilityResult(ok=ok, output=data)
+        if hasattr(res, "model_dump"):
+            return CapabilityResult(ok=ok, output=res.model_dump())
+        return CapabilityResult(ok=ok, output={"result": res})

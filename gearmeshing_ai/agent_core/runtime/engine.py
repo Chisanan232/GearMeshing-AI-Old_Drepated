@@ -34,10 +34,12 @@ continues execution.
 from typing import Any, cast
 
 from langgraph.graph import END, StateGraph
+from pydantic_ai import Agent as PydanticAIAgent
 
 from ..capabilities.base import CapabilityContext
 from ..planning.steps import normalize_plan
 from ..policy.global_policy import GlobalPolicy
+from ..roles import get_role_spec
 from ..schemas.domain import (
     AgentEvent,
     AgentEventType,
@@ -104,6 +106,12 @@ class AgentEngine:
         to enforce the thought/action boundary and maintain backward
         compatibility.
         """
+        if self._deps.prompt_provider is not None:
+            try:
+                run.prompt_provider_version = self._deps.prompt_provider.version()
+            except Exception:
+                run.prompt_provider_version = run.prompt_provider_version
+
         await self._deps.runs.create(run)
         await self._deps.events.append(
             AgentEvent(run_id=run.id, type=AgentEventType.run_started, payload={"role": run.role})
@@ -201,6 +209,34 @@ class AgentEngine:
         kind = str(step.get("kind") or "action")
         if kind == "thought":
             thought = str(step.get("thought") or "")
+            args = dict(step.get("args") or {})
+
+            output: dict[str, Any] = {}
+            prompt_text: str | None = None
+            if (
+                self._deps.prompt_provider is not None
+                and self._deps.role_provider is not None
+                and self._deps.thought_model is not None
+            ):
+                try:
+                    role_def = self._deps.role_provider.get(run.role)
+                    key = role_def.cognitive.system_prompt_key
+                    try:
+                        prompt_text = self._deps.prompt_provider.get(key, tenant=run.tenant_id)
+                    except KeyError:
+                        fallback = get_role_spec(run.role).system_prompt_key
+                        prompt_text = self._deps.prompt_provider.get(fallback, tenant=run.tenant_id)
+                except Exception:
+                    prompt_text = None
+
+                if prompt_text is not None and PydanticAIAgent is not None:
+                    agent = PydanticAIAgent(self._deps.thought_model, output_type=dict, system_prompt=prompt_text)
+                    res = await agent.run(f"thought={thought}\nrole={run.role}\nobjective={run.objective}\nargs={args}")
+                    if isinstance(res.output, dict):
+                        output = dict(res.output)
+                    else:
+                        output = {"result": res.output}
+
             await self._deps.events.append(
                 AgentEvent(
                     run_id=run_id,
@@ -208,11 +244,16 @@ class AgentEngine:
                     payload={"thought": thought, "idx": idx},
                 )
             )
+            payload: dict[str, Any] = {"kind": "thought", "thought": thought, "idx": idx, "data": args}
+            if output:
+                payload["output"] = output
+            if prompt_text is not None:
+                payload["system_prompt_key"] = get_role_spec(run.role).system_prompt_key
             await self._deps.events.append(
                 AgentEvent(
                     run_id=run_id,
                     type=AgentEventType.artifact_created,
-                    payload={"kind": "thought", "thought": thought, "idx": idx, "data": dict(step.get("args") or {})},
+                    payload=payload,
                 )
             )
             state["idx"] = idx + 1
@@ -224,6 +265,34 @@ class AgentEngine:
         cap = CapabilityName(step["capability"])
         args = dict(step.get("args") or {})
         logical_tool = cast(str | None, step.get("logical_tool"))
+
+        if cap == CapabilityName.mcp_call:
+            server_id = step.get("server_id") or args.get("server_id")
+            tool_name = step.get("tool_name") or args.get("tool_name")
+            if server_id is not None and "server_id" not in args:
+                args["server_id"] = server_id
+            if tool_name is not None and "tool_name" not in args:
+                args["tool_name"] = tool_name
+            if logical_tool is None and tool_name is not None:
+                logical_tool = str(tool_name)
+
+            # MCP tool discovery/metadata should come from the MCP info provider.
+            # The provider layer is intentionally tools-only and may apply its own
+            # policies (allowed servers/tools, read-only) when agent_id is supplied.
+            info = self._deps.mcp_info_provider
+            if info is not None and server_id and tool_name:
+                try:
+                    tools = await info.list_tools(str(server_id), agent_id=str(run.role))
+                    meta = None
+                    for t in tools or []:
+                        if getattr(t, "name", None) == tool_name:
+                            meta = t
+                            break
+                    mut = getattr(meta, "mutating", None) if meta is not None else None
+                    if isinstance(mut, bool):
+                        args["_mcp_tool_mutating"] = mut
+                except Exception:
+                    pass
 
         decision = self._policy.decide(cap, args=args, logical_tool=logical_tool)
         if decision.block:
@@ -296,8 +365,8 @@ class AgentEngine:
         await self._deps.tool_invocations.append(
             ToolInvocation(
                 run_id=run_id,
-                server_id=str(step.get("server_id") or ""),
-                tool_name=str(step.get("tool_name") or logical_tool or cap.value),
+                server_id=str(step.get("server_id") or args.get("server_id") or ""),
+                tool_name=str(step.get("tool_name") or args.get("tool_name") or logical_tool or cap.value),
                 args=args,
                 ok=res.ok,
                 result=res.output,

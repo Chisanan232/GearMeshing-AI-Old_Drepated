@@ -17,10 +17,13 @@ Capabilities should:
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, Protocol
+from typing import TYPE_CHECKING, Any, Dict, Protocol
 
 from ..policy.global_policy import GlobalPolicy
 from ..schemas.domain import AgentRun, CapabilityName
+
+if TYPE_CHECKING:
+    from ..runtime.models import EngineDeps
 
 
 @dataclass(frozen=True)
@@ -40,7 +43,7 @@ class CapabilityContext:
 
     run: AgentRun
     policy: GlobalPolicy
-    deps: Any
+    deps: "EngineDeps"
 
 
 @dataclass(frozen=True)

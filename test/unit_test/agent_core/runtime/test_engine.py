@@ -36,6 +36,35 @@ class _GraphSpy:
 
 
 @pytest.mark.asyncio
+async def test_start_run_prompt_provider_version_error_is_swallowed(repos, registry, policy: GlobalPolicy) -> None:
+    reg, _cap = registry
+
+    class _PromptProvider:
+        def version(self) -> str:
+            raise RuntimeError("boom")
+
+    deps = EngineDeps(
+        runs=repos["runs"],
+        events=repos["events"],
+        approvals=repos["approvals"],
+        checkpoints=repos["checkpoints"],
+        tool_invocations=repos["tool_invocations"],
+        usage=repos["usage"],
+        capabilities=reg,
+        prompt_provider=_PromptProvider(),  # type: ignore[arg-type]
+    )
+    engine = AgentEngine(policy=policy, deps=deps)
+    graph_spy = _GraphSpy()
+    engine._graph = graph_spy
+
+    run = AgentRun(role="dev", objective="x", prompt_provider_version=None)
+    await engine.start_run(run=run, plan=[{"capability": CapabilityName.summarize.value, "args": {"text": "hi"}}])
+
+    assert run.prompt_provider_version is None
+    assert graph_spy.invocations
+
+
+@pytest.mark.asyncio
 async def test_start_run_emits_plan_created_event(repos, registry, policy: GlobalPolicy) -> None:
     reg, _cap = registry
     deps = EngineDeps(

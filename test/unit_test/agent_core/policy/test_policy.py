@@ -230,3 +230,9 @@ def test_tool_risk_override_takes_precedence_over_kind() -> None:
     p = GlobalPolicy(cfg)
 
     assert p.classify_risk(CapabilityName.mcp_call, args={}, logical_tool="scm.merge_pr") == RiskLevel.low
+
+
+def test_mcp_risk_uses_mutating_metadata_when_available() -> None:
+    p = GlobalPolicy(PolicyConfig())
+    assert p.classify_risk(CapabilityName.mcp_call, args={"_mcp_tool_mutating": False}) == RiskLevel.low
+    assert p.classify_risk(CapabilityName.mcp_call, args={"_mcp_tool_mutating": True}) == RiskLevel.medium

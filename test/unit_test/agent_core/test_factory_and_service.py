@@ -19,6 +19,8 @@ def test_build_default_registry_registers_all_builtin_capabilities() -> None:
     assert reg.has(CapabilityName.summarize)
     assert reg.has(CapabilityName.web_search)
     assert reg.has(CapabilityName.web_fetch)
+    assert reg.has(CapabilityName.docs_read)
+    assert reg.has(CapabilityName.mcp_call)
     assert reg.has(CapabilityName.shell_exec)
     assert reg.has(CapabilityName.code_execution)
     assert reg.has(CapabilityName.codegen)

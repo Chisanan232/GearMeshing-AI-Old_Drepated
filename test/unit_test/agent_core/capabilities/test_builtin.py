@@ -9,6 +9,8 @@ from gearmeshing_ai.agent_core.capabilities.base import CapabilityContext
 from gearmeshing_ai.agent_core.capabilities.builtin import (
     CodeExecutionCapability,
     CodegenCapability,
+    DocsReadCapability,
+    McpCallCapability,
     ShellExecCapability,
     SummarizeCapability,
     WebFetchCapability,
@@ -16,6 +18,7 @@ from gearmeshing_ai.agent_core.capabilities.builtin import (
 )
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
+from gearmeshing_ai.agent_core.runtime.models import EngineDeps
 from gearmeshing_ai.agent_core.schemas.domain import AgentRun
 
 
@@ -257,6 +260,236 @@ class TestCodegenCapability:
         res = await cap.execute(_ctx(deps_non_dict), args={"prompt": "write code"})
         assert res.ok
         assert res.output["code"] == "print('ok')"
+
+
+@dataclass
+class _ToolCallResult:
+    ok: bool
+    data: Dict[str, Any]
+
+
+class _McpStrategy:
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str, Dict[str, Any]]] = []
+
+    async def call_tool(self, server_id: str, tool_name: str, args: dict[str, Any]):
+        self.calls.append((server_id, tool_name, dict(args)))
+        return _ToolCallResult(ok=True, data={"echo": dict(args)})
+
+
+class TestMcpCallCapability:
+    @pytest.mark.asyncio
+    async def test_not_configured(self) -> None:
+        deps = EngineDeps(
+            runs=object(),  # type: ignore[arg-type]
+            events=object(),  # type: ignore[arg-type]
+            approvals=object(),  # type: ignore[arg-type]
+            checkpoints=object(),  # type: ignore[arg-type]
+            tool_invocations=object(),  # type: ignore[arg-type]
+            capabilities=object(),  # type: ignore[arg-type]
+            usage=None,
+            mcp_call=None,
+        )
+        ctx = CapabilityContext(run=AgentRun(role="dev", objective="x"), policy=GlobalPolicy(PolicyConfig()), deps=deps)
+        res = await McpCallCapability().execute(ctx, args={"server_id": "s", "tool_name": "t"})
+        assert res.ok is False
+        assert res.output["error"] == "mcp_call not configured"
+
+    @pytest.mark.asyncio
+    async def test_invokes_mcp_call(self) -> None:
+        strat = _McpStrategy()
+
+        async def _mcp_call(server_id: str, tool_name: str, tool_args: Dict[str, Any]):
+            return await strat.call_tool(server_id, tool_name, tool_args)
+
+        deps = EngineDeps(
+            runs=object(),  # type: ignore[arg-type]
+            events=object(),  # type: ignore[arg-type]
+            approvals=object(),  # type: ignore[arg-type]
+            checkpoints=object(),  # type: ignore[arg-type]
+            tool_invocations=object(),  # type: ignore[arg-type]
+            capabilities=object(),  # type: ignore[arg-type]
+            usage=None,
+            mcp_call=_mcp_call,
+        )
+
+        ctx = CapabilityContext(run=AgentRun(role="dev", objective="x"), policy=GlobalPolicy(PolicyConfig()), deps=deps)
+        cap = McpCallCapability()
+        res = await cap.execute(ctx, args={"server_id": "s", "tool_name": "t", "tool_args": {"a": 1}})
+
+        assert res.ok is True
+        assert strat.calls == [("s", "t", {"a": 1})]
+        assert res.output["echo"] == {"a": 1}
+
+    @pytest.mark.asyncio
+    async def test_requires_server_and_tool(self) -> None:
+        async def _mcp_call(_server_id: str, _tool_name: str, _tool_args: Dict[str, Any]):
+            return _ToolCallResult(ok=True, data={})
+
+        deps = EngineDeps(
+            runs=object(),  # type: ignore[arg-type]
+            events=object(),  # type: ignore[arg-type]
+            approvals=object(),  # type: ignore[arg-type]
+            checkpoints=object(),  # type: ignore[arg-type]
+            tool_invocations=object(),  # type: ignore[arg-type]
+            capabilities=object(),  # type: ignore[arg-type]
+            usage=None,
+            mcp_call=_mcp_call,
+        )
+
+        ctx = CapabilityContext(run=AgentRun(role="dev", objective="x"), policy=GlobalPolicy(PolicyConfig()), deps=deps)
+        cap = McpCallCapability()
+
+        res1 = await cap.execute(ctx, args={"tool_name": "t", "tool_args": {}})
+        assert res1.ok is False
+
+        res2 = await cap.execute(ctx, args={"server_id": "s", "tool_args": {}})
+        assert res2.ok is False
+
+    @pytest.mark.asyncio
+    async def test_accepts_args_alias_for_tool_args(self) -> None:
+        strat = _McpStrategy()
+
+        async def _mcp_call(server_id: str, tool_name: str, tool_args: Dict[str, Any]):
+            return await strat.call_tool(server_id, tool_name, tool_args)
+
+        deps = EngineDeps(
+            runs=object(),  # type: ignore[arg-type]
+            events=object(),  # type: ignore[arg-type]
+            approvals=object(),  # type: ignore[arg-type]
+            checkpoints=object(),  # type: ignore[arg-type]
+            tool_invocations=object(),  # type: ignore[arg-type]
+            capabilities=object(),  # type: ignore[arg-type]
+            usage=None,
+            mcp_call=_mcp_call,
+        )
+        ctx = CapabilityContext(run=AgentRun(role="dev", objective="x"), policy=GlobalPolicy(PolicyConfig()), deps=deps)
+        res = await McpCallCapability().execute(ctx, args={"server_id": "s", "tool_name": "t", "args": {"x": 1}})
+        assert res.ok is True
+        assert strat.calls == [("s", "t", {"x": 1})]
+
+    @pytest.mark.asyncio
+    async def test_defaults_tool_args_to_empty_dict(self) -> None:
+        strat = _McpStrategy()
+
+        async def _mcp_call(server_id: str, tool_name: str, tool_args: Dict[str, Any]):
+            return await strat.call_tool(server_id, tool_name, tool_args)
+
+        deps = EngineDeps(
+            runs=object(),  # type: ignore[arg-type]
+            events=object(),  # type: ignore[arg-type]
+            approvals=object(),  # type: ignore[arg-type]
+            checkpoints=object(),  # type: ignore[arg-type]
+            tool_invocations=object(),  # type: ignore[arg-type]
+            capabilities=object(),  # type: ignore[arg-type]
+            usage=None,
+            mcp_call=_mcp_call,
+        )
+        ctx = CapabilityContext(run=AgentRun(role="dev", objective="x"), policy=GlobalPolicy(PolicyConfig()), deps=deps)
+        res = await McpCallCapability().execute(ctx, args={"server_id": "s", "tool_name": "t"})
+        assert res.ok is True
+        assert strat.calls == [("s", "t", {})]
+
+    @pytest.mark.asyncio
+    async def test_tool_args_must_be_dict(self) -> None:
+        async def _mcp_call(_server_id: str, _tool_name: str, _tool_args: Dict[str, Any]):
+            return _ToolCallResult(ok=True, data={})
+
+        deps = EngineDeps(
+            runs=object(),  # type: ignore[arg-type]
+            events=object(),  # type: ignore[arg-type]
+            approvals=object(),  # type: ignore[arg-type]
+            checkpoints=object(),  # type: ignore[arg-type]
+            tool_invocations=object(),  # type: ignore[arg-type]
+            capabilities=object(),  # type: ignore[arg-type]
+            usage=None,
+            mcp_call=_mcp_call,
+        )
+        ctx = CapabilityContext(run=AgentRun(role="dev", objective="x"), policy=GlobalPolicy(PolicyConfig()), deps=deps)
+        res = await McpCallCapability().execute(ctx, args={"server_id": "s", "tool_name": "t", "tool_args": [1, 2]})
+        assert res.ok is False
+        assert res.output["error"] == "tool_args must be a dict"
+
+    @pytest.mark.asyncio
+    async def test_model_dump_result_is_used_when_present(self) -> None:
+        class _Res:
+            def model_dump(self) -> Dict[str, Any]:
+                return {"a": 1}
+
+        async def _mcp_call(_server_id: str, _tool_name: str, _tool_args: Dict[str, Any]):
+            return _Res()
+
+        deps = EngineDeps(
+            runs=object(),  # type: ignore[arg-type]
+            events=object(),  # type: ignore[arg-type]
+            approvals=object(),  # type: ignore[arg-type]
+            checkpoints=object(),  # type: ignore[arg-type]
+            tool_invocations=object(),  # type: ignore[arg-type]
+            capabilities=object(),  # type: ignore[arg-type]
+            usage=None,
+            mcp_call=_mcp_call,
+        )
+        ctx = CapabilityContext(run=AgentRun(role="dev", objective="x"), policy=GlobalPolicy(PolicyConfig()), deps=deps)
+        res = await McpCallCapability().execute(ctx, args={"server_id": "s", "tool_name": "t", "tool_args": {}})
+        assert res.ok is True
+        assert res.output == {"a": 1}
+
+    @pytest.mark.asyncio
+    async def test_default_ok_is_true_when_missing(self) -> None:
+        class _Res:
+            data = {"x": 1}
+
+        async def _mcp_call(_server_id: str, _tool_name: str, _tool_args: Dict[str, Any]):
+            return _Res()
+
+        deps = EngineDeps(
+            runs=object(),  # type: ignore[arg-type]
+            events=object(),  # type: ignore[arg-type]
+            approvals=object(),  # type: ignore[arg-type]
+            checkpoints=object(),  # type: ignore[arg-type]
+            tool_invocations=object(),  # type: ignore[arg-type]
+            capabilities=object(),  # type: ignore[arg-type]
+            usage=None,
+            mcp_call=_mcp_call,
+        )
+        ctx = CapabilityContext(run=AgentRun(role="dev", objective="x"), policy=GlobalPolicy(PolicyConfig()), deps=deps)
+        res = await McpCallCapability().execute(ctx, args={"server_id": "s", "tool_name": "t", "tool_args": {}})
+        assert res.ok is True
+        assert res.output == {"x": 1}
+
+
+class TestDocsReadCapability:
+    @pytest.fixture
+    def cap(self) -> DocsReadCapability:
+        return DocsReadCapability()
+
+    @pytest.mark.asyncio
+    async def test_not_configured(self, cap: DocsReadCapability) -> None:
+        res = await cap.execute(_ctx(object()), args={"path": "x"})
+        assert not res.ok
+        assert res.output["error"] == "docs_read not configured"
+
+    @pytest.mark.asyncio
+    async def test_dict_result_passthrough(self, cap: DocsReadCapability) -> None:
+        @dataclass
+        class _Docs:
+            async def docs_read(self, **kwargs: Any) -> Dict[str, Any]:
+                return {"ok": True, "kwargs": kwargs}
+
+        res = await cap.execute(_ctx(_Docs()), args={"path": "x"})
+        assert res.ok
+        assert res.output["ok"] is True
+
+    @pytest.mark.asyncio
+    async def test_non_dict_result_wrapped(self, cap: DocsReadCapability) -> None:
+        @dataclass
+        class _Docs:
+            async def docs_read(self, **_kwargs: Any) -> str:
+                return "hello"
+
+        res = await cap.execute(_ctx(_Docs()), args={"path": "x"})
+        assert res.ok
+        assert res.output["result"] == "hello"
 
 
 class TestShellExecCapability:
