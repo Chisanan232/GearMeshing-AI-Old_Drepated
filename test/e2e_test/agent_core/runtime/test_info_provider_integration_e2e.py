@@ -1,20 +1,22 @@
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
-from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Optional, Protocol
-
 import asyncio
+from contextlib import asynccontextmanager
+from typing import Any, Dict, List, Optional, Protocol
 
-import pytest
 import httpx
+import pytest
 from sqlalchemy import select
 from testcontainers.postgres import PostgresContainer
 
 from gearmeshing_ai.agent_core.factory import build_default_registry
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
-from gearmeshing_ai.agent_core.repos.models import ApprovalRow, EventRow, ToolInvocationRow
+from gearmeshing_ai.agent_core.repos.models import (
+    ApprovalRow,
+    EventRow,
+    ToolInvocationRow,
+)
 from gearmeshing_ai.agent_core.repos.sql import (
     build_sql_repos,
     create_all,
@@ -32,14 +34,17 @@ from gearmeshing_ai.agent_core.schemas.domain import (
     CapabilityName,
     RiskLevel,
 )
-
 from gearmeshing_ai.info_provider.mcp.gateway_api.client import GatewayApiClient
 from gearmeshing_ai.info_provider.mcp.provider import AsyncMCPInfoProvider
 from gearmeshing_ai.info_provider.mcp.schemas.config import ServerConfig
 from gearmeshing_ai.info_provider.mcp.strategy.direct import DirectMcpStrategy
-from gearmeshing_ai.info_provider.mcp.strategy.direct_async import AsyncDirectMcpStrategy
+from gearmeshing_ai.info_provider.mcp.strategy.direct_async import (
+    AsyncDirectMcpStrategy,
+)
 from gearmeshing_ai.info_provider.mcp.strategy.gateway import GatewayMcpStrategy
-from gearmeshing_ai.info_provider.mcp.strategy.gateway_async import AsyncGatewayMcpStrategy
+from gearmeshing_ai.info_provider.mcp.strategy.gateway_async import (
+    AsyncGatewayMcpStrategy,
+)
 from gearmeshing_ai.info_provider.mcp.transport import AsyncMCPTransport
 from gearmeshing_ai.info_provider.prompt.provider import BuiltinPromptProvider
 
@@ -260,7 +265,16 @@ async def test_e2e_role_prompt_provider_is_used_for_thought_step(monkeypatch: py
 
         cfg = PolicyConfig()
         # nothing to approve here; just ensure engine runs
-        cfg.tool_policy.allowed_capabilities = {CapabilityName.summarize, CapabilityName.mcp_call, CapabilityName.docs_read, CapabilityName.web_search, CapabilityName.web_fetch, CapabilityName.shell_exec, CapabilityName.codegen, CapabilityName.code_execution}
+        cfg.tool_policy.allowed_capabilities = {
+            CapabilityName.summarize,
+            CapabilityName.mcp_call,
+            CapabilityName.docs_read,
+            CapabilityName.web_search,
+            CapabilityName.web_fetch,
+            CapabilityName.shell_exec,
+            CapabilityName.codegen,
+            CapabilityName.code_execution,
+        }
         runtime = AgentEngine(
             policy=GlobalPolicy(cfg),
             deps=EngineDeps(
@@ -348,9 +362,21 @@ async def test_e2e_mcp_call_uses_real_strategy_metadata_for_risk_and_approval_ga
         run = AgentRun(role="dev", objective="mcp", tenant_id="t1")
         plan = [
             # echo is considered non-mutating by heuristic => low risk => no approval
-            {"kind": "action", "capability": CapabilityName.mcp_call.value, "server_id": server_id, "tool_name": "echo", "args": {"tool_args": {"k": "v"}}},
+            {
+                "kind": "action",
+                "capability": CapabilityName.mcp_call.value,
+                "server_id": server_id,
+                "tool_name": "echo",
+                "args": {"tool_args": {"k": "v"}},
+            },
             # create_issue is considered mutating by heuristic => medium risk => approval required
-            {"kind": "action", "capability": CapabilityName.mcp_call.value, "server_id": server_id, "tool_name": "create_issue", "args": {"tool_args": {"k": "v2"}}},
+            {
+                "kind": "action",
+                "capability": CapabilityName.mcp_call.value,
+                "server_id": server_id,
+                "tool_name": "create_issue",
+                "args": {"tool_args": {"k": "v2"}},
+            },
         ]
 
         await runtime.start_run(run=run, plan=plan)
@@ -363,7 +389,9 @@ async def test_e2e_mcp_call_uses_real_strategy_metadata_for_risk_and_approval_ga
 
         async with session_factory() as s:
             inv = await s.execute(
-                select(ToolInvocationRow).where(ToolInvocationRow.run_id == run.id).order_by(ToolInvocationRow.created_at)
+                select(ToolInvocationRow)
+                .where(ToolInvocationRow.run_id == run.id)
+                .order_by(ToolInvocationRow.created_at)
             )
             inv_rows = list(inv.scalars().all())
             # first tool executed, second should not yet
@@ -384,7 +412,9 @@ async def test_e2e_mcp_call_uses_real_strategy_metadata_for_risk_and_approval_ga
 
         async with session_factory() as s:
             inv2 = await s.execute(
-                select(ToolInvocationRow).where(ToolInvocationRow.run_id == run.id).order_by(ToolInvocationRow.created_at)
+                select(ToolInvocationRow)
+                .where(ToolInvocationRow.run_id == run.id)
+                .order_by(ToolInvocationRow.created_at)
             )
             inv_rows2 = list(inv2.scalars().all())
             assert len(inv_rows2) == 2

@@ -12,10 +12,21 @@ checkpointed for pause/resume.
 """
 
 from dataclasses import dataclass
-from typing import Any, Awaitable, Callable, Dict, List, NotRequired, Optional, Required, TypedDict
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    NotRequired,
+    Optional,
+    Required,
+    TypedDict,
+)
 
+from ...info_provider.mcp.base import BaseAsyncMCPInfoProvider
+from ...info_provider.prompt.base import PromptProvider
 from ..capabilities import CapabilityRegistry
-from ..role_provider import AgentRoleProvider
 from ..repos import (
     ApprovalRepository,
     CheckpointRepository,
@@ -24,8 +35,7 @@ from ..repos import (
     ToolInvocationRepository,
     UsageRepository,
 )
-from ...info_provider.mcp.base import BaseAsyncMCPInfoProvider
-from ...info_provider.prompt.base import PromptProvider
+from ..role_provider import AgentRoleProvider
 
 
 @dataclass(frozen=True)

@@ -217,7 +217,11 @@ class AgentEngine:
 
             output: dict[str, Any] = {}
             prompt_text: str | None = None
-            if self._deps.prompt_provider is not None and self._deps.role_provider is not None and self._deps.thought_model is not None:
+            if (
+                self._deps.prompt_provider is not None
+                and self._deps.role_provider is not None
+                and self._deps.thought_model is not None
+            ):
                 try:
                     role_def = self._deps.role_provider.get(run.role)
                     key = role_def.cognitive.system_prompt_key
@@ -231,9 +235,7 @@ class AgentEngine:
 
                 if prompt_text is not None and PydanticAIAgent is not None:
                     agent = PydanticAIAgent(self._deps.thought_model, output_type=dict, system_prompt=prompt_text)
-                    res = await agent.run(
-                        f"thought={thought}\nrole={run.role}\nobjective={run.objective}\nargs={args}"
-                    )
+                    res = await agent.run(f"thought={thought}\nrole={run.role}\nobjective={run.objective}\nargs={args}")
                     if isinstance(res.output, dict):
                         output = dict(res.output)
                     else:
