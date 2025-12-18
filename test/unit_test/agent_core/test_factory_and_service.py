@@ -8,6 +8,7 @@ import pytest
 from gearmeshing_ai.agent_core.factory import build_default_registry, build_engine
 from gearmeshing_ai.agent_core.planning import StructuredPlanner
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
+from gearmeshing_ai.agent_core.policy.provider import StaticPolicyProvider
 from gearmeshing_ai.agent_core.runtime import EngineDeps
 from gearmeshing_ai.agent_core.schemas.domain import AgentRole, AgentRun, CapabilityName
 from gearmeshing_ai.agent_core.service import AgentService, AgentServiceDeps
@@ -132,3 +133,83 @@ async def test_agent_service_resume_calls_engine(monkeypatch: pytest.MonkeyPatch
     await svc.resume(run_id="r1", approval_id="a1")
 
     assert fake_engine.resumed == [("r1", "a1")]
+
+
+@pytest.mark.asyncio
+async def test_agent_service_resume_uses_policy_provider_when_run_can_be_loaded(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, Any] = {}
+
+    import gearmeshing_ai.agent_core.factory as factory_mod
+
+    def _build_engine(*, policy_config: PolicyConfig, deps: EngineDeps):
+        captured["policy_config"] = policy_config
+        return _FakeEngine()
+
+    monkeypatch.setattr(factory_mod, "build_engine", _build_engine)
+
+    class _Runs:
+        async def get(self, _run_id: str):
+            return AgentRun(role=AgentRole.dev, objective="x")
+
+    base = PolicyConfig(version="base")
+    provider = StaticPolicyProvider(default=PolicyConfig(version="provider"))
+
+    deps = AgentServiceDeps(
+        engine_deps=EngineDeps(
+            runs=_Runs(),  # type: ignore[arg-type]
+            events=object(),  # type: ignore[arg-type]
+            approvals=object(),  # type: ignore[arg-type]
+            checkpoints=object(),  # type: ignore[arg-type]
+            tool_invocations=object(),  # type: ignore[arg-type]
+            usage=None,
+            capabilities=build_default_registry(),
+        ),
+        planner=_FakePlanner(plan_result=[]),
+    )
+
+    svc = AgentService(policy_config=base, deps=deps, policy_provider=provider)
+    await svc.resume(run_id="r1", approval_id="a1")
+
+    cfg = captured["policy_config"]
+    assert isinstance(cfg, PolicyConfig)
+    assert cfg.version == "provider"
+
+
+@pytest.mark.asyncio
+async def test_agent_service_resume_falls_back_to_base_policy_when_run_is_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, Any] = {}
+
+    import gearmeshing_ai.agent_core.factory as factory_mod
+
+    def _build_engine(*, policy_config: PolicyConfig, deps: EngineDeps):
+        captured["policy_config"] = policy_config
+        return _FakeEngine()
+
+    monkeypatch.setattr(factory_mod, "build_engine", _build_engine)
+
+    class _Runs:
+        async def get(self, _run_id: str):
+            return None
+
+    base = PolicyConfig(version="base")
+    provider = StaticPolicyProvider(default=PolicyConfig(version="provider"))
+
+    deps = AgentServiceDeps(
+        engine_deps=EngineDeps(
+            runs=_Runs(),  # type: ignore[arg-type]
+            events=object(),  # type: ignore[arg-type]
+            approvals=object(),  # type: ignore[arg-type]
+            checkpoints=object(),  # type: ignore[arg-type]
+            tool_invocations=object(),  # type: ignore[arg-type]
+            usage=None,
+            capabilities=build_default_registry(),
+        ),
+        planner=_FakePlanner(plan_result=[]),
+    )
+
+    svc = AgentService(policy_config=base, deps=deps, policy_provider=provider)
+    await svc.resume(run_id="r1", approval_id="a1")
+
+    cfg = captured["policy_config"]
+    assert isinstance(cfg, PolicyConfig)
+    assert cfg.version == "base"
