@@ -41,6 +41,9 @@ COPY --from=builder /app/.venv /app/.venv
 # Copy application code
 COPY . .
 
+# Ensure startup script is executable
+RUN chmod +x scripts/docker/run-server.sh
+
 # Create a non-root user to run the app and set permissions
 RUN groupadd -r appuser && \
     useradd -r -g appuser -d /app appuser && \
