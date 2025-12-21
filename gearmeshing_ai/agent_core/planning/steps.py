@@ -78,6 +78,11 @@ class ActionStep(BaseSchema):
 
 
 PlanStep = Union[ThoughtStep, ActionStep]
+"""
+PlanStep:
+    A type union representing any valid step in an agent plan.
+    Can be either a ``ThoughtStep`` (cognitive) or an ``ActionStep`` (side-effecting).
+"""
 
 
 def normalize_plan(plan: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
