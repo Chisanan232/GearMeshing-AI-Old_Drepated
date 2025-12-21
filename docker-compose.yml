@@ -130,9 +130,9 @@ services:
       - redis
     environment:
       # Server configuration
-      SERVER_HOST: 0.0.0.0
-      SERVER_PORT: 8000
-      LOG_LEVEL: info
+      SERVER_HOST: ${GEARMESHING_AI_SERVER_HOST}
+      SERVER_PORT: ${GEARMESHING_AI_SERVER_PORT}
+      LOG_LEVEL: ${GEARMESHING_AI_LOG_LEVEL}
       
       # Application configuration
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
