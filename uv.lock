@@ -1628,6 +1628,7 @@ contract-test-with-ai-frameworks = [
     { name = "semantic-kernel" },
 ]
 dev = [
+    { name = "aiosqlite" },
     { name = "coverage" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -1677,6 +1678,7 @@ contract-test-with-ai-frameworks = [
     { name = "semantic-kernel", specifier = ">=1.35.0" },
 ]
 dev = [
+    { name = "aiosqlite", specifier = ">=0.20.0" },
     { name = "coverage", specifier = "~=7.10" },
     { name = "pytest", specifier = ">=8.1.1,<10" },
     { name = "pytest-asyncio", specifier = ">=0.23.6" },

@@ -73,6 +73,7 @@ dev = [
     "coverage~=7.10",
     # Testcontainers for real contract tests
     "testcontainers>=4.7.2",
+    "aiosqlite>=0.20.0",
 ]
 # Dependencies for the pre-commit CI in development environment
 pre-commit-ci = [
