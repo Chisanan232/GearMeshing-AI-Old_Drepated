@@ -4,13 +4,14 @@ Main Application Entry Point.
 This module initializes the FastAPI application, configures middleware (CORS),
 and includes all API routers. It serves as the root of the web server.
 """
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .core.config import settings
 from .api.v1 import (
     health,
 )
+from .core.config import settings
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
