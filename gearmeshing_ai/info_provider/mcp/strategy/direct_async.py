@@ -55,6 +55,14 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         ttl_seconds: float = 10.0,
         mcp_transport: Optional[AsyncMCPTransport] = None,
     ) -> None:
+        """
+        Initialize the Async Direct MCP strategy.
+
+        Args:
+            servers: List of `ServerConfig` entries defining known servers.
+            ttl_seconds: Cache duration for tools list.
+            mcp_transport: Transport factory for creating sessions.
+        """
         self._servers: List[ServerConfig] = list(servers)
         self._logger = logging.getLogger(__name__)
         self._ttl = ttl_seconds
@@ -63,12 +71,17 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
 
     @asynccontextmanager
     async def _open_session(self, server_id: str) -> AsyncIterator[ClientSession]:
-        """Open a short-lived MCP ClientSession for the given server.
+        """
+        Open a short-lived MCP ClientSession for the given server.
 
-        This helper uses the official `mcp` streamable HTTP client to establish
-        a bidirectional MCP connection to the configured endpoint. A new
-        session is created per call, comparable in cost to the previous
-        per-call HTTP usage, and keeps the strategy stateless.
+        Establishes a connection using the configured transport. The session is
+        yielded to the caller and automatically closed when the context exits.
+
+        Args:
+            server_id: The target server identifier.
+
+        Yields:
+            An active `ClientSession`.
         """
         cfg = self._get_server(server_id)
         base = cfg.endpoint_url.rstrip("/")
@@ -76,7 +89,8 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
             yield session
 
     def _get_server(self, server_id: str) -> ServerConfig:
-        """Lookup a configured server by name.
+        """
+        Lookup a configured server by name.
 
         Args:
             server_id: The `ServerConfig.name` of the target server.
@@ -95,16 +109,17 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
     # No HTTP headers builder needed; MCP transport handles wire details.
 
     async def list_tools(self, server_id: str) -> List[McpTool]:
-        """Return the list of tools for a server.
+        """
+        Return the list of tools for a server.
 
-        - Honors a TTL cache keyed by server name.
-        - Performs GET `<endpoint>/tools` and normalizes via `ToolsListPayloadDTO`.
+        Connects via MCP session to fetch available tools. Uses an in-memory TTL
+        cache to optimize frequent accesses.
 
         Args:
             server_id: The configured `ServerConfig.name` for the server.
 
         Returns:
-            A list of `McpTool`.
+            A list of `McpTool` objects.
 
         Raises:
             httpx.HTTPStatusError: If the HTTP response indicates an error.
@@ -145,16 +160,17 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         tool_name: str,
         args: dict[str, Any],
     ) -> ToolCallResult:
-        """Invoke a tool by POSTing to `/a2a/{tool}/invoke`.
+        """
+        Invoke a tool via MCP session.
 
-        - Body: `{ "parameters": args }`.
-        - Response normalized by `ToolInvokePayloadDTO` to `ToolCallResult`.
-        - Invalidates cache on success for mutating tools (heuristic).
+        Establishes a session and calls `session.call_tool`. Normalizes the result
+        into `ToolCallResult`. Invalidates the tools cache if the tool is mutating
+        and execution succeeds.
 
         Args:
-            server_id: The configured `ServerConfig.name` for the server.
+            server_id: The configured `ServerConfig.name`.
             tool_name: The tool identifier to invoke.
-            args: The tool parameters to send.
+            args: The tool parameters.
 
         Returns:
             A `ToolCallResult` describing the outcome.
@@ -193,16 +209,16 @@ class AsyncDirectMcpStrategy(StrategyCommonMixin, AsyncStrategy):
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
     ) -> ToolsPage:
-        """Return a single page of tools for a server.
+        """
+        Return a single page of tools for a server.
 
-        - Uses MCP ClientSession.list_tools(cursor, limit) to request a page.
-        - Returns a `ToolsPage` with `items` and an optional `next_cursor`.
-        - Updates cache only for non-paginated calls (no cursor/limit).
+        Uses MCP `session.list_tools(cursor=..., limit=...)` to fetch a specific page.
+        Updates the cache only if fetching the full list (no cursor/limit).
 
         Args:
-            server_id: The configured `ServerConfig.name` for the server.
+            server_id: The configured `ServerConfig.name`.
             cursor: Cursor returned from a previous page.
-            limit: Max number of items to request per page.
+            limit: Max number of items to request.
 
         Returns:
             A `ToolsPage` with `items` and optional `next_cursor`.

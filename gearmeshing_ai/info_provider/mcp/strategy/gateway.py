@@ -57,6 +57,15 @@ class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
         ttl_seconds: float = 10.0,
         mcp_transport: Optional[AsyncMCPTransport] = None,
     ) -> None:
+        """
+        Initialize the Gateway MCP strategy.
+
+        Args:
+            gateway: Authenticated client for the Gateway management API.
+            client: Optional sync httpx.Client for HTTP endpoints (unused by current transport but kept for compat).
+            ttl_seconds: Cache duration for tools list.
+            mcp_transport: Transport factory for creating sessions.
+        """
         self._gateway = gateway
         # Sync client for streamable HTTP endpoints under the Gateway
         self._http = client or httpx.Client(timeout=10.0, follow_redirects=True)
@@ -67,13 +76,14 @@ class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
         self._mcp_transport: AsyncMCPTransport = mcp_transport or StreamableHttpMCPTransport()
 
     def list_servers(self) -> Iterable[McpServerRef]:
-        """Yield `McpServerRef` entries using Gateway admin utility.
+        """
+        Yield `McpServerRef` entries using Gateway admin utility.
 
-        Uses `client.admin.gateway.list()` and maps entries to `McpServerRef` by
-        leveraging the `url` and `transport` reported for each gateway entry.
+        Connects to the Gateway's admin API to retrieve registered servers.
+        Maps the Gateway's server representation to the client's `McpServerRef`.
 
         Returns:
-            Iterable of `McpServerRef` discovered via the Gateway admin API.
+            Iterable of `McpServerRef` discovered via the Gateway.
         """
         gateways = self._gateway.admin.gateway.list()
         for gw in gateways:
@@ -92,16 +102,17 @@ class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
             )
 
     def list_tools(self, server_id: str) -> Iterable[McpTool]:
-        """Return tools for a Gateway server, honoring per-server cache.
+        """
+        Return tools for a Gateway server, honoring per-server cache.
 
-        - GET `{gateway}/servers/{server_id}/mcp/tools`
-        - Normalizes to `McpTool` via `ToolsListPayloadDTO` -> `ToolDescriptorDTO`
+        Uses the Gateway's admin tools listing utility to fetch tools for the
+        specified server. Normalizes the tool definitions into `McpTool` objects.
 
         Args:
             server_id: The Gateway server identifier.
 
         Returns:
-            Iterable of `McpTool`.
+            Iterable of `McpTool` objects.
 
         Raises:
             httpx.HTTPStatusError: If the HTTP response indicates an error.
@@ -145,15 +156,15 @@ class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
         cursor: Optional[str] = None,
         limit: Optional[int] = None,
     ) -> ToolsPage:
-        """Return a page of tools for a server when pagination is supported.
+        """
+        Return a page of tools for a server when pagination is supported.
 
-        - Query built via `ToolsListQuery(cursor, limit).to_params()`
-        - Returns `ToolsPage(items, next_cursor)`
-        - Updates cache only for non-paginated requests
+        Uses the Gateway's admin API with offset/limit parameters.
+        Maps the cursor to an integer offset for the Gateway API.
 
         Args:
             server_id: The Gateway server identifier.
-            cursor: Cursor returned from a previous page.
+            cursor: Cursor returned from a previous page (stringified offset).
             limit: Max number of items to request per page.
 
         Returns:
@@ -216,16 +227,17 @@ class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
         *,
         agent_id: str | None = None,  # noqa: ARG002
     ) -> ToolCallResult:
-        """Invoke a tool using the same mechanism as the direct strategy.
+        """
+        Invoke a tool using the same mechanism as the direct strategy.
 
-        The Gateway management API does not execute tools; we resolve the
-        underlying server endpoint via `admin.gateway.get(server_id)` and call
-        the tool over the MCP transport.
+        Resolves the Gateway server's endpoint and connects via the MCP transport.
+        The Gateway acts as a proxy for the underlying MCP server.
 
         Args:
             server_id: The Gateway server identifier.
             tool_name: The tool identifier to invoke.
             args: The tool parameters to send.
+            agent_id: Optional agent identifier (for audit logging).
 
         Returns:
             A `ToolCallResult` describing the outcome.

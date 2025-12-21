@@ -80,6 +80,17 @@ class DirectMcpStrategy(StrategyCommonMixin, SyncStrategy):
         ttl_seconds: float = 10.0,
         mcp_transport: Optional[AsyncMCPTransport] = None,
     ) -> None:
+        """
+        Initialize the Direct MCP strategy.
+
+        Args:
+            servers: A list or iterable of `ServerConfig` objects defining the
+                known MCP servers (name, endpoint URL, auth token).
+            ttl_seconds: Duration in seconds to cache the tools list for a given server.
+                Defaults to 10.0s.
+            mcp_transport: Optional transport factory for creating sessions.
+                Defaults to `StreamableHttpMCPTransport`.
+        """
         self._servers: List[ServerConfig] = list(servers)
         self._logger = logging.getLogger(__name__)
         self._ttl = ttl_seconds
@@ -88,9 +99,11 @@ class DirectMcpStrategy(StrategyCommonMixin, SyncStrategy):
         self._mcp_transport: AsyncMCPTransport = mcp_transport or StreamableHttpMCPTransport()
 
     def list_servers(self) -> Iterable[McpServerRef]:
-        """Yield `McpServerRef` entries for each configured server.
+        """
+        Yield `McpServerRef` entries for each configured server.
 
         Source of truth is the `ServerConfig` objects provided at construction time.
+        These references allow higher layers to enumerate available servers.
 
         Returns:
             Iterable of `McpServerRef` domain references.
@@ -106,18 +119,21 @@ class DirectMcpStrategy(StrategyCommonMixin, SyncStrategy):
             )
 
     def list_tools(self, server_id: str) -> Iterable[McpTool]:  # noqa: ARG002
-        """Return tools for a server, honoring a short-lived cache.
+        """
+        Return tools for a server, honoring a short-lived cache.
 
-        - Performs GET `<endpoint>/tools` and normalizes results into `McpTool`.
-        - Uses `ttl_seconds` to cache results per server.
+        Connects to the server's endpoint to fetch the list of available tools.
+        Results are cached in memory for `ttl_seconds` to improve performance on
+        repeated access.
 
         Args:
             server_id: The configured `ServerConfig.name` for the server.
 
         Returns:
-            Iterable of `McpTool`.
+            Iterable of `McpTool` objects describing the available capabilities.
 
         Raises:
+            ValueError: If `server_id` is unknown.
             httpx.HTTPStatusError: If the HTTP response indicates an error.
             httpx.TransportError: For transport-level HTTP issues.
         """
@@ -163,23 +179,26 @@ class DirectMcpStrategy(StrategyCommonMixin, SyncStrategy):
         *,
         agent_id: str | None = None,  # noqa: ARG002
     ) -> ToolCallResult:
-        """Invoke a tool on a direct server via `/a2a/{tool}/invoke`.
+        """
+        Invoke a tool on a direct server.
 
-        - Sends a JSON payload `{ "parameters": args }`.
-        - On success, returns `ToolCallResult` with the raw body under `data` and
-          a boolean `ok` (defaults to True when not provided by the server).
-        - If invocation is detected as mutating and `ok` is True, invalidates the
-          per-server tools cache.
+        Establishes a temporary MCP session to execute the tool.
+        - Sends a JSON payload `{ "parameters": args }` via the transport.
+        - On success, returns `ToolCallResult` with the raw body under `data`.
+        - If invocation is detected as mutating and succeeds, the per-server tools
+          cache is invalidated to ensure subsequent listings reflect state changes.
 
         Args:
             server_id: Configured server name.
             tool_name: Tool identifier provided by the server.
             args: Tool parameters as a dictionary.
+            agent_id: Optional agent identifier (unused by direct strategy but kept for protocol compliance).
 
         Returns:
-            `ToolCallResult` describing the outcome.
+            `ToolCallResult` describing the outcome (ok/error, data).
 
         Raises:
+            ValueError: If `server_id` is unknown.
             httpx.HTTPStatusError: If the HTTP response indicates an error.
             httpx.TransportError: For transport-level HTTP issues.
         """
@@ -210,7 +229,10 @@ class DirectMcpStrategy(StrategyCommonMixin, SyncStrategy):
         return ToolCallResult(ok=ok, data=data)
 
     def _get_server(self, server_id: str) -> ServerConfig:
-        """Lookup a configured server by name.
+        """
+        Lookup a configured server by name.
+
+        Internal helper to resolve `server_id` to its configuration.
 
         Args:
             server_id: The `ServerConfig.name` of the target server.
