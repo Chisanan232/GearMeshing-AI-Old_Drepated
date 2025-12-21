@@ -16,18 +16,18 @@ CMD_ARGS=()
 # Map environment variables to command line options
 
 # HOST: Host for FastAPI HTTP transports (used for sse or streamable-http)
-if [ -n "${SERVER_HOST}" ]; then
-  CMD_ARGS+=(--host "${SERVER_HOST}")
+if [ -n "${GEARMESHING_AI_SERVER_HOST}" ]; then
+  CMD_ARGS+=(--host "${GEARMESHING_AI_SERVER_HOST}")
 fi
 
 # PORT: Port for FastAPI HTTP transports
-if [ -n "${SERVER_PORT}" ]; then
-  CMD_ARGS+=(--port "${SERVER_PORT}")
+if [ -n "${GEARMESHING_AI_SERVER_PORT}" ]; then
+  CMD_ARGS+=(--port "${GEARMESHING_AI_SERVER_PORT}")
 fi
 
 # LOG_LEVEL: Python logging level
-if [ -n "${LOG_LEVEL}" ]; then
-  CMD_ARGS+=(--log-level "${LOG_LEVEL}")
+if [ -n "${GEARMESHING_AI_LOG_LEVEL}" ]; then
+  CMD_ARGS+=(--log-level "${GEARMESHING_AI_LOG_LEVEL}")
 fi
 
 # RETRY: Number of retry attempts for network operations
