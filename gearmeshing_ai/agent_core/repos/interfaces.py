@@ -39,44 +39,133 @@ from ..schemas.domain import (
 class RunRepository(Protocol):
     """Persist and query the lifecycle of an agent run."""
 
-    async def create(self, run: AgentRun) -> None: ...
+    async def create(self, run: AgentRun) -> None:
+        """
+        Create a new run record.
 
-    async def update_status(self, run_id: str, *, status: str) -> None: ...
+        Args:
+            run: The initial run state to persist.
+        """
+        ...
 
-    async def get(self, run_id: str) -> Optional[AgentRun]: ...
+    async def update_status(self, run_id: str, *, status: str) -> None:
+        """
+        Update the status of an existing run.
+
+        Args:
+            run_id: The ID of the run to update.
+            status: The new status string (e.g., 'running', 'paused').
+        """
+        ...
+
+    async def get(self, run_id: str) -> Optional[AgentRun]:
+        """
+        Retrieve a run by its ID.
+
+        Args:
+            run_id: The run identifier.
+
+        Returns:
+            The AgentRun object if found, else None.
+        """
+        ...
 
 
 class EventRepository(Protocol):
     """Append-only store for runtime events."""
 
-    async def append(self, event: AgentEvent) -> None: ...
+    async def append(self, event: AgentEvent) -> None:
+        """
+        Append a new event to the run's event stream.
+
+        Args:
+            event: The event to persist.
+        """
+        ...
 
 
 class ApprovalRepository(Protocol):
     """Store approvals and their resolution outcomes."""
 
-    async def create(self, approval: Approval) -> None: ...
+    async def create(self, approval: Approval) -> None:
+        """
+        Create a new approval request.
 
-    async def get(self, approval_id: str) -> Optional[Approval]: ...
+        Args:
+            approval: The approval object containing request details.
+        """
+        ...
 
-    async def resolve(self, approval_id: str, *, decision: str, decided_by: str | None) -> None: ...
+    async def get(self, approval_id: str) -> Optional[Approval]:
+        """
+        Retrieve an approval by its ID.
+
+        Args:
+            approval_id: The approval identifier.
+
+        Returns:
+            The Approval object if found, else None.
+        """
+        ...
+
+    async def resolve(self, approval_id: str, *, decision: str, decided_by: str | None) -> None:
+        """
+        Resolve a pending approval.
+
+        Args:
+            approval_id: The ID of the approval to resolve.
+            decision: The decision value (e.g., 'approved', 'rejected').
+            decided_by: The identifier of the user/system making the decision.
+        """
+        ...
 
 
 class CheckpointRepository(Protocol):
     """Persist serialized engine state for pause/resume."""
 
-    async def save(self, checkpoint: Checkpoint) -> None: ...
+    async def save(self, checkpoint: Checkpoint) -> None:
+        """
+        Save a checkpoint state.
 
-    async def latest(self, run_id: str) -> Optional[Checkpoint]: ...
+        Args:
+            checkpoint: The checkpoint containing serialized graph state.
+        """
+        ...
+
+    async def latest(self, run_id: str) -> Optional[Checkpoint]:
+        """
+        Retrieve the most recent checkpoint for a run.
+
+        Args:
+            run_id: The run identifier.
+
+        Returns:
+            The latest Checkpoint if any exist, else None.
+        """
+        ...
 
 
 class ToolInvocationRepository(Protocol):
     """Audit log of side-effecting tool/capability invocations."""
 
-    async def append(self, invocation: ToolInvocation) -> None: ...
+    async def append(self, invocation: ToolInvocation) -> None:
+        """
+        Log a tool invocation.
+
+        Args:
+            invocation: The invocation record including args and result.
+        """
+        ...
 
 
 class UsageRepository(Protocol):
     """Append-only store of token/cost usage ledger entries."""
 
-    async def append(self, usage: UsageLedgerEntry) -> None: ...
+    async def append(self, usage: UsageLedgerEntry) -> None:
+        """
+        Record a usage entry.
+
+        Args:
+            usage: The usage ledger entry to persist.
+        """
+        ...

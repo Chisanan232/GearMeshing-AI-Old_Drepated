@@ -53,28 +53,29 @@ def _iter_entry_points(group: str) -> Iterable[metadata.EntryPoint]:
 
 
 def load_prompt_provider(builtin: PromptProvider | None = None) -> PromptProvider:
-    """Load the configured :class:`PromptProvider` instance.
+    """
+    Load the configured :class:`PromptProvider` instance.
+
+    Resolves the appropriate prompt provider based on the environment configuration.
+    It supports a pluggable architecture via Python entry points, allowing commercial
+    or custom prompt bundles to be injected without modifying the core codebase.
 
     Resolution algorithm:
+    1. Read ``GEARMESH_PROMPT_PROVIDER`` from the environment; default to ``"builtin"`` when unset.
+    2. If the key is empty or ``"builtin"``, return a :class:`BuiltinPromptProvider` (or the ``builtin`` override).
+    3. Otherwise, search the ``gearmesh.prompt_providers`` entry-point group for a matching name.
+    4. If found, load and instantiate the provider factory.
+    5. On any error (import failure, type mismatch), log a warning and fall back to builtin.
 
-    1. Read ``GEARMESH_PROMPT_PROVIDER`` from the environment; default to
-       ``"builtin"`` when unset.
-    2. If the key is empty or ``"builtin"``, construct and return a
-       :class:`BuiltinPromptProvider` (or the ``builtin`` override, if
-       provided).
-    3. Otherwise, search the ``gearmesh.prompt_providers`` entry-point group
-       for a matching ``ep.name``. If found, call ``ep.load()`` to obtain a
-       factory, then call the factory without arguments to build the
-       provider.
-    4. If the resulting object conforms to :class:`PromptProvider`, use it.
-       Otherwise, log a warning and fall back to the builtin provider.
-    5. Any import/initialization error results in a warning and a fallback to
-       the builtin provider.
+    This function is designed to be safe and resilient, ensuring the system always starts
+    with at least the builtin prompts.
 
-    This function never logs prompt text; warnings mention only the provider
-    key, entry-point name and exception type.
+    Args:
+        builtin: Optional override for the fallback/builtin provider (useful for testing).
+
+    Returns:
+        The resolved PromptProvider instance.
     """
-
     provider_key = os.getenv("GEARMESH_PROMPT_PROVIDER") or "builtin"
     base = builtin or BuiltinPromptProvider()
 

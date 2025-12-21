@@ -41,6 +41,11 @@ class ToolPolicy(BaseSchema):
 
 
 PolicyMap = Dict[str, ToolPolicy]
+"""
+PolicyMap:
+    A dictionary mapping agent IDs to their specific ``ToolPolicy``.
+    Used to enforce different access rules for different agents.
+"""
 
 
 def enforce_policy(*, agent_id: Optional[str], server_id: str, tool_name: str, policies: Optional[PolicyMap]) -> None:

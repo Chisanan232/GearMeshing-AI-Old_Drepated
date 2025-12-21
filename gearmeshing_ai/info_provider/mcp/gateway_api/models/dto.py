@@ -352,6 +352,18 @@ class CatalogServerStatusResponseDTO(BaseSchema):
     """Status for a catalog server entry.
 
     Indicates availability, registration state, and diagnostics.
+
+    Example:
+        ```json
+        {
+           "server_id":"clickup",
+           "is_available":true,
+           "is_registered":false,
+           "last_checked":"2025-12-14T10:00:00.000Z",
+           "response_time_ms":125.5,
+           "error":null
+        }
+        ```
     """
 
     server_id: str = Field(..., description="Server identifier in the catalog.")

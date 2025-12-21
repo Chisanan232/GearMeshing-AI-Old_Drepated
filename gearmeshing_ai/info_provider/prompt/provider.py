@@ -39,25 +39,48 @@ _BUILTIN_PROMPTS: Dict[str, Dict[str, str]] = {
 
 
 class BuiltinPromptProvider(PromptProvider):
-    """In-repo builtin prompts for basic/local usage.
+    """
+    In-repo builtin prompts for basic/local usage.
 
     This provider keeps a small dictionary of prompts in memory, keyed by
-    locale and prompt name. It is intended to be safe to ship in the
-    open-source repository:
+    locale and prompt name. It serves as the baseline implementation for
+    open-source usage and local development.
 
+    Characteristics:
     - No tenant-specific content.
     - No secrets or proprietary wording.
+    - Fast, in-memory lookup.
 
-    The :meth:`version` string is a lightweight identifier (e.g. a migration
-    label) that can be recorded alongside runs, allowing operators to
-    correlate behavior with a given builtin prompt set.
+    The :meth:`version` string is a lightweight identifier (e.g. "builtin-v1")
+    used for tracking which prompt set was active during a run.
     """
 
     def __init__(self, *, prompts: Optional[Dict[str, Dict[str, str]]] = None, version_id: str = "builtin-v1") -> None:
+        """
+        Initialize the builtin provider.
+
+        Args:
+            prompts: Optional dictionary of prompts to override defaults. Structure: {locale: {key: text}}.
+            version_id: Identifier string for this prompt set version.
+        """
         self._prompts = prompts or _BUILTIN_PROMPTS
         self._version = version_id
 
     def get(self, name: str, locale: str = "en", tenant: Optional[str] = None) -> str:  # noqa: ARG002
+        """
+        Retrieve a prompt text.
+
+        Args:
+            name: The prompt key (e.g., 'dev/system').
+            locale: The requested locale (default: 'en').
+            tenant: Ignored by this provider.
+
+        Returns:
+            The prompt text string.
+
+        Raises:
+            KeyError: If the prompt name is not found for the given locale.
+        """
         bucket = self._prompts.get(locale) or {}
         try:
             return bucket[name]
@@ -65,52 +88,65 @@ class BuiltinPromptProvider(PromptProvider):
             raise KeyError(f"prompt not found: locale={locale!r} name={name!r}") from exc
 
     def version(self) -> str:
+        """Return the version identifier of the builtin prompts."""
         return self._version
 
     def refresh(self) -> None:  # noqa: D401 - trivial no-op
-        """Builtin provider has no external state to refresh."""
-
+        """Builtin provider has no external state to refresh (no-op)."""
         return None
 
 
 class StackedPromptProvider(PromptProvider):
-    """Chains providers with fallback semantics.
+    """
+    Chains two providers with fallback semantics.
 
-    This helper composes two :class:`PromptProvider` implementations into a
-    single provider. Resolution semantics:
+    This helper composes a primary (e.g., commercial) and a fallback (e.g., builtin)
+    provider. It allows seamless degradation if the primary provider is missing keys
+    or fails.
 
-    - ``get`` first asks ``primary``; if it raises ``KeyError`` the
-      ``fallback`` provider is queried.
-    - ``version`` returns a combined identifier
-      (``"stacked:<primary>+<fallback>"``) so tooling can understand which
-      providers contributed.
-    - ``refresh`` forwards the call to both providers in order.
-
-    Typical usage pattern::
-
-        commercial = CommercialPromptProvider(...)
-        builtin = BuiltinPromptProvider()
-        provider = StackedPromptProvider(commercial, builtin)
-
-    This ensures that commercial prompts take precedence when available,
-    while still providing a fully functional fallback when the commercial
-    provider is misconfigured or missing a particular key.
+    Behavior:
+    - ``get`` queries the primary first. If it raises ``KeyError``, the fallback is queried.
+    - ``version`` returns a combined identifier ``"stacked:<primary>+<fallback>"``.
+    - ``refresh`` refreshes both providers in order.
     """
 
     def __init__(self, primary: PromptProvider, fallback: PromptProvider) -> None:
+        """
+        Initialize the stacked provider.
+
+        Args:
+            primary: The preferred provider to query first.
+            fallback: The backup provider to query on cache miss.
+        """
         self._primary = primary
         self._fallback = fallback
 
     def get(self, name: str, locale: str = "en", tenant: Optional[str] = None) -> str:
+        """
+        Retrieve a prompt, trying primary then fallback.
+
+        Args:
+            name: Prompt key.
+            locale: Language code.
+            tenant: Tenant identifier.
+
+        Returns:
+            The prompt text.
+
+        Raises:
+            KeyError: If neither provider has the requested prompt.
+        """
         try:
             return self._primary.get(name, locale=locale, tenant=tenant)
         except KeyError:
             return self._fallback.get(name, locale=locale, tenant=tenant)
 
     def version(self) -> str:
+        """Return a composite version string reflecting both providers."""
         return f"stacked:{self._primary.version()}+{self._fallback.version()}"
 
     def refresh(self) -> None:
+        """Refresh both the primary and fallback providers."""
         # Refresh both in order; callers that wrap this in a hot-reload wrapper
         # can still treat refresh as best-effort.
         self._primary.refresh()
@@ -118,24 +154,16 @@ class StackedPromptProvider(PromptProvider):
 
 
 class HotReloadWrapper(PromptProvider):
-    """Lightweight, thread-safe wrapper that periodically refreshes a provider.
+    """
+    Lightweight, thread-safe wrapper that periodically refreshes a provider.
 
-    Hot reload is useful for commercial providers that fetch prompt bundles
-    from a remote source (e.g. HTTP+ETag, object storage, database) and need
-    to pick up new versions without restarting the process.
+    Designed for providers that fetch prompts from remote sources (HTTP, S3, DB).
+    It ensures ``refresh()`` is called at most once per ``interval_seconds``, regardless
+    of read concurrency.
 
-    Design notes:
-
-    - The wrapper calls ``inner.refresh()`` at most once per
-      ``interval_seconds`` across all threads and requests.
-    - ``get`` and ``version`` both trigger a background refresh check before
-      delegating to the underlying provider.
-    - Errors from ``refresh`` are logged in a redacted form; prompt text and
-      error messages are never logged.
-
-    This wrapper does not itself implement ETag or integrity validation; that
-    is the responsibility of the underlying provider's :meth:`refresh`
-    implementation.
+    Attributes:
+        inner: The underlying provider instance.
+        interval: Minimum seconds between refresh attempts.
     """
 
     def __init__(
@@ -145,6 +173,14 @@ class HotReloadWrapper(PromptProvider):
         interval_seconds: float = 60.0,
         logger: Optional[logging.Logger] = None,
     ) -> None:
+        """
+        Initialize the hot-reload wrapper.
+
+        Args:
+            inner: The provider to wrap and refresh.
+            interval_seconds: Minimum time between refresh calls (default: 60s).
+            logger: Optional logger for refresh errors (redacted).
+        """
         self._inner = inner
         self._interval = max(interval_seconds, 0.0)
         self._logger = logger or logging.getLogger(__name__)
@@ -152,12 +188,11 @@ class HotReloadWrapper(PromptProvider):
         self._last_refresh: float = 0.0
 
     def _maybe_refresh(self) -> None:
-        """Trigger a refresh on the underlying provider if the interval elapsed.
+        """
+        Trigger a refresh on the underlying provider if the interval elapsed.
 
-        This method is safe to call on every "read" operation. It uses
-        ``time.monotonic`` and a double-checked lock to avoid calling
-        :meth:`PromptProvider.refresh` more than necessary, and to ensure that
-        only one thread performs the refresh at a time.
+        This method uses double-checked locking to ensure thread safety and minimize contention.
+        Errors during refresh are logged but swallowed to prevent read failures.
         """
         if self._interval <= 0:
             return
@@ -183,11 +218,10 @@ class HotReloadWrapper(PromptProvider):
                 self._last_refresh = time.monotonic()
 
     def _safe_version(self) -> str:
-        """Return the inner provider's version, guarding against errors.
+        """
+        Return the inner provider's version, guarding against errors.
 
-        If :meth:`PromptProvider.version` raises for any reason, this returns
-        ``"<unknown>"`` so that logs remain fully redacted while still
-        conveying that the version was unavailable.
+        Used for safe logging in case the inner provider is unstable.
         """
         try:
             return self._inner.version()
@@ -195,21 +229,20 @@ class HotReloadWrapper(PromptProvider):
             return "<unknown>"
 
     def get(self, name: str, locale: str = "en", tenant: Optional[str] = None) -> str:
+        """Retrieve a prompt, triggering a potential background refresh first."""
         self._maybe_refresh()
         return self._inner.get(name, locale=locale, tenant=tenant)
 
     def version(self) -> str:
+        """Retrieve version, triggering a potential background refresh first."""
         self._maybe_refresh()
         return self._inner.version()
 
     def refresh(self) -> None:
-        """Explicitly refresh the inner provider, bypassing throttling.
+        """
+        Explicitly refresh the inner provider, bypassing throttling.
 
-        Callers that expose administrative endpoints or management commands
-        may want to force a refresh immediately (for example after a config
-        change) rather than waiting for the interval-based background logic.
-        This helper always calls :meth:`PromptProvider.refresh` and resets the
-        internal timer so subsequent calls are throttled again.
+        Useful for administrative force-reloads. Resets the throttle timer.
         """
         try:
             self._inner.refresh()

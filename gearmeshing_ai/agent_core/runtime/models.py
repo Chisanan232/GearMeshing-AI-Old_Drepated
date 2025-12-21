@@ -40,14 +40,26 @@ from ..role_provider import AgentRoleProvider
 
 @dataclass(frozen=True)
 class EngineDeps:
-    """Dependency bundle for ``AgentEngine``.
+    """
+    Dependency bundle for ``AgentEngine``.
 
-    This object is typically constructed by application wiring code and passed
-    into the engine (or ``AgentService``). It holds:
+    This object acts as the interface between the core runtime engine and the
+    external world (persistence, LLMs, tools). It allows the engine to be
+    instantiated with different backends (e.g., in-memory vs SQL repositories).
 
-    - persistence repositories (runs, events, approvals, checkpoints, tool
-      invocations)
-    - the capability registry used to resolve Action steps.
+    Attributes:
+        runs: Repository for managing AgentRun lifecycle.
+        events: Append-only log for all runtime events.
+        approvals: Repository for creating and querying approval requests.
+        checkpoints: Repository for saving/loading LangGraph state snapshots.
+        tool_invocations: Audit log for tool calls.
+        capabilities: Registry of executable capabilities.
+        usage: Optional repository for tracking token usage and costs.
+        prompt_provider: Optional service to resolve system prompts.
+        role_provider: Optional service to resolve agent role definitions.
+        thought_model: Optional LLM model instance for generating 'thoughts'.
+        mcp_info_provider: Optional provider for MCP tool metadata.
+        mcp_call: Optional callable for executing MCP tools.
     """
 
     runs: RunRepository
@@ -67,20 +79,20 @@ class EngineDeps:
 
 
 class _GraphState(TypedDict):
-    """Mutable LangGraph state for a single engine run.
+    """
+    Mutable LangGraph state for a single engine run.
 
-    Required keys:
+    This dictionary is passed between nodes in the StateGraph. It maintains the
+    current execution cursor and the plan.
 
-    - ``run_id``: current run identifier.
-    - ``plan``: normalized list of step dicts.
-    - ``idx``: current plan index.
-    - ``awaiting_approval_id``: set when the run is paused for approval.
-
-    Optional keys:
-
-    - ``_finished`` / ``_terminal_status``: used to terminate the graph.
-    - ``_resume_skip_approval``: internal one-shot flag used to avoid re-pausing
-      immediately after a resume.
+    Attributes:
+        run_id (str): The unique identifier of the current AgentRun.
+        plan (List[Dict[str, Any]]): The normalized sequence of steps to execute.
+        idx (int): The index of the current step in the plan.
+        awaiting_approval_id (Optional[str]): If set, indicates the run is paused waiting for this approval.
+        _finished (bool): Internal flag to signal successful completion.
+        _terminal_status (str): The final status to set on the run (e.g. 'succeeded', 'failed').
+        _resume_skip_approval (bool): One-shot flag to bypass approval checks immediately after resumption.
     """
 
     run_id: Required[str]

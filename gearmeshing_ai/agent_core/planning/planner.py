@@ -45,6 +45,13 @@ class StructuredPlanner:
     """
 
     def __init__(self, *, model: Any | None = None) -> None:
+        """
+        Initialize the planner.
+
+        Args:
+            model: The language model instance to use for generation (e.g., from LangChain or PydanticAI).
+                   If None, the planner operates in a deterministic "summary-only" mode.
+        """
         self._model = model
 
     async def plan(self, *, objective: str, role: str) -> List[Dict[str, Any]]:

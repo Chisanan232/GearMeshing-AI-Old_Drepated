@@ -143,12 +143,13 @@ class GatewayApiClient:
                 self._logger.warning("GatewayApiClient auto_bearer failed: %s", e)
 
     def _ensure_token(self) -> None:
-        """Ensure an auth token is available.
+        """
+        Ensure an auth token is available.
 
-        If a ``token_provider`` was supplied, it is invoked prior to making a
-        request. Any exception raised by the provider is logged as a warning and
-        the request proceeds without altering the token, allowing callers to
-        implement soft-fail behavior.
+        Checks if a ``token_provider`` was supplied during initialization.
+        If so, invokes it to refresh or obtain the current token.
+        Exceptions from the provider are logged but suppressed to allow
+        best-effort continuation (e.g. if auth is optional or broken).
         """
         if self._token_provider is not None:
             try:
@@ -157,10 +158,14 @@ class GatewayApiClient:
                 self._logger.warning("GatewayApiClient token_provider failed: %s", e)
 
     def _headers(self) -> dict[str, str]:
-        """Build standard JSON headers and include Authorization when provided.
+        """
+        Build standard JSON headers and include Authorization when provided.
+
+        Constructs the default headers dictionary for requests. Adds the
+        ``Authorization`` header if ``auth_token`` is set.
 
         Returns:
-            A dictionary with `Content-Type` and optional `Authorization` header.
+            A dictionary with `Content-Type` and optional `Authorization`.
         """
         headers: dict[str, str] = {"Content-Type": "application/json"}
         if self.auth_token:
