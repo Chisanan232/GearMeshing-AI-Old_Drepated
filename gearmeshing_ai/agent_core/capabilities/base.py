@@ -48,15 +48,37 @@ class CapabilityContext:
 
 @dataclass(frozen=True)
 class CapabilityResult:
-    """Structured capability execution result."""
+    """
+    Structured execution result from a capability.
+    
+    Attributes:
+        ok: True if the execution was successful, False if it failed.
+        output: A dictionary containing results or error details.
+    """
 
     ok: bool
     output: Dict[str, Any]
 
 
 class Capability(Protocol):
-    """Protocol for capability implementations."""
+    """
+    Protocol definition for capability implementations.
+    
+    A capability represents a discrete unit of functionality (tool) that an agent
+    can invoke. It must define a unique name and an execution method.
+    """
 
     name: CapabilityName
 
-    async def execute(self, ctx: CapabilityContext, *, args: Dict[str, Any]) -> CapabilityResult: ...
+    async def execute(self, ctx: CapabilityContext, *, args: Dict[str, Any]) -> CapabilityResult:
+        """
+        Execute the capability with the given context and arguments.
+
+        Args:
+            ctx: The runtime context for execution (includes dependencies, policy, run state).
+            args: A dictionary of arguments specific to this capability.
+
+        Returns:
+            CapabilityResult: The outcome of the execution.
+        """
+        ...
