@@ -64,6 +64,13 @@ class AgentEngine:
     """
 
     def __init__(self, *, policy: GlobalPolicy, deps: EngineDeps) -> None:
+        """
+        Initialize the AgentEngine.
+
+        Args:
+            policy: The global policy instance for enforcing rules and safety.
+            deps: The runtime dependencies (repositories, capabilities, etc.).
+        """
         self._policy = policy
         self._deps = deps
         self._graph = self._build_graph()
