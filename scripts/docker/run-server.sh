@@ -61,4 +61,4 @@ if [ -n "${LOG_LEVEL}" ] && [ "$(echo ${LOG_LEVEL} | tr '[:upper:]' '[:lower:]')
 fi
 
 # Execute the entry point with the collected arguments
-exec uv run <gearmeshing-ai cli> "${CMD_ARGS[@]}"
+exec uv run uvicorn gearmeshing_ai.server.main:app "${CMD_ARGS[@]}"
