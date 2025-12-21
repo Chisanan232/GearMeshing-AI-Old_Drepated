@@ -99,6 +99,18 @@ class AsyncMCPInfoProvider(ClientCommonMixin, BaseAsyncMCPInfoProvider):
         strategies: Iterable[AsyncStrategy],
         agent_policies: Optional[PolicyMap] = None,
     ) -> None:
+        """
+        Initialize the AsyncMCPInfoProvider.
+
+        Args:
+            strategies: An iterable of async strategies (Direct, Gateway) to use for
+                        server discovery and tool listing.
+            agent_policies: A map of agent_id to ToolPolicy for enforcing access control.
+                            If None, no policy enforcement is applied.
+
+        Raises:
+            TypeError: If any provided strategy does not implement the AsyncStrategy protocol.
+        """
         self._strategies: List[AsyncStrategy] = list(strategies)
         for s in self._strategies:
             if not isinstance(s, AsyncStrategy):
@@ -116,21 +128,27 @@ class AsyncMCPInfoProvider(ClientCommonMixin, BaseAsyncMCPInfoProvider):
         gateway_http_client: Optional[httpx.AsyncClient] = None,
         gateway_sse_client: Optional[httpx.AsyncClient] = None,
     ) -> "AsyncMCPInfoProvider":
-        """Construct an async info provider from ``McpClientConfig``.
+        """
+        Construct an async info provider from ``McpClientConfig``.
 
-        - Enables AsyncDirect strategy when `servers` are configured.
-        - Enables AsyncGateway strategy when `gateway` config is present.
-        - Allows providing custom httpx clients for tuning timeouts/proxies.
+        Factory method that initializes the provider with appropriate strategies
+        based on the configuration.
+
+        - Enables ``AsyncDirectMcpStrategy`` if ``config.servers`` is populated.
+        - Enables ``AsyncGatewayMcpStrategy`` if ``config.gateway`` is populated.
+        - Allows injection of custom ``httpx`` clients for fine-grained control
+          over timeouts, proxies, and connection pooling.
 
         Args:
-            config: The high-level MCP client configuration.
-            agent_policies: Optional per-agent access policies.
+            config: The high-level MCP client configuration object.
+            mcp_transport: Transport implementation for creating MCP sessions.
+            agent_policies: Optional map of per-agent access policies.
             gateway_mgmt_client: Optional sync httpx.Client for Gateway management API.
             gateway_http_client: Optional async httpx.AsyncClient for Gateway HTTP endpoints.
             gateway_sse_client: Optional async httpx.AsyncClient for Gateway SSE endpoints.
 
         Returns:
-            An initialized :class:`AsyncMCPInfoProvider`.
+            An initialized :class:`AsyncMCPInfoProvider` ready for use.
         """
         strategies: List[AsyncStrategy] = []
         if config.servers:
@@ -154,23 +172,29 @@ class AsyncMCPInfoProvider(ClientCommonMixin, BaseAsyncMCPInfoProvider):
                     client=gateway_http_client,
                     ttl_seconds=config.tools_cache_ttl_seconds,
                     sse_client=gateway_sse_client,
+                    mcp_transport=mcp_transport,
                 )
             )
         return cls(strategies=strategies, agent_policies=agent_policies)
 
     async def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]:
-        """List tools for a specific server, applying policy filters.
+        """
+        List tools for a specific server, applying policy filters.
+
+        Queries all configured strategies to find the requested server. If found,
+        retrieves the list of tools and filters them based on the agent's policy
+        (allow-lists, read-only mode).
 
         Args:
-            server_id: Target server identifier.
+            server_id: The target server identifier.
             agent_id: Optional agent identifier used for policy enforcement.
 
         Returns:
-            A list of `McpTool`.
+            A list of available `McpTool` objects.
 
         Raises:
-            ToolAccessDeniedError: If access is blocked by policy.
-            ServerNotFoundError: If no strategy can serve the server.
+            ToolAccessDeniedError: If the agent is not allowed to access the server.
+            ServerNotFoundError: If the server cannot be found in any strategy.
         """
         # Enforce server access policy first
         if agent_id and agent_id in self._policies:
@@ -205,23 +229,25 @@ class AsyncMCPInfoProvider(ClientCommonMixin, BaseAsyncMCPInfoProvider):
         limit: Optional[int] = None,
         agent_id: str | None = None,
     ) -> ToolsPage:
-        """List tools with pagination when supported by the strategy/backend.
+        """
+        List tools with pagination when supported by the strategy/backend.
 
-        Applies filters based on policy when `agent_id` is provided. Falls back
-        to non-paginated `list_tools` when pagination is unavailable.
+        Similar to `list_tools`, but supports `cursor` and `limit` for larger toolsets.
+        Applies filters based on policy when `agent_id` is provided. If the backend
+        does not support pagination, it falls back to non-paginated listing.
 
         Args:
             server_id: Target server identifier.
-            cursor: Cursor from a previous page.
-            limit: Max items per page.
+            cursor: Opaque cursor from a previous page.
+            limit: Maximum number of items to return.
             agent_id: Optional agent identifier used for policy enforcement.
 
         Returns:
-            A `ToolsPage` with `items` and optional `next_cursor`.
+            A `ToolsPage` containing items and an optional next_cursor.
 
         Raises:
             ToolAccessDeniedError: If access is blocked by policy.
-            ServerNotFoundError: If pagination unsupported and no tools found.
+            ServerNotFoundError: If the server is not found.
         """
         # Enforce server access policy first
         if agent_id and agent_id in self._policies:
@@ -264,6 +290,18 @@ class MCPInfoProvider(ClientCommonMixin, BaseMCPInfoProvider):
         strategies: Iterable[SyncStrategy],
         agent_policies: Optional[PolicyMap] = None,
     ) -> None:
+        """
+        Initialize the MCPInfoProvider.
+
+        Args:
+            strategies: An iterable of sync strategies (Direct, Gateway) to use for
+                        server discovery and tool listing.
+            agent_policies: A map of agent_id to ToolPolicy for enforcing access control.
+                            If None, no policy enforcement is applied.
+
+        Raises:
+            TypeError: If any provided strategy does not implement the SyncStrategy protocol.
+        """
         self._strategies: List[SyncStrategy] = list(strategies)
         # runtime validation (optional)
         for s in self._strategies:
@@ -282,14 +320,19 @@ class MCPInfoProvider(ClientCommonMixin, BaseMCPInfoProvider):
         gateway_mgmt_client: Optional[httpx.Client] = None,
         gateway_http_client: Optional[httpx.Client] = None,
     ) -> "MCPInfoProvider":
-        """Construct a sync info provider from ``McpClientConfig``.
+        """
+        Construct a sync info provider from ``McpClientConfig``.
 
-        - Enables Direct strategy when `servers` are configured.
-        - Enables Gateway strategy when `gateway` config is present.
-        - Custom httpx clients may be provided for advanced settings.
+        Factory method that initializes the provider with appropriate strategies
+        based on the configuration.
+
+        - Enables ``DirectMcpStrategy`` if ``config.servers`` is populated.
+        - Enables ``GatewayMcpStrategy`` if ``config.gateway`` is populated.
+        - Allows injection of custom ``httpx`` clients for sync operations.
 
         Args:
             config: The high-level MCP client configuration.
+            mcp_transport: Async transport (required by protocol, though sync provider may not use it directly for execution).
             agent_policies: Optional per-agent access policies.
             direct_http_client: Optional httpx.Client for direct strategy.
             gateway_mgmt_client: Optional httpx.Client for Gateway management API.
@@ -319,27 +362,29 @@ class MCPInfoProvider(ClientCommonMixin, BaseMCPInfoProvider):
                     gw,
                     client=gateway_http_client,
                     ttl_seconds=config.tools_cache_ttl_seconds,
+                    mcp_transport=mcp_transport,
                 )
             )
         return cls(strategies=strategies, agent_policies=agent_policies)
 
     def list_tools(self, server_id: str, *, agent_id: str | None = None) -> List[McpTool]:
-        """List tools for a specific server, applying policy filters.
+        """
+        List tools for a specific server, applying policy filters.
 
-        Raises `ToolAccessDeniedError` if the agent is not permitted to access
-        the server per policy. If tools are found from a strategy, returns the
-        first non-empty result.
+        Synchronously queries all configured strategies to find the requested server.
+        If found, retrieves the list of tools and filters them based on the agent's
+        policy (allow-lists, read-only mode).
 
         Args:
-            server_id: Target server identifier.
+            server_id: The target server identifier.
             agent_id: Optional agent identifier used for policy enforcement.
 
         Returns:
-            A list of `McpTool`.
+            A list of available `McpTool` objects.
 
         Raises:
-            ToolAccessDeniedError: If access is blocked by policy.
-            ServerNotFoundError: If no strategy can serve the server.
+            ToolAccessDeniedError: If the agent is not allowed to access the server.
+            ServerNotFoundError: If the server cannot be found in any strategy.
         """
         # Enforce server access policy first
         if agent_id and agent_id in self._policies:
@@ -375,23 +420,25 @@ class MCPInfoProvider(ClientCommonMixin, BaseMCPInfoProvider):
         limit: Optional[int] = None,
         agent_id: str | None = None,
     ) -> ToolsPage:
-        """List tools with pagination when supported by the strategy/backend.
+        """
+        List tools with pagination when supported by the strategy/backend.
 
-        Applies server/tool filters based on policy when `agent_id` is provided.
-        Falls back to non-paginated `list_tools` when pagination is unavailable.
+        Synchronous version of `list_tools_page`. Applies filters based on policy
+        when `agent_id` is provided. If the backend does not support pagination,
+        it falls back to non-paginated listing.
 
         Args:
             server_id: Target server identifier.
-            cursor: Cursor from a previous page.
-            limit: Max items per page.
+            cursor: Opaque cursor from a previous page.
+            limit: Maximum number of items to return.
             agent_id: Optional agent identifier used for policy enforcement.
 
         Returns:
-            A `ToolsPage` with `items` and optional `next_cursor`.
+            A `ToolsPage` containing items and an optional next_cursor.
 
         Raises:
             ToolAccessDeniedError: If access is blocked by policy.
-            ServerNotFoundError: If pagination unsupported and no tools found.
+            ServerNotFoundError: If the server is not found.
         """
         if agent_id and agent_id in self._policies:
             policy = self._policies[agent_id]
