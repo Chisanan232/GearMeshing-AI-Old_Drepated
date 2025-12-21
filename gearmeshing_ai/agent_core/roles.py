@@ -6,6 +6,7 @@ their allowed capabilities and system prompts. It acts as a bridge between
 the raw ``RoleDefinition`` provided by ``AgentRoleProvider`` and the runtime's
 need for concrete configuration.
 """
+
 from __future__ import annotations
 
 from typing import Dict, Set
@@ -30,6 +31,7 @@ class RoleSpec(BaseSchema):
         system_prompt_key: Key used to resolve the system prompt template.
         done_when: Optional string describing the termination condition for the role.
     """
+
     role: AgentRole
     allowed_capabilities: Set[CapabilityName] = Field(default_factory=set)
     system_prompt_key: str

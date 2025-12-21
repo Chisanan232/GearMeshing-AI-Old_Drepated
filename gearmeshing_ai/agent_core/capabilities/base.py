@@ -50,7 +50,7 @@ class CapabilityContext:
 class CapabilityResult:
     """
     Structured execution result from a capability.
-    
+
     Attributes:
         ok: True if the execution was successful, False if it failed.
         output: A dictionary containing results or error details.
@@ -63,7 +63,7 @@ class CapabilityResult:
 class Capability(Protocol):
     """
     Protocol definition for capability implementations.
-    
+
     A capability represents a discrete unit of functionality (tool) that an agent
     can invoke. It must define a unique name and an execution method.
     """

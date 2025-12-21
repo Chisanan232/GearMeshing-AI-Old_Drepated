@@ -13,6 +13,7 @@ class BaseSchema(BaseModel):
     - ``populate_by_name=True``: Allow initialization by alias or field name.
     - ``extra="forbid"``: Prevent unknown fields from slipping into the model, ensuring strict validation.
     """
+
     model_config = ConfigDict(
         populate_by_name=True,
         extra="forbid",

@@ -13,12 +13,13 @@ from ..schemas.domain import AutonomyProfile, CapabilityName, RiskLevel
 class ToolRiskKind(str, Enum):
     """
     Classification of tool operations for risk assessment.
-    
+
     Attributes:
         read: Read-only operations (low risk).
         write: State-modifying operations (medium risk).
         high: Critical or dangerous operations (high risk).
     """
+
     read = "read"
     write = "write"
     high = "high"
@@ -31,6 +32,7 @@ class ToolPolicy(BaseSchema):
     Controls which capabilities and tools the agent is permitted to invoke.
     Default behavior is permissive unless allow-lists are configured.
     """
+
     allowed_capabilities: Optional[set[CapabilityName]] = Field(
         default=None,
         description="If set, only these capabilities may be executed.",
@@ -64,6 +66,7 @@ class ApprovalPolicy(BaseSchema):
     Determines when an action requires explicit human authorization based on its
     risk level.
     """
+
     require_for_risk_at_or_above: RiskLevel = RiskLevel.medium
     approval_ttl_seconds: float = Field(default=900.0, ge=0.0, le=86400.0)
 
@@ -91,6 +94,7 @@ class SafetyPolicy(BaseSchema):
     Includes settings for prompt injection detection, secret redaction, and
     resource limits to prevent abuse or accidents.
     """
+
     block_prompt_injection: bool = True
     redact_secrets: bool = True
     max_tool_args_bytes: int = Field(default=64_000, ge=1, le=5_000_000)
@@ -102,6 +106,7 @@ class BudgetPolicy(BaseSchema):
 
     Limits the consumption of tokens or costs for an agent run.
     """
+
     max_total_tokens: Optional[int] = Field(default=None, ge=1)
 
 
@@ -111,6 +116,7 @@ class PolicyConfig(BaseSchema):
 
     This is the root configuration object used to instantiate a ``GlobalPolicy``.
     """
+
     version: str = Field(default="policy-v1")
 
     autonomy_profile: AutonomyProfile = AutonomyProfile.balanced
@@ -131,6 +137,7 @@ class PolicyDecision:
         block: Whether the action is explicitly blocked by policy.
         block_reason: Human-readable reason if the action is blocked.
     """
+
     risk: RiskLevel
     require_approval: bool
     block: bool

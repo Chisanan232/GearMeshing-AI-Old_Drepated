@@ -5,6 +5,7 @@ This module defines the data models and provider protocol for retrieving
 agent role configurations. Roles determine an agent's persona (system prompt),
 permissions (allowed capabilities/tools), and termination criteria.
 """
+
 from __future__ import annotations
 
 from typing import Dict, Iterable, Protocol, Set
@@ -23,6 +24,7 @@ class CognitiveProfile(BaseSchema):
         system_prompt_key: Identifier for the prompt template (e.g. 'dev/system').
         done_when: Optional description of when the agent should consider its task complete.
     """
+
     system_prompt_key: str
     done_when: str | None = None
 
@@ -35,6 +37,7 @@ class RolePermissions(BaseSchema):
         allowed_capabilities: Set of high-level capabilities the role can invoke.
         allowed_tools: Set of specific tool names the role can invoke (for finer granularity).
     """
+
     allowed_capabilities: Set[CapabilityName] = Field(default_factory=set)
     allowed_tools: Set[str] = Field(default_factory=set)
 
@@ -45,6 +48,7 @@ class RoleDefinition(BaseSchema):
 
     Combines the role identity, cognitive settings, and permissions.
     """
+
     role: AgentRole
     cognitive: CognitiveProfile
     permissions: RolePermissions

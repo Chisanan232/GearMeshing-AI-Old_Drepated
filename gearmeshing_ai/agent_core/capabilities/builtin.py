@@ -16,6 +16,7 @@ class SummarizeCapability(Capability):
     safety mechanisms to redact sensitive information and detect prompt injection
     attacks before processing the text.
     """
+
     name: CapabilityName = CapabilityName.summarize
 
     async def execute(self, ctx: CapabilityContext, *, args: Dict[str, Any]) -> CapabilityResult:
@@ -47,6 +48,7 @@ class WebSearchCapability(Capability):
 
     Delegates the search operation to the configured ``web_search`` dependency function.
     """
+
     name: CapabilityName = CapabilityName.web_search
 
     async def execute(self, ctx: CapabilityContext, *, args: Dict[str, Any]) -> CapabilityResult:
@@ -83,6 +85,7 @@ class ShellExecCapability(Capability):
     Allows the agent to run system commands via the ``shell_exec`` dependency.
     This is a high-risk capability and is typically guarded by strict policies.
     """
+
     name: CapabilityName = CapabilityName.shell_exec
 
     async def execute(self, ctx: CapabilityContext, *, args: Dict[str, Any]) -> CapabilityResult:
@@ -118,6 +121,7 @@ class WebFetchCapability(Capability):
 
     Retrieves the content of a specific URL using the ``web_fetch`` dependency.
     """
+
     name: CapabilityName = CapabilityName.web_fetch
 
     async def execute(self, ctx: CapabilityContext, *, args: Dict[str, Any]) -> CapabilityResult:
@@ -153,6 +157,7 @@ class DocsReadCapability(Capability):
 
     Fetches documentation from internal or external sources via the ``docs_read`` dependency.
     """
+
     name: CapabilityName = CapabilityName.docs_read
 
     async def execute(self, ctx: CapabilityContext, *, args: Dict[str, Any]) -> CapabilityResult:
@@ -184,6 +189,7 @@ class CodeExecutionCapability(Capability):
     Supports running code in various languages (e.g., Python, Bash).
     Delegates to ``code_execute`` or ``shell_exec`` depending on the language.
     """
+
     name: CapabilityName = CapabilityName.code_execution
 
     async def execute(self, ctx: CapabilityContext, *, args: Dict[str, Any]) -> CapabilityResult:
@@ -231,6 +237,7 @@ class CodegenCapability(Capability):
 
     Uses the ``codegen`` dependency to produce code based on a prompt or instruction.
     """
+
     name: CapabilityName = CapabilityName.codegen
 
     async def execute(self, ctx: CapabilityContext, *, args: Dict[str, Any]) -> CapabilityResult:
@@ -267,6 +274,7 @@ class McpCallCapability(Capability):
     This capability acts as a bridge to the MCP ecosystem, allowing the agent
     to invoke tools exposed by connected MCP servers.
     """
+
     name: CapabilityName = CapabilityName.mcp_call
 
     async def execute(self, ctx: CapabilityContext, *, args: Dict[str, Any]) -> CapabilityResult:

@@ -22,6 +22,7 @@ class Router:
         default_role: The role to use if no specific role is requested or inferred (default: 'planner').
         enable_intent_routing: Whether to attempt role inference from the objective (default: False).
     """
+
     registry: AgentRegistry
     default_role: str = "planner"
     enable_intent_routing: bool = False

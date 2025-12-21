@@ -16,12 +16,13 @@ AgentServiceFactory:
 class AgentRegistry:
     """
     Registry for agent service factories keyed by role.
-    
+
     This registry allows dynamic lookup of agent implementations based on the
     role requested for a specific run. It enables different agent configurations
     or specialized implementations (e.g., 'planner', 'coder', 'researcher') to
     be plugged into the system.
     """
+
     def __init__(self) -> None:
         """Initialize an empty agent registry."""
         self._factories: Dict[str, AgentServiceFactory] = {}

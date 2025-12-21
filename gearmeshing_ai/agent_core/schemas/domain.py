@@ -20,9 +20,10 @@ class AutonomyProfile(str, Enum):
 
     This profile controls approval requirements in the ``GlobalPolicy``.
     """
+
     unrestricted = "unrestricted"  # Requires approval only for high-risk actions.
-    balanced = "balanced"          # Default: requires approval for medium/high risk.
-    strict = "strict"              # Requires approval for almost all side effects.
+    balanced = "balanced"  # Default: requires approval for medium/high risk.
+    strict = "strict"  # Requires approval for almost all side effects.
 
 
 class RiskLevel(str, Enum):
@@ -31,9 +32,10 @@ class RiskLevel(str, Enum):
 
     Used by the policy engine to determine if an action requires approval.
     """
-    low = "low"       # Read-only or safe operations.
-    medium = "medium" # State-modifying but reversible or low-impact operations.
-    high = "high"     # Critical, expensive, or irreversible operations (e.g. shell exec).
+
+    low = "low"  # Read-only or safe operations.
+    medium = "medium"  # State-modifying but reversible or low-impact operations.
+    high = "high"  # Critical, expensive, or irreversible operations (e.g. shell exec).
 
 
 class AgentRole(str, Enum):
@@ -43,6 +45,7 @@ class AgentRole(str, Enum):
     These roles determine the default capabilities, system prompts, and permissions
     assigned to an agent.
     """
+
     planner = "planner"
     market = "market"
     dev = "dev"
@@ -53,6 +56,7 @@ class AgentRole(str, Enum):
 
 class ApprovalDecision(str, Enum):
     """Possible outcomes for an approval request."""
+
     approved = "approved"
     rejected = "rejected"
     expired = "expired"
@@ -64,6 +68,7 @@ class CapabilityName(str, Enum):
 
     These names are used in plans and policies to refer to executable units of work.
     """
+
     web_search = "web_search"
     web_fetch = "web_fetch"
     docs_read = "docs_read"
@@ -76,6 +81,7 @@ class CapabilityName(str, Enum):
 
 class AgentRunStatus(str, Enum):
     """Lifecycle status of an agent run."""
+
     running = "running"
     paused_for_approval = "paused_for_approval"
     succeeded = "succeeded"
@@ -89,6 +95,7 @@ class AgentEventType(str, Enum):
 
     These events form the audit log and the event stream.
     """
+
     run_started = "run.started"
     run_completed = "run.completed"
     run_failed = "run.failed"
@@ -112,6 +119,7 @@ class AgentRun(BaseSchema):
     A run is scoped to a specific objective and role. It maintains its own state,
     history, and policy configuration.
     """
+
     id: str = Field(default_factory=lambda: str(uuid4()))
     tenant_id: Optional[str] = None
     workspace_id: Optional[str] = None
@@ -136,6 +144,7 @@ class AgentEvent(BaseSchema):
     Events capture everything significant that happens during execution, from
     thoughts and plan creation to tool outputs and state changes.
     """
+
     id: str = Field(default_factory=lambda: str(uuid4()))
     run_id: str
 
@@ -152,6 +161,7 @@ class ToolInvocation(BaseSchema):
 
     Logs the inputs (args) and outputs (result) of a capability execution.
     """
+
     id: str = Field(default_factory=lambda: str(uuid4()))
     run_id: str
 
@@ -174,6 +184,7 @@ class Approval(BaseSchema):
     Created when the policy engine blocks an action due to risk.
     The run pauses until a decision is recorded.
     """
+
     id: str = Field(default_factory=lambda: str(uuid4()))
     run_id: str
 
@@ -197,6 +208,7 @@ class Checkpoint(BaseSchema):
     Stores the serialized LangGraph state to allow pausing and resuming the run across
     process restarts or approval waits.
     """
+
     id: str = Field(default_factory=lambda: str(uuid4()))
     run_id: str
 
@@ -212,6 +224,7 @@ class UsageLedgerEntry(BaseSchema):
 
     Used for accounting and billing. Tracks usage per model invocation.
     """
+
     id: str = Field(default_factory=lambda: str(uuid4()))
     run_id: str
 
