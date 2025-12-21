@@ -71,6 +71,9 @@ docs:
   preview:
     branch: "docs-preview"         # Branch for documentation previews
 
+  # Validation configuration
+  check_dir: "document"               # Directory to check in build output (default: docs)
+
 # === CONFIGURATION EXAMPLES ===
 #
 # 1. Minimal configuration (uses defaults):
