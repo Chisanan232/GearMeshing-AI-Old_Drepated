@@ -116,22 +116,32 @@ services:
   # -------------------------------------------------------
   # AI Orchestrator (Agent Service)
   # -------------------------------------------------------
-#  ai-orchestrator:
-#    build:
-#      context: ./gearmeshing_ai
-#    container_name: gearmeshing-ai
-#    restart: unless-stopped
-#    networks:
-#      - ai-dev-net
-#    depends_on:
-#      - mcp-gateway
-#    environment:
-#      MCP_GATEWAY_URL: ${MCP_GATEWAY_URL}
-#      MCP_GATEWAY_TOKEN: ${MCP_GATEWAY_TOKEN}
-#      APP_DB_URL: ${APP_DB_URL}
-#      APP_REDIS_URL: ${APP_REDIS_URL}
-#    ports:
-#      - "8000:8000"
+  ai-orchestrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gearmeshing-ai-server
+    restart: unless-stopped
+    networks:
+      - ai-dev-net
+    depends_on:
+      - mcp-gateway
+      - postgres
+      - redis
+    environment:
+      # Server configuration
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8000
+      LOG_LEVEL: info
+      
+      # Application configuration
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      
+      # Integration configuration
+      MCP_GATEWAY_URL: http://mcp-gateway:4444
+      # MCP_GATEWAY_TOKEN: ${MCP_GATEWAY_TOKEN}
+    ports:
+      - "8000:8000"
 
   # -------------------------------------------------------
   # MCP Servers
