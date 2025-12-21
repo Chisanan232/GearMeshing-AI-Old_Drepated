@@ -63,10 +63,27 @@ def build_agent_registry(
     role_provider: AgentRoleProvider = DEFAULT_ROLE_PROVIDER,
     policy_provider: PolicyProvider | None = None,
 ) -> AgentRegistry:
+    """
+    Construct an ``AgentRegistry`` populated with factories for all standard roles.
+
+    This function iterates over all defined ``AgentRole`` values and registers a factory
+    for each. The factory handles the dynamic configuration of the agent based on
+    the requested role, merging the base policy with role-specific permissions.
+
+    Args:
+        base_policy_config: The default policy configuration (baseline safety/tooling).
+        deps: Shared dependencies (engine, planner) to be injected into services.
+        role_provider: Provider for resolving role definitions and permissions.
+        policy_provider: Optional provider for dynamic/tenant-specific policies.
+
+    Returns:
+        A fully populated AgentRegistry ready for use by the Router.
+    """
     reg = AgentRegistry()
 
     def _make_factory(_role: str):
         def _factory(run: AgentRun) -> AgentService:
+            # 1. Resolve base config (dynamic or static)
             cfg = (
                 policy_provider.get(run).model_copy(deep=True)
                 if policy_provider is not None
@@ -74,6 +91,7 @@ def build_agent_registry(
             )
             cfg.autonomy_profile = run.autonomy_profile
 
+            # 2. Apply role-specific permissions (intersection with policy)
             role_def = role_provider.get(_role)
 
             role_caps = set(role_def.permissions.allowed_capabilities)

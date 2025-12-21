@@ -1,3 +1,10 @@
+"""
+Provider abstractions for agent role definitions.
+
+This module defines the data models and provider protocol for retrieving
+agent role configurations. Roles determine an agent's persona (system prompt),
+permissions (allowed capabilities/tools), and termination criteria.
+"""
 from __future__ import annotations
 
 from typing import Dict, Iterable, Protocol, Set
@@ -9,28 +16,79 @@ from .schemas.domain import AgentRole, CapabilityName
 
 
 class CognitiveProfile(BaseSchema):
+    """
+    Configuration for an agent's cognitive behavior.
+
+    Attributes:
+        system_prompt_key: Identifier for the prompt template (e.g. 'dev/system').
+        done_when: Optional description of when the agent should consider its task complete.
+    """
     system_prompt_key: str
     done_when: str | None = None
 
 
 class RolePermissions(BaseSchema):
+    """
+    Permission set for an agent role.
+
+    Attributes:
+        allowed_capabilities: Set of high-level capabilities the role can invoke.
+        allowed_tools: Set of specific tool names the role can invoke (for finer granularity).
+    """
     allowed_capabilities: Set[CapabilityName] = Field(default_factory=set)
     allowed_tools: Set[str] = Field(default_factory=set)
 
 
 class RoleDefinition(BaseSchema):
+    """
+    Complete definition of an agent role.
+
+    Combines the role identity, cognitive settings, and permissions.
+    """
     role: AgentRole
     cognitive: CognitiveProfile
     permissions: RolePermissions
 
 
 class AgentRoleProvider(Protocol):
-    def get(self, role: AgentRole | str) -> RoleDefinition: ...
+    """
+    Protocol for retrieving agent role definitions.
 
-    def list_roles(self) -> Iterable[AgentRole]: ...
+    Allows different sources (static, DB, config) to supply role configurations.
+    """
+
+    def get(self, role: AgentRole | str) -> RoleDefinition:
+        """
+        Retrieve definition for a specific role.
+
+        Args:
+            role: The role identifier.
+
+        Returns:
+            The RoleDefinition object.
+
+        Raises:
+            KeyError: If the role is not found.
+        """
+        ...
+
+    def list_roles(self) -> Iterable[AgentRole]:
+        """
+        List all available roles.
+
+        Returns:
+            An iterable of AgentRole enum members.
+        """
+        ...
 
 
 class StaticAgentRoleProvider:
+    """
+    Role provider backed by an in-memory dictionary.
+
+    Useful for default configurations and testing.
+    """
+
     def __init__(self, *, definitions: Dict[AgentRole, RoleDefinition]) -> None:
         self._definitions = dict(definitions)
 

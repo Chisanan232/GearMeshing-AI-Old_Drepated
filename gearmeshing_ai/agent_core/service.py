@@ -62,6 +62,18 @@ class AgentService:
         self._deps = deps
 
     def _policy_for_run(self, run: AgentRun) -> PolicyConfig:
+        """
+        Resolve the effective policy configuration for a specific run.
+
+        Combines the base policy (or tenant-specific policy if a provider is present)
+        with run-specific overrides like the autonomy profile.
+
+        Args:
+            run: The agent run context.
+
+        Returns:
+            A PolicyConfig object tailored for this run.
+        """
         cfg = self._policy_provider.get(run) if self._policy_provider is not None else self._policy_config
         cfg = cfg.model_copy(deep=True)
         cfg.autonomy_profile = run.autonomy_profile
