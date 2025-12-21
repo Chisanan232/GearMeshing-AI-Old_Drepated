@@ -102,6 +102,12 @@ class SqlRunRepository(RunRepository):
     session_factory: async_sessionmaker[AsyncSession]
 
     async def create(self, run: AgentRun) -> None:
+        """
+        Persist a new run record.
+
+        Args:
+            run: The run domain object to insert.
+        """
         async with self.session_factory() as s:
             s.add(
                 RunRow(
@@ -121,6 +127,13 @@ class SqlRunRepository(RunRepository):
             await s.commit()
 
     async def update_status(self, run_id: str, *, status: str) -> None:
+        """
+        Update the status of an existing run.
+
+        Args:
+            run_id: The ID of the run to update.
+            status: The new status value.
+        """
         async with self.session_factory() as s:
             row = await s.get(RunRow, run_id)
             if row is None:
@@ -130,6 +143,15 @@ class SqlRunRepository(RunRepository):
             await s.commit()
 
     async def get(self, run_id: str) -> Optional[AgentRun]:
+        """
+        Retrieve a run by its ID.
+
+        Args:
+            run_id: The run identifier.
+
+        Returns:
+            The AgentRun domain object if found, otherwise None.
+        """
         async with self.session_factory() as s:
             row = await s.get(RunRow, run_id)
             if row is None:
@@ -156,6 +178,12 @@ class SqlEventRepository(EventRepository):
     session_factory: async_sessionmaker[AsyncSession]
 
     async def append(self, event: AgentEvent) -> None:
+        """
+        Append a new event to the store.
+
+        Args:
+            event: The event domain object.
+        """
         async with self.session_factory() as s:
             s.add(
                 EventRow(
@@ -177,6 +205,12 @@ class SqlApprovalRepository(ApprovalRepository):
     session_factory: async_sessionmaker[AsyncSession]
 
     async def create(self, approval: Approval) -> None:
+        """
+        Create a new approval request record.
+
+        Args:
+            approval: The approval domain object.
+        """
         async with self.session_factory() as s:
             s.add(
                 ApprovalRow(
@@ -197,6 +231,15 @@ class SqlApprovalRepository(ApprovalRepository):
             await s.commit()
 
     async def get(self, approval_id: str) -> Optional[Approval]:
+        """
+        Retrieve an approval by ID.
+
+        Args:
+            approval_id: The approval identifier.
+
+        Returns:
+            The Approval domain object or None.
+        """
         async with self.session_factory() as s:
             row = await s.get(ApprovalRow, approval_id)
             if row is None:
@@ -215,6 +258,14 @@ class SqlApprovalRepository(ApprovalRepository):
             )
 
     async def resolve(self, approval_id: str, *, decision: str, decided_by: str | None) -> None:
+        """
+        Update an approval with a decision.
+
+        Args:
+            approval_id: The approval identifier.
+            decision: The decision string (e.g. 'approved').
+            decided_by: The actor who made the decision.
+        """
         async with self.session_factory() as s:
             row = await s.get(ApprovalRow, approval_id)
             if row is None:
@@ -236,6 +287,12 @@ class SqlCheckpointRepository(CheckpointRepository):
     session_factory: async_sessionmaker[AsyncSession]
 
     async def save(self, checkpoint: Checkpoint) -> None:
+        """
+        Persist a checkpoint state.
+
+        Args:
+            checkpoint: The checkpoint domain object.
+        """
         async with self.session_factory() as s:
             s.add(
                 CheckpointRow(
@@ -249,6 +306,15 @@ class SqlCheckpointRepository(CheckpointRepository):
             await s.commit()
 
     async def latest(self, run_id: str) -> Optional[Checkpoint]:
+        """
+        Fetch the most recent checkpoint for a run.
+
+        Args:
+            run_id: The run identifier.
+
+        Returns:
+            The latest Checkpoint object or None.
+        """
         async with self.session_factory() as s:
             stmt = (
                 select(CheckpointRow)
@@ -270,6 +336,12 @@ class SqlToolInvocationRepository(ToolInvocationRepository):
     session_factory: async_sessionmaker[AsyncSession]
 
     async def append(self, invocation: ToolInvocation) -> None:
+        """
+        Append a tool invocation record.
+
+        Args:
+            invocation: The tool invocation domain object.
+        """
         async with self.session_factory() as s:
             s.add(
                 ToolInvocationRow(
@@ -294,6 +366,12 @@ class SqlUsageRepository(UsageRepository):
     session_factory: async_sessionmaker[AsyncSession]
 
     async def append(self, usage: UsageLedgerEntry) -> None:
+        """
+        Append a usage ledger entry.
+
+        Args:
+            usage: The usage domain object.
+        """
         async with self.session_factory() as s:
             s.add(
                 UsageRow(
