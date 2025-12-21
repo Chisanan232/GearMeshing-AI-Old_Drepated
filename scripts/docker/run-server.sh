@@ -7,7 +7,6 @@ set -e
 # SERVER_HOST → --host
 # SERVER_PORT → --port
 # LOG_LEVEL → --log-level
-# ENV_FILE → --env-file
 # RELOAD → --reload
 #
 
@@ -29,11 +28,6 @@ fi
 # LOG_LEVEL: Python logging level
 if [ -n "${LOG_LEVEL}" ]; then
   CMD_ARGS+=(--log-level "${LOG_LEVEL}")
-fi
-
-# ENV_FILE: Path to .env file
-if [ -n "${ENV_FILE}" ]; then
-  CMD_ARGS+=(--env-file "${ENV_FILE}")
 fi
 
 # RETRY: Number of retry attempts for network operations
