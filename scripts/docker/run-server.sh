@@ -6,9 +6,7 @@ set -e
 #
 # SERVER_HOST → --host
 # SERVER_PORT → --port
-# MCP_TRANSPORT → --transport
 # LOG_LEVEL → --log-level
-# API_TOKEN → --token
 # ENV_FILE → --env-file
 # RELOAD → --reload
 #
@@ -28,19 +26,9 @@ if [ -n "${SERVER_PORT}" ]; then
   CMD_ARGS+=(--port "${SERVER_PORT}")
 fi
 
-# TRANSPORT: Transport mode for FastMCP server (stdio, sse, streamable-http)
-if [ -n "${MCP_TRANSPORT}" ]; then
-  CMD_ARGS+=(--transport "${MCP_TRANSPORT}")
-fi
-
 # LOG_LEVEL: Python logging level
 if [ -n "${LOG_LEVEL}" ]; then
   CMD_ARGS+=(--log-level "${LOG_LEVEL}")
-fi
-
-# API_TOKEN: Slack bot token
-if [ -n "${API_TOKEN}" ]; then
-  CMD_ARGS+=(--token "${API_TOKEN}")
 fi
 
 # ENV_FILE: Path to .env file
