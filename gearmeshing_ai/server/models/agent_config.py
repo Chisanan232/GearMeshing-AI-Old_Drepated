@@ -7,11 +7,14 @@ roles, and related settings in the database instead of YAML files.
 
 from __future__ import annotations
 
+import json
 from datetime import datetime
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from sqlmodel import Column, DateTime, Field, SQLModel, JSON
-import json
+
+if TYPE_CHECKING:
+    from gearmeshing_ai.agent_core.schemas.config import ModelConfig, RoleConfig
 
 
 class AgentConfigBase(SQLModel):
@@ -56,6 +59,48 @@ class AgentConfig(AgentConfigBase, table=True):
         sa_column=Column(DateTime, nullable=False),
         description="Last update timestamp"
     )
+
+    def to_model_config(self) -> ModelConfig:
+        """Convert AgentConfig to ModelConfig domain model.
+
+        Returns:
+            ModelConfig domain model with provider and parameters.
+        """
+        from gearmeshing_ai.agent_core.schemas.config import ModelConfig
+
+        return ModelConfig(
+            provider=self.model_provider,
+            model=self.model_name,
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+            top_p=self.top_p,
+        )
+
+    def to_role_config(self) -> RoleConfig:
+        """Convert AgentConfig to RoleConfig domain model.
+
+        Returns:
+            RoleConfig domain model with complete role settings.
+        """
+        from gearmeshing_ai.agent_core.schemas.config import RoleConfig
+
+        capabilities: list[str] = json.loads(self.capabilities) if self.capabilities else []
+        tools: list[str] = json.loads(self.tools) if self.tools else []
+        autonomy_profiles: list[str] = json.loads(self.autonomy_profiles) if self.autonomy_profiles else []
+
+        model_config: ModelConfig = self.to_model_config()
+
+        return RoleConfig(
+            role_name=self.role_name,
+            display_name=self.display_name,
+            description=self.description,
+            system_prompt_key=self.system_prompt_key,
+            model=model_config,
+            capabilities=capabilities,
+            tools=tools,
+            autonomy_profiles=autonomy_profiles,
+            done_when=self.done_when,
+        )
 
 
 class AgentConfigRead(AgentConfigBase):
