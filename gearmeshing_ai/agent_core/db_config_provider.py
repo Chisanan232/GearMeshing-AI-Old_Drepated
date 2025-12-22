@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class DatabaseConfigProvider:
     """
     Provides agent configuration from database instead of YAML files.
-    
+
     Supports role-based configuration with tenant-specific overrides.
     """
 
@@ -66,9 +66,7 @@ class DatabaseConfigProvider:
 
         # Fall back to default (no tenant) config
         statement = select(AgentConfig).where(
-            (AgentConfig.role_name == role_name)
-            & (AgentConfig.tenant_id == None)
-            & (AgentConfig.is_active == True)
+            (AgentConfig.role_name == role_name) & (AgentConfig.tenant_id == None) & (AgentConfig.is_active == True)
         )
         config = self.session.exec(statement).first()
         if not config:
@@ -105,9 +103,7 @@ class DatabaseConfigProvider:
 
         # Fall back to default config
         statement = select(AgentConfig).where(
-            (AgentConfig.role_name == role_name)
-            & (AgentConfig.tenant_id == None)
-            & (AgentConfig.is_active == True)
+            (AgentConfig.role_name == role_name) & (AgentConfig.tenant_id == None) & (AgentConfig.is_active == True)
         )
         config = self.session.exec(statement).first()
         if not config:

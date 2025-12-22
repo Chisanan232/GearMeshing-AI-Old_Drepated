@@ -11,7 +11,7 @@ import json
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlmodel import Column, DateTime, Field, SQLModel, JSON
+from sqlmodel import Column, DateTime, Field, SQLModel
 
 if TYPE_CHECKING:
     from gearmeshing_ai.agent_core.schemas.config import ModelConfig, RoleConfig
@@ -24,19 +24,19 @@ class AgentConfigBase(SQLModel):
     display_name: str = Field(description="Human-readable role name")
     description: str = Field(description="Role description")
     system_prompt_key: str = Field(description="Key for system prompt lookup")
-    
+
     # Model configuration
     model_provider: str = Field(description="LLM provider (openai, anthropic, google)")
     model_name: str = Field(description="Model identifier (e.g., 'gpt-4o')")
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     max_tokens: int = Field(default=4096, ge=1)
     top_p: float = Field(default=0.9, ge=0.0, le=1.0)
-    
+
     # Capabilities and tools
     capabilities: str = Field(default="[]", description="JSON array of capability names")
     tools: str = Field(default="[]", description="JSON array of tool names")
     autonomy_profiles: str = Field(default="[]", description="JSON array of autonomy profile names")
-    
+
     # Additional metadata
     done_when: Optional[str] = Field(default=None, description="Completion criteria")
     is_active: bool = Field(default=True, description="Whether this role is active")
@@ -50,14 +50,10 @@ class AgentConfig(AgentConfigBase, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column=Column(DateTime, nullable=False),
-        description="Creation timestamp"
+        default_factory=datetime.utcnow, sa_column=Column(DateTime, nullable=False), description="Creation timestamp"
     )
     updated_at: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column=Column(DateTime, nullable=False),
-        description="Last update timestamp"
+        default_factory=datetime.utcnow, sa_column=Column(DateTime, nullable=False), description="Last update timestamp"
     )
 
     def to_model_config(self) -> ModelConfig:
@@ -113,8 +109,6 @@ class AgentConfigRead(AgentConfigBase):
 
 class AgentConfigCreate(AgentConfigBase):
     """Schema for creating agent configuration."""
-
-    pass
 
 
 class AgentConfigUpdate(SQLModel):
