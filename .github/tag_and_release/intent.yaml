@@ -54,7 +54,7 @@ docker:
     path: "/health"                # Health check endpoint path
 
   # Flexible Docker run options - supports multiple env vars, volumes, networks, etc.
-  run_options: "-e GEARMESHING_AI_SERVER_HOST=0.0.0.0 -e GEARMESHING_AI_SERVER_PORT=8000 -e GEARMESHING_AI_LOG_LEVEL=info"  # Custom Docker run options for testing
+  run_options: "-e SERVER_HOST=0.0.0.0 -e SERVER_PORT=8000 -e LOG_LEVEL=info"  # Custom Docker run options for testing
 
 # === VALIDATION CONFIGURATION ===
 validation:

@@ -140,7 +140,7 @@ services:
       # Integration configuration
       MCP_GATEWAY_URL: http://mcp-gateway:4444
     ports:
-      - "8000:8000"
+      - ${GEARMESHING_AI_SERVER_PORT}:${GEARMESHING_AI_SERVER_PORT}
 
   # -------------------------------------------------------
   # MCP Servers
