@@ -10,17 +10,18 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
-from pydantic_ai import Agent, ModelSettings
+from pydantic_ai import ModelSettings
 from pydantic_ai.models import Model
-from pydantic_ai.models.openai import OpenAIResponsesModel
 from pydantic_ai.models.anthropic import AnthropicModel
-from pydantic_ai.models.google import GoogleModel
 from pydantic_ai.models.fallback import FallbackModel
+from pydantic_ai.models.google import GoogleModel
+from pydantic_ai.models.openai import OpenAIResponsesModel
 
 if TYPE_CHECKING:
     from sqlmodel import Session
+
     from gearmeshing_ai.agent_core.db_config_provider import DatabaseConfigProvider
 
 logger = logging.getLogger(__name__)
@@ -51,12 +52,13 @@ class ModelProvider:
 
     def _get_db_provider(self) -> DatabaseConfigProvider:
         """Get or create database configuration provider.
-        
+
         Returns:
             DatabaseConfigProvider instance for accessing database configuration.
         """
         if self._db_provider is None:
             from .db_config_provider import DatabaseConfigProvider
+
             self._db_provider = DatabaseConfigProvider(self.db_session)
         return self._db_provider
 
@@ -104,16 +106,16 @@ class ModelProvider:
         top_p: Optional[float] = None,
     ) -> Model:
         """Create an OpenAI model instance using Pydantic AI.
-        
+
         Args:
             model: Model name (e.g., 'gpt-4o').
             temperature: Model temperature (0.0-2.0).
             max_tokens: Maximum output tokens.
             top_p: Top-p sampling (0.0-1.0).
-            
+
         Returns:
             OpenAIResponsesModel instance.
-            
+
         Raises:
             RuntimeError: If OPENAI_API_KEY is not set.
         """
@@ -147,16 +149,16 @@ class ModelProvider:
         top_p: Optional[float] = None,
     ) -> Model:
         """Create an Anthropic (Claude) model instance using Pydantic AI.
-        
+
         Args:
             model: Model name (e.g., 'claude-3-5-sonnet').
             temperature: Model temperature (0.0-2.0).
             max_tokens: Maximum output tokens.
             top_p: Top-p sampling (0.0-1.0).
-            
+
         Returns:
             AnthropicModel instance.
-            
+
         Raises:
             RuntimeError: If ANTHROPIC_API_KEY is not set.
         """
@@ -190,16 +192,16 @@ class ModelProvider:
         top_p: Optional[float] = None,
     ) -> Model:
         """Create a Google (Gemini) model instance using Pydantic AI.
-        
+
         Args:
             model: Model name (e.g., 'gemini-2.0-flash').
             temperature: Model temperature (0.0-2.0).
             max_tokens: Maximum output tokens.
             top_p: Top-p sampling (0.0-1.0).
-            
+
         Returns:
             GoogleModel instance.
-            
+
         Raises:
             RuntimeError: If GOOGLE_API_KEY is not set.
         """
@@ -252,12 +254,8 @@ class ModelProvider:
         Returns:
             FallbackModel instance with primary and fallback models.
         """
-        primary: Model = self.create_model(
-            primary_provider, primary_model, temperature, max_tokens, top_p
-        )
-        fallback: Model = self.create_model(
-            fallback_provider, fallback_model, temperature, max_tokens, top_p
-        )
+        primary: Model = self.create_model(primary_provider, primary_model, temperature, max_tokens, top_p)
+        fallback: Model = self.create_model(fallback_provider, fallback_model, temperature, max_tokens, top_p)
 
         logger.debug(
             f"Creating fallback model: {primary_provider}/{primary_model} -> {fallback_provider}/{fallback_model}"
@@ -287,7 +285,7 @@ class ModelProvider:
             ValueError: If role is not found in database configuration.
         """
         from gearmeshing_ai.agent_core.schemas.config import ModelConfig
-        
+
         db_provider: DatabaseConfigProvider = self._get_db_provider()
         model_config: ModelConfig = db_provider.get_model_config(role, tenant_id)
         logger.debug(f"Creating model for role '{role}': {model_config.model}")

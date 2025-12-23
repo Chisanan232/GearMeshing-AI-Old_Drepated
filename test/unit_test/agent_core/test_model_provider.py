@@ -109,7 +109,7 @@ class TestModelProvider:
         """Test create_model dispatches to correct provider."""
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
-        
+
         with patch.object(provider, "_create_openai_model") as mock_openai:
             mock_openai.return_value = MagicMock()
             provider.create_model("openai", "gpt-4o", temperature=0.7)
@@ -119,7 +119,7 @@ class TestModelProvider:
         """Test create_model with unsupported provider."""
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
-        
+
         with pytest.raises(ValueError, match="Unsupported provider"):
             provider.create_model("unsupported", "model")
 
@@ -127,7 +127,7 @@ class TestModelProvider:
         """Test that provider names are case-insensitive."""
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
-        
+
         with patch.object(provider, "_create_openai_model") as mock_openai:
             mock_openai.return_value = MagicMock()
             provider.create_model("OPENAI", "gpt-4o")
@@ -136,7 +136,7 @@ class TestModelProvider:
     def test_create_model_for_role_with_database(self) -> None:
         """Test create_model_for_role with database configuration."""
         from gearmeshing_ai.agent_core.schemas.config import ModelConfig
-        
+
         mock_session = MagicMock()
         mock_db_provider = MagicMock()
         mock_db_provider.get_model_config.return_value = ModelConfig(
@@ -146,10 +146,10 @@ class TestModelProvider:
             max_tokens=4096,
             top_p=0.9,
         )
-        
+
         provider = ModelProvider(db_session=mock_session)
         provider._db_provider = mock_db_provider
-        
+
         with patch.object(provider, "create_model") as mock_create:
             mock_create.return_value = MagicMock()
             provider.create_model_for_role("dev", tenant_id="test-tenant")
@@ -159,7 +159,7 @@ class TestModelProvider:
         """Test that get_model_provider returns ModelProvider instance."""
         mock_session = MagicMock()
         provider = get_model_provider(mock_session)
-        
+
         assert isinstance(provider, ModelProvider)
         assert provider.db_session is mock_session
 
@@ -172,12 +172,12 @@ class TestModelProviderConvenienceFunctions:
         mock_session = MagicMock()
         mock_provider = MagicMock()
         mock_provider.create_model_for_role.return_value = MagicMock()
-        
+
         with patch("gearmeshing_ai.agent_core.model_provider.get_model_provider") as mock_get:
             mock_get.return_value = mock_provider
-            
+
             model = create_model_for_role(mock_session, "dev", tenant_id="test-tenant")
-            
+
             mock_provider.create_model_for_role.assert_called_once_with("dev", "test-tenant")
 
 
@@ -192,9 +192,9 @@ class TestModelProviderDefaults:
 
         with patch("gearmeshing_ai.agent_core.model_provider.OpenAIResponsesModel") as mock_openai:
             mock_openai.return_value = MagicMock()
-            
+
             provider._create_openai_model("gpt-4o", temperature=None, max_tokens=None, top_p=None)
-            
+
             mock_openai.assert_called_once()
             call_kwargs = mock_openai.call_args.kwargs
             assert "settings" in call_kwargs
@@ -205,12 +205,12 @@ class TestModelProviderDefaults:
         """Test Anthropic model uses defaults when params are None."""
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
-        
+
         with patch("gearmeshing_ai.agent_core.model_provider.AnthropicModel") as mock_anthropic:
             mock_anthropic.return_value = MagicMock()
-            
+
             provider._create_anthropic_model("claude-3-5-sonnet", temperature=None, max_tokens=None, top_p=None)
-            
+
             mock_anthropic.assert_called_once()
             call_kwargs = mock_anthropic.call_args.kwargs
             assert "settings" in call_kwargs
@@ -224,9 +224,9 @@ class TestModelProviderDefaults:
 
         with patch("gearmeshing_ai.agent_core.model_provider.GoogleModel") as mock_google:
             mock_google.return_value = MagicMock()
-            
+
             provider._create_google_model("gemini-2.0-flash", temperature=None, max_tokens=None, top_p=None)
-            
+
             mock_google.assert_called_once()
             call_kwargs = mock_google.call_args.kwargs
             assert "settings" in call_kwargs
@@ -268,7 +268,9 @@ class TestModelProviderDispatch:
 
         with patch.object(provider, "_create_anthropic_model") as mock_anthropic:
             mock_anthropic.return_value = MagicMock()
-            result = provider.create_model("anthropic", "claude-3-5-sonnet", temperature=0.6, max_tokens=3000, top_p=0.85)
+            result = provider.create_model(
+                "anthropic", "claude-3-5-sonnet", temperature=0.6, max_tokens=3000, top_p=0.85
+            )
 
             mock_anthropic.assert_called_once_with("claude-3-5-sonnet", 0.6, 3000, 0.85)
             assert result is not None
@@ -382,8 +384,10 @@ class TestModelProviderFallback:
             with patch("gearmeshing_ai.agent_core.model_provider.FallbackModel") as mock_fallback_model:
                 mock_fallback_model.return_value = MagicMock()
                 result = provider.create_fallback_model(
-                    "openai", "gpt-4o",
-                    "anthropic", "claude-3-5-sonnet",
+                    "openai",
+                    "gpt-4o",
+                    "anthropic",
+                    "claude-3-5-sonnet",
                     temperature=0.7,
                     max_tokens=2048,
                     top_p=0.9,
@@ -407,8 +411,10 @@ class TestModelProviderFallback:
             with patch("gearmeshing_ai.agent_core.model_provider.FallbackModel") as mock_fallback_model:
                 mock_fallback_model.return_value = MagicMock()
                 result = provider.create_fallback_model(
-                    "openai", "gpt-4o",
-                    "google", "gemini-2.0-flash",
+                    "openai",
+                    "gpt-4o",
+                    "google",
+                    "gemini-2.0-flash",
                 )
 
                 assert mock_create.call_count == 2
@@ -429,8 +435,10 @@ class TestModelProviderFallback:
             with patch("gearmeshing_ai.agent_core.model_provider.FallbackModel") as mock_fallback_model:
                 mock_fallback_model.return_value = MagicMock()
                 result = provider.create_fallback_model(
-                    "anthropic", "claude-3-5-sonnet",
-                    "google", "gemini-2.0-flash",
+                    "anthropic",
+                    "claude-3-5-sonnet",
+                    "google",
+                    "gemini-2.0-flash",
                     temperature=0.5,
                     max_tokens=3000,
                     top_p=0.8,
@@ -454,8 +462,10 @@ class TestModelProviderFallback:
             with patch("gearmeshing_ai.agent_core.model_provider.FallbackModel") as mock_fallback_model:
                 mock_fallback_model.return_value = MagicMock()
                 result = provider.create_fallback_model(
-                    "google", "gemini-2.0-flash",
-                    "openai", "gpt-4o",
+                    "google",
+                    "gemini-2.0-flash",
+                    "openai",
+                    "gpt-4o",
                 )
 
                 assert mock_create.call_count == 2
@@ -476,8 +486,10 @@ class TestModelProviderFallback:
             with patch("gearmeshing_ai.agent_core.model_provider.FallbackModel") as mock_fallback_model:
                 mock_fallback_model.return_value = MagicMock()
                 provider.create_fallback_model(
-                    "openai", "gpt-4o",
-                    "anthropic", "claude-3-5-sonnet",
+                    "openai",
+                    "gpt-4o",
+                    "anthropic",
+                    "claude-3-5-sonnet",
                     temperature=0.6,
                     max_tokens=2500,
                     top_p=0.85,
@@ -504,8 +516,10 @@ class TestModelProviderFallback:
             with patch("gearmeshing_ai.agent_core.model_provider.FallbackModel") as mock_fallback_model:
                 mock_fallback_model.return_value = MagicMock()
                 provider.create_fallback_model(
-                    "openai", "gpt-4o",
-                    "anthropic", "claude-3-5-sonnet",
+                    "openai",
+                    "gpt-4o",
+                    "anthropic",
+                    "claude-3-5-sonnet",
                     temperature=None,
                     max_tokens=None,
                     top_p=None,
@@ -528,8 +542,10 @@ class TestModelProviderFallback:
 
             with pytest.raises(RuntimeError, match="Primary model creation failed"):
                 provider.create_fallback_model(
-                    "openai", "gpt-4o",
-                    "anthropic", "claude-3-5-sonnet",
+                    "openai",
+                    "gpt-4o",
+                    "anthropic",
+                    "claude-3-5-sonnet",
                 )
 
     @patch.dict(os.environ, {"OPENAI_API_KEY": "test-key", "ANTHROPIC_API_KEY": "test-key"})
@@ -544,8 +560,10 @@ class TestModelProviderFallback:
 
             with pytest.raises(RuntimeError, match="Fallback model creation failed"):
                 provider.create_fallback_model(
-                    "openai", "gpt-4o",
-                    "anthropic", "claude-3-5-sonnet",
+                    "openai",
+                    "gpt-4o",
+                    "anthropic",
+                    "claude-3-5-sonnet",
                 )
 
     @patch.dict(os.environ, {"OPENAI_API_KEY": "test-key", "ANTHROPIC_API_KEY": "test-key"})
@@ -564,8 +582,10 @@ class TestModelProviderFallback:
                 mock_fallback_model.return_value = expected_result
 
                 result = provider.create_fallback_model(
-                    "openai", "gpt-4o",
-                    "anthropic", "claude-3-5-sonnet",
+                    "openai",
+                    "gpt-4o",
+                    "anthropic",
+                    "claude-3-5-sonnet",
                 )
 
                 assert result is expected_result
@@ -585,8 +605,10 @@ class TestModelProviderFallback:
             with patch("gearmeshing_ai.agent_core.model_provider.FallbackModel") as mock_fallback_model:
                 mock_fallback_model.return_value = MagicMock()
                 result = provider.create_fallback_model(
-                    "openai", "gpt-4o",
-                    "openai", "gpt-4-turbo",
+                    "openai",
+                    "gpt-4o",
+                    "openai",
+                    "gpt-4-turbo",
                 )
 
                 calls = mock_create.call_args_list
