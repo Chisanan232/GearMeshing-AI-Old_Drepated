@@ -7,6 +7,7 @@ from the database and converts them to domain models.
 
 from __future__ import annotations
 
+from typing import Generator
 
 import pytest
 from sqlmodel import Session, create_engine
@@ -20,7 +21,7 @@ from gearmeshing_ai.server.models.agent_config import AgentConfig
 
 
 @pytest.fixture
-def in_memory_db() -> Session:
+def in_memory_db() -> Generator[Session, None, None]:
     """Create an in-memory SQLite database for testing."""
     engine = create_engine("sqlite:///:memory:")
     AgentConfig.metadata.create_all(engine)

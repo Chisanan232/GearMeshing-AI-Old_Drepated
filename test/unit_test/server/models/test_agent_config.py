@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
+from typing import Generator
 
 import pytest
 from sqlmodel import Session, create_engine
@@ -23,7 +24,7 @@ from gearmeshing_ai.server.models.agent_config import (
 
 
 @pytest.fixture
-def in_memory_db() -> Session:
+def in_memory_db() -> Generator[Session, None, None]:
     """Create an in-memory SQLite database for testing."""
     engine = create_engine("sqlite:///:memory:")
     AgentConfig.metadata.create_all(engine)
@@ -165,7 +166,7 @@ class TestAgentConfigToRoleConfig:
     def test_to_role_config_null_json_fields(self, sample_agent_config: AgentConfig) -> None:
         """Test handling of null/empty JSON fields."""
         sample_agent_config.capabilities = ""
-        sample_agent_config.tools = None
+        sample_agent_config.tools = ""
         sample_agent_config.autonomy_profiles = ""
 
         role_config: RoleConfig = sample_agent_config.to_role_config()
