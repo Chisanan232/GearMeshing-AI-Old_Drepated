@@ -47,7 +47,7 @@ def test_tool_descriptor_dto_contract_alias_and_mapping() -> None:
             if isinstance(v, dict)
         ]
 
-    t = dto.to_mcp_tool(_infer, lambda n: n.startswith("create"))
+    t = dto.to_mcp_tool(_infer, lambda n: n.startswith("create"))  # type: ignore[arg-type]
     assert isinstance(t, McpTool)
     assert t.name == "get_issue" and t.mutating is False
     assert t.raw_parameters_schema.get("type") == "object"
