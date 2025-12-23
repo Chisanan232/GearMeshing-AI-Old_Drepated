@@ -23,11 +23,14 @@ The runtime enforces the thought/action split:
 - Action steps are side-effecting and are routed through policy/approval.
 """
 
-from typing import Any, Dict, List
+import logging
+from typing import Any, Dict, List, Optional
 
 from pydantic_ai import Agent
 
 from .steps import ActionStep, ThoughtStep
+
+logger = logging.getLogger(__name__)
 
 
 class StructuredPlanner:
@@ -44,15 +47,25 @@ class StructuredPlanner:
     ``AgentEngine.start_run(plan=...)``.
     """
 
-    def __init__(self, *, model: Any | None = None) -> None:
+    def __init__(
+        self, *, model: Any | None = None, role: Optional[str] = None, tenant_id: Optional[str] = None
+    ) -> None:
         """
         Initialize the planner.
 
         Args:
             model: The language model instance to use for generation (e.g., from LangChain or PydanticAI).
                    If None, the planner operates in a deterministic "summary-only" mode.
+            role: Optional role name for configuration-based model creation.
+            tenant_id: Optional tenant identifier for tenant-specific model configuration.
         """
         self._model = model
+        self._role = role
+        self._tenant_id = tenant_id
+        self._model_creation_deferred = False
+
+        # Note: Model creation from role is deferred to async context (plan method)
+        # This avoids blocking the constructor and async/sync session mismatches
 
     async def plan(self, *, objective: str, role: str) -> List[Dict[str, Any]]:
         """Generate a plan for a run.
@@ -69,11 +82,26 @@ class StructuredPlanner:
         list[dict[str, Any]]
             A JSON-serializable list of plan step dictionaries.
         """
-        if self._model is None:
+        # Try to create model from role if not already provided
+        model = self._model
+        if model is None and self._role is not None and not self._model_creation_deferred:
+            try:
+                from ..model_provider import async_create_model_for_role
+
+                model = await async_create_model_for_role(self._role, tenant_id=self._tenant_id)
+                logger.debug(f"Created planner model for role '{self._role}' from configuration")
+                self._model = model
+            except Exception as e:
+                logger.debug(f"Could not create model for role '{self._role}': {e}")
+                self._model_creation_deferred = True
+                # Fall back to deterministic mode
+                model = None
+
+        if model is None:
             return [ThoughtStep(thought="summarize", args={"text": objective, "role": role}).model_dump()]
 
         agent: Agent = Agent(
-            self._model,
+            model,
             output_type=List[ActionStep],
             system_prompt=(
                 "You are an expert planner for an autonomous software engineering agent. "

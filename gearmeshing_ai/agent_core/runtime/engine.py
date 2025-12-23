@@ -31,12 +31,14 @@ run restores the checkpointed state, clears the awaiting approval id, and
 continues execution.
 """
 
+import logging
 from typing import Any, cast
 
 from langgraph.graph import END, StateGraph
 from pydantic_ai import Agent as PydanticAIAgent
 
 from ..capabilities.base import CapabilityContext
+from ..model_provider import async_create_model_for_role
 from ..planning.steps import normalize_plan
 from ..policy.global_policy import GlobalPolicy
 from ..roles import get_role_spec
@@ -53,6 +55,8 @@ from ..schemas.domain import (
     UsageLedgerEntry,
 )
 from .models import EngineDeps, _GraphState
+
+logger = logging.getLogger(__name__)
 
 
 class AgentEngine:
@@ -220,10 +224,21 @@ class AgentEngine:
 
             output: dict[str, Any] = {}
             prompt_text: str | None = None
+            thought_model = self._deps.thought_model
+
+            # If no thought model provided, try to create from configuration
+            if thought_model is None and self._deps.role_provider is not None:
+                try:
+                    thought_model = await async_create_model_for_role(run.role, tenant_id=run.tenant_id)
+                    logger.debug(f"Created thought model for role '{run.role}' from configuration")
+                except Exception as e:
+                    logger.debug(f"Could not create thought model from configuration: {e}")
+                    thought_model = None
+
             if (
                 self._deps.prompt_provider is not None
                 and self._deps.role_provider is not None
-                and self._deps.thought_model is not None
+                and thought_model is not None
             ):
                 try:
                     role_def = self._deps.role_provider.get(run.role)
@@ -237,7 +252,7 @@ class AgentEngine:
                     prompt_text = None
 
                 if prompt_text is not None and PydanticAIAgent is not None:
-                    agent = PydanticAIAgent(self._deps.thought_model, output_type=dict, system_prompt=prompt_text)
+                    agent = PydanticAIAgent(thought_model, output_type=dict, system_prompt=prompt_text)
                     res = await agent.run(f"thought={thought}\nrole={run.role}\nobjective={run.objective}\nargs={args}")
                     if isinstance(res.output, dict):
                         output = dict(res.output)
