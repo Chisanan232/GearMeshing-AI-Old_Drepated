@@ -96,7 +96,7 @@ def _compose_env() -> Iterable[None]:
 
     # GearMeshing AI Server
     _set("GEARMESHING_AI_SERVER_HOST", os.getenv("GEARMESHING_AI_SERVER_HOST", "0.0.0.0"))
-    _set("GEARMESHING_AI_SERVER_PORT", os.getenv("GEARMESHING_AI_SERVER_PORT", 8000))
+    _set("GEARMESHING_AI_SERVER_PORT", os.getenv("GEARMESHING_AI_SERVER_PORT", "8000"))
     _set("GEARMESHING_AI_LOG_LEVEL", os.getenv("GEARMESHING_AI_LOG_LEVEL", "debug"))
 
     try:
