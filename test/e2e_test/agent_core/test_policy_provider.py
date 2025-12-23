@@ -13,7 +13,6 @@ from gearmeshing_ai.agent_core.policy.models import (
     PolicyConfig,
     SafetyPolicy,
     ToolPolicy,
-    ToolRiskKind,
 )
 from gearmeshing_ai.agent_core.policy.provider import (
     DatabasePolicyProvider,
@@ -123,9 +122,7 @@ class TestPolicyProviderEndToEndFlow:
 
         assert decision.block is True
 
-    def test_agent_service_full_flow_with_policy_provider(
-        self, default_policy, mock_engine_deps
-    ):
+    def test_agent_service_full_flow_with_policy_provider(self, default_policy, mock_engine_deps):
         """Test AgentService full flow with policy provider."""
         acme_policy = default_policy.model_copy(deep=True)
         acme_policy.autonomy_profile = AutonomyProfile.strict
@@ -280,9 +277,7 @@ class TestDatabasePolicyProviderIntegration:
         return MagicMock(spec=PolicyRepository)
 
     @pytest.mark.asyncio
-    async def test_async_policy_loading_from_database(
-        self, default_policy, mock_policy_repository
-    ):
+    async def test_async_policy_loading_from_database(self, default_policy, mock_policy_repository):
         """Test async policy loading from database."""
         tenant_policy_dict = {
             "version": "policy-v1",
@@ -318,16 +313,12 @@ class TestDatabasePolicyProviderIntegration:
             tenant_id="acme-corp",
         )
 
-        policy_config = await async_get_policy_config(
-            mock_policy_repository, run, default_policy
-        )
+        policy_config = await async_get_policy_config(mock_policy_repository, run, default_policy)
 
         assert policy_config.autonomy_profile == AutonomyProfile.strict
         mock_policy_repository.get.assert_called_once_with("acme-corp")
 
-    def test_database_policy_provider_with_engine(
-        self, default_policy, mock_policy_repository
-    ):
+    def test_database_policy_provider_with_engine(self, default_policy, mock_policy_repository):
         """Test DatabasePolicyProvider works with engine building."""
         tenant_policy_dict = {
             "version": "policy-v1",

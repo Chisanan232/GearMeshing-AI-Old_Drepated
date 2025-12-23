@@ -19,7 +19,12 @@ from gearmeshing_ai.agent_core.policy.provider import (
     async_get_policy_config,
 )
 from gearmeshing_ai.agent_core.repos.interfaces import PolicyRepository
-from gearmeshing_ai.agent_core.schemas.domain import AgentRun, AgentRunStatus, AutonomyProfile, RiskLevel
+from gearmeshing_ai.agent_core.schemas.domain import (
+    AgentRun,
+    AgentRunStatus,
+    AutonomyProfile,
+    RiskLevel,
+)
 
 
 class TestDatabasePolicyProvider:

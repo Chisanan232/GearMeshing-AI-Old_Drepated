@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Protocol
+from typing import Dict, Protocol
 
 from ..repos.interfaces import PolicyRepository
 from ..schemas.domain import AgentRun

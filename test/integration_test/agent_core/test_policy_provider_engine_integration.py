@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -180,9 +180,7 @@ class TestPolicyProviderWithAgentService:
         """Create mock planner."""
         return MagicMock()
 
-    def test_agent_service_with_static_policy_provider(
-        self, default_policy, mock_engine_deps, mock_planner
-    ):
+    def test_agent_service_with_static_policy_provider(self, default_policy, mock_engine_deps, mock_planner):
         """Test AgentService with StaticPolicyProvider."""
         provider = StaticPolicyProvider(default=default_policy)
 
@@ -211,9 +209,7 @@ class TestPolicyProviderWithAgentService:
         assert resolved_policy.autonomy_profile == AutonomyProfile.balanced
         assert resolved_policy.version == "policy-v1"
 
-    def test_agent_service_with_database_policy_provider(
-        self, default_policy, mock_engine_deps, mock_planner
-    ):
+    def test_agent_service_with_database_policy_provider(self, default_policy, mock_engine_deps, mock_planner):
         """Test AgentService with DatabasePolicyProvider."""
         mock_repo = MagicMock(spec=PolicyRepository)
         provider = DatabasePolicyProvider(
@@ -276,9 +272,7 @@ class TestPolicyProviderWithAgentService:
         # Autonomy profile from run should override provider's policy
         assert resolved_policy.autonomy_profile == AutonomyProfile.strict
 
-    def test_agent_service_without_policy_provider(
-        self, default_policy, mock_engine_deps, mock_planner
-    ):
+    def test_agent_service_without_policy_provider(self, default_policy, mock_engine_deps, mock_planner):
         """Test AgentService uses base policy when no provider is given."""
         service_deps = AgentServiceDeps(
             engine_deps=mock_engine_deps,
