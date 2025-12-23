@@ -24,6 +24,7 @@ These interfaces intentionally mirror the engine’s audit needs:
 - Usage records track token/cost accounting.
 """
 
+from datetime import datetime
 from typing import Optional, Protocol
 
 from ..schemas.domain import (
@@ -70,6 +71,20 @@ class RunRepository(Protocol):
         """
         ...
 
+    async def list(self, tenant_id: Optional[str] = None, limit: int = 100, offset: int = 0) -> list[AgentRun]:
+        """
+        List runs, optionally filtered by tenant.
+
+        Args:
+            tenant_id: Optional tenant identifier to filter by.
+            limit: Max number of records to return.
+            offset: Pagination offset.
+
+        Returns:
+            A list of AgentRun objects.
+        """
+        ...
+
 
 class EventRepository(Protocol):
     """Append-only store for runtime events."""
@@ -80,6 +95,19 @@ class EventRepository(Protocol):
 
         Args:
             event: The event to persist.
+        """
+        ...
+
+    async def list(self, run_id: str, limit: int = 100) -> list[AgentEvent]:
+        """
+        List events for a specific run.
+
+        Args:
+            run_id: The run identifier.
+            limit: Max number of events to return.
+
+        Returns:
+            A list of AgentEvent objects.
         """
         ...
 
@@ -116,6 +144,19 @@ class ApprovalRepository(Protocol):
             approval_id: The ID of the approval to resolve.
             decision: The decision value (e.g., 'approved', 'rejected').
             decided_by: The identifier of the user/system making the decision.
+        """
+        ...
+
+    async def list(self, run_id: str, pending_only: bool = True) -> list[Approval]:
+        """
+        List approvals for a run.
+
+        Args:
+            run_id: The run identifier.
+            pending_only: If True, return only approvals with decision=None.
+
+        Returns:
+            A list of Approval objects.
         """
         ...
 
@@ -167,5 +208,45 @@ class UsageRepository(Protocol):
 
         Args:
             usage: The usage ledger entry to persist.
+        """
+        ...
+
+    async def list(self, tenant_id: str, from_date: Optional[datetime] = None, to_date: Optional[datetime] = None) -> list[UsageLedgerEntry]:
+        """
+        List usage entries for a tenant within a date range.
+
+        Args:
+            tenant_id: The tenant identifier.
+            from_date: Optional start datetime (inclusive).
+            to_date: Optional end datetime (inclusive).
+
+        Returns:
+            A list of UsageLedgerEntry objects.
+        """
+        ...
+
+
+class PolicyRepository(Protocol):
+    """Store and retrieve tenant policy configurations."""
+
+    async def get(self, tenant_id: str) -> Optional[dict]:
+        """
+        Retrieve policy config for a tenant.
+
+        Args:
+            tenant_id: The tenant identifier.
+
+        Returns:
+            The policy configuration dict if found, else None.
+        """
+        ...
+
+    async def update(self, tenant_id: str, config: dict) -> None:
+        """
+        Update or create policy config for a tenant.
+
+        Args:
+            tenant_id: The tenant identifier.
+            config: The new configuration dict.
         """
         ...
