@@ -336,3 +336,73 @@ def create_model_for_role(
     """
     provider: ModelProvider = get_model_provider(db_session)
     return provider.create_model_for_role(role, tenant_id)
+
+
+async def async_create_model_for_role(
+    role: str,
+    tenant_id: Optional[str] = None,
+) -> Model:
+    """
+    Create a model instance for a specific role from database configuration (async).
+
+    This is the async-friendly version for use in async contexts like the engine.
+    It automatically handles session creation and cleanup.
+
+    Args:
+        role: Role name (e.g., 'dev', 'qa', 'planner').
+        tenant_id: Optional tenant identifier for tenant-specific overrides.
+
+    Returns:
+        Model: The created Pydantic AI model instance.
+
+    Raises:
+        ValueError: If role is not found in database configuration.
+        RuntimeError: If database session cannot be created.
+
+    Example:
+        >>> model = await async_create_model_for_role('dev', tenant_id='acme-corp')
+        >>> agent = Agent(model, system_prompt="You are a developer assistant")
+    """
+    from sqlalchemy import create_engine as sync_create_engine
+    from sqlmodel import Session
+    from gearmeshing_ai.server.core.config import settings
+
+    try:
+        # Create a sync engine and session for model provider
+        # The model provider requires a sync session, so we create one here
+        sync_engine = sync_create_engine(settings.DATABASE_URL)
+        
+        session = Session(sync_engine)
+        try:
+            provider: ModelProvider = get_model_provider(session)
+            model = provider.create_model_for_role(role, tenant_id)
+            logger.debug(f"Created model for role '{role}' in async context")
+            return model
+        finally:
+            session.close()
+    except Exception as e:
+        logger.error(f"Failed to create model for role '{role}' in async context: {e}")
+        raise
+
+
+async def async_get_model_provider(
+    role: str,
+    tenant_id: Optional[str] = None,
+) -> Model:
+    """
+    Get a model for a specific role (async convenience function).
+
+    Alias for async_create_model_for_role for consistency with sync version.
+
+    Args:
+        role: Role name (e.g., 'dev', 'qa', 'planner').
+        tenant_id: Optional tenant identifier for tenant-specific overrides.
+
+    Returns:
+        Model: The created Pydantic AI model instance.
+
+    Raises:
+        ValueError: If role is not found in database configuration.
+        RuntimeError: If database session cannot be created.
+    """
+    return await async_create_model_for_role(role, tenant_id)
