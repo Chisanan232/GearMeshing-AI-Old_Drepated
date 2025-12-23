@@ -6,12 +6,13 @@ It provides utilities for dependency injection of database sessions.
 """
 
 from typing import AsyncGenerator
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from gearmeshing_ai.agent_core.repos.sql import create_engine, create_sessionmaker
-from gearmeshing_ai.server.core.config import settings
 # Import Base here to ensure it's available for table creation
 from gearmeshing_ai.agent_core.repos.models import Base  # noqa: E402, F401
+from gearmeshing_ai.agent_core.repos.sql import create_engine, create_sessionmaker
+from gearmeshing_ai.server.core.config import settings
 
 # Create global engine and session factory using agent_core utilities
 # Create Async Engine
@@ -46,7 +47,7 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 async def init_db():
     """
     Initialize the database.
-    
+
     Creates all tables defined in the authoritative agent_core ORM metadata.
     NOTE: In production, Alembic migrations should be used instead of this function.
     """
