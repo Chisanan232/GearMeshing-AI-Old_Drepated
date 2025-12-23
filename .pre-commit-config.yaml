@@ -56,7 +56,7 @@ repos:
         args:
           - --ignore-missing-imports
           - --show-traceback
-        additional_dependencies: [types-PyYAML>=6.0.12.9]
+        additional_dependencies: [types-PyYAML>=6.0.12.9, sqlmodel==0.0.27]
 
   - repo: https://github.com/astral-sh/uv-pre-commit
     # uv version.
