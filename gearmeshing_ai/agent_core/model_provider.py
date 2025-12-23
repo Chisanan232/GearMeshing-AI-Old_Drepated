@@ -365,13 +365,14 @@ async def async_create_model_for_role(
     """
     from sqlalchemy import create_engine as sync_create_engine
     from sqlmodel import Session
+
     from gearmeshing_ai.server.core.config import settings
 
     try:
         # Create a sync engine and session for model provider
         # The model provider requires a sync session, so we create one here
         sync_engine = sync_create_engine(settings.DATABASE_URL)
-        
+
         session = Session(sync_engine)
         try:
             provider: ModelProvider = get_model_provider(session)

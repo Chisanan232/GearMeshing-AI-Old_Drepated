@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -25,26 +25,26 @@ class TestAsyncModelProvider:
                 # Mock engine and session
                 mock_engine_instance = MagicMock()
                 mock_engine.return_value = mock_engine_instance
-                
+
                 # Mock session maker
                 mock_session = MagicMock()
                 mock_sessionmaker_instance = MagicMock(return_value=mock_session)
                 mock_sessionmaker.return_value = mock_sessionmaker_instance
-                
+
                 # Mock context manager for session
                 mock_session.__enter__ = MagicMock(return_value=mock_session)
                 mock_session.__exit__ = MagicMock(return_value=None)
-                
+
                 # Mock the model provider and model creation
                 with patch("gearmeshing_ai.agent_core.model_provider.get_model_provider") as mock_get_provider:
                     mock_provider = MagicMock()
                     mock_model = MagicMock()
                     mock_provider.create_model_for_role.return_value = mock_model
                     mock_get_provider.return_value = mock_provider
-                    
+
                     # Call async function
                     result = await async_create_model_for_role("dev", tenant_id="acme-corp")
-                    
+
                     # Verify model was created
                     assert result is mock_model
                     mock_provider.create_model_for_role.assert_called_once_with("dev", "acme-corp")
@@ -57,22 +57,22 @@ class TestAsyncModelProvider:
             with patch("gearmeshing_ai.server.core.database.create_sessionmaker") as mock_sessionmaker:
                 mock_engine_instance = MagicMock()
                 mock_engine.return_value = mock_engine_instance
-                
+
                 mock_session = MagicMock()
                 mock_sessionmaker_instance = MagicMock(return_value=mock_session)
                 mock_sessionmaker.return_value = mock_sessionmaker_instance
-                
+
                 mock_session.__enter__ = MagicMock(return_value=mock_session)
                 mock_session.__exit__ = MagicMock(return_value=None)
-                
+
                 with patch("gearmeshing_ai.agent_core.model_provider.get_model_provider") as mock_get_provider:
                     mock_provider = MagicMock()
                     mock_model = MagicMock()
                     mock_provider.create_model_for_role.return_value = mock_model
                     mock_get_provider.return_value = mock_provider
-                    
+
                     result = await async_create_model_for_role("planner")
-                    
+
                     assert result is mock_model
                     mock_provider.create_model_for_role.assert_called_once_with("planner", None)
 
@@ -83,19 +83,19 @@ class TestAsyncModelProvider:
             with patch("gearmeshing_ai.server.core.database.create_sessionmaker") as mock_sessionmaker:
                 mock_engine_instance = MagicMock()
                 mock_engine.return_value = mock_engine_instance
-                
+
                 mock_session = MagicMock()
                 mock_sessionmaker_instance = MagicMock(return_value=mock_session)
                 mock_sessionmaker.return_value = mock_sessionmaker_instance
-                
+
                 mock_session.__enter__ = MagicMock(return_value=mock_session)
                 mock_session.__exit__ = MagicMock(return_value=None)
-                
+
                 with patch("gearmeshing_ai.agent_core.model_provider.get_model_provider") as mock_get_provider:
                     mock_provider = MagicMock()
                     mock_provider.create_model_for_role.side_effect = ValueError("Role not found")
                     mock_get_provider.return_value = mock_provider
-                    
+
                     with pytest.raises(ValueError, match="Role not found"):
                         await async_create_model_for_role("nonexistent-role")
 
@@ -107,23 +107,23 @@ class TestAsyncModelProvider:
             with patch("gearmeshing_ai.server.core.database.create_sessionmaker") as mock_sessionmaker:
                 mock_engine_instance = MagicMock()
                 mock_engine.return_value = mock_engine_instance
-                
+
                 mock_session = MagicMock()
                 mock_sessionmaker_instance = MagicMock(return_value=mock_session)
                 mock_sessionmaker.return_value = mock_sessionmaker_instance
-                
+
                 mock_session.__enter__ = MagicMock(return_value=mock_session)
                 mock_session.__exit__ = MagicMock(return_value=None)
-                
+
                 with patch("gearmeshing_ai.agent_core.model_provider.get_model_provider") as mock_get_provider:
                     mock_provider = MagicMock()
                     mock_model = MagicMock()
                     mock_provider.create_model_for_role.return_value = mock_model
                     mock_get_provider.return_value = mock_provider
-                    
+
                     # Call async_get_model_provider (alias)
                     result = await async_get_model_provider("dev", tenant_id="acme-corp")
-                    
+
                     # Should work same as async_create_model_for_role
                     assert result is mock_model
 
@@ -134,18 +134,18 @@ class TestAsyncModelProvider:
             with patch("sqlmodel.Session") as mock_session_class:
                 mock_engine_instance = MagicMock()
                 mock_sync_engine.return_value = mock_engine_instance
-                
+
                 mock_session = MagicMock()
                 mock_session_class.return_value = mock_session
-                
+
                 with patch("gearmeshing_ai.agent_core.model_provider.get_model_provider") as mock_get_provider:
                     mock_provider = MagicMock()
                     mock_model = MagicMock()
                     mock_provider.create_model_for_role.return_value = mock_model
                     mock_get_provider.return_value = mock_provider
-                    
+
                     await async_create_model_for_role("dev")
-                    
+
                     # Verify session was created and closed
                     mock_session_class.assert_called_once_with(mock_engine_instance)
                     mock_session.close.assert_called_once()
@@ -157,18 +157,18 @@ class TestAsyncModelProvider:
             with patch("gearmeshing_ai.server.core.database.create_sessionmaker") as mock_sessionmaker:
                 mock_engine_instance = MagicMock()
                 mock_engine.return_value = mock_engine_instance
-                
+
                 mock_session = MagicMock()
                 mock_sessionmaker_instance = MagicMock(return_value=mock_session)
                 mock_sessionmaker.return_value = mock_sessionmaker_instance
-                
+
                 mock_session.__enter__ = MagicMock(return_value=mock_session)
                 mock_session.__exit__ = MagicMock(return_value=None)
-                
+
                 with patch("gearmeshing_ai.agent_core.model_provider.get_model_provider") as mock_get_provider:
                     mock_provider = MagicMock()
                     mock_provider.create_model_for_role.side_effect = RuntimeError("API error")
                     mock_get_provider.return_value = mock_provider
-                    
+
                     with pytest.raises(RuntimeError, match="API error"):
                         await async_create_model_for_role("dev")
