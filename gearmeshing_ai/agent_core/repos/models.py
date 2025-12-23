@@ -147,6 +147,23 @@ class CheckpointRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
 
 
+class PolicyRow(Base):
+    """Row model for ``gm_policies``.
+
+    Stores tenant-specific policy configurations.
+    """
+
+    __tablename__ = "gm_policies"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+
+    config: Mapped[Dict[str, Any]] = mapped_column(JSONB, default=dict)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class UsageRow(Base):
     """Row model for ``gm_usage_ledger``.
 
@@ -157,6 +174,7 @@ class UsageRow(Base):
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     run_id: Mapped[str] = mapped_column(String(64), index=True)
+    tenant_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, index=True)
 
     provider: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     model: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
