@@ -56,7 +56,12 @@ repos:
         args:
           - --ignore-missing-imports
           - --show-traceback
-        additional_dependencies: [types-PyYAML>=6.0.12.9]
+        additional_dependencies:
+          # YAML features
+          - types-PyYAML>=6.0.12.9
+          # FastAPI series libraries *Pydantic* and *SQLModel* features
+          - pydantic>=2.7.2
+          - sqlmodel>=0.0.27
 
   - repo: https://github.com/astral-sh/uv-pre-commit
     # uv version.

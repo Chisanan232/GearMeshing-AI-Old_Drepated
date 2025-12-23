@@ -188,6 +188,6 @@ def test_catalog_bulk_register_response_dto_validator_noop_for_non_dict_root() -
         {"s1": "e1"},
     ]
 
-    result = CatalogBulkRegisterResponseDTO._coerce_failed(payload)
+    result = CatalogBulkRegisterResponseDTO._coerce_failed(payload)  # type: ignore[operator]
 
     assert result is payload
