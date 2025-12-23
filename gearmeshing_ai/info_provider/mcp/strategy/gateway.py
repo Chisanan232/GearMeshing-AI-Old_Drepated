@@ -136,12 +136,14 @@ class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
             input_schema = (
                 t.inputSchema.model_dump() if getattr(t.inputSchema, "model_dump", None) else (t.inputSchema or {})
             )
+            # Ensure input_schema is a dict for _infer_arguments
+            schema_dict: Dict[str, Any] = input_schema if isinstance(input_schema, dict) else {}
             tools.append(
                 McpTool(
                     name=name,
                     description=t.description,
                     mutating=self._is_mutating_tool_name(name),
-                    arguments=self._infer_arguments(input_schema),
+                    arguments=self._infer_arguments(schema_dict),
                     raw_parameters_schema=input_schema,
                 )
             )
@@ -189,12 +191,14 @@ class GatewayMcpStrategy(StrategyCommonMixin, SyncStrategy):
             input_schema = (
                 t.inputSchema.model_dump() if getattr(t.inputSchema, "model_dump", None) else (t.inputSchema or {})
             )
+            # Ensure input_schema is a dict for _infer_arguments
+            schema_dict: Dict[str, Any] = input_schema if isinstance(input_schema, dict) else {}
             tools.append(
                 McpTool(
                     name=name,
                     description=t.description,
                     mutating=self._is_mutating_tool_name(name),
-                    arguments=self._infer_arguments(input_schema),
+                    arguments=self._infer_arguments(schema_dict),
                     raw_parameters_schema=input_schema,
                 )
             )

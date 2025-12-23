@@ -20,6 +20,7 @@ from gearmeshing_ai.info_provider.mcp.schemas.config import (
     ServerConfig,
 )
 from gearmeshing_ai.info_provider.mcp.schemas.core import (
+    McpServerRef,
     McpTool,
     ToolCallResult,
     ToolsPage,
@@ -148,7 +149,7 @@ class SyncDummyBase(SyncStrategy):
     simply returns a successful empty ToolCallResult.
     """
 
-    def list_servers(self) -> Iterable[McpTool]:
+    def list_servers(self) -> Iterable[McpServerRef]:
         return []
 
     def list_tools(self, server_id: str) -> Iterable[McpTool]:  # noqa: ARG002

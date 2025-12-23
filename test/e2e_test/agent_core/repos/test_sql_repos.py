@@ -6,6 +6,12 @@ from typing import AsyncIterator, Iterator
 import pytest
 import pytest_asyncio
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from testcontainers.postgres import PostgresContainer
 
 from gearmeshing_ai.agent_core.repos.models import (
@@ -43,7 +49,7 @@ def pg_url() -> Iterator[str]:
 
 
 @pytest_asyncio.fixture
-async def engine(pg_url: str) -> AsyncIterator[object]:
+async def engine(pg_url: str) -> AsyncIterator[AsyncEngine]:
     eng = create_engine(pg_url)
     await create_all(eng)
     await create_all(eng)
@@ -52,7 +58,7 @@ async def engine(pg_url: str) -> AsyncIterator[object]:
 
 
 @pytest.fixture
-def session_factory(engine: object):
+def session_factory(engine: AsyncEngine):
     return create_sessionmaker(engine)
 
 
