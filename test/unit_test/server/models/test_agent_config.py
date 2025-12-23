@@ -177,7 +177,7 @@ class TestAgentConfigToRoleConfig:
 
     def test_to_role_config_with_optional_fields(self, sample_agent_config: AgentConfig) -> None:
         """Test RoleConfig with optional fields set to None."""
-        sample_agent_config.description = None
+        sample_agent_config.description = ""
         sample_agent_config.done_when = None
 
         role_config: RoleConfig = sample_agent_config.to_role_config()
