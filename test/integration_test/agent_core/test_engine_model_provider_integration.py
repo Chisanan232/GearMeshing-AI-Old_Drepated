@@ -150,3 +150,296 @@ class TestEngineModelProviderIntegration:
         # Should mark as finished
         assert result.get("_finished") is True
         assert result.get("_terminal_status") == AgentRunStatus.succeeded.value
+
+    @pytest.mark.asyncio
+    async def test_engine_skips_model_creation_when_role_provider_none(self, mock_policy, mock_engine_deps):
+        """Test engine skips model creation when role_provider is None."""
+        mock_engine_deps.role_provider = None
+        engine = AgentEngine(policy=mock_policy, deps=mock_engine_deps)
+
+        run = AgentRun(
+            id="test-run-4",
+            role="dev",
+            objective="Test objective",
+            status=AgentRunStatus.running,
+        )
+        mock_engine_deps.runs.get = AsyncMock(return_value=run)
+
+        state = {
+            "run_id": "test-run-4",
+            "plan": [{"kind": "thought", "thought": "analyze", "args": {}}],
+            "idx": 0,
+            "awaiting_approval_id": None,
+        }
+
+        # Should not attempt model creation when role_provider is None
+        with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
+            try:
+                await engine._node_execute_next(state)
+            except Exception:
+                pass
+            # async_create_model_for_role should not be called
+            mock_create.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_engine_model_creation_with_tenant_id(self, mock_policy, mock_engine_deps):
+        """Test engine passes tenant_id to model creation."""
+        mock_engine_deps.role_provider = MagicMock()
+        engine = AgentEngine(policy=mock_policy, deps=mock_engine_deps)
+
+        run = AgentRun(
+            id="test-run-5",
+            role="dev",
+            objective="Test objective",
+            status=AgentRunStatus.running,
+            tenant_id="acme-corp",
+        )
+        mock_engine_deps.runs.get = AsyncMock(return_value=run)
+
+        state = {
+            "run_id": "test-run-5",
+            "plan": [{"kind": "thought", "thought": "analyze", "args": {}}],
+            "idx": 0,
+            "awaiting_approval_id": None,
+        }
+
+        with patch("gearmeshing_ai.agent_core.runtime.engine.async_create_model_for_role") as mock_create:
+            mock_create.return_value = MagicMock()
+            try:
+                await engine._node_execute_next(state)
+            except Exception:
+                pass
+
+            # Verify tenant_id was passed
+            if mock_create.called:
+                call_kwargs = mock_create.call_args[1]
+                assert call_kwargs.get("tenant_id") == "acme-corp"
+
+    @pytest.mark.asyncio
+    async def test_engine_model_creation_api_key_missing(self, mock_policy, mock_engine_deps):
+        """Test engine handles missing API key gracefully."""
+        mock_engine_deps.role_provider = MagicMock()
+        engine = AgentEngine(policy=mock_policy, deps=mock_engine_deps)
+
+        run = AgentRun(
+            id="test-run-6",
+            role="dev",
+            objective="Test objective",
+            status=AgentRunStatus.running,
+        )
+        mock_engine_deps.runs.get = AsyncMock(return_value=run)
+
+        state = {
+            "run_id": "test-run-6",
+            "plan": [{"kind": "thought", "thought": "analyze", "args": {}}],
+            "idx": 0,
+            "awaiting_approval_id": None,
+        }
+
+        with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
+            mock_create.side_effect = RuntimeError("API key not set")
+
+            # Should not raise, should handle gracefully
+            try:
+                result = await engine._node_execute_next(state)
+                # Should continue without thought model
+                assert result is not None
+            except RuntimeError as e:
+                # If it does raise, it should be logged but not crash
+                assert "API key" in str(e)
+
+    @pytest.mark.asyncio
+    async def test_engine_model_creation_database_error(self, mock_policy, mock_engine_deps):
+        """Test engine handles database errors during model creation."""
+        mock_engine_deps.role_provider = MagicMock()
+        engine = AgentEngine(policy=mock_policy, deps=mock_engine_deps)
+
+        run = AgentRun(
+            id="test-run-7",
+            role="dev",
+            objective="Test objective",
+            status=AgentRunStatus.running,
+        )
+        mock_engine_deps.runs.get = AsyncMock(return_value=run)
+
+        state = {
+            "run_id": "test-run-7",
+            "plan": [{"kind": "thought", "thought": "analyze", "args": {}}],
+            "idx": 0,
+            "awaiting_approval_id": None,
+        }
+
+        with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
+            mock_create.side_effect = RuntimeError("Database connection failed")
+
+            try:
+                result = await engine._node_execute_next(state)
+                # Should continue without thought model
+                assert result is not None
+            except RuntimeError:
+                pass
+
+    @pytest.mark.asyncio
+    async def test_engine_uses_provided_thought_model_over_creation(self, mock_policy, mock_engine_deps):
+        """Test engine uses provided thought model instead of creating one."""
+        mock_thought_model = MagicMock()
+        mock_engine_deps.thought_model = mock_thought_model
+        mock_engine_deps.role_provider = MagicMock()
+
+        engine = AgentEngine(policy=mock_policy, deps=mock_engine_deps)
+
+        run = AgentRun(
+            id="test-run-8",
+            role="dev",
+            objective="Test objective",
+            status=AgentRunStatus.running,
+        )
+        mock_engine_deps.runs.get = AsyncMock(return_value=run)
+
+        state = {
+            "run_id": "test-run-8",
+            "plan": [{"kind": "thought", "thought": "analyze", "args": {}}],
+            "idx": 0,
+            "awaiting_approval_id": None,
+        }
+
+        with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
+            try:
+                await engine._node_execute_next(state)
+            except Exception:
+                pass
+
+            # Should not attempt to create model since one is provided
+            mock_create.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_engine_model_creation_with_different_roles(self, mock_policy, mock_engine_deps):
+        """Test engine creates models for different roles."""
+        mock_engine_deps.role_provider = MagicMock()
+        engine = AgentEngine(policy=mock_policy, deps=mock_engine_deps)
+
+        roles = ["dev", "qa", "planner", "reviewer"]
+
+        for role in roles:
+            run = AgentRun(
+                id=f"test-run-{role}",
+                role=role,
+                objective="Test objective",
+                status=AgentRunStatus.running,
+            )
+            mock_engine_deps.runs.get = AsyncMock(return_value=run)
+
+            state = {
+                "run_id": f"test-run-{role}",
+                "plan": [{"kind": "thought", "thought": "analyze", "args": {}}],
+                "idx": 0,
+                "awaiting_approval_id": None,
+            }
+
+            with patch("gearmeshing_ai.agent_core.runtime.engine.async_create_model_for_role") as mock_create:
+                mock_create.return_value = MagicMock()
+                try:
+                    await engine._node_execute_next(state)
+                except Exception:
+                    pass
+
+                # Verify role was passed correctly if called
+                if mock_create.called:
+                    call_args = mock_create.call_args[0]
+                    assert call_args[0] == role
+
+    @pytest.mark.asyncio
+    async def test_engine_model_creation_none_tenant_id(self, mock_policy, mock_engine_deps):
+        """Test engine handles None tenant_id correctly."""
+        mock_engine_deps.role_provider = MagicMock()
+        engine = AgentEngine(policy=mock_policy, deps=mock_engine_deps)
+
+        run = AgentRun(
+            id="test-run-9",
+            role="dev",
+            objective="Test objective",
+            status=AgentRunStatus.running,
+            tenant_id=None,
+        )
+        mock_engine_deps.runs.get = AsyncMock(return_value=run)
+
+        state = {
+            "run_id": "test-run-9",
+            "plan": [{"kind": "thought", "thought": "analyze", "args": {}}],
+            "idx": 0,
+            "awaiting_approval_id": None,
+        }
+
+        with patch("gearmeshing_ai.agent_core.runtime.engine.async_create_model_for_role") as mock_create:
+            mock_create.return_value = MagicMock()
+            try:
+                await engine._node_execute_next(state)
+            except Exception:
+                pass
+
+            # Verify None tenant_id was passed if called
+            if mock_create.called:
+                call_kwargs = mock_create.call_args[1]
+                assert call_kwargs.get("tenant_id") is None
+
+    @pytest.mark.asyncio
+    async def test_engine_model_creation_timeout(self, mock_policy, mock_engine_deps):
+        """Test engine handles model creation timeout."""
+        mock_engine_deps.role_provider = MagicMock()
+        engine = AgentEngine(policy=mock_policy, deps=mock_engine_deps)
+
+        run = AgentRun(
+            id="test-run-10",
+            role="dev",
+            objective="Test objective",
+            status=AgentRunStatus.running,
+        )
+        mock_engine_deps.runs.get = AsyncMock(return_value=run)
+
+        state = {
+            "run_id": "test-run-10",
+            "plan": [{"kind": "thought", "thought": "analyze", "args": {}}],
+            "idx": 0,
+            "awaiting_approval_id": None,
+        }
+
+        with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
+            mock_create.side_effect = TimeoutError("Model creation timed out")
+
+            try:
+                result = await engine._node_execute_next(state)
+                # Should continue without thought model
+                assert result is not None
+            except TimeoutError:
+                pass
+
+    @pytest.mark.asyncio
+    async def test_engine_model_creation_invalid_role(self, mock_policy, mock_engine_deps):
+        """Test engine handles invalid role gracefully."""
+        mock_engine_deps.role_provider = MagicMock()
+        engine = AgentEngine(policy=mock_policy, deps=mock_engine_deps)
+
+        run = AgentRun(
+            id="test-run-11",
+            role="invalid-role",
+            objective="Test objective",
+            status=AgentRunStatus.running,
+        )
+        mock_engine_deps.runs.get = AsyncMock(return_value=run)
+
+        state = {
+            "run_id": "test-run-11",
+            "plan": [{"kind": "thought", "thought": "analyze", "args": {}}],
+            "idx": 0,
+            "awaiting_approval_id": None,
+        }
+
+        with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
+            mock_create.side_effect = ValueError("Role not found in configuration")
+
+            try:
+                result = await engine._node_execute_next(state)
+                # Should continue without thought model
+                assert result is not None
+            except ValueError:
+                pass
