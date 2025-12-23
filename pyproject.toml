@@ -9,7 +9,7 @@ description = "🤖 A highly self-hostable AI-powered software engineering platf
 authors = [{ name = "Chisanan232", email = "chi10211201@cycu.org.tw" }]
 requires-python = ">=3.12"
 readme = "README.md"
-license = { text = "MIT" }
+license = { file = "LICENSE" }
 keywords = [
     "ai",
     "ai agents",
