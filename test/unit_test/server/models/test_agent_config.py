@@ -182,7 +182,7 @@ class TestAgentConfigToRoleConfig:
 
         role_config: RoleConfig = sample_agent_config.to_role_config()
 
-        assert role_config.description is None
+        assert role_config.description == ""
         assert role_config.done_when is None
 
     def test_to_role_config_returns_new_instance(self, sample_agent_config: AgentConfig) -> None:
