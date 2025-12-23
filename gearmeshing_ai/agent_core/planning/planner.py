@@ -47,7 +47,9 @@ class StructuredPlanner:
     ``AgentEngine.start_run(plan=...)``.
     """
 
-    def __init__(self, *, model: Any | None = None, role: Optional[str] = None, tenant_id: Optional[str] = None) -> None:
+    def __init__(
+        self, *, model: Any | None = None, role: Optional[str] = None, tenant_id: Optional[str] = None
+    ) -> None:
         """
         Initialize the planner.
 
@@ -61,7 +63,7 @@ class StructuredPlanner:
         self._role = role
         self._tenant_id = tenant_id
         self._model_creation_deferred = False
-        
+
         # Note: Model creation from role is deferred to async context (plan method)
         # This avoids blocking the constructor and async/sync session mismatches
 
@@ -85,6 +87,7 @@ class StructuredPlanner:
         if model is None and self._role is not None and not self._model_creation_deferred:
             try:
                 from ..model_provider import async_create_model_for_role
+
                 model = await async_create_model_for_role(self._role, tenant_id=self._tenant_id)
                 logger.debug(f"Created planner model for role '{self._role}' from configuration")
                 self._model = model
@@ -93,7 +96,7 @@ class StructuredPlanner:
                 self._model_creation_deferred = True
                 # Fall back to deterministic mode
                 model = None
-        
+
         if model is None:
             return [ThoughtStep(thought="summarize", args={"text": objective, "role": role}).model_dump()]
 

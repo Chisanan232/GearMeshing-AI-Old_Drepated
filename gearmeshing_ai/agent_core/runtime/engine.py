@@ -32,7 +32,7 @@ continues execution.
 """
 
 import logging
-from typing import Any, cast, Optional
+from typing import Any, cast
 
 from langgraph.graph import END, StateGraph
 from pydantic_ai import Agent as PydanticAIAgent
@@ -225,7 +225,7 @@ class AgentEngine:
             output: dict[str, Any] = {}
             prompt_text: str | None = None
             thought_model = self._deps.thought_model
-            
+
             # If no thought model provided, try to create from configuration
             if thought_model is None and self._deps.role_provider is not None:
                 try:
@@ -234,7 +234,7 @@ class AgentEngine:
                 except Exception as e:
                     logger.debug(f"Could not create thought model from configuration: {e}")
                     thought_model = None
-            
+
             if (
                 self._deps.prompt_provider is not None
                 and self._deps.role_provider is not None
