@@ -94,6 +94,11 @@ def _compose_env() -> Iterable[None]:
     _set("CLICKUP_API_TOKEN", os.getenv("CLICKUP_API_TOKEN", os.getenv("GM_CLICKUP_API_TOKEN", "e2e-test-token")))
     _set("MQ_BACKEND", os.getenv("MQ_BACKEND", "redis"))
 
+    # GearMeshing AI Server
+    _set("GEARMESHING_AI_SERVER_HOST", os.getenv("GEARMESHING_AI_SERVER_HOST", "0.0.0.0"))
+    _set("GEARMESHING_AI_SERVER_PORT", os.getenv("GEARMESHING_AI_SERVER_PORT", 8000))
+    _set("GEARMESHING_AI_LOG_LEVEL", os.getenv("GEARMESHING_AI_LOG_LEVEL", "debug"))
+
     try:
         yield
     finally:
