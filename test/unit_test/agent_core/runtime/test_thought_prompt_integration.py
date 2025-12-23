@@ -96,8 +96,8 @@ async def test_thought_step_uses_prompt_provider_and_model_when_configured(monke
     reg = CapabilityRegistry()
 
     deps = EngineDeps(
-        runs=runs,
-        events=events,
+        runs=runs,  # type: ignore[arg-type]
+        events=events,  # type: ignore[arg-type]
         approvals=_NoopRepo(),  # type: ignore[arg-type]
         checkpoints=_NoopRepo(),
         tool_invocations=_NoopRepo(),
@@ -169,8 +169,8 @@ async def test_thought_step_prompt_keyerror_uses_fallback_prompt(monkeypatch: py
             return _Role()
 
     deps = EngineDeps(
-        runs=runs,
-        events=events,
+        runs=runs,  # type: ignore[arg-type]
+        events=events,  # type: ignore[arg-type]
         approvals=_NoopRepo(),  # type: ignore[arg-type]
         checkpoints=_NoopRepo(),
         tool_invocations=_NoopRepo(),
@@ -222,8 +222,8 @@ async def test_thought_step_prompt_provider_exception_disables_agent_call(monkey
             return None
 
     deps = EngineDeps(
-        runs=runs,
-        events=events,
+        runs=runs,  # type: ignore[arg-type]
+        events=events,  # type: ignore[arg-type]
         approvals=_NoopRepo(),  # type: ignore[arg-type]
         checkpoints=_NoopRepo(),
         tool_invocations=_NoopRepo(),
@@ -268,8 +268,8 @@ async def test_thought_step_non_dict_agent_output_is_wrapped(monkeypatch: pytest
     reg = CapabilityRegistry()
 
     deps = EngineDeps(
-        runs=runs,
-        events=events,
+        runs=runs,  # type: ignore[arg-type]
+        events=events,  # type: ignore[arg-type]
         approvals=_NoopRepo(),  # type: ignore[arg-type]
         checkpoints=_NoopRepo(),
         tool_invocations=_NoopRepo(),
