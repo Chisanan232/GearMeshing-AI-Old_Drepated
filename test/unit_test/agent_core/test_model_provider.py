@@ -20,7 +20,7 @@ class TestModelProvider:
     def test_model_provider_initialization_requires_db_session(self) -> None:
         """Test ModelProvider initialization requires database session."""
         with pytest.raises(ValueError, match="db_session is required"):
-            ModelProvider(db_session=None)
+            ModelProvider(db_session=None)  # type: ignore[arg-type]
 
     def test_model_provider_initialization_with_db_session(self) -> None:
         """Test ModelProvider initialization with database session."""
