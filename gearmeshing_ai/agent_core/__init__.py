@@ -32,6 +32,12 @@ the full run:
 """
 
 from .agent_registry import AgentRegistry
+from .db_config_provider import DatabaseConfigProvider, get_db_config_provider
+from .model_provider import (
+    ModelProvider,
+    create_model_for_role,
+    get_model_provider,
+)
 from .router import Router
 from .schemas.domain import (
     AgentEvent,
@@ -53,4 +59,11 @@ __all__ = [
     "RiskLevel",
     "AgentRegistry",
     "Router",
+    # Database configuration provider
+    "DatabaseConfigProvider",
+    "get_db_config_provider",
+    # Model provider
+    "ModelProvider",
+    "get_model_provider",
+    "create_model_for_role",
 ]
