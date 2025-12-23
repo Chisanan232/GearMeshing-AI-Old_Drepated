@@ -50,6 +50,7 @@ from .interfaces import (
     ApprovalRepository,
     CheckpointRepository,
     EventRepository,
+    PolicyRepository,
     RunRepository,
     ToolInvocationRepository,
     UsageRepository,
@@ -59,6 +60,7 @@ from .models import (
     Base,
     CheckpointRow,
     EventRow,
+    PolicyRow,
     RunRow,
     ToolInvocationRow,
     UsageRow,
@@ -156,19 +158,59 @@ class SqlRunRepository(RunRepository):
             row = await s.get(RunRow, run_id)
             if row is None:
                 return None
+            from gearmeshing_ai.agent_core.schemas.domain import AutonomyProfile, AgentRunStatus
             return AgentRun(
                 id=row.id,
                 tenant_id=row.tenant_id,
                 workspace_id=row.workspace_id,
                 role=row.role,
-                autonomy_profile=row.autonomy_profile,
+                autonomy_profile=AutonomyProfile(row.autonomy_profile),
                 objective=row.objective,
                 done_when=row.done_when,
                 prompt_provider_version=row.prompt_provider_version,
-                status=row.status,
+                status=AgentRunStatus(row.status),
                 created_at=row.created_at,
                 updated_at=row.updated_at,
             )
+
+    async def list(self, tenant_id: Optional[str] = None, limit: int = 100, offset: int = 0) -> list[AgentRun]:
+        """
+        List runs, optionally filtered by tenant.
+
+        Args:
+            tenant_id: Optional tenant identifier to filter by.
+            limit: Max number of records to return.
+            offset: Pagination offset.
+
+        Returns:
+            A list of AgentRun objects.
+        """
+        async with self.session_factory() as s:
+            stmt = select(RunRow)
+            if tenant_id:
+                stmt = stmt.where(RunRow.tenant_id == tenant_id)
+            stmt = stmt.order_by(RunRow.created_at.desc()).offset(offset).limit(limit)
+            
+            result = await s.execute(stmt)
+            rows = result.scalars().all()
+            
+            from gearmeshing_ai.agent_core.schemas.domain import AutonomyProfile, AgentRunStatus
+            return [
+                AgentRun(
+                    id=row.id,
+                    tenant_id=row.tenant_id,
+                    workspace_id=row.workspace_id,
+                    role=row.role,
+                    autonomy_profile=AutonomyProfile(row.autonomy_profile),
+                    objective=row.objective,
+                    done_when=row.done_when,
+                    prompt_provider_version=row.prompt_provider_version,
+                    status=AgentRunStatus(row.status),
+                    created_at=row.created_at,
+                    updated_at=row.updated_at,
+                )
+                for row in rows
+            ]
 
 
 @dataclass(frozen=True)
@@ -196,6 +238,40 @@ class SqlEventRepository(EventRepository):
                 )
             )
             await s.commit()
+
+    async def list(self, run_id: str, limit: int = 100) -> list[AgentEvent]:
+        """
+        List events for a specific run.
+
+        Args:
+            run_id: The run identifier.
+            limit: Max number of events to return.
+
+        Returns:
+            A list of AgentEvent objects.
+        """
+        async with self.session_factory() as s:
+            stmt = (
+                select(EventRow)
+                .where(EventRow.run_id == run_id)
+                .order_by(EventRow.created_at.asc())
+                .limit(limit)
+            )
+            result = await s.execute(stmt)
+            rows = result.scalars().all()
+            
+            from gearmeshing_ai.agent_core.schemas.domain import AgentEventType
+            return [
+                AgentEvent(
+                    id=row.id,
+                    run_id=row.run_id,
+                    type=AgentEventType(row.type),
+                    created_at=row.created_at,
+                    correlation_id=row.correlation_id,
+                    payload=row.payload,
+                )
+                for row in rows
+            ]
 
 
 @dataclass(frozen=True)
@@ -244,15 +320,16 @@ class SqlApprovalRepository(ApprovalRepository):
             row = await s.get(ApprovalRow, approval_id)
             if row is None:
                 return None
+            from gearmeshing_ai.agent_core.schemas.domain import RiskLevel, CapabilityName, ApprovalDecision
             return Approval(
                 id=row.id,
                 run_id=row.run_id,
-                risk=row.risk,
-                capability=row.capability,
+                risk=RiskLevel(row.risk),
+                capability=CapabilityName(row.capability),
                 reason=row.reason,
                 requested_at=row.requested_at,
                 expires_at=row.expires_at,
-                decision=row.decision,
+                decision=ApprovalDecision(row.decision) if row.decision else None,
                 decided_at=row.decided_at,
                 decided_by=row.decided_by,
             )
@@ -274,6 +351,43 @@ class SqlApprovalRepository(ApprovalRepository):
             row.decided_by = decided_by
             row.decided_at = _utc_now_naive()
             await s.commit()
+
+    async def list(self, run_id: str, pending_only: bool = True) -> list[Approval]:
+        """
+        List approvals for a run.
+
+        Args:
+            run_id: The run identifier.
+            pending_only: If True, return only approvals with decision=None.
+
+        Returns:
+            A list of Approval objects.
+        """
+        async with self.session_factory() as s:
+            stmt = select(ApprovalRow).where(ApprovalRow.run_id == run_id)
+            if pending_only:
+                stmt = stmt.where(ApprovalRow.decision.is_(None))
+            stmt = stmt.order_by(ApprovalRow.requested_at.asc())
+            
+            result = await s.execute(stmt)
+            rows = result.scalars().all()
+            
+            from gearmeshing_ai.agent_core.schemas.domain import RiskLevel, CapabilityName, ApprovalDecision
+            return [
+                Approval(
+                    id=row.id,
+                    run_id=row.run_id,
+                    risk=RiskLevel(row.risk),
+                    capability=CapabilityName(row.capability),
+                    reason=row.reason,
+                    requested_at=row.requested_at,
+                    expires_at=row.expires_at,
+                    decision=ApprovalDecision(row.decision) if row.decision else None,
+                    decided_at=row.decided_at,
+                    decided_by=row.decided_by,
+                )
+                for row in rows
+            ]
 
 
 @dataclass(frozen=True)
@@ -388,6 +502,75 @@ class SqlUsageRepository(UsageRepository):
             )
             await s.commit()
 
+    async def list(self, tenant_id: str, from_date: Optional[datetime] = None, to_date: Optional[datetime] = None) -> list[UsageLedgerEntry]:
+        """
+        List usage entries for a tenant within a date range.
+
+        Args:
+            tenant_id: The tenant identifier.
+            from_date: Optional start datetime.
+            to_date: Optional end datetime.
+
+        Returns:
+            A list of UsageLedgerEntry objects.
+        """
+        async with self.session_factory() as s:
+            # We need to join with runs to filter by tenant_id, OR if UsageRow has tenant_id.
+            # Checking sql.py models... UsageRow does NOT have tenant_id. RunRow has it.
+            # So we need to join UsageRow and RunRow.
+            
+            stmt = select(UsageRow).join(RunRow, UsageRow.run_id == RunRow.id).where(RunRow.tenant_id == tenant_id)
+            
+            if from_date:
+                stmt = stmt.where(UsageRow.created_at >= from_date)
+            if to_date:
+                stmt = stmt.where(UsageRow.created_at <= to_date)
+                
+            stmt = stmt.order_by(UsageRow.created_at.desc())
+            
+            result = await s.execute(stmt)
+            rows = result.scalars().all()
+            
+            return [
+                UsageLedgerEntry(
+                    id=row.id,
+                    run_id=row.run_id,
+                    provider=row.provider,
+                    model=row.model,
+                    prompt_tokens=row.prompt_tokens,
+                    completion_tokens=row.completion_tokens,
+                    total_tokens=row.total_tokens,
+                    cost_usd=row.cost_usd,
+                    created_at=row.created_at,
+                )
+                for row in rows
+            ]
+
+
+@dataclass(frozen=True)
+class SqlPolicyRepository(PolicyRepository):
+    """SQL implementation of ``PolicyRepository``."""
+
+    session_factory: async_sessionmaker[AsyncSession]
+
+    async def get(self, tenant_id: str) -> Optional[dict]:
+        async with self.session_factory() as s:
+            row = await s.get(PolicyRow, tenant_id)
+            if row is None:
+                return None
+            return row.config
+
+    async def update(self, tenant_id: str, config: dict) -> None:
+        async with self.session_factory() as s:
+            row = await s.get(PolicyRow, tenant_id)
+            if row is None:
+                row = PolicyRow(tenant_id=tenant_id, config=config, updated_at=_utc_now_naive())
+                s.add(row)
+            else:
+                row.config = config
+                row.updated_at = _utc_now_naive()
+            await s.commit()
+
 
 @dataclass(frozen=True)
 class SqlRepoBundle:
@@ -399,6 +582,7 @@ class SqlRepoBundle:
     checkpoints: SqlCheckpointRepository
     tool_invocations: SqlToolInvocationRepository
     usage: SqlUsageRepository
+    policies: SqlPolicyRepository
 
 
 def build_sql_repos(*, session_factory: async_sessionmaker[AsyncSession]) -> SqlRepoBundle:
@@ -410,4 +594,5 @@ def build_sql_repos(*, session_factory: async_sessionmaker[AsyncSession]) -> Sql
         checkpoints=SqlCheckpointRepository(session_factory=session_factory),
         tool_invocations=SqlToolInvocationRepository(session_factory=session_factory),
         usage=SqlUsageRepository(session_factory=session_factory),
+        policies=SqlPolicyRepository(session_factory=session_factory),
     )
