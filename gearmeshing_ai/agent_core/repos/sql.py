@@ -158,7 +158,11 @@ class SqlRunRepository(RunRepository):
             row = await s.get(RunRow, run_id)
             if row is None:
                 return None
-            from gearmeshing_ai.agent_core.schemas.domain import AutonomyProfile, AgentRunStatus
+            from gearmeshing_ai.agent_core.schemas.domain import (
+                AgentRunStatus,
+                AutonomyProfile,
+            )
+
             return AgentRun(
                 id=row.id,
                 tenant_id=row.tenant_id,
@@ -190,11 +194,15 @@ class SqlRunRepository(RunRepository):
             if tenant_id:
                 stmt = stmt.where(RunRow.tenant_id == tenant_id)
             stmt = stmt.order_by(RunRow.created_at.desc()).offset(offset).limit(limit)
-            
+
             result = await s.execute(stmt)
             rows = result.scalars().all()
-            
-            from gearmeshing_ai.agent_core.schemas.domain import AutonomyProfile, AgentRunStatus
+
+            from gearmeshing_ai.agent_core.schemas.domain import (
+                AgentRunStatus,
+                AutonomyProfile,
+            )
+
             return [
                 AgentRun(
                     id=row.id,
@@ -251,16 +259,12 @@ class SqlEventRepository(EventRepository):
             A list of AgentEvent objects.
         """
         async with self.session_factory() as s:
-            stmt = (
-                select(EventRow)
-                .where(EventRow.run_id == run_id)
-                .order_by(EventRow.created_at.asc())
-                .limit(limit)
-            )
+            stmt = select(EventRow).where(EventRow.run_id == run_id).order_by(EventRow.created_at.asc()).limit(limit)
             result = await s.execute(stmt)
             rows = result.scalars().all()
-            
+
             from gearmeshing_ai.agent_core.schemas.domain import AgentEventType
+
             return [
                 AgentEvent(
                     id=row.id,
@@ -320,7 +324,12 @@ class SqlApprovalRepository(ApprovalRepository):
             row = await s.get(ApprovalRow, approval_id)
             if row is None:
                 return None
-            from gearmeshing_ai.agent_core.schemas.domain import RiskLevel, CapabilityName, ApprovalDecision
+            from gearmeshing_ai.agent_core.schemas.domain import (
+                ApprovalDecision,
+                CapabilityName,
+                RiskLevel,
+            )
+
             return Approval(
                 id=row.id,
                 run_id=row.run_id,
@@ -368,11 +377,16 @@ class SqlApprovalRepository(ApprovalRepository):
             if pending_only:
                 stmt = stmt.where(ApprovalRow.decision.is_(None))
             stmt = stmt.order_by(ApprovalRow.requested_at.asc())
-            
+
             result = await s.execute(stmt)
             rows = result.scalars().all()
-            
-            from gearmeshing_ai.agent_core.schemas.domain import RiskLevel, CapabilityName, ApprovalDecision
+
+            from gearmeshing_ai.agent_core.schemas.domain import (
+                ApprovalDecision,
+                CapabilityName,
+                RiskLevel,
+            )
+
             return [
                 Approval(
                     id=row.id,
@@ -502,7 +516,9 @@ class SqlUsageRepository(UsageRepository):
             )
             await s.commit()
 
-    async def list(self, tenant_id: str, from_date: Optional[datetime] = None, to_date: Optional[datetime] = None) -> list[UsageLedgerEntry]:
+    async def list(
+        self, tenant_id: str, from_date: Optional[datetime] = None, to_date: Optional[datetime] = None
+    ) -> list[UsageLedgerEntry]:
         """
         List usage entries for a tenant within a date range.
 
@@ -518,19 +534,19 @@ class SqlUsageRepository(UsageRepository):
             # We need to join with runs to filter by tenant_id, OR if UsageRow has tenant_id.
             # Checking sql.py models... UsageRow does NOT have tenant_id. RunRow has it.
             # So we need to join UsageRow and RunRow.
-            
+
             stmt = select(UsageRow).join(RunRow, UsageRow.run_id == RunRow.id).where(RunRow.tenant_id == tenant_id)
-            
+
             if from_date:
                 stmt = stmt.where(UsageRow.created_at >= from_date)
             if to_date:
                 stmt = stmt.where(UsageRow.created_at <= to_date)
-                
+
             stmt = stmt.order_by(UsageRow.created_at.desc())
-            
+
             result = await s.execute(stmt)
             rows = result.scalars().all()
-            
+
             return [
                 UsageLedgerEntry(
                     id=row.id,

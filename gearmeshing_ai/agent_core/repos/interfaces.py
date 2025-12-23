@@ -211,7 +211,9 @@ class UsageRepository(Protocol):
         """
         ...
 
-    async def list(self, tenant_id: str, from_date: Optional[datetime] = None, to_date: Optional[datetime] = None) -> list[UsageLedgerEntry]:
+    async def list(
+        self, tenant_id: str, from_date: Optional[datetime] = None, to_date: Optional[datetime] = None
+    ) -> list[UsageLedgerEntry]:
         """
         List usage entries for a tenant within a date range.
 
