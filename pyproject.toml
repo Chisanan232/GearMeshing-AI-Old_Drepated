@@ -9,7 +9,7 @@ description = "🤖 A highly self-hostable AI-powered software engineering platf
 authors = [{ name = "Chisanan232", email = "chi10211201@cycu.org.tw" }]
 requires-python = ">=3.12"
 readme = "README.md"
-license = { text = "MIT" }
+license = { file = "LICENSE" }
 keywords = [
     "ai",
     "ai agents",
@@ -48,11 +48,11 @@ dependencies = [
     "sqlalchemy[asyncio]>=2.0.0",
     "asyncpg>=0.29.0",
     ## Web Server
-    "fastapi>=0.110.0",
-    "uvicorn[standard]>=0.27.0",
-    "sqlmodel>=0.0.16",
-    "alembic>=1.13.0",
-    "sse-starlette>=2.0.0",
+    "fastapi>=0.127.0",
+    "uvicorn[standard]>=0.40.0",
+    "sqlmodel>=0.0.27",
+    "alembic>=1.17.2",
+    "sse-starlette>=3.0.4",
 ]
 
 [project.urls]
@@ -85,32 +85,32 @@ pre-commit-ci = [
 # Optional group for contract tests with external AI agent frameworks.
 # These are heavy optional dependencies and are not enabled by default.
 contract-test-with-ai-frameworks = [
-    # OpenAI client for function/tool schemas and Assistants
-    "openai>=1.52.0,<=2.9.0",
-    # NOTE: The Microsoft provider AI agent framework should only select one: AG2 or AutoGen. In recommended, it should
-    # use AG2 because it's in migration of the AI agent frameworks
-    # AG2 (AutoGen v2)
-    "ag2>=0.10.2",
-    # AutoGen AgentChat and extensions
-    "autogen-agentchat>=0.7.5",
-    "autogen-ext[openai]>=0.7.5",
-    # LangChain core + LangGraph
-    "langchain>=1.1.2",
-    "langchain-core>=1.1.1",
-    "langgraph>=1.0.4",
-    # CrewAI and tools (broad min versions to avoid resolver conflicts)
-    "crewai>=1.6.1",
-    "crewai-tools>=1.6.1",
-    # Semantic Kernel (Python)
-    "semantic-kernel>=1.35.0",
-    # LlamaIndex
-    "llama-index>=0.14.10",
-    # Phidata
-    "phidata>=2.7.10,<3.0.0",
-    # Google AI agent SDK (ADK)
-    "google-adk>=1.20.0",
-    # Pydantic AI by FastAPI Pydantic team
-    "pydantic-ai>=1.27.0",
+#    # OpenAI client for function/tool schemas and Assistants
+#    "openai>=1.52.0,<=2.9.0",
+#    # NOTE: The Microsoft provider AI agent framework should only select one: AG2 or AutoGen. In recommended, it should
+#    # use AG2 because it's in migration of the AI agent frameworks
+#    # AG2 (AutoGen v2)
+#    "ag2>=0.10.2",
+#    # AutoGen AgentChat and extensions
+#    "autogen-agentchat>=0.7.5",
+#    "autogen-ext[openai]>=0.7.5",
+#    # LangChain core + LangGraph
+#    "langchain>=1.1.2",
+#    "langchain-core>=1.1.1",
+#    "langgraph>=1.0.4",
+#    # CrewAI and tools (broad min versions to avoid resolver conflicts)
+#    "crewai>=1.6.1",
+#    "crewai-tools>=1.6.1",
+#    # Semantic Kernel (Python)
+#    "semantic-kernel>=1.35.0",
+#    # LlamaIndex
+#    "llama-index>=0.14.10",
+#    # Phidata
+#    "phidata>=2.7.10,<3.0.0",
+#    # Google AI agent SDK (ADK)
+#    "google-adk>=1.20.0",
+#    # Pydantic AI by FastAPI Pydantic team
+#    "pydantic-ai>=1.27.0",
 ]
 
 [tool.uv]
