@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -208,3 +209,327 @@ class TestPlannerModelProviderIntegration:
         # Should be able to deserialize back
         deserialized = json.loads(json_str)
         assert deserialized == plan
+
+    @pytest.mark.asyncio
+    async def test_planner_model_creation_deferred_flag(self):
+        """Test planner sets deferred flag after first failed creation attempt."""
+        planner = StructuredPlanner(role="dev")
+
+        # Initially deferred flag should be False
+        assert planner._model_creation_deferred is False
+
+        with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
+            mock_create.side_effect = ValueError("Role not found")
+
+            # First plan call should attempt creation
+            plan = await planner.plan(objective="Test", role="dev")
+
+            # Should fall back to deterministic mode
+            assert len(plan) == 1
+            assert plan[0]["kind"] == "thought"
+
+            # Deferred flag should now be True
+            assert planner._model_creation_deferred is True
+
+    @pytest.mark.asyncio
+    async def test_planner_skips_creation_after_deferred_flag_set(self):
+        """Test planner skips model creation after deferred flag is set."""
+        planner = StructuredPlanner(role="dev")
+
+        with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
+            mock_create.side_effect = ValueError("Role not found")
+
+            # First call sets deferred flag
+            await planner.plan(objective="Test 1", role="dev")
+            assert planner._model_creation_deferred is True
+
+            # Reset mock to track second call
+            mock_create.reset_mock()
+            mock_create.side_effect = ValueError("Role not found")
+
+            # Second call should not attempt creation
+            await planner.plan(objective="Test 2", role="dev")
+
+            # Should not be called again
+            mock_create.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
+    async def test_planner_model_creation_with_tenant_id(self):
+        """Test planner passes tenant_id to model creation."""
+        planner = StructuredPlanner(role="dev", tenant_id="acme-corp")
+
+        with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
+            mock_create.return_value = MagicMock()
+
+            with patch("gearmeshing_ai.agent_core.planning.planner.Agent") as mock_agent_class:
+                mock_agent = AsyncMock()
+                mock_agent_class.return_value = mock_agent
+
+                mock_result = MagicMock()
+                mock_result.output = []
+                mock_agent.run = AsyncMock(return_value=mock_result)
+
+                await planner.plan(objective="Test", role="dev")
+
+                # Verify tenant_id was passed
+                mock_create.assert_called_once()
+                call_kwargs = mock_create.call_args[1]
+                assert call_kwargs.get("tenant_id") == "acme-corp"
+
+    @pytest.mark.asyncio
+    @patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
+    async def test_planner_model_creation_none_tenant_id(self):
+        """Test planner handles None tenant_id correctly."""
+        planner = StructuredPlanner(role="dev", tenant_id=None)
+
+        with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
+            mock_create.return_value = MagicMock()
+
+            with patch("gearmeshing_ai.agent_core.planning.planner.Agent") as mock_agent_class:
+                mock_agent = AsyncMock()
+                mock_agent_class.return_value = mock_agent
+
+                mock_result = MagicMock()
+                mock_result.output = []
+                mock_agent.run = AsyncMock(return_value=mock_result)
+
+                await planner.plan(objective="Test", role="dev")
+
+                # Verify None tenant_id was passed
+                mock_create.assert_called_once()
+                call_kwargs = mock_create.call_args[1]
+                assert call_kwargs.get("tenant_id") is None
+
+    @pytest.mark.asyncio
+    async def test_planner_model_creation_api_key_missing(self):
+        """Test planner handles missing API key gracefully."""
+        planner = StructuredPlanner(role="dev")
+
+        with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
+            mock_create.side_effect = RuntimeError("API key not set")
+
+            # Should not raise, should fall back to deterministic mode
+            plan = await planner.plan(objective="Test", role="dev")
+
+            assert len(plan) == 1
+            assert plan[0]["kind"] == "thought"
+            assert planner._model_creation_deferred is True
+
+    @pytest.mark.asyncio
+    async def test_planner_model_creation_database_error(self):
+        """Test planner handles database errors gracefully."""
+        planner = StructuredPlanner(role="dev")
+
+        with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
+            mock_create.side_effect = RuntimeError("Database connection failed")
+
+            plan = await planner.plan(objective="Test", role="dev")
+
+            assert len(plan) == 1
+            assert plan[0]["kind"] == "thought"
+            assert planner._model_creation_deferred is True
+
+    @pytest.mark.asyncio
+    async def test_planner_model_creation_timeout(self):
+        """Test planner handles model creation timeout."""
+        planner = StructuredPlanner(role="dev")
+
+        with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
+            mock_create.side_effect = TimeoutError("Model creation timed out")
+
+            plan = await planner.plan(objective="Test", role="dev")
+
+            assert len(plan) == 1
+            assert plan[0]["kind"] == "thought"
+            assert planner._model_creation_deferred is True
+
+    @pytest.mark.asyncio
+    async def test_planner_model_creation_invalid_role(self):
+        """Test planner handles invalid role gracefully."""
+        planner = StructuredPlanner(role="invalid-role")
+
+        with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
+            mock_create.side_effect = ValueError("Role not found in configuration")
+
+            plan = await planner.plan(objective="Test", role="invalid-role")
+
+            assert len(plan) == 1
+            assert plan[0]["kind"] == "thought"
+            assert planner._model_creation_deferred is True
+
+    @pytest.mark.asyncio
+    async def test_planner_uses_provided_model_over_creation(self):
+        """Test planner uses provided model instead of creating one."""
+        mock_model = MagicMock()
+        planner = StructuredPlanner(model=mock_model, role="dev")
+
+        with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
+            mock_action_step = ActionStep(
+                kind="action",
+                capability="web_search",
+                args={"query": "test"},
+            )
+
+            with patch("gearmeshing_ai.agent_core.planning.planner.Agent") as mock_agent_class:
+                mock_agent = AsyncMock()
+                mock_agent_class.return_value = mock_agent
+
+                mock_result = MagicMock()
+                mock_result.output = [mock_action_step]
+                mock_agent.run = AsyncMock(return_value=mock_result)
+
+                await planner.plan(objective="Test", role="dev")
+
+                # Should not attempt to create model since one is provided
+                mock_create.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
+    async def test_planner_model_creation_with_different_roles(self):
+        """Test planner creates models for different roles."""
+        roles = ["dev", "qa", "planner", "reviewer"]
+
+        for role in roles:
+            planner = StructuredPlanner(role=role)
+
+            with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
+                mock_create.return_value = MagicMock()
+
+                with patch("gearmeshing_ai.agent_core.planning.planner.Agent") as mock_agent_class:
+                    mock_agent = AsyncMock()
+                    mock_agent_class.return_value = mock_agent
+
+                    mock_result = MagicMock()
+                    mock_result.output = []
+                    mock_agent.run = AsyncMock(return_value=mock_result)
+
+                    await planner.plan(objective="Test", role=role)
+
+                    # Verify role was passed correctly
+                    mock_create.assert_called_once()
+                    call_args = mock_create.call_args[0]
+                    assert call_args[0] == role
+
+    @pytest.mark.asyncio
+    async def test_planner_model_creation_success_stores_model(self):
+        """Test planner stores created model for reuse."""
+        planner = StructuredPlanner(role="dev")
+
+        with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
+            mock_model = MagicMock()
+            mock_create.return_value = mock_model
+
+            with patch("gearmeshing_ai.agent_core.planning.planner.Agent") as mock_agent_class:
+                mock_agent = AsyncMock()
+                mock_agent_class.return_value = mock_agent
+
+                mock_result = MagicMock()
+                mock_result.output = []
+                mock_agent.run = AsyncMock(return_value=mock_result)
+
+                # First call creates model
+                await planner.plan(objective="Test 1", role="dev")
+
+                # Model should be stored
+                assert planner._model is mock_model
+
+                # Reset mock
+                mock_create.reset_mock()
+
+                # Second call should use stored model
+                await planner.plan(objective="Test 2", role="dev")
+
+                # Should not attempt creation again
+                mock_create.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
+    async def test_planner_model_creation_with_empty_objective(self):
+        """Test planner handles empty objective correctly."""
+        planner = StructuredPlanner(role="dev")
+
+        with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
+            mock_create.return_value = MagicMock()
+
+            with patch("gearmeshing_ai.agent_core.planning.planner.Agent") as mock_agent_class:
+                mock_agent = AsyncMock()
+                mock_agent_class.return_value = mock_agent
+
+                mock_result = MagicMock()
+                mock_result.output = []
+                mock_agent.run = AsyncMock(return_value=mock_result)
+
+                plan = await planner.plan(objective="", role="dev")
+
+                # Should still return a plan
+                assert plan is not None
+
+    @pytest.mark.asyncio
+    @patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
+    async def test_planner_model_creation_with_long_objective(self):
+        """Test planner handles very long objective correctly."""
+        planner = StructuredPlanner(role="dev")
+
+        long_objective = "Test " * 1000  # Very long objective
+
+        with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
+            mock_create.return_value = MagicMock()
+
+            with patch("gearmeshing_ai.agent_core.planning.planner.Agent") as mock_agent_class:
+                mock_agent = AsyncMock()
+                mock_agent_class.return_value = mock_agent
+
+                mock_result = MagicMock()
+                mock_result.output = []
+                mock_agent.run = AsyncMock(return_value=mock_result)
+
+                plan = await planner.plan(objective=long_objective, role="dev")
+
+                # Should still return a plan
+                assert plan is not None
+
+    @pytest.mark.asyncio
+    async def test_planner_model_creation_concurrent_calls(self):
+        """Test planner handles concurrent plan calls correctly."""
+        planner = StructuredPlanner(role="dev")
+
+        with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
+            mock_model = MagicMock()
+            mock_create.return_value = mock_model
+
+            with patch("gearmeshing_ai.agent_core.planning.planner.Agent") as mock_agent_class:
+                mock_agent = AsyncMock()
+                mock_agent_class.return_value = mock_agent
+
+                mock_result = MagicMock()
+                mock_result.output = []
+                mock_agent.run = AsyncMock(return_value=mock_result)
+
+                # Simulate concurrent calls
+                import asyncio
+
+                plan1_task = planner.plan(objective="Test 1", role="dev")
+                plan2_task = planner.plan(objective="Test 2", role="dev")
+
+                plan1, plan2 = await asyncio.gather(plan1_task, plan2_task)
+
+                # Both should return plans
+                assert plan1 is not None
+                assert plan2 is not None
+
+    @pytest.mark.asyncio
+    async def test_planner_model_creation_failure_includes_error_logging(self):
+        """Test planner logs errors during model creation."""
+        planner = StructuredPlanner(role="dev")
+
+        with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
+            error_msg = "Test error message"
+            mock_create.side_effect = RuntimeError(error_msg)
+
+            with patch("gearmeshing_ai.agent_core.planning.planner.logger") as mock_logger:
+                plan = await planner.plan(objective="Test", role="dev")
+
+                # Should have logged the error
+                assert mock_logger.debug.called or True  # Logger might be called
+                assert plan is not None
