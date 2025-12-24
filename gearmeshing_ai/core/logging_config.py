@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Optional
 
 # Log levels
-LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG").upper()
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 LOG_FORMAT = os.getenv("LOG_FORMAT", "detailed")  # detailed, json, simple
 LOG_FILE_DIR = os.getenv("LOG_FILE_DIR", "logs")
 ENABLE_FILE_LOGGING = os.getenv("ENABLE_FILE_LOGGING", "true").lower() in ("true", "1", "yes")
