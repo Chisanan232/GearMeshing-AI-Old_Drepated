@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "GearMeshing-AI Server"
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost/gearmeshing_ai"
+    DATABASE_URL: str = "postgresql+asyncpg://ai_dev:changeme@postgres:5432/ai_dev"
 
     # Security / Auth (Placeholders for now, not strictly detailed in spec but good practice)
     # SECRET_KEY: str = "changeme"
