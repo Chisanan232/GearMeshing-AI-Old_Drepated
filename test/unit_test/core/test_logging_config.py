@@ -5,10 +5,9 @@ scenarios including various log levels, formats, and file logging options.
 """
 
 import logging
-import os
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -264,9 +263,7 @@ class TestSetupLoggingParameterCombinations:
             ("DEBUG", "json", True),
         ],
     )
-    def test_setup_logging_parameter_combinations(
-        self, log_level, log_format, enable_file
-    ):
+    def test_setup_logging_parameter_combinations(self, log_level, log_format, enable_file):
         """Test setup_logging with various parameter combinations."""
         setup_logging(log_level=log_level, log_format=log_format, enable_file=enable_file)
 
