@@ -5,8 +5,6 @@ import time
 from pathlib import Path
 
 import pytest
-import sqlalchemy as sa
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from testcontainers.compose import DockerCompose
@@ -68,10 +66,10 @@ def compose_stack(_compose_env):
     project_root = Path(os.getcwd()).resolve()
     compose = DockerCompose(str(project_root), compose_file_name="./docker-compose.e2e.yml")
     compose.start()
-    
+
     # Wait for PostgreSQL to be ready
     time.sleep(5)
-    
+
     try:
         yield compose
     finally:
@@ -101,9 +99,7 @@ async def async_engine(database_url: str):
 @pytest.fixture
 async def async_session_factory(async_engine):
     """Create async session factory."""
-    return sessionmaker(
-        async_engine, class_=AsyncSession, expire_on_commit=False
-    )
+    return sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
 
 
 @pytest.fixture

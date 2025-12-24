@@ -1,15 +1,13 @@
 import asyncio
 import os
-from logging.config import fileConfig
 from datetime import datetime
+from logging.config import fileConfig
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
-from alembic.script import ScriptDirectory
-
 from gearmeshing_ai.agent_core.repos.models import Base
 
 # this is the Alembic Config object, which provides
@@ -25,6 +23,7 @@ if config.config_file_name is not None:
 database_url = os.getenv("DATABASE_URL")
 if not database_url:
     from gearmeshing_ai.server.core.config import settings
+
     database_url = settings.DATABASE_URL
 
 config.set_main_option("sqlalchemy.url", database_url)
