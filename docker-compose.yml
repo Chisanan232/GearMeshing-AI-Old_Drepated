@@ -114,6 +114,32 @@ services:
       - ./configs/mcp_gateway/mcp-catalog.yml:/data/mcp-catalog.yml:ro
 
   # -------------------------------------------------------
+  # Database Migration Service
+  # -------------------------------------------------------
+  db-migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gearmeshing-ai-db-migrate
+    networks:
+      - ai-dev-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Application configuration
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    volumes:
+      # Mount source code for latest migrations
+      - .:/app
+      - /app/__pycache__
+      - /app/.venv
+    # Run migrations and exit
+    command: bash -c "echo 'Running database migrations...' && uv run alembic upgrade head && echo 'Migrations completed successfully'"
+    # Don't restart on failure - let it fail so we know there's an issue
+    restart: "no"
+
+  # -------------------------------------------------------
   # AI Orchestrator (Agent Service)
   # -------------------------------------------------------
   ai-orchestrator:
@@ -125,9 +151,12 @@ services:
     networks:
       - ai-dev-net
     depends_on:
-      - mcp-gateway
-      - postgres
-      - redis
+      db-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+      mcp-gateway:
+        condition: service_started
     environment:
       # Server configuration
       SERVER_HOST: ${GEARMESHING_AI_SERVER_HOST}
@@ -142,6 +171,15 @@ services:
       # MCP_GATEWAY_TOKEN: ${MCP_GATEWAY_TOKEN}
     ports:
       - ${GEARMESHING_AI_SERVER_PORT}:${GEARMESHING_AI_SERVER_PORT}
+    volumes:
+      # Mount entire source code for development (hot reload)
+      - .:/app
+      # Mount Python cache to avoid permission issues
+      - /app/__pycache__
+      - /app/.pytest_cache
+      - /app/.mypy_cache
+      # Mount virtual environment from image
+      - /app/.venv
 
   # -------------------------------------------------------
   # MCP Servers

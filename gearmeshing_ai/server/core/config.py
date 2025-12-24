@@ -18,11 +18,11 @@ class Settings(BaseSettings):
         DATABASE_URL (str): The connection string for the database.
     """
 
-    API_V1_STR: str = "/v1"
+    API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "GearMeshing-AI Server"
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost/gearmeshing_ai"
+    DATABASE_URL: str = "postgresql+asyncpg://ai_dev:changeme@postgres:5432/ai_dev"
 
     # Security / Auth (Placeholders for now, not strictly detailed in spec but good practice)
     # SECRET_KEY: str = "changeme"

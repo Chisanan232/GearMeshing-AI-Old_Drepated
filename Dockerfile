@@ -33,12 +33,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
+# Install PostgreSQL client library (required for psycopg2-binary)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Copy virtual environment from builder stage
 COPY --from=builder /app/.venv /app/.venv
 
-# Copy application code
+# Copy application code (will be overridden by volume mount in development)
 COPY . .
 
 # Ensure startup script is executable
