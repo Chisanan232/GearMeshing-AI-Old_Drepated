@@ -142,6 +142,15 @@ services:
       # MCP_GATEWAY_TOKEN: ${MCP_GATEWAY_TOKEN}
     ports:
       - ${GEARMESHING_AI_SERVER_PORT}:${GEARMESHING_AI_SERVER_PORT}
+    volumes:
+      # Mount entire source code for development (hot reload)
+      - .:/app
+      # Mount Python cache to avoid permission issues
+      - /app/__pycache__
+      - /app/.pytest_cache
+      - /app/.mypy_cache
+      # Mount virtual environment from image
+      - /app/.venv
 
   # -------------------------------------------------------
   # MCP Servers
