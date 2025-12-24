@@ -6,7 +6,6 @@ with FastAPI's Depends mechanism.
 
 from unittest.mock import patch
 
-
 from gearmeshing_ai.server.services.deps import OrchestratorDep
 from gearmeshing_ai.server.services.orchestrator import (
     OrchestratorService,
