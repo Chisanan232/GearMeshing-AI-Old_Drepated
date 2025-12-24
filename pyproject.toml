@@ -50,9 +50,12 @@ dependencies = [
     ## Web Server
     "fastapi>=0.127.0",
     "uvicorn[standard]>=0.40.0",
+    "sse-starlette>=3.0.4",
+    ## Web Server - Persistence
     "sqlmodel>=0.0.27",
     "alembic>=1.17.2",
-    "sse-starlette>=3.0.4",
+    ## Database driver --- Postgres
+    "psycopg2-binary>=2.9.11",
 ]
 
 [project.urls]
