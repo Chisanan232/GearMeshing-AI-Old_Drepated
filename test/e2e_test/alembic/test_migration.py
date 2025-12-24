@@ -225,10 +225,10 @@ class TestMigrationExecution:
         engine = sa.create_engine(sync_url)
 
         with engine.connect() as conn:
-            result = conn.execute(
+            cursor_result = conn.execute(
                 text("SELECT role_name, display_name, model_name FROM agent_configs ORDER BY role_name")
             )
-            configs = result.fetchall()
+            configs = cursor_result.fetchall()
 
             assert len(configs) == 3, f"Expected 3 agent configs, got {len(configs)}"
 
@@ -273,7 +273,7 @@ class TestMigrationExecution:
         engine = sa.create_engine(sync_url)
 
         with engine.connect() as conn:
-            result = conn.execute(
+            cursor_result = conn.execute(
                 text(
                     """
                     SELECT role_name, temperature, max_tokens, top_p,
@@ -283,7 +283,7 @@ class TestMigrationExecution:
                 """
                 )
             )
-            row = result.fetchone()
+            row = cursor_result.fetchone()
 
             assert row is not None
             role_name, temp, max_tokens, top_p, caps, tools, profiles, is_active = row
@@ -328,7 +328,7 @@ class TestMigrationExecution:
         engine = sa.create_engine(sync_url)
 
         with engine.connect() as conn:
-            result = conn.execute(
+            cursor_result = conn.execute(
                 text(
                     """
                     SELECT id, tenant_id, config
@@ -337,7 +337,7 @@ class TestMigrationExecution:
                 """
                 )
             )
-            row = result.fetchone()
+            row = cursor_result.fetchone()
 
             assert row is not None
             policy_id, tenant_id, config_data = row
