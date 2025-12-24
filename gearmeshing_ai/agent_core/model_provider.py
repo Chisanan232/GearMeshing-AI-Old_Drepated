@@ -371,7 +371,7 @@ async def async_create_model_for_role(
     try:
         # Create a sync engine and session for model provider
         # The model provider requires a sync session, so we create one here
-        sync_engine = sync_create_engine(settings.DATABASE_URL)
+        sync_engine = sync_create_engine(settings.database_url)
 
         session = Session(sync_engine)
         try:

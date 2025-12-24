@@ -8,13 +8,13 @@ and includes all API routers. It serves as the root of the web server.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from ..server.core import constant
 from .api.v1 import (
     health,
 )
-from .core.config import settings
 
 app = FastAPI(
-    title=settings.PROJECT_NAME,
+    title=constant.PROJECT_NAME,
     description="""
     GearMeshing-AI Server API
 
@@ -22,9 +22,9 @@ app = FastAPI(
     It supports managing agent runs, handling approvals, configuring policies, and streaming real-time events.
     """,
     version="1.0.0",
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    docs_url=f"{settings.API_V1_STR}/docs",
-    redoc_url=f"{settings.API_V1_STR}/redoc",
+    openapi_url=f"{constant.API_V1_STR}/openapi.json",
+    docs_url=f"{constant.API_V1_STR}/docs",
+    redoc_url=f"{constant.API_V1_STR}/redoc",
 )
 
 # Set all CORS enabled origins

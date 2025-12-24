@@ -24,7 +24,7 @@ database_url = os.getenv("DATABASE_URL")
 if not database_url:
     from gearmeshing_ai.server.core.config import settings
 
-    database_url = settings.DATABASE_URL
+    database_url = settings.database_url
 
 config.set_main_option("sqlalchemy.url", database_url)
 
