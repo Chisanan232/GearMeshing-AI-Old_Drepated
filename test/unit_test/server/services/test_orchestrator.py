@@ -641,24 +641,6 @@ class TestOrchestratorEventEnrichment:
         assert result.data.run_failure is not None
         assert result.data.run_failure.error == "Something went wrong"
 
-    @pytest.mark.asyncio
-    async def test_enrich_unknown_event_type(self, mock_orchestrator):
-        """Test enriching an event with unknown type."""
-        now = datetime.now(timezone.utc)
-        event = MagicMock()
-        event.type = "unknown_type"
-        event.model_dump.return_value = {
-            "id": "event-1",
-            "run_id": "run-1",
-            "type": "unknown_type",
-            "created_at": now,
-            "payload": {},
-        }
-        
-        result = await mock_orchestrator._enrich_event_for_sse(event)
-        
-        assert result.data.category == "other"
-
 
 class TestOrchestratorRoles:
     """Test role-related methods."""

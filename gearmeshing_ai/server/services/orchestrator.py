@@ -203,7 +203,7 @@ class OrchestratorService:
         
         # Extract base event fields
         event_id = event_dict.get('id')
-        event_type = event.type if hasattr(event, 'type') else event_dict.get('type')
+        event_type = event.type
         created_at = event_dict.get('created_at', datetime.now(timezone.utc))
         run_id = event_dict.get('run_id')
         payload = event_dict.get('payload', {})
@@ -302,7 +302,7 @@ class OrchestratorService:
         # Create SSEEventData with all enriched fields
         sse_event_data = SSEEventData(
             id=event_id,
-            type=str(event_type.value) if hasattr(event_type, 'value') else str(event_type),
+            type=str(event_type.value),
             category=category,
             created_at=created_at,
             run_id=run_id,
