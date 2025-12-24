@@ -18,7 +18,7 @@ class Settings(BaseSettings):
         DATABASE_URL (str): The connection string for the database.
     """
 
-    API_V1_STR: str = "/v1"
+    API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "GearMeshing-AI Server"
 
     # Database
