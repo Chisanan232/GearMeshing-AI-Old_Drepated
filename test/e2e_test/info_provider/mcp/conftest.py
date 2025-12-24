@@ -62,7 +62,7 @@ def wait_clickup_ready(urls: Iterable[str], timeout: float = 30.0) -> str:
 
 @pytest.fixture(scope="session")
 def _compose_env() -> Iterable[None]:
-    # Provide env vars required by docker-compose_e2e.yml services
+    # Provide env vars required by docker-compose.e2e.yml services
     prev: dict[str, str] = {}
 
     def _set(k: str, v: str) -> None:
@@ -130,7 +130,7 @@ def _compose_env() -> Iterable[None]:
 def compose_stack(_compose_env: Iterable[None]) -> Iterable[DockerCompose]:
     # Repo root is the CWD when running tests; compose file is at the root
     project_root = Path(os.getcwd()).resolve()
-    compose = DockerCompose(str(project_root), compose_file_name="./docker-compose_e2e.yml")
+    compose = DockerCompose(str(project_root), compose_file_name="./docker-compose.e2e.yml")
     compose.start()
     try:
         yield compose
