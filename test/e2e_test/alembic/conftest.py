@@ -38,6 +38,14 @@ def _compose_env():
     )
     _set("MCPGATEWAY_REDIS_URL", os.getenv("MCPGATEWAY_REDIS_URL", "redis://redis:6379/0"))
 
+    # ClickUp MCP
+    _set("CLICKUP_SERVER_HOST", os.getenv("CLICKUP_SERVER_HOST", "0.0.0.0"))
+    _set("CLICKUP_SERVER_PORT", os.getenv("CLICKUP_SERVER_PORT", "8082"))
+    _set("CLICKUP_MCP_TRANSPORT", os.getenv("CLICKUP_MCP_TRANSPORT", "sse"))
+    # Token must be provided by env for real runs; default for CI/e2e
+    _set("CLICKUP_API_TOKEN", os.getenv("CLICKUP_API_TOKEN", os.getenv("GM_CLICKUP_API_TOKEN", "e2e-test-token")))
+    _set("MQ_BACKEND", os.getenv("MQ_BACKEND", "redis"))
+
     try:
         yield
     finally:
