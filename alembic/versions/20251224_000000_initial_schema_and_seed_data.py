@@ -1,8 +1,8 @@
 """Initial schema and seed data for GearMeshing-AI
 
-Revision ID: 20241224_000000
+Revision ID: 20251224_000000
 Revises: None
-Create Date: 2024-12-24 00:00:00.000000
+Create Date: 2025-12-24 00:00:00.000000
 
 This is the initial migration that creates all necessary tables and seeds default data
 for the GearMeshing-AI service. This includes:
@@ -25,7 +25,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "20241224_000000"
+revision: str = "20251224_000000"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
