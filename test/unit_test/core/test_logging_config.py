@@ -115,6 +115,109 @@ class TestSetupLoggingFormats:
         assert console_handler is not None
         assert console_handler.formatter.datefmt == "%Y-%m-%d %H:%M:%S"
 
+    @pytest.mark.parametrize(
+        "log_format",
+        [
+            "unknown_format",
+            "custom",
+            "verbose",
+            "debug_format",
+            "DETAILED",  # uppercase
+            "",  # empty string
+        ],
+    )
+    def test_setup_logging_unknown_format_defaults_to_detailed(self, log_format):
+        """Test setup_logging defaults to detailed format for unknown formats."""
+        setup_logging(log_format=log_format, enable_file=False)
+
+        root_logger = logging.getLogger()
+        console_handler = next(
+            (h for h in root_logger.handlers if isinstance(h, logging.StreamHandler)),
+            None,
+        )
+
+        assert console_handler is not None
+        # Unknown formats should default to DETAILED_FORMAT
+        assert console_handler.formatter._fmt == DETAILED_FORMAT
+
+    def test_setup_logging_case_sensitive_format(self):
+        """Test that log format is case-sensitive."""
+        # "JSON" (uppercase) should not match "json" and default to detailed
+        setup_logging(log_format="JSON", enable_file=False)
+
+        root_logger = logging.getLogger()
+        console_handler = next(
+            (h for h in root_logger.handlers if isinstance(h, logging.StreamHandler)),
+            None,
+        )
+
+        assert console_handler is not None
+        # Should default to DETAILED_FORMAT since "JSON" != "json"
+        assert console_handler.formatter._fmt == DETAILED_FORMAT
+
+    def test_setup_logging_simple_format_structure(self):
+        """Test simple format contains expected components."""
+        setup_logging(log_format="simple", enable_file=False)
+
+        root_logger = logging.getLogger()
+        console_handler = next(
+            (h for h in root_logger.handlers if isinstance(h, logging.StreamHandler)),
+            None,
+        )
+
+        assert console_handler is not None
+        fmt = console_handler.formatter._fmt
+        # Simple format should have levelname, name, and message
+        assert "%(levelname)s" in fmt
+        assert "%(name)s" in fmt
+        assert "%(message)s" in fmt
+        # But not asctime
+        assert "%(asctime)s" not in fmt
+
+    def test_setup_logging_detailed_format_structure(self):
+        """Test detailed format contains expected components."""
+        setup_logging(log_format="detailed", enable_file=False)
+
+        root_logger = logging.getLogger()
+        console_handler = next(
+            (h for h in root_logger.handlers if isinstance(h, logging.StreamHandler)),
+            None,
+        )
+
+        assert console_handler is not None
+        fmt = console_handler.formatter._fmt
+        # Detailed format should have all components
+        assert "%(asctime)s" in fmt
+        assert "%(levelname)s" in fmt
+        assert "%(name)s" in fmt
+        assert "%(filename)s" in fmt
+        assert "%(lineno)d" in fmt
+        assert "%(funcName)s" in fmt
+        assert "%(message)s" in fmt
+
+    def test_setup_logging_json_format_structure(self):
+        """Test JSON format contains expected components."""
+        setup_logging(log_format="json", enable_file=False)
+
+        root_logger = logging.getLogger()
+        console_handler = next(
+            (h for h in root_logger.handlers if isinstance(h, logging.StreamHandler)),
+            None,
+        )
+
+        assert console_handler is not None
+        fmt = console_handler.formatter._fmt
+        # JSON format should have all components in JSON structure
+        assert "timestamp" in fmt
+        assert "level" in fmt
+        assert "logger" in fmt
+        assert "module" in fmt
+        assert "function" in fmt
+        assert "line" in fmt
+        assert "message" in fmt
+        # Should be JSON-like
+        assert "{" in fmt and "}" in fmt
+
 
 class TestSetupLoggingFileHandling:
     """Test setup_logging file logging functionality."""
