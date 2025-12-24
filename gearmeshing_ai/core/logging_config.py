@@ -32,7 +32,7 @@ if ENABLE_FILE_LOGGING:
 # Define log formats
 SIMPLE_FORMAT = "%(levelname)s - %(name)s - %(message)s"
 
-DETAILED_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - " "[%(filename)s:%(lineno)d] - %(funcName)s() - %(message)s"
+DETAILED_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(funcName)s() - %(message)s"
 
 JSON_FORMAT = (
     '{"timestamp": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", '
