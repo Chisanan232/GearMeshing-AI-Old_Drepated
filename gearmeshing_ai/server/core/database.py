@@ -22,7 +22,7 @@ engine:
     The global SQLAlchemy AsyncEngine instance.
     Configured with the connection URL from settings and optimized for async usage.
 """
-engine = create_engine(settings.DATABASE_URL)
+engine = create_engine(settings.database_url)
 
 # Create Session Factory
 """
