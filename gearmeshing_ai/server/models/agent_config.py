@@ -47,6 +47,7 @@ class AgentConfig(AgentConfigBase, table=True):
     """Persistent agent configuration in database."""
 
     __tablename__ = "agent_configs"
+    __table_args__ = ({"extend_existing": True},)
 
     id: Optional[int] = Field(default=None, primary_key=True)
     created_at: datetime = Field(
