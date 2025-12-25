@@ -98,7 +98,7 @@ class TestOrchestratorDepIntegration:
 
         orch_module._orchestrator = None
 
-        metadata = OrchestratorDep.__metadata__
+        metadata = OrchestratorDep.__metadata__   # type: ignore[attr-defined]
         depends_obj = metadata[0]
         dependency = depends_obj.dependency
 
@@ -121,7 +121,7 @@ class TestOrchestratorDepSingleton:
 
         orch_module._orchestrator = None
 
-        metadata = OrchestratorDep.__metadata__
+        metadata = OrchestratorDep.__metadata__   # type: ignore[attr-defined]
         depends_obj = metadata[0]
         dependency = depends_obj.dependency
 

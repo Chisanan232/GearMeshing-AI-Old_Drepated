@@ -5,7 +5,7 @@ approval handling, and event enrichment for SSE responses.
 """
 
 from datetime import datetime, timedelta, timezone
-from typing import Any, Generator, List
+from typing import Any, Generator, List, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -89,13 +89,15 @@ class TestOrchestratorRunManagement:
             status=AgentRunStatus.running,
         )
 
-        mock_orchestrator.repos.runs.get.return_value = run
+        srv_repo_run_get_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.get)
+        srv_repo_run_get_mock.return_value = run
 
         result: AgentRun = await mock_orchestrator.create_run(run)
 
         assert result.id == "test-run-1"
-        mock_orchestrator.agent_service.run.assert_called_once_with(run=run)
-        mock_orchestrator.repos.runs.get.assert_called_once_with("test-run-1")
+        srv_run = cast(MagicMock, mock_orchestrator.agent_service.run)
+        srv_run.assert_called_once_with(run=run)
+        srv_repo_run_get_mock.assert_called_once_with("test-run-1")
 
     @pytest.mark.asyncio
     async def test_create_run_failure(self, mock_orchestrator: OrchestratorService) -> None:
@@ -108,7 +110,8 @@ class TestOrchestratorRunManagement:
             status=AgentRunStatus.running,
         )
 
-        mock_orchestrator.repos.runs.get.return_value = None
+        srv_repo_run_get_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.get)
+        srv_repo_run_get_mock.return_value = None
 
         with pytest.raises(RuntimeError, match="Run test-run-1 creation failed"):
             await mock_orchestrator.create_run(run)
@@ -122,23 +125,25 @@ class TestOrchestratorRunManagement:
             ),
             AgentRun(id="run-2", tenant_id="tenant-1", role="dev", objective="Task 2", status=AgentRunStatus.running),
         ]
-        mock_orchestrator.repos.runs.list.return_value = runs
+        srv_repo_run_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.list)
+        srv_repo_run_list_mock.return_value = runs
 
         result: List[AgentRun] = await mock_orchestrator.list_runs(tenant_id="tenant-1", limit=100, offset=0)
 
         assert len(result) == 2
         assert result[0].id == "run-1"
         assert result[1].id == "run-2"
-        mock_orchestrator.repos.runs.list.assert_called_once_with(tenant_id="tenant-1", limit=100, offset=0)
+        srv_repo_run_list_mock.assert_called_once_with(tenant_id="tenant-1", limit=100, offset=0)
 
     @pytest.mark.asyncio
     async def test_list_runs_with_defaults(self, mock_orchestrator: OrchestratorService) -> None:
         """Test listing runs with default parameters."""
-        mock_orchestrator.repos.runs.list.return_value = []
+        srv_repo_run_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.list)
+        srv_repo_run_list_mock.return_value = []
 
         await mock_orchestrator.list_runs()
 
-        mock_orchestrator.repos.runs.list.assert_called_once_with(tenant_id=None, limit=100, offset=0)
+        srv_repo_run_list_mock.assert_called_once_with(tenant_id=None, limit=100, offset=0)
 
     @pytest.mark.asyncio
     async def test_get_run(self, mock_orchestrator: OrchestratorService) -> None:
@@ -146,18 +151,20 @@ class TestOrchestratorRunManagement:
         run: AgentRun = AgentRun(
             id="run-1", tenant_id="tenant-1", role="analyst", objective="Task", status=AgentRunStatus.running
         )
-        mock_orchestrator.repos.runs.get.return_value = run
+        srv_repo_run_get_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.get)
+        srv_repo_run_get_mock.return_value = run
 
         result: AgentRun | None = await mock_orchestrator.get_run("run-1")
 
         assert result is not None
         assert result.id == "run-1"
-        mock_orchestrator.repos.runs.get.assert_called_once_with("run-1")
+        srv_repo_run_get_mock.assert_called_once_with("run-1")
 
     @pytest.mark.asyncio
     async def test_get_run_not_found(self, mock_orchestrator: OrchestratorService) -> None:
         """Test getting a non-existent run."""
-        mock_orchestrator.repos.runs.get.return_value = None
+        srv_repo_run_get_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.get)
+        srv_repo_run_get_mock.return_value = None
 
         result: AgentRun | None = await mock_orchestrator.get_run("non-existent")
 
@@ -168,7 +175,8 @@ class TestOrchestratorRunManagement:
         """Test cancelling a run."""
         await mock_orchestrator.cancel_run("run-1")
 
-        mock_orchestrator.repos.runs.update_status.assert_called_once_with(
+        srv_repo_run_update_status_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.update_status)
+        srv_repo_run_update_status_mock.assert_called_once_with(
             run_id="run-1", status=AgentRunStatus.cancelled.value
         )
 
@@ -196,21 +204,23 @@ class TestOrchestratorEventManagement:
             AgentEvent(id="event-1", run_id="run-1", type=AgentEventType.run_started),
             AgentEvent(id="event-2", run_id="run-1", type=AgentEventType.thought_executed),
         ]
-        mock_orchestrator.repos.events.list.return_value = events
+        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
+        srv_repo_events_list_mock.return_value = events
 
         result: List[AgentEvent] = await mock_orchestrator.get_run_events("run-1", limit=100)
 
         assert len(result) == 2
-        mock_orchestrator.repos.events.list.assert_called_once_with(run_id="run-1", limit=100)
+        srv_repo_events_list_mock.assert_called_once_with(run_id="run-1", limit=100)
 
     @pytest.mark.asyncio
     async def test_get_run_events_with_defaults(self, mock_orchestrator: OrchestratorService) -> None:
         """Test getting events with default limit."""
-        mock_orchestrator.repos.events.list.return_value = []
+        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
+        srv_repo_events_list_mock.return_value = []
 
         await mock_orchestrator.get_run_events("run-1")
 
-        mock_orchestrator.repos.events.list.assert_called_once_with(run_id="run-1", limit=100)
+        srv_repo_events_list_mock.assert_called_once_with(run_id="run-1", limit=100)
 
 
 class TestOrchestratorApprovalManagement:
@@ -251,12 +261,13 @@ class TestOrchestratorApprovalManagement:
                 reason="Code execution",
             ),
         ]
-        mock_orchestrator.repos.approvals.list.return_value = approvals
+        srv_repo_approvals_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.approvals.list)
+        srv_repo_approvals_list_mock.return_value = approvals
 
         result: List[Approval] = await mock_orchestrator.get_pending_approvals("run-1")
 
         assert len(result) == 2
-        mock_orchestrator.repos.approvals.list.assert_called_once_with(run_id="run-1", pending_only=True)
+        srv_repo_approvals_list_mock.assert_called_once_with(run_id="run-1", pending_only=True)
 
     @pytest.mark.asyncio
     async def test_submit_approval_approved(self, mock_orchestrator: OrchestratorService) -> None:
@@ -276,7 +287,8 @@ class TestOrchestratorApprovalManagement:
             decision=ApprovalDecision.approved,
             decided_by="user-1",
         )
-        mock_orchestrator.repos.approvals.get.return_value = approval
+        srv_repo_approvals_get_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.approvals.get)
+        srv_repo_approvals_get_mock.return_value = approval
 
         result: Approval = await mock_orchestrator.submit_approval(
             run_id="run-1",
@@ -287,10 +299,12 @@ class TestOrchestratorApprovalManagement:
         )
 
         assert result.id == "approval-1"
-        mock_orchestrator.repos.approvals.resolve.assert_called_once_with(
+        srv_repo_approvals_resolve_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.approvals.resolve)
+        srv_repo_approvals_resolve_mock.assert_called_once_with(
             "approval-1", decision="approved", decided_by="user-1"
         )
-        mock_orchestrator.agent_service.resume.assert_called_once_with(run_id="run-1", approval_id="approval-1")
+        srv_agent_service_resume_mock: MagicMock = cast(MagicMock, mock_orchestrator.agent_service.resume)
+        srv_agent_service_resume_mock.assert_called_once_with(run_id="run-1", approval_id="approval-1")
 
     @pytest.mark.asyncio
     async def test_submit_approval_rejected(self, mock_orchestrator: OrchestratorService) -> None:
@@ -310,7 +324,8 @@ class TestOrchestratorApprovalManagement:
             decision=ApprovalDecision.rejected,
             decided_by="user-1",
         )
-        mock_orchestrator.repos.approvals.get.return_value = approval
+        srv_repo_approvals_get_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.approvals.get)
+        srv_repo_approvals_get_mock.return_value = approval
 
         result: Approval = await mock_orchestrator.submit_approval(
             run_id="run-1",
@@ -322,12 +337,14 @@ class TestOrchestratorApprovalManagement:
 
         assert result.id == "approval-1"
         # resume should not be called for rejected
-        mock_orchestrator.agent_service.resume.assert_not_called()
+        srv_agent_service_resume_mock: MagicMock = cast(MagicMock, mock_orchestrator.agent_service.resume)
+        srv_agent_service_resume_mock.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_submit_approval_not_found(self, mock_orchestrator: OrchestratorService) -> None:
         """Test submit_approval raises error when approval not found."""
-        mock_orchestrator.repos.approvals.get.return_value = None
+        srv_repo_approvals_get_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.approvals.get)
+        srv_repo_approvals_get_mock.return_value = None
 
         with pytest.raises(RuntimeError, match="Approval approval-1 not found"):
             await mock_orchestrator.submit_approval(
@@ -363,7 +380,8 @@ class TestOrchestratorUsageAndPolicy:
             UsageLedgerEntry(id="usage-1", run_id="run-1", provider="openai", model="gpt-4"),
             UsageLedgerEntry(id="usage-2", run_id="run-2", provider="openai", model="gpt-4"),
         ]
-        mock_orchestrator.repos.usage.list.return_value = usage_entries
+        srv_repo_usage_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.usage.list)
+        srv_repo_usage_list_mock.return_value = usage_entries
 
         result: List[UsageLedgerEntry] = await mock_orchestrator.list_usage(
             tenant_id="tenant-1",
@@ -372,7 +390,7 @@ class TestOrchestratorUsageAndPolicy:
         )
 
         assert len(result) == 2
-        mock_orchestrator.repos.usage.list.assert_called_once_with(tenant_id="tenant-1", from_date=None, to_date=None)
+        srv_repo_usage_list_mock.assert_called_once_with(tenant_id="tenant-1", from_date=None, to_date=None)
 
     @pytest.mark.asyncio
     async def test_list_usage_with_date_range(self, mock_orchestrator: OrchestratorService) -> None:
@@ -380,7 +398,8 @@ class TestOrchestratorUsageAndPolicy:
         from_date: datetime = datetime(2024, 1, 1, tzinfo=timezone.utc)
         to_date: datetime = datetime(2024, 12, 31, tzinfo=timezone.utc)
 
-        mock_orchestrator.repos.usage.list.return_value = []
+        srv_repo_usage_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.usage.list)
+        srv_repo_usage_list_mock.return_value = []
 
         await mock_orchestrator.list_usage(
             tenant_id="tenant-1",
@@ -388,7 +407,7 @@ class TestOrchestratorUsageAndPolicy:
             to_date=to_date,
         )
 
-        mock_orchestrator.repos.usage.list.assert_called_once_with(
+        srv_repo_usage_list_mock.assert_called_once_with(
             tenant_id="tenant-1", from_date=from_date, to_date=to_date
         )
 
@@ -396,17 +415,19 @@ class TestOrchestratorUsageAndPolicy:
     async def test_get_policy(self, mock_orchestrator: OrchestratorService) -> None:
         """Test getting policy for a tenant."""
         policy: dict[str, Any] = {"rules": ["rule1", "rule2"]}
-        mock_orchestrator.repos.policies.get.return_value = policy
+        srv_repo_policies_get_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.policies.get)
+        srv_repo_policies_get_mock.return_value = policy
 
         result: dict[str, Any] | None = await mock_orchestrator.get_policy("tenant-1")
 
         assert result == policy
-        mock_orchestrator.repos.policies.get.assert_called_once_with(tenant_id="tenant-1")
+        srv_repo_policies_get_mock.assert_called_once_with(tenant_id="tenant-1")
 
     @pytest.mark.asyncio
     async def test_get_policy_not_found(self, mock_orchestrator: OrchestratorService) -> None:
         """Test getting non-existent policy."""
-        mock_orchestrator.repos.policies.get.return_value = None
+        srv_repo_policies_get_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.policies.get)
+        srv_repo_policies_get_mock.return_value = None
 
         result: dict[str, Any] | None = await mock_orchestrator.get_policy("tenant-1")
 
@@ -420,7 +441,8 @@ class TestOrchestratorUsageAndPolicy:
         result: dict[str, Any] = await mock_orchestrator.update_policy("tenant-1", config)
 
         assert result == config
-        mock_orchestrator.repos.policies.update.assert_called_once_with(tenant_id="tenant-1", config=config)
+        srv_repo_policies_update_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.policies.update)
+        srv_repo_policies_update_mock.assert_called_once_with(tenant_id="tenant-1", config=config)
 
 
 class TestOrchestratorEventEnrichment:
@@ -523,6 +545,7 @@ class TestOrchestratorEventEnrichment:
 
         result: SSEResponse = await mock_orchestrator._enrich_event_for_sse(event)
 
+        assert result.data.operation is not None
         assert result.data.operation.status == "failed"
 
     @pytest.mark.asyncio
@@ -715,7 +738,8 @@ class TestOrchestratorEventStreaming:
         )
 
         # First call returns event, second call returns empty to stop streaming
-        mock_orchestrator.repos.events.list.side_effect = [
+        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
+        srv_repo_events_list_mock.side_effect = [
             [event],
             [],
             [],
@@ -733,7 +757,8 @@ class TestOrchestratorEventStreaming:
     @pytest.mark.asyncio
     async def test_stream_events_keep_alive(self, mock_orchestrator: OrchestratorService) -> None:
         """Test streaming sends keep-alive when no events."""
-        mock_orchestrator.repos.events.list.return_value = []
+        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
+        srv_repo_events_list_mock.return_value = []
 
         events_received: List[Any] = []
         async for sse_event in mock_orchestrator.stream_events("run-1"):
@@ -747,7 +772,8 @@ class TestOrchestratorEventStreaming:
     @pytest.mark.asyncio
     async def test_stream_events_error_handling(self, mock_orchestrator: OrchestratorService) -> None:
         """Test streaming handles errors gracefully."""
-        mock_orchestrator.repos.events.list.side_effect = Exception("Database error")
+        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
+        srv_repo_events_list_mock.side_effect = Exception("Database error")
 
         events_received: List[Any] = []
         async for sse_event in mock_orchestrator.stream_events("run-1"):
@@ -776,7 +802,8 @@ class TestOrchestratorEventStreaming:
         )
 
         # First call returns old event, second call returns both, third returns empty
-        mock_orchestrator.repos.events.list.side_effect = [
+        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
+        srv_repo_events_list_mock.side_effect = [
             [old_event],
             [old_event, new_event],
             [],
@@ -812,7 +839,8 @@ class TestOrchestratorEventStreamingIdleCycleTimeout:
     async def test_stream_events_closes_after_max_idle_cycles(self, mock_orchestrator: OrchestratorService) -> None:
         """Test streaming closes after reaching max idle cycles (120)."""
         # Return empty list to trigger idle cycles
-        mock_orchestrator.repos.events.list.return_value = []
+        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
+        srv_repo_events_list_mock.return_value = []
 
         events_received: List[Any] = []
         async for sse_event in mock_orchestrator.stream_events("run-1"):
@@ -843,7 +871,8 @@ class TestOrchestratorEventStreamingIdleCycleTimeout:
         )
 
         # Simulate: event, then empty (idle), then event, then empty (idle), etc.
-        mock_orchestrator.repos.events.list.side_effect = [
+        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
+        srv_repo_events_list_mock.side_effect = [
             [event1],  # Event received, idle_cycles = 0
             [],  # No event, idle_cycles = 1
             [],  # No event, idle_cycles = 2
@@ -866,7 +895,8 @@ class TestOrchestratorEventStreamingIdleCycleTimeout:
     async def test_stream_events_idle_cycles_increment_on_empty(self, mock_orchestrator: OrchestratorService) -> None:
         """Test idle cycles increment correctly on empty event lists."""
         # Return empty list multiple times
-        mock_orchestrator.repos.events.list.return_value = []
+        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
+        srv_repo_events_list_mock.return_value = []
 
         events_received: List[Any] = []
         async for sse_event in mock_orchestrator.stream_events("run-1"):
@@ -883,7 +913,8 @@ class TestOrchestratorEventStreamingIdleCycleTimeout:
     async def test_stream_events_closes_exactly_at_max_idle(self, mock_orchestrator: OrchestratorService) -> None:
         """Test streaming closes exactly at max_idle_cycles threshold."""
         # Return empty to trigger idle cycles
-        mock_orchestrator.repos.events.list.return_value = []
+        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
+        srv_repo_events_list_mock.return_value = []
 
         events_received: List[Any] = []
         async for sse_event in mock_orchestrator.stream_events("run-1"):
@@ -916,7 +947,8 @@ class TestOrchestratorEventStreamingIdleCycleTimeout:
         )
 
         # Pattern: event1, empty, empty, event2, empty, empty, ...
-        mock_orchestrator.repos.events.list.side_effect = [
+        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
+        srv_repo_events_list_mock.side_effect = [
             [event1],  # idle_cycles = 0
             [],  # idle_cycles = 1
             [],  # idle_cycles = 2
@@ -957,7 +989,8 @@ class TestOrchestratorEventStreamingAsyncSleep:
     @pytest.mark.asyncio
     async def test_stream_events_calls_asyncio_sleep(self, mock_orchestrator: OrchestratorService) -> None:
         """Test streaming calls asyncio.sleep between polls."""
-        mock_orchestrator.repos.events.list.return_value = []
+        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
+        srv_repo_events_list_mock.return_value = []
 
         with patch("gearmeshing_ai.server.services.orchestrator.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
             events_received: List[Any] = []
@@ -972,7 +1005,8 @@ class TestOrchestratorEventStreamingAsyncSleep:
     @pytest.mark.asyncio
     async def test_stream_events_sleep_interval_is_half_second(self, mock_orchestrator: OrchestratorService) -> None:
         """Test streaming uses 0.5 second poll interval."""
-        mock_orchestrator.repos.events.list.return_value = []
+        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
+        srv_repo_events_list_mock.return_value = []
 
         with patch("gearmeshing_ai.server.services.orchestrator.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
             events_received: List[Any] = []
@@ -997,7 +1031,8 @@ class TestOrchestratorEventStreamingAsyncSleep:
         )
 
         # Return event, then empty, then event
-        mock_orchestrator.repos.events.list.side_effect = [
+        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
+        srv_repo_events_list_mock.side_effect = [
             [event],
             [],
             [event],
@@ -1016,7 +1051,8 @@ class TestOrchestratorEventStreamingAsyncSleep:
     @pytest.mark.asyncio
     async def test_stream_events_sleep_on_error(self, mock_orchestrator: OrchestratorService) -> None:
         """Test streaming sleeps even when error occurs."""
-        mock_orchestrator.repos.events.list.side_effect = [
+        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
+        srv_repo_events_list_mock.side_effect = [
             Exception("Database error"),
             Exception("Database error"),
         ]
@@ -1037,7 +1073,8 @@ class TestOrchestratorEventStreamingAsyncSleep:
     @pytest.mark.asyncio
     async def test_stream_events_sleep_maintains_consistent_interval(self, mock_orchestrator: OrchestratorService) -> None:
         """Test streaming maintains consistent sleep interval across multiple cycles."""
-        mock_orchestrator.repos.events.list.return_value = []
+        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
+        srv_repo_events_list_mock.return_value = []
 
         with patch("gearmeshing_ai.server.services.orchestrator.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
             events_received: List[Any] = []
