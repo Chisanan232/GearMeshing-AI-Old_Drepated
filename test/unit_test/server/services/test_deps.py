@@ -4,8 +4,7 @@ Tests verify that the OrchestratorDep dependency injection works correctly
 with FastAPI's Depends mechanism.
 """
 
-from typing import Any
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from gearmeshing_ai.server.services.deps import OrchestratorDep
 from gearmeshing_ai.server.services.orchestrator import (
@@ -58,7 +57,14 @@ class TestOrchestratorDepIntegration:
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
     @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
-    def test_orchestrator_dep_can_be_used_in_fastapi_endpoint(self, mock_repos: MagicMock, mock_deps: MagicMock, mock_planner: MagicMock, mock_policy: MagicMock, mock_service: MagicMock) -> None:
+    def test_orchestrator_dep_can_be_used_in_fastapi_endpoint(
+        self,
+        mock_repos: MagicMock,
+        mock_deps: MagicMock,
+        mock_planner: MagicMock,
+        mock_policy: MagicMock,
+        mock_service: MagicMock,
+    ) -> None:
         """Test OrchestratorDep can be used as a FastAPI dependency."""
         from fastapi import FastAPI
 
@@ -91,14 +97,21 @@ class TestOrchestratorDepIntegration:
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
     @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
-    def test_orchestrator_dep_returns_orchestrator_service(self, mock_repos: MagicMock, mock_deps: MagicMock, mock_planner: MagicMock, mock_policy: MagicMock, mock_service: MagicMock) -> None:
+    def test_orchestrator_dep_returns_orchestrator_service(
+        self,
+        mock_repos: MagicMock,
+        mock_deps: MagicMock,
+        mock_planner: MagicMock,
+        mock_policy: MagicMock,
+        mock_service: MagicMock,
+    ) -> None:
         """Test the dependency returns OrchestratorService instance."""
         # Reset singleton
         import gearmeshing_ai.server.services.orchestrator as orch_module
 
         orch_module._orchestrator = None
 
-        metadata = OrchestratorDep.__metadata__   # type: ignore[attr-defined]
+        metadata = OrchestratorDep.__metadata__  # type: ignore[attr-defined]
         depends_obj = metadata[0]
         dependency = depends_obj.dependency
 
@@ -114,14 +127,21 @@ class TestOrchestratorDepSingleton:
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
     @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
-    def test_orchestrator_dep_returns_singleton_across_calls(self, mock_repos: MagicMock, mock_deps: MagicMock, mock_planner: MagicMock, mock_policy: MagicMock, mock_service: MagicMock) -> None:
+    def test_orchestrator_dep_returns_singleton_across_calls(
+        self,
+        mock_repos: MagicMock,
+        mock_deps: MagicMock,
+        mock_planner: MagicMock,
+        mock_policy: MagicMock,
+        mock_service: MagicMock,
+    ) -> None:
         """Test OrchestratorDep returns same instance across multiple calls."""
         # Reset singleton
         import gearmeshing_ai.server.services.orchestrator as orch_module
 
         orch_module._orchestrator = None
 
-        metadata = OrchestratorDep.__metadata__   # type: ignore[attr-defined]
+        metadata = OrchestratorDep.__metadata__  # type: ignore[attr-defined]
         depends_obj = metadata[0]
         dependency = depends_obj.dependency
 
@@ -166,7 +186,14 @@ class TestOrchestratorDepWithMockFastAPI:
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
     @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
-    def test_orchestrator_dep_in_multiple_endpoints(self, mock_repos: MagicMock, mock_deps: MagicMock, mock_planner: MagicMock, mock_policy: MagicMock, mock_service: MagicMock) -> None:
+    def test_orchestrator_dep_in_multiple_endpoints(
+        self,
+        mock_repos: MagicMock,
+        mock_deps: MagicMock,
+        mock_planner: MagicMock,
+        mock_policy: MagicMock,
+        mock_service: MagicMock,
+    ) -> None:
         """Test OrchestratorDep can be used in multiple endpoints."""
         from fastapi import FastAPI
 
@@ -193,7 +220,14 @@ class TestOrchestratorDepWithMockFastAPI:
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
     @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
-    def test_orchestrator_dep_with_other_dependencies(self, mock_repos: MagicMock, mock_deps: MagicMock, mock_planner: MagicMock, mock_policy: MagicMock, mock_service: MagicMock) -> None:
+    def test_orchestrator_dep_with_other_dependencies(
+        self,
+        mock_repos: MagicMock,
+        mock_deps: MagicMock,
+        mock_planner: MagicMock,
+        mock_policy: MagicMock,
+        mock_service: MagicMock,
+    ) -> None:
         """Test OrchestratorDep can be combined with other dependencies."""
         from fastapi import FastAPI, Query
 
@@ -248,7 +282,14 @@ class TestOrchestratorDepEdgeCases:
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
     @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
-    def test_orchestrator_dep_with_none_orchestrator(self, mock_repos: MagicMock, mock_deps: MagicMock, mock_planner: MagicMock, mock_policy: MagicMock, mock_service: MagicMock) -> None:
+    def test_orchestrator_dep_with_none_orchestrator(
+        self,
+        mock_repos: MagicMock,
+        mock_deps: MagicMock,
+        mock_planner: MagicMock,
+        mock_policy: MagicMock,
+        mock_service: MagicMock,
+    ) -> None:
         """Test behavior when orchestrator is None before first call."""
         import gearmeshing_ai.server.services.orchestrator as orch_module
 
@@ -268,7 +309,14 @@ class TestOrchestratorDepEdgeCases:
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
     @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
-    def test_orchestrator_dep_preserves_singleton_after_reset(self, mock_repos: MagicMock, mock_deps: MagicMock, mock_planner: MagicMock, mock_policy: MagicMock, mock_service: MagicMock) -> None:
+    def test_orchestrator_dep_preserves_singleton_after_reset(
+        self,
+        mock_repos: MagicMock,
+        mock_deps: MagicMock,
+        mock_planner: MagicMock,
+        mock_policy: MagicMock,
+        mock_service: MagicMock,
+    ) -> None:
         """Test singleton is preserved across multiple accesses."""
         import gearmeshing_ai.server.services.orchestrator as orch_module
 

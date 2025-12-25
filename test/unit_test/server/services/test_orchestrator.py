@@ -37,7 +37,14 @@ class TestOrchestratorServiceInitialization:
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
     @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
-    def test_orchestrator_service_initializes(self, mock_repos: MagicMock, mock_deps: MagicMock, mock_planner: MagicMock, mock_policy: MagicMock, mock_service: MagicMock) -> None:
+    def test_orchestrator_service_initializes(
+        self,
+        mock_repos: MagicMock,
+        mock_deps: MagicMock,
+        mock_planner: MagicMock,
+        mock_policy: MagicMock,
+        mock_service: MagicMock,
+    ) -> None:
         """Test OrchestratorService can be instantiated."""
         orchestrator: OrchestratorService = OrchestratorService()
         assert orchestrator is not None
@@ -47,7 +54,14 @@ class TestOrchestratorServiceInitialization:
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
     @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
-    def test_orchestrator_has_required_attributes(self, mock_repos: MagicMock, mock_deps: MagicMock, mock_planner: MagicMock, mock_policy: MagicMock, mock_service: MagicMock) -> None:
+    def test_orchestrator_has_required_attributes(
+        self,
+        mock_repos: MagicMock,
+        mock_deps: MagicMock,
+        mock_planner: MagicMock,
+        mock_policy: MagicMock,
+        mock_service: MagicMock,
+    ) -> None:
         """Test OrchestratorService has all required attributes."""
         orchestrator: OrchestratorService = OrchestratorService()
         assert hasattr(orchestrator, "repos")
@@ -176,9 +190,7 @@ class TestOrchestratorRunManagement:
         await mock_orchestrator.cancel_run("run-1")
 
         srv_repo_run_update_status_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.update_status)
-        srv_repo_run_update_status_mock.assert_called_once_with(
-            run_id="run-1", status=AgentRunStatus.cancelled.value
-        )
+        srv_repo_run_update_status_mock.assert_called_once_with(run_id="run-1", status=AgentRunStatus.cancelled.value)
 
 
 class TestOrchestratorEventManagement:
@@ -300,9 +312,7 @@ class TestOrchestratorApprovalManagement:
 
         assert result.id == "approval-1"
         srv_repo_approvals_resolve_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.approvals.resolve)
-        srv_repo_approvals_resolve_mock.assert_called_once_with(
-            "approval-1", decision="approved", decided_by="user-1"
-        )
+        srv_repo_approvals_resolve_mock.assert_called_once_with("approval-1", decision="approved", decided_by="user-1")
         srv_agent_service_resume_mock: MagicMock = cast(MagicMock, mock_orchestrator.agent_service.resume)
         srv_agent_service_resume_mock.assert_called_once_with(run_id="run-1", approval_id="approval-1")
 
@@ -407,9 +417,7 @@ class TestOrchestratorUsageAndPolicy:
             to_date=to_date,
         )
 
-        srv_repo_usage_list_mock.assert_called_once_with(
-            tenant_id="tenant-1", from_date=from_date, to_date=to_date
-        )
+        srv_repo_usage_list_mock.assert_called_once_with(tenant_id="tenant-1", from_date=from_date, to_date=to_date)
 
     @pytest.mark.asyncio
     async def test_get_policy(self, mock_orchestrator: OrchestratorService) -> None:
@@ -1071,7 +1079,9 @@ class TestOrchestratorEventStreamingAsyncSleep:
                 assert call[0][0] == 0.5
 
     @pytest.mark.asyncio
-    async def test_stream_events_sleep_maintains_consistent_interval(self, mock_orchestrator: OrchestratorService) -> None:
+    async def test_stream_events_sleep_maintains_consistent_interval(
+        self, mock_orchestrator: OrchestratorService
+    ) -> None:
         """Test streaming maintains consistent sleep interval across multiple cycles."""
         srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
         srv_repo_events_list_mock.return_value = []
