@@ -5,6 +5,7 @@ approval handling, and event enrichment for SSE responses.
 """
 
 from datetime import datetime, timedelta, timezone
+from typing import Any, Generator, List
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -31,24 +32,24 @@ from gearmeshing_ai.server.services.orchestrator import (
 class TestOrchestratorServiceInitialization:
     """Test OrchestratorService initialization."""
 
-    def test_orchestrator_service_initializes(self):
+    def test_orchestrator_service_initializes(self) -> None:
         """Test OrchestratorService can be instantiated."""
         with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
             with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
                 with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
                     with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
                         with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator = OrchestratorService()
+                            orchestrator: OrchestratorService = OrchestratorService()
                             assert orchestrator is not None
 
-    def test_orchestrator_has_required_attributes(self):
+    def test_orchestrator_has_required_attributes(self) -> None:
         """Test OrchestratorService has all required attributes."""
         with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
             with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
                 with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
                     with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
                         with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator = OrchestratorService()
+                            orchestrator: OrchestratorService = OrchestratorService()
                             assert hasattr(orchestrator, "repos")
                             assert hasattr(orchestrator, "deps")
                             assert hasattr(orchestrator, "policy_provider")
@@ -59,14 +60,14 @@ class TestOrchestratorRunManagement:
     """Test run management methods."""
 
     @pytest.fixture
-    def mock_orchestrator(self):
+    def mock_orchestrator(self) -> Generator[OrchestratorService, None, None]:
         """Create a mock orchestrator with mocked dependencies."""
         with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos") as mock_repos:
             with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
                 with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
                     with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
                         with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator = OrchestratorService()
+                            orchestrator: OrchestratorService = OrchestratorService()
                             # Mock the repos
                             orchestrator.repos = MagicMock()
                             orchestrator.repos.runs = AsyncMock()
@@ -78,9 +79,9 @@ class TestOrchestratorRunManagement:
                             yield orchestrator
 
     @pytest.mark.asyncio
-    async def test_create_run(self, mock_orchestrator):
+    async def test_create_run(self, mock_orchestrator: OrchestratorService) -> None:
         """Test creating a new agent run."""
-        run = AgentRun(
+        run: AgentRun = AgentRun(
             id="test-run-1",
             tenant_id="default-tenant",
             role="analyst",
@@ -90,16 +91,16 @@ class TestOrchestratorRunManagement:
 
         mock_orchestrator.repos.runs.get.return_value = run
 
-        result = await mock_orchestrator.create_run(run)
+        result: AgentRun = await mock_orchestrator.create_run(run)
 
         assert result.id == "test-run-1"
         mock_orchestrator.agent_service.run.assert_called_once_with(run=run)
         mock_orchestrator.repos.runs.get.assert_called_once_with("test-run-1")
 
     @pytest.mark.asyncio
-    async def test_create_run_failure(self, mock_orchestrator):
+    async def test_create_run_failure(self, mock_orchestrator: OrchestratorService) -> None:
         """Test create_run raises error when run is not persisted."""
-        run = AgentRun(
+        run: AgentRun = AgentRun(
             id="test-run-1",
             tenant_id="default-tenant",
             role="analyst",
@@ -113,9 +114,9 @@ class TestOrchestratorRunManagement:
             await mock_orchestrator.create_run(run)
 
     @pytest.mark.asyncio
-    async def test_list_runs(self, mock_orchestrator):
+    async def test_list_runs(self, mock_orchestrator: OrchestratorService) -> None:
         """Test listing agent runs."""
-        runs = [
+        runs: List[AgentRun] = [
             AgentRun(
                 id="run-1", tenant_id="tenant-1", role="analyst", objective="Task 1", status=AgentRunStatus.running
             ),
@@ -123,7 +124,7 @@ class TestOrchestratorRunManagement:
         ]
         mock_orchestrator.repos.runs.list.return_value = runs
 
-        result = await mock_orchestrator.list_runs(tenant_id="tenant-1", limit=100, offset=0)
+        result: List[AgentRun] = await mock_orchestrator.list_runs(tenant_id="tenant-1", limit=100, offset=0)
 
         assert len(result) == 2
         assert result[0].id == "run-1"
@@ -131,7 +132,7 @@ class TestOrchestratorRunManagement:
         mock_orchestrator.repos.runs.list.assert_called_once_with(tenant_id="tenant-1", limit=100, offset=0)
 
     @pytest.mark.asyncio
-    async def test_list_runs_with_defaults(self, mock_orchestrator):
+    async def test_list_runs_with_defaults(self, mock_orchestrator: OrchestratorService) -> None:
         """Test listing runs with default parameters."""
         mock_orchestrator.repos.runs.list.return_value = []
 
@@ -140,29 +141,30 @@ class TestOrchestratorRunManagement:
         mock_orchestrator.repos.runs.list.assert_called_once_with(tenant_id=None, limit=100, offset=0)
 
     @pytest.mark.asyncio
-    async def test_get_run(self, mock_orchestrator):
+    async def test_get_run(self, mock_orchestrator: OrchestratorService) -> None:
         """Test getting a specific run."""
-        run = AgentRun(
+        run: AgentRun = AgentRun(
             id="run-1", tenant_id="tenant-1", role="analyst", objective="Task", status=AgentRunStatus.running
         )
         mock_orchestrator.repos.runs.get.return_value = run
 
-        result = await mock_orchestrator.get_run("run-1")
+        result: AgentRun | None = await mock_orchestrator.get_run("run-1")
 
+        assert result is not None
         assert result.id == "run-1"
         mock_orchestrator.repos.runs.get.assert_called_once_with("run-1")
 
     @pytest.mark.asyncio
-    async def test_get_run_not_found(self, mock_orchestrator):
+    async def test_get_run_not_found(self, mock_orchestrator: OrchestratorService) -> None:
         """Test getting a non-existent run."""
         mock_orchestrator.repos.runs.get.return_value = None
 
-        result = await mock_orchestrator.get_run("non-existent")
+        result: AgentRun | None = await mock_orchestrator.get_run("non-existent")
 
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_cancel_run(self, mock_orchestrator):
+    async def test_cancel_run(self, mock_orchestrator: OrchestratorService) -> None:
         """Test cancelling a run."""
         await mock_orchestrator.cancel_run("run-1")
 
@@ -175,34 +177,34 @@ class TestOrchestratorEventManagement:
     """Test event-related methods."""
 
     @pytest.fixture
-    def mock_orchestrator(self):
+    def mock_orchestrator(self) -> Generator[OrchestratorService, None, None]:
         """Create a mock orchestrator."""
         with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
             with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
                 with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
                     with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
                         with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator = OrchestratorService()
+                            orchestrator: OrchestratorService = OrchestratorService()
                             orchestrator.repos = MagicMock()
                             orchestrator.repos.events = AsyncMock()
                             yield orchestrator
 
     @pytest.mark.asyncio
-    async def test_get_run_events(self, mock_orchestrator):
+    async def test_get_run_events(self, mock_orchestrator: OrchestratorService) -> None:
         """Test getting events for a run."""
-        events = [
+        events: List[AgentEvent] = [
             AgentEvent(id="event-1", run_id="run-1", type=AgentEventType.run_started),
             AgentEvent(id="event-2", run_id="run-1", type=AgentEventType.thought_executed),
         ]
         mock_orchestrator.repos.events.list.return_value = events
 
-        result = await mock_orchestrator.get_run_events("run-1", limit=100)
+        result: List[AgentEvent] = await mock_orchestrator.get_run_events("run-1", limit=100)
 
         assert len(result) == 2
         mock_orchestrator.repos.events.list.assert_called_once_with(run_id="run-1", limit=100)
 
     @pytest.mark.asyncio
-    async def test_get_run_events_with_defaults(self, mock_orchestrator):
+    async def test_get_run_events_with_defaults(self, mock_orchestrator: OrchestratorService) -> None:
         """Test getting events with default limit."""
         mock_orchestrator.repos.events.list.return_value = []
 
@@ -215,25 +217,25 @@ class TestOrchestratorApprovalManagement:
     """Test approval-related methods."""
 
     @pytest.fixture
-    def mock_orchestrator(self):
+    def mock_orchestrator(self) -> Generator[OrchestratorService, None, None]:
         """Create a mock orchestrator."""
         with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
             with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
                 with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
                     with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
                         with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator = OrchestratorService()
+                            orchestrator: OrchestratorService = OrchestratorService()
                             orchestrator.repos = MagicMock()
                             orchestrator.repos.approvals = AsyncMock()
                             orchestrator.agent_service = AsyncMock()
                             yield orchestrator
 
     @pytest.mark.asyncio
-    async def test_get_pending_approvals(self, mock_orchestrator):
+    async def test_get_pending_approvals(self, mock_orchestrator: OrchestratorService) -> None:
         """Test getting pending approvals."""
         from gearmeshing_ai.agent_core.schemas.domain import CapabilityName, RiskLevel
 
-        approvals = [
+        approvals: List[Approval] = [
             Approval(
                 id="approval-1",
                 run_id="run-1",
@@ -251,13 +253,13 @@ class TestOrchestratorApprovalManagement:
         ]
         mock_orchestrator.repos.approvals.list.return_value = approvals
 
-        result = await mock_orchestrator.get_pending_approvals("run-1")
+        result: List[Approval] = await mock_orchestrator.get_pending_approvals("run-1")
 
         assert len(result) == 2
         mock_orchestrator.repos.approvals.list.assert_called_once_with(run_id="run-1", pending_only=True)
 
     @pytest.mark.asyncio
-    async def test_submit_approval_approved(self, mock_orchestrator):
+    async def test_submit_approval_approved(self, mock_orchestrator: OrchestratorService) -> None:
         """Test submitting an approved decision."""
         from gearmeshing_ai.agent_core.schemas.domain import (
             ApprovalDecision,
@@ -265,7 +267,7 @@ class TestOrchestratorApprovalManagement:
             RiskLevel,
         )
 
-        approval = Approval(
+        approval: Approval = Approval(
             id="approval-1",
             run_id="run-1",
             risk=RiskLevel.high,
@@ -276,7 +278,7 @@ class TestOrchestratorApprovalManagement:
         )
         mock_orchestrator.repos.approvals.get.return_value = approval
 
-        result = await mock_orchestrator.submit_approval(
+        result: Approval = await mock_orchestrator.submit_approval(
             run_id="run-1",
             approval_id="approval-1",
             decision="approved",
@@ -291,7 +293,7 @@ class TestOrchestratorApprovalManagement:
         mock_orchestrator.agent_service.resume.assert_called_once_with(run_id="run-1", approval_id="approval-1")
 
     @pytest.mark.asyncio
-    async def test_submit_approval_rejected(self, mock_orchestrator):
+    async def test_submit_approval_rejected(self, mock_orchestrator: OrchestratorService) -> None:
         """Test submitting a rejected decision."""
         from gearmeshing_ai.agent_core.schemas.domain import (
             ApprovalDecision,
@@ -299,7 +301,7 @@ class TestOrchestratorApprovalManagement:
             RiskLevel,
         )
 
-        approval = Approval(
+        approval: Approval = Approval(
             id="approval-1",
             run_id="run-1",
             risk=RiskLevel.high,
@@ -310,7 +312,7 @@ class TestOrchestratorApprovalManagement:
         )
         mock_orchestrator.repos.approvals.get.return_value = approval
 
-        result = await mock_orchestrator.submit_approval(
+        result: Approval = await mock_orchestrator.submit_approval(
             run_id="run-1",
             approval_id="approval-1",
             decision="rejected",
@@ -323,7 +325,7 @@ class TestOrchestratorApprovalManagement:
         mock_orchestrator.agent_service.resume.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_submit_approval_not_found(self, mock_orchestrator):
+    async def test_submit_approval_not_found(self, mock_orchestrator: OrchestratorService) -> None:
         """Test submit_approval raises error when approval not found."""
         mock_orchestrator.repos.approvals.get.return_value = None
 
@@ -341,29 +343,29 @@ class TestOrchestratorUsageAndPolicy:
     """Test usage and policy methods."""
 
     @pytest.fixture
-    def mock_orchestrator(self):
+    def mock_orchestrator(self) -> Generator[OrchestratorService, None, None]:
         """Create a mock orchestrator."""
         with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
             with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
                 with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
                     with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
                         with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator = OrchestratorService()
+                            orchestrator: OrchestratorService = OrchestratorService()
                             orchestrator.repos = MagicMock()
                             orchestrator.repos.usage = AsyncMock()
                             orchestrator.repos.policies = AsyncMock()
                             yield orchestrator
 
     @pytest.mark.asyncio
-    async def test_list_usage(self, mock_orchestrator):
+    async def test_list_usage(self, mock_orchestrator: OrchestratorService) -> None:
         """Test listing usage entries."""
-        usage_entries = [
+        usage_entries: List[UsageLedgerEntry] = [
             UsageLedgerEntry(id="usage-1", run_id="run-1", provider="openai", model="gpt-4"),
             UsageLedgerEntry(id="usage-2", run_id="run-2", provider="openai", model="gpt-4"),
         ]
         mock_orchestrator.repos.usage.list.return_value = usage_entries
 
-        result = await mock_orchestrator.list_usage(
+        result: List[UsageLedgerEntry] = await mock_orchestrator.list_usage(
             tenant_id="tenant-1",
             from_date=None,
             to_date=None,
@@ -373,10 +375,10 @@ class TestOrchestratorUsageAndPolicy:
         mock_orchestrator.repos.usage.list.assert_called_once_with(tenant_id="tenant-1", from_date=None, to_date=None)
 
     @pytest.mark.asyncio
-    async def test_list_usage_with_date_range(self, mock_orchestrator):
+    async def test_list_usage_with_date_range(self, mock_orchestrator: OrchestratorService) -> None:
         """Test listing usage with date range."""
-        from_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
-        to_date = datetime(2024, 12, 31, tzinfo=timezone.utc)
+        from_date: datetime = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        to_date: datetime = datetime(2024, 12, 31, tzinfo=timezone.utc)
 
         mock_orchestrator.repos.usage.list.return_value = []
 
@@ -391,31 +393,31 @@ class TestOrchestratorUsageAndPolicy:
         )
 
     @pytest.mark.asyncio
-    async def test_get_policy(self, mock_orchestrator):
+    async def test_get_policy(self, mock_orchestrator: OrchestratorService) -> None:
         """Test getting policy for a tenant."""
-        policy = {"rules": ["rule1", "rule2"]}
+        policy: dict[str, Any] = {"rules": ["rule1", "rule2"]}
         mock_orchestrator.repos.policies.get.return_value = policy
 
-        result = await mock_orchestrator.get_policy("tenant-1")
+        result: dict[str, Any] | None = await mock_orchestrator.get_policy("tenant-1")
 
         assert result == policy
         mock_orchestrator.repos.policies.get.assert_called_once_with(tenant_id="tenant-1")
 
     @pytest.mark.asyncio
-    async def test_get_policy_not_found(self, mock_orchestrator):
+    async def test_get_policy_not_found(self, mock_orchestrator: OrchestratorService) -> None:
         """Test getting non-existent policy."""
         mock_orchestrator.repos.policies.get.return_value = None
 
-        result = await mock_orchestrator.get_policy("tenant-1")
+        result: dict[str, Any] | None = await mock_orchestrator.get_policy("tenant-1")
 
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_update_policy(self, mock_orchestrator):
+    async def test_update_policy(self, mock_orchestrator: OrchestratorService) -> None:
         """Test updating policy for a tenant."""
-        config = {"rules": ["new_rule"]}
+        config: dict[str, Any] = {"rules": ["new_rule"]}
 
-        result = await mock_orchestrator.update_policy("tenant-1", config)
+        result: dict[str, Any] = await mock_orchestrator.update_policy("tenant-1", config)
 
         assert result == config
         mock_orchestrator.repos.policies.update.assert_called_once_with(tenant_id="tenant-1", config=config)
@@ -425,21 +427,21 @@ class TestOrchestratorEventEnrichment:
     """Test event enrichment for SSE responses."""
 
     @pytest.fixture
-    def mock_orchestrator(self):
+    def mock_orchestrator(self) -> Generator[OrchestratorService, None, None]:
         """Create a mock orchestrator."""
         with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
             with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
                 with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
                     with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
                         with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator = OrchestratorService()
+                            orchestrator: OrchestratorService = OrchestratorService()
                             yield orchestrator
 
     @pytest.mark.asyncio
-    async def test_enrich_thought_executed_event(self, mock_orchestrator):
+    async def test_enrich_thought_executed_event(self, mock_orchestrator: OrchestratorService) -> None:
         """Test enriching a thought_executed event."""
-        now = datetime.now(timezone.utc)
-        event = AgentEvent(
+        now: datetime = datetime.now(timezone.utc)
+        event: AgentEvent = AgentEvent(
             id="event-1",
             run_id="run-1",
             type=AgentEventType.thought_executed,
@@ -447,7 +449,7 @@ class TestOrchestratorEventEnrichment:
             payload={"thought": "Let me think"},
         )
 
-        result = await mock_orchestrator._enrich_event_for_sse(event)
+        result: SSEResponse = await mock_orchestrator._enrich_event_for_sse(event)
 
         assert isinstance(result, SSEResponse)
         assert result.data.category == "thinking"
@@ -455,10 +457,10 @@ class TestOrchestratorEventEnrichment:
         assert result.data.thinking.thought == "Let me think"
 
     @pytest.mark.asyncio
-    async def test_enrich_artifact_created_thought_event(self, mock_orchestrator):
+    async def test_enrich_artifact_created_thought_event(self, mock_orchestrator: OrchestratorService) -> None:
         """Test enriching an artifact_created event with thought kind."""
-        now = datetime.now(timezone.utc)
-        event = AgentEvent(
+        now: datetime = datetime.now(timezone.utc)
+        event: AgentEvent = AgentEvent(
             id="event-1",
             run_id="run-1",
             type=AgentEventType.artifact_created,
@@ -472,7 +474,7 @@ class TestOrchestratorEventEnrichment:
             },
         )
 
-        result = await mock_orchestrator._enrich_event_for_sse(event)
+        result: SSEResponse = await mock_orchestrator._enrich_event_for_sse(event)
 
         assert result.data.category == "thinking_output"
         assert result.data.thinking_output is not None
@@ -480,10 +482,10 @@ class TestOrchestratorEventEnrichment:
         assert result.data.thinking_output.output == "output text"
 
     @pytest.mark.asyncio
-    async def test_enrich_capability_executed_event(self, mock_orchestrator):
+    async def test_enrich_capability_executed_event(self, mock_orchestrator: OrchestratorService) -> None:
         """Test enriching a capability_executed event."""
-        now = datetime.now(timezone.utc)
-        event = AgentEvent(
+        now: datetime = datetime.now(timezone.utc)
+        event: AgentEvent = AgentEvent(
             id="event-1",
             run_id="run-1",
             type=AgentEventType.capability_executed,
@@ -495,7 +497,7 @@ class TestOrchestratorEventEnrichment:
             },
         )
 
-        result = await mock_orchestrator._enrich_event_for_sse(event)
+        result: SSEResponse = await mock_orchestrator._enrich_event_for_sse(event)
 
         assert result.data.category == "operation"
         assert result.data.operation is not None
@@ -504,10 +506,10 @@ class TestOrchestratorEventEnrichment:
         assert result.data.operation.result == "search results"
 
     @pytest.mark.asyncio
-    async def test_enrich_capability_executed_failed(self, mock_orchestrator):
+    async def test_enrich_capability_executed_failed(self, mock_orchestrator: OrchestratorService) -> None:
         """Test enriching a failed capability_executed event."""
-        now = datetime.now(timezone.utc)
-        event = AgentEvent(
+        now: datetime = datetime.now(timezone.utc)
+        event: AgentEvent = AgentEvent(
             id="event-1",
             run_id="run-1",
             type=AgentEventType.capability_executed,
@@ -519,15 +521,15 @@ class TestOrchestratorEventEnrichment:
             },
         )
 
-        result = await mock_orchestrator._enrich_event_for_sse(event)
+        result: SSEResponse = await mock_orchestrator._enrich_event_for_sse(event)
 
         assert result.data.operation.status == "failed"
 
     @pytest.mark.asyncio
-    async def test_enrich_tool_invoked_event(self, mock_orchestrator):
+    async def test_enrich_tool_invoked_event(self, mock_orchestrator: OrchestratorService) -> None:
         """Test enriching a tool_invoked event."""
-        now = datetime.now(timezone.utc)
-        event = AgentEvent(
+        now: datetime = datetime.now(timezone.utc)
+        event: AgentEvent = AgentEvent(
             id="event-1",
             run_id="run-1",
             type=AgentEventType.tool_invoked,
@@ -542,7 +544,7 @@ class TestOrchestratorEventEnrichment:
             },
         )
 
-        result = await mock_orchestrator._enrich_event_for_sse(event)
+        result: SSEResponse = await mock_orchestrator._enrich_event_for_sse(event)
 
         assert result.data.category == "tool_execution"
         assert result.data.tool_execution is not None
@@ -551,10 +553,10 @@ class TestOrchestratorEventEnrichment:
         assert result.data.tool_execution.ok is True
 
     @pytest.mark.asyncio
-    async def test_enrich_approval_requested_event(self, mock_orchestrator):
+    async def test_enrich_approval_requested_event(self, mock_orchestrator: OrchestratorService) -> None:
         """Test enriching an approval_requested event."""
-        now = datetime.now(timezone.utc)
-        event = AgentEvent(
+        now: datetime = datetime.now(timezone.utc)
+        event: AgentEvent = AgentEvent(
             id="event-1",
             run_id="run-1",
             type=AgentEventType.approval_requested,
@@ -566,7 +568,7 @@ class TestOrchestratorEventEnrichment:
             },
         )
 
-        result = await mock_orchestrator._enrich_event_for_sse(event)
+        result: SSEResponse = await mock_orchestrator._enrich_event_for_sse(event)
 
         assert result.data.category == "approval"
         assert result.data.approval_request is not None
@@ -574,10 +576,10 @@ class TestOrchestratorEventEnrichment:
         assert result.data.approval_request.risk == "high"
 
     @pytest.mark.asyncio
-    async def test_enrich_approval_resolved_event(self, mock_orchestrator):
+    async def test_enrich_approval_resolved_event(self, mock_orchestrator: OrchestratorService) -> None:
         """Test enriching an approval_resolved event."""
-        now = datetime.now(timezone.utc)
-        event = AgentEvent(
+        now: datetime = datetime.now(timezone.utc)
+        event: AgentEvent = AgentEvent(
             id="event-1",
             run_id="run-1",
             type=AgentEventType.approval_resolved,
@@ -588,7 +590,7 @@ class TestOrchestratorEventEnrichment:
             },
         )
 
-        result = await mock_orchestrator._enrich_event_for_sse(event)
+        result: SSEResponse = await mock_orchestrator._enrich_event_for_sse(event)
 
         assert result.data.category == "approval"
         assert result.data.approval_resolution is not None
@@ -596,44 +598,44 @@ class TestOrchestratorEventEnrichment:
         assert result.data.approval_resolution.decided_by == "user-1"
 
     @pytest.mark.asyncio
-    async def test_enrich_run_started_event(self, mock_orchestrator):
+    async def test_enrich_run_started_event(self, mock_orchestrator: OrchestratorService) -> None:
         """Test enriching a run_started event."""
-        now = datetime.now(timezone.utc)
-        event = AgentEvent(
+        now: datetime = datetime.now(timezone.utc)
+        event: AgentEvent = AgentEvent(
             id="event-1",
             run_id="run-1",
             type=AgentEventType.run_started,
             created_at=now,
         )
 
-        result = await mock_orchestrator._enrich_event_for_sse(event)
+        result: SSEResponse = await mock_orchestrator._enrich_event_for_sse(event)
 
         assert result.data.category == "run_lifecycle"
         assert result.data.run_start is not None
         assert result.data.run_start.run_id == "run-1"
 
     @pytest.mark.asyncio
-    async def test_enrich_run_completed_event(self, mock_orchestrator):
+    async def test_enrich_run_completed_event(self, mock_orchestrator: OrchestratorService) -> None:
         """Test enriching a run_completed event."""
-        now = datetime.now(timezone.utc)
-        event = AgentEvent(
+        now: datetime = datetime.now(timezone.utc)
+        event: AgentEvent = AgentEvent(
             id="event-1",
             run_id="run-1",
             type=AgentEventType.run_completed,
             created_at=now,
         )
 
-        result = await mock_orchestrator._enrich_event_for_sse(event)
+        result: SSEResponse = await mock_orchestrator._enrich_event_for_sse(event)
 
         assert result.data.category == "run_lifecycle"
         assert result.data.run_completion is not None
         assert result.data.run_completion.status == "succeeded"
 
     @pytest.mark.asyncio
-    async def test_enrich_run_failed_event(self, mock_orchestrator):
+    async def test_enrich_run_failed_event(self, mock_orchestrator: OrchestratorService) -> None:
         """Test enriching a run_failed event."""
-        now = datetime.now(timezone.utc)
-        event = AgentEvent(
+        now: datetime = datetime.now(timezone.utc)
+        event: AgentEvent = AgentEvent(
             id="event-1",
             run_id="run-1",
             type=AgentEventType.run_failed,
@@ -641,7 +643,7 @@ class TestOrchestratorEventEnrichment:
             payload={"error": "Something went wrong"},
         )
 
-        result = await mock_orchestrator._enrich_event_for_sse(event)
+        result: SSEResponse = await mock_orchestrator._enrich_event_for_sse(event)
 
         assert result.data.category == "run_lifecycle"
         assert result.data.run_failure is not None
@@ -652,29 +654,29 @@ class TestOrchestratorRoles:
     """Test role-related methods."""
 
     @pytest.fixture
-    def mock_orchestrator(self):
+    def mock_orchestrator(self) -> Generator[OrchestratorService, None, None]:
         """Create a mock orchestrator."""
         with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
             with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
                 with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
                     with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
                         with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator = OrchestratorService()
+                            orchestrator: OrchestratorService = OrchestratorService()
                             yield orchestrator
 
     @pytest.mark.asyncio
-    async def test_list_available_roles(self, mock_orchestrator):
+    async def test_list_available_roles(self, mock_orchestrator: OrchestratorService) -> None:
         """Test listing available roles."""
-        result = await mock_orchestrator.list_available_roles()
+        result: List[str] = await mock_orchestrator.list_available_roles()
 
         assert isinstance(result, list)
         assert len(result) > 0
         assert all(isinstance(role, str) for role in result)
 
     @pytest.mark.asyncio
-    async def test_override_role_prompt(self, mock_orchestrator):
+    async def test_override_role_prompt(self, mock_orchestrator: OrchestratorService) -> None:
         """Test overriding a role prompt."""
-        result = await mock_orchestrator.override_role_prompt(
+        result: dict[str, Any] = await mock_orchestrator.override_role_prompt(
             tenant_id="tenant-1",
             role="analyst",
             prompt="Custom prompt",
@@ -689,23 +691,23 @@ class TestOrchestratorEventStreaming:
     """Test event streaming functionality."""
 
     @pytest.fixture
-    def mock_orchestrator(self):
+    def mock_orchestrator(self) -> Generator[OrchestratorService, None, None]:
         """Create a mock orchestrator."""
         with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
             with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
                 with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
                     with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
                         with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator = OrchestratorService()
+                            orchestrator: OrchestratorService = OrchestratorService()
                             orchestrator.repos = MagicMock()
                             orchestrator.repos.events = AsyncMock()
                             yield orchestrator
 
     @pytest.mark.asyncio
-    async def test_stream_events_with_new_events(self, mock_orchestrator):
+    async def test_stream_events_with_new_events(self, mock_orchestrator: OrchestratorService) -> None:
         """Test streaming events when new events are available."""
-        now = datetime.now(timezone.utc)
-        event = AgentEvent(
+        now: datetime = datetime.now(timezone.utc)
+        event: AgentEvent = AgentEvent(
             id="event-1",
             run_id="run-1",
             type=AgentEventType.run_started,
@@ -719,7 +721,7 @@ class TestOrchestratorEventStreaming:
             [],
         ]
 
-        events_received = []
+        events_received: List[Any] = []
         async for sse_event in mock_orchestrator.stream_events("run-1"):
             events_received.append(sse_event)
             if len(events_received) >= 1:
@@ -729,11 +731,11 @@ class TestOrchestratorEventStreaming:
         assert isinstance(events_received[0], SSEResponse)
 
     @pytest.mark.asyncio
-    async def test_stream_events_keep_alive(self, mock_orchestrator):
+    async def test_stream_events_keep_alive(self, mock_orchestrator: OrchestratorService) -> None:
         """Test streaming sends keep-alive when no events."""
         mock_orchestrator.repos.events.list.return_value = []
 
-        events_received = []
+        events_received: List[Any] = []
         async for sse_event in mock_orchestrator.stream_events("run-1"):
             events_received.append(sse_event)
             if len(events_received) >= 1:
@@ -743,11 +745,11 @@ class TestOrchestratorEventStreaming:
         assert isinstance(events_received[0], KeepAliveEvent)
 
     @pytest.mark.asyncio
-    async def test_stream_events_error_handling(self, mock_orchestrator):
+    async def test_stream_events_error_handling(self, mock_orchestrator: OrchestratorService) -> None:
         """Test streaming handles errors gracefully."""
         mock_orchestrator.repos.events.list.side_effect = Exception("Database error")
 
-        events_received = []
+        events_received: List[Any] = []
         async for sse_event in mock_orchestrator.stream_events("run-1"):
             events_received.append(sse_event)
             if len(events_received) >= 1:
@@ -757,16 +759,16 @@ class TestOrchestratorEventStreaming:
         assert isinstance(events_received[0], ErrorEvent)
 
     @pytest.mark.asyncio
-    async def test_stream_events_filters_by_timestamp(self, mock_orchestrator):
+    async def test_stream_events_filters_by_timestamp(self, mock_orchestrator: OrchestratorService) -> None:
         """Test streaming filters events by timestamp."""
-        now = datetime.now(timezone.utc)
-        old_event = AgentEvent(
+        now: datetime = datetime.now(timezone.utc)
+        old_event: AgentEvent = AgentEvent(
             id="event-1",
             run_id="run-1",
             type=AgentEventType.run_started,
             created_at=now,
         )
-        new_event = AgentEvent(
+        new_event: AgentEvent = AgentEvent(
             id="event-2",
             run_id="run-1",
             type=AgentEventType.thought_executed,
@@ -780,7 +782,7 @@ class TestOrchestratorEventStreaming:
             [],
         ]
 
-        events_received = []
+        events_received: List[Any] = []
         async for sse_event in mock_orchestrator.stream_events("run-1"):
             events_received.append(sse_event)
             if len(events_received) >= 2:
@@ -794,25 +796,25 @@ class TestOrchestratorEventStreamingIdleCycleTimeout:
     """Test idle cycle timeout behavior (line 180-182)."""
 
     @pytest.fixture
-    def mock_orchestrator(self):
+    def mock_orchestrator(self) -> Generator[OrchestratorService, None, None]:
         """Create a mock orchestrator."""
         with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
             with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
                 with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
                     with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
                         with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator = OrchestratorService()
+                            orchestrator: OrchestratorService = OrchestratorService()
                             orchestrator.repos = MagicMock()
                             orchestrator.repos.events = AsyncMock()
                             yield orchestrator
 
     @pytest.mark.asyncio
-    async def test_stream_events_closes_after_max_idle_cycles(self, mock_orchestrator):
+    async def test_stream_events_closes_after_max_idle_cycles(self, mock_orchestrator: OrchestratorService) -> None:
         """Test streaming closes after reaching max idle cycles (120)."""
         # Return empty list to trigger idle cycles
         mock_orchestrator.repos.events.list.return_value = []
 
-        events_received = []
+        events_received: List[Any] = []
         async for sse_event in mock_orchestrator.stream_events("run-1"):
             events_received.append(sse_event)
             # After 121 events (120 keep-alives + 1), should close
@@ -824,16 +826,16 @@ class TestOrchestratorEventStreamingIdleCycleTimeout:
         assert all(isinstance(e, KeepAliveEvent) for e in events_received)
 
     @pytest.mark.asyncio
-    async def test_stream_events_resets_idle_cycles_on_new_event(self, mock_orchestrator):
+    async def test_stream_events_resets_idle_cycles_on_new_event(self, mock_orchestrator: OrchestratorService) -> None:
         """Test idle cycles reset when new events arrive."""
-        now = datetime.now(timezone.utc)
-        event1 = AgentEvent(
+        now: datetime = datetime.now(timezone.utc)
+        event1: AgentEvent = AgentEvent(
             id="event-1",
             run_id="run-1",
             type=AgentEventType.run_started,
             created_at=now,
         )
-        event2 = AgentEvent(
+        event2: AgentEvent = AgentEvent(
             id="event-2",
             run_id="run-1",
             type=AgentEventType.thought_executed,
@@ -849,7 +851,7 @@ class TestOrchestratorEventStreamingIdleCycleTimeout:
             [],  # No event, idle_cycles = 1
         ]
 
-        events_received = []
+        events_received: List[Any] = []
         async for sse_event in mock_orchestrator.stream_events("run-1"):
             events_received.append(sse_event)
             if len(events_received) >= 4:
@@ -861,12 +863,12 @@ class TestOrchestratorEventStreamingIdleCycleTimeout:
         assert isinstance(events_received[1], KeepAliveEvent)
 
     @pytest.mark.asyncio
-    async def test_stream_events_idle_cycles_increment_on_empty(self, mock_orchestrator):
+    async def test_stream_events_idle_cycles_increment_on_empty(self, mock_orchestrator: OrchestratorService) -> None:
         """Test idle cycles increment correctly on empty event lists."""
         # Return empty list multiple times
         mock_orchestrator.repos.events.list.return_value = []
 
-        events_received = []
+        events_received: List[Any] = []
         async for sse_event in mock_orchestrator.stream_events("run-1"):
             events_received.append(sse_event)
             # Collect first 5 keep-alives to verify incremental behavior
@@ -878,12 +880,12 @@ class TestOrchestratorEventStreamingIdleCycleTimeout:
         assert all(isinstance(e, KeepAliveEvent) for e in events_received)
 
     @pytest.mark.asyncio
-    async def test_stream_events_closes_exactly_at_max_idle(self, mock_orchestrator):
+    async def test_stream_events_closes_exactly_at_max_idle(self, mock_orchestrator: OrchestratorService) -> None:
         """Test streaming closes exactly at max_idle_cycles threshold."""
         # Return empty to trigger idle cycles
         mock_orchestrator.repos.events.list.return_value = []
 
-        events_received = []
+        events_received: List[Any] = []
         async for sse_event in mock_orchestrator.stream_events("run-1"):
             events_received.append(sse_event)
             # Don't break early - let it close naturally
@@ -895,17 +897,17 @@ class TestOrchestratorEventStreamingIdleCycleTimeout:
         assert len(events_received) == 120
 
     @pytest.mark.asyncio
-    async def test_stream_events_idle_cycles_with_mixed_events(self, mock_orchestrator):
+    async def test_stream_events_idle_cycles_with_mixed_events(self, mock_orchestrator: OrchestratorService) -> None:
         """Test idle cycles behavior with mixed event and empty responses."""
-        now = datetime.now(timezone.utc)
-        event1 = AgentEvent(
+        now: datetime = datetime.now(timezone.utc)
+        event1: AgentEvent = AgentEvent(
             id="event-1",
             run_id="run-1",
             type=AgentEventType.run_started,
             created_at=now,
         )
         # Create a second event with a later timestamp to ensure it's considered "new"
-        event2 = AgentEvent(
+        event2: AgentEvent = AgentEvent(
             id="event-2",
             run_id="run-1",
             type=AgentEventType.thought_executed,
@@ -923,7 +925,7 @@ class TestOrchestratorEventStreamingIdleCycleTimeout:
             [],  # idle_cycles = 2
         ]
 
-        events_received = []
+        events_received: List[Any] = []
         async for sse_event in mock_orchestrator.stream_events("run-1"):
             events_received.append(sse_event)
             if len(events_received) >= 5:
@@ -940,25 +942,25 @@ class TestOrchestratorEventStreamingAsyncSleep:
     """Test async sleep behavior (line 188-189)."""
 
     @pytest.fixture
-    def mock_orchestrator(self):
+    def mock_orchestrator(self) -> Generator[OrchestratorService, None, None]:
         """Create a mock orchestrator."""
         with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
             with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
                 with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
                     with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
                         with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator = OrchestratorService()
+                            orchestrator: OrchestratorService = OrchestratorService()
                             orchestrator.repos = MagicMock()
                             orchestrator.repos.events = AsyncMock()
                             yield orchestrator
 
     @pytest.mark.asyncio
-    async def test_stream_events_calls_asyncio_sleep(self, mock_orchestrator):
+    async def test_stream_events_calls_asyncio_sleep(self, mock_orchestrator: OrchestratorService) -> None:
         """Test streaming calls asyncio.sleep between polls."""
         mock_orchestrator.repos.events.list.return_value = []
 
         with patch("gearmeshing_ai.server.services.orchestrator.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            events_received = []
+            events_received: List[Any] = []
             async for sse_event in mock_orchestrator.stream_events("run-1"):
                 events_received.append(sse_event)
                 if len(events_received) >= 2:
@@ -968,12 +970,12 @@ class TestOrchestratorEventStreamingAsyncSleep:
             assert mock_sleep.call_count >= 1
 
     @pytest.mark.asyncio
-    async def test_stream_events_sleep_interval_is_half_second(self, mock_orchestrator):
+    async def test_stream_events_sleep_interval_is_half_second(self, mock_orchestrator: OrchestratorService) -> None:
         """Test streaming uses 0.5 second poll interval."""
         mock_orchestrator.repos.events.list.return_value = []
 
         with patch("gearmeshing_ai.server.services.orchestrator.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            events_received = []
+            events_received: List[Any] = []
             async for sse_event in mock_orchestrator.stream_events("run-1"):
                 events_received.append(sse_event)
                 if len(events_received) >= 3:
@@ -984,10 +986,10 @@ class TestOrchestratorEventStreamingAsyncSleep:
                 assert call[0][0] == 0.5
 
     @pytest.mark.asyncio
-    async def test_stream_events_sleep_after_each_poll(self, mock_orchestrator):
+    async def test_stream_events_sleep_after_each_poll(self, mock_orchestrator: OrchestratorService) -> None:
         """Test streaming sleeps after each poll cycle."""
-        now = datetime.now(timezone.utc)
-        event = AgentEvent(
+        now: datetime = datetime.now(timezone.utc)
+        event: AgentEvent = AgentEvent(
             id="event-1",
             run_id="run-1",
             type=AgentEventType.run_started,
@@ -1002,7 +1004,7 @@ class TestOrchestratorEventStreamingAsyncSleep:
         ]
 
         with patch("gearmeshing_ai.server.services.orchestrator.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            events_received = []
+            events_received: List[Any] = []
             async for sse_event in mock_orchestrator.stream_events("run-1"):
                 events_received.append(sse_event)
                 if len(events_received) >= 3:
@@ -1012,7 +1014,7 @@ class TestOrchestratorEventStreamingAsyncSleep:
             assert mock_sleep.call_count >= 2
 
     @pytest.mark.asyncio
-    async def test_stream_events_sleep_on_error(self, mock_orchestrator):
+    async def test_stream_events_sleep_on_error(self, mock_orchestrator: OrchestratorService) -> None:
         """Test streaming sleeps even when error occurs."""
         mock_orchestrator.repos.events.list.side_effect = [
             Exception("Database error"),
@@ -1020,7 +1022,7 @@ class TestOrchestratorEventStreamingAsyncSleep:
         ]
 
         with patch("gearmeshing_ai.server.services.orchestrator.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            events_received = []
+            events_received: List[Any] = []
             async for sse_event in mock_orchestrator.stream_events("run-1"):
                 events_received.append(sse_event)
                 if len(events_received) >= 2:
@@ -1033,12 +1035,12 @@ class TestOrchestratorEventStreamingAsyncSleep:
                 assert call[0][0] == 0.5
 
     @pytest.mark.asyncio
-    async def test_stream_events_sleep_maintains_consistent_interval(self, mock_orchestrator):
+    async def test_stream_events_sleep_maintains_consistent_interval(self, mock_orchestrator: OrchestratorService) -> None:
         """Test streaming maintains consistent sleep interval across multiple cycles."""
         mock_orchestrator.repos.events.list.return_value = []
 
         with patch("gearmeshing_ai.server.services.orchestrator.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            events_received = []
+            events_received: List[Any] = []
             async for sse_event in mock_orchestrator.stream_events("run-1"):
                 events_received.append(sse_event)
                 if len(events_received) >= 10:
@@ -1053,7 +1055,7 @@ class TestOrchestratorEventStreamingAsyncSleep:
 class TestGetOrchestratorSingleton:
     """Test the get_orchestrator singleton function."""
 
-    def test_get_orchestrator_returns_singleton(self):
+    def test_get_orchestrator_returns_singleton(self) -> None:
         """Test get_orchestrator returns the same instance."""
         with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
             with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
@@ -1065,12 +1067,12 @@ class TestGetOrchestratorSingleton:
 
                             orch_module._orchestrator = None
 
-                            orchestrator1 = get_orchestrator()
-                            orchestrator2 = get_orchestrator()
+                            orchestrator1: OrchestratorService = get_orchestrator()
+                            orchestrator2: OrchestratorService = get_orchestrator()
 
                             assert orchestrator1 is orchestrator2
 
-    def test_get_orchestrator_lazy_initialization(self):
+    def test_get_orchestrator_lazy_initialization(self) -> None:
         """Test get_orchestrator initializes on first call."""
         with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
             with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
@@ -1082,6 +1084,6 @@ class TestGetOrchestratorSingleton:
                             orch_module._orchestrator = None
 
                             assert orch_module._orchestrator is None
-                            orchestrator = get_orchestrator()
+                            orchestrator: OrchestratorService = get_orchestrator()
                             assert orch_module._orchestrator is not None
                             assert orchestrator is orch_module._orchestrator
