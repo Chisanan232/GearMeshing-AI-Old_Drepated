@@ -32,28 +32,28 @@ from gearmeshing_ai.server.services.orchestrator import (
 class TestOrchestratorServiceInitialization:
     """Test OrchestratorService initialization."""
 
-    def test_orchestrator_service_initializes(self) -> None:
+    @patch("gearmeshing_ai.server.services.orchestrator.AgentService")
+    @patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider")
+    @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
+    @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
+    @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
+    def test_orchestrator_service_initializes(self, mock_repos: Any, mock_deps: Any, mock_planner: Any, mock_policy: Any, mock_service: Any) -> None:
         """Test OrchestratorService can be instantiated."""
-        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
-            with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
-                with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
-                    with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
-                        with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator: OrchestratorService = OrchestratorService()
-                            assert orchestrator is not None
+        orchestrator: OrchestratorService = OrchestratorService()
+        assert orchestrator is not None
 
-    def test_orchestrator_has_required_attributes(self) -> None:
+    @patch("gearmeshing_ai.server.services.orchestrator.AgentService")
+    @patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider")
+    @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
+    @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
+    @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
+    def test_orchestrator_has_required_attributes(self, mock_repos: Any, mock_deps: Any, mock_planner: Any, mock_policy: Any, mock_service: Any) -> None:
         """Test OrchestratorService has all required attributes."""
-        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
-            with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
-                with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
-                    with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
-                        with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator: OrchestratorService = OrchestratorService()
-                            assert hasattr(orchestrator, "repos")
-                            assert hasattr(orchestrator, "deps")
-                            assert hasattr(orchestrator, "policy_provider")
-                            assert hasattr(orchestrator, "agent_service")
+        orchestrator: OrchestratorService = OrchestratorService()
+        assert hasattr(orchestrator, "repos")
+        assert hasattr(orchestrator, "deps")
+        assert hasattr(orchestrator, "policy_provider")
+        assert hasattr(orchestrator, "agent_service")
 
 
 class TestOrchestratorRunManagement:
@@ -62,7 +62,7 @@ class TestOrchestratorRunManagement:
     @pytest.fixture
     def mock_orchestrator(self) -> Generator[OrchestratorService, None, None]:
         """Create a mock orchestrator with mocked dependencies."""
-        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos") as mock_repos:
+        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
             with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
                 with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
                     with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
