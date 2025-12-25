@@ -37,7 +37,7 @@ class TestOrchestratorServiceInitialization:
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
     @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
-    def test_orchestrator_service_initializes(self, mock_repos: Any, mock_deps: Any, mock_planner: Any, mock_policy: Any, mock_service: Any) -> None:
+    def test_orchestrator_service_initializes(self, mock_repos: MagicMock, mock_deps: MagicMock, mock_planner: MagicMock, mock_policy: MagicMock, mock_service: MagicMock) -> None:
         """Test OrchestratorService can be instantiated."""
         orchestrator: OrchestratorService = OrchestratorService()
         assert orchestrator is not None
@@ -47,7 +47,7 @@ class TestOrchestratorServiceInitialization:
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
     @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
-    def test_orchestrator_has_required_attributes(self, mock_repos: Any, mock_deps: Any, mock_planner: Any, mock_policy: Any, mock_service: Any) -> None:
+    def test_orchestrator_has_required_attributes(self, mock_repos: MagicMock, mock_deps: MagicMock, mock_planner: MagicMock, mock_policy: MagicMock, mock_service: MagicMock) -> None:
         """Test OrchestratorService has all required attributes."""
         orchestrator: OrchestratorService = OrchestratorService()
         assert hasattr(orchestrator, "repos")
