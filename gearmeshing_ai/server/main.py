@@ -16,6 +16,7 @@ from .api.v1 import (
     health,
     policies,
     roles,
+    agent_configs,
 )
 from .core import constant
 from .core.database import init_db
@@ -75,3 +76,4 @@ app.add_middleware(
 app.include_router(health.router, tags=["health"])
 app.include_router(policies.router, prefix=f"{constant.API_V1_STR}/policies", tags=["policies"])
 app.include_router(roles.router, prefix=f"{constant.API_V1_STR}/roles", tags=["roles"])
+app.include_router(agent_configs.router, prefix=f"{constant.API_V1_STR}/agent-config")
