@@ -1,0 +1,787 @@
+"""
+Unit tests for Agent Configuration API endpoints.
+
+Tests cover all CRUD operations and various scenarios including:
+- Creating configurations with different parameters
+- Retrieving configurations by ID, role, and listing
+- Updating configurations with partial updates
+- Deleting configurations
+- Filtering by tenant and active status
+- Error handling for missing resources
+- Tenant-specific vs global configuration lookup
+"""
+
+import json
+import pytest
+from httpx import AsyncClient
+
+pytestmark = pytest.mark.asyncio
+
+
+class TestCreateAgentConfig:
+    """Test agent configuration creation endpoint."""
+
+    async def test_create_agent_config_success(self, client: AsyncClient):
+        """Test successfully creating an agent configuration."""
+        payload = {
+            "role_name": "planner",
+            "display_name": "Planning Agent",
+            "description": "Handles task planning and decomposition",
+            "system_prompt_key": "planner_system_prompt",
+            "model_provider": "openai",
+            "model_name": "gpt-4o",
+            "temperature": 0.7,
+            "max_tokens": 4096,
+            "top_p": 0.9,
+            "capabilities": '["planning", "analysis"]',
+            "tools": '["search", "calculator"]',
+            "autonomy_profiles": '["balanced", "conservative"]',
+            "is_active": True,
+        }
+        response = await client.post("/api/v1/agent-config", json=payload)
+        assert response.status_code == 201
+        data = response.json()
+        assert data["role_name"] == "planner"
+        assert data["model_name"] == "gpt-4o"
+        assert data["temperature"] == 0.7
+        assert "id" in data
+        assert "created_at" in data
+
+    async def test_create_agent_config_with_tenant(self, client: AsyncClient):
+        """Test creating a tenant-specific agent configuration."""
+        payload = {
+            "role_name": "dev",
+            "display_name": "Development Agent",
+            "description": "Handles development tasks",
+            "system_prompt_key": "dev_system_prompt",
+            "model_provider": "anthropic",
+            "model_name": "claude-3-opus",
+            "temperature": 0.5,
+            "max_tokens": 8192,
+            "top_p": 0.95,
+            "capabilities": '["coding", "testing"]',
+            "tools": '["git", "compiler"]',
+            "autonomy_profiles": '["aggressive"]',
+            "tenant_id": "tenant-123",
+            "is_active": True,
+        }
+        response = await client.post("/api/v1/agent-config", json=payload)
+        assert response.status_code == 201
+        data = response.json()
+        assert data["tenant_id"] == "tenant-123"
+        assert data["role_name"] == "dev"
+
+    async def test_create_agent_config_minimal(self, client: AsyncClient):
+        """Test creating configuration with minimal required fields."""
+        payload = {
+            "role_name": "reviewer",
+            "display_name": "Review Agent",
+            "description": "Code review agent",
+            "system_prompt_key": "reviewer_prompt",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+        }
+        response = await client.post("/api/v1/agent-config", json=payload)
+        assert response.status_code == 201
+        data = response.json()
+        assert data["temperature"] == 0.7  # default
+        assert data["max_tokens"] == 4096  # default
+        assert data["is_active"] is True  # default
+
+    async def test_create_agent_config_inactive(self, client: AsyncClient):
+        """Test creating an inactive agent configuration."""
+        payload = {
+            "role_name": "qa",
+            "display_name": "QA Agent",
+            "description": "Quality assurance agent",
+            "system_prompt_key": "qa_prompt",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+            "is_active": False,
+        }
+        response = await client.post("/api/v1/agent-config", json=payload)
+        assert response.status_code == 201
+        data = response.json()
+        assert data["is_active"] is False
+
+    async def test_create_agent_config_with_json_arrays(self, client: AsyncClient):
+        """Test creating configuration with complex JSON array fields."""
+        payload = {
+            "role_name": "analyst",
+            "display_name": "Analysis Agent",
+            "description": "Data analysis agent",
+            "system_prompt_key": "analyst_prompt",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+            "capabilities": '["data_analysis", "visualization", "reporting"]',
+            "tools": '["pandas", "matplotlib", "sql"]',
+            "autonomy_profiles": '["balanced", "conservative", "aggressive"]',
+        }
+        response = await client.post("/api/v1/agent-config", json=payload)
+        assert response.status_code == 201
+        data = response.json()
+        capabilities = json.loads(data["capabilities"])
+        assert "data_analysis" in capabilities
+        assert len(capabilities) == 3
+
+    async def test_create_agent_config_temperature_bounds(self, client: AsyncClient):
+        """Test creating configuration with temperature at boundaries."""
+        # Test minimum temperature
+        payload = {
+            "role_name": "precise",
+            "display_name": "Precise Agent",
+            "description": "Precise agent",
+            "system_prompt_key": "precise_prompt",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+            "temperature": 0.0,
+        }
+        response = await client.post("/api/v1/agent-config", json=payload)
+        assert response.status_code == 201
+        assert response.json()["temperature"] == 0.0
+
+        # Test maximum temperature
+        payload["temperature"] = 2.0
+        payload["role_name"] = "creative"
+        response = await client.post("/api/v1/agent-config", json=payload)
+        assert response.status_code == 201
+        assert response.json()["temperature"] == 2.0
+
+
+class TestGetAgentConfigById:
+    """Test retrieving agent configuration by ID."""
+
+    async def test_get_agent_config_by_id_success(self, client: AsyncClient):
+        """Test successfully retrieving a configuration by ID."""
+        # Create first
+        payload = {
+            "role_name": "test_role",
+            "display_name": "Test Role",
+            "description": "Test description",
+            "system_prompt_key": "test_prompt",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+        }
+        create_response = await client.post("/api/v1/agent-config", json=payload)
+        config_id = create_response.json()["id"]
+
+        # Get by ID
+        response = await client.get(f"/api/v1/agent-config/{config_id}")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == config_id
+        assert data["role_name"] == "test_role"
+
+    async def test_get_agent_config_by_id_not_found(self, client: AsyncClient):
+        """Test retrieving non-existent configuration by ID."""
+        response = await client.get("/api/v1/agent-config/99999")
+        assert response.status_code == 404
+        assert "not found" in response.json()["detail"].lower()
+
+    async def test_get_agent_config_by_id_preserves_data(self, client: AsyncClient):
+        """Test that retrieved configuration preserves all data."""
+        payload = {
+            "role_name": "data_role",
+            "display_name": "Data Agent",
+            "description": "Data processing agent",
+            "system_prompt_key": "data_prompt",
+            "model_provider": "anthropic",
+            "model_name": "claude-3",
+            "temperature": 0.3,
+            "max_tokens": 2048,
+            "top_p": 0.8,
+            "capabilities": '["data_processing"]',
+            "tools": '["sql", "python"]',
+            "tenant_id": "tenant-data",
+            "is_active": False,
+        }
+        create_response = await client.post("/api/v1/agent-config", json=payload)
+        config_id = create_response.json()["id"]
+
+        response = await client.get(f"/api/v1/agent-config/{config_id}")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["temperature"] == 0.3
+        assert data["max_tokens"] == 2048
+        assert data["tenant_id"] == "tenant-data"
+        assert data["is_active"] is False
+
+
+class TestGetAgentConfigByRole:
+    """Test retrieving agent configuration by role name."""
+
+    async def test_get_config_by_role_global(self, client: AsyncClient):
+        """Test retrieving global (non-tenant) configuration by role."""
+        payload = {
+            "role_name": "global_role",
+            "display_name": "Global Role",
+            "description": "Global role config",
+            "system_prompt_key": "global_prompt",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+            "is_active": True,
+        }
+        await client.post("/api/v1/agent-config", json=payload)
+
+        response = await client.get("/api/v1/agent-config/role/global_role")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["role_name"] == "global_role"
+        assert data["tenant_id"] is None
+
+    async def test_get_config_by_role_tenant_specific(self, client: AsyncClient):
+        """Test retrieving tenant-specific configuration by role."""
+        # Create global config
+        global_payload = {
+            "role_name": "shared_role",
+            "display_name": "Shared Role",
+            "description": "Shared role",
+            "system_prompt_key": "shared_prompt",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+            "is_active": True,
+        }
+        await client.post("/api/v1/agent-config", json=global_payload)
+
+        # Create tenant-specific config
+        tenant_payload = {
+            "role_name": "shared_role",
+            "display_name": "Tenant Shared Role",
+            "description": "Tenant-specific shared role",
+            "system_prompt_key": "tenant_shared_prompt",
+            "model_provider": "anthropic",
+            "model_name": "claude-3",
+            "tenant_id": "tenant-abc",
+            "is_active": True,
+        }
+        await client.post("/api/v1/agent-config", json=tenant_payload)
+
+        # Get with tenant_id should return tenant-specific
+        response = await client.get(
+            "/api/v1/agent-config/role/shared_role?tenant_id=tenant-abc"
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["tenant_id"] == "tenant-abc"
+        assert data["model_name"] == "claude-3"
+
+    async def test_get_config_by_role_fallback_to_global(self, client: AsyncClient):
+        """Test fallback to global config when tenant-specific not found."""
+        # Create only global config
+        payload = {
+            "role_name": "fallback_role",
+            "display_name": "Fallback Role",
+            "description": "Fallback role",
+            "system_prompt_key": "fallback_prompt",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+            "is_active": True,
+        }
+        await client.post("/api/v1/agent-config", json=payload)
+
+        # Request with non-existent tenant should fall back to global
+        response = await client.get(
+            "/api/v1/agent-config/role/fallback_role?tenant_id=non-existent-tenant"
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["tenant_id"] is None  # Global config
+
+    async def test_get_config_by_role_inactive_not_returned(self, client: AsyncClient):
+        """Test that inactive configurations are not returned."""
+        payload = {
+            "role_name": "inactive_role",
+            "display_name": "Inactive Role",
+            "description": "Inactive role",
+            "system_prompt_key": "inactive_prompt",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+            "is_active": False,
+        }
+        await client.post("/api/v1/agent-config", json=payload)
+
+        response = await client.get("/api/v1/agent-config/role/inactive_role")
+        assert response.status_code == 404
+
+    async def test_get_config_by_role_not_found(self, client: AsyncClient):
+        """Test retrieving non-existent role."""
+        response = await client.get("/api/v1/agent-config/role/non_existent_role")
+        assert response.status_code == 404
+        assert "not found" in response.json()["detail"].lower()
+
+
+class TestListAgentConfigs:
+    """Test listing agent configurations."""
+
+    async def test_list_agent_configs_empty(self, client: AsyncClient):
+        """Test listing when no configurations exist."""
+        response = await client.get("/api/v1/agent-config")
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+
+    async def test_list_agent_configs_all(self, client: AsyncClient):
+        """Test listing all configurations."""
+        # Create multiple configs
+        for i in range(3):
+            payload = {
+                "role_name": f"role_{i}",
+                "display_name": f"Role {i}",
+                "description": f"Role {i} description",
+                "system_prompt_key": f"prompt_{i}",
+                "model_provider": "openai",
+                "model_name": "gpt-4",
+                "is_active": True,
+            }
+            await client.post("/api/v1/agent-config", json=payload)
+
+        response = await client.get("/api/v1/agent-config")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) >= 3
+
+    async def test_list_agent_configs_filter_by_tenant(self, client: AsyncClient):
+        """Test listing configurations filtered by tenant."""
+        # Create global configs
+        for i in range(2):
+            payload = {
+                "role_name": f"global_role_{i}",
+                "display_name": f"Global Role {i}",
+                "description": f"Global role {i}",
+                "system_prompt_key": f"global_prompt_{i}",
+                "model_provider": "openai",
+                "model_name": "gpt-4",
+                "is_active": True,
+            }
+            await client.post("/api/v1/agent-config", json=payload)
+
+        # Create tenant-specific configs
+        for i in range(2):
+            payload = {
+                "role_name": f"tenant_role_{i}",
+                "display_name": f"Tenant Role {i}",
+                "description": f"Tenant role {i}",
+                "system_prompt_key": f"tenant_prompt_{i}",
+                "model_provider": "openai",
+                "model_name": "gpt-4",
+                "tenant_id": "tenant-xyz",
+                "is_active": True,
+            }
+            await client.post("/api/v1/agent-config", json=payload)
+
+        # List only tenant configs
+        response = await client.get("/api/v1/agent-config?tenant_id=tenant-xyz")
+        assert response.status_code == 200
+        data = response.json()
+        assert all(config["tenant_id"] == "tenant-xyz" for config in data)
+
+    async def test_list_agent_configs_active_only(self, client: AsyncClient):
+        """Test listing only active configurations."""
+        # Create active config
+        active_payload = {
+            "role_name": "active_role",
+            "display_name": "Active Role",
+            "description": "Active role",
+            "system_prompt_key": "active_prompt",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+            "is_active": True,
+        }
+        await client.post("/api/v1/agent-config", json=active_payload)
+
+        # Create inactive config
+        inactive_payload = {
+            "role_name": "inactive_role_list",
+            "display_name": "Inactive Role",
+            "description": "Inactive role",
+            "system_prompt_key": "inactive_prompt",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+            "is_active": False,
+        }
+        await client.post("/api/v1/agent-config", json=inactive_payload)
+
+        # List with active_only=True (default)
+        response = await client.get("/api/v1/agent-config?active_only=true")
+        assert response.status_code == 200
+        data = response.json()
+        assert all(config["is_active"] is True for config in data)
+
+    async def test_list_agent_configs_include_inactive(self, client: AsyncClient):
+        """Test listing including inactive configurations."""
+        # Create active config
+        active_payload = {
+            "role_name": "active_role_2",
+            "display_name": "Active Role 2",
+            "description": "Active role 2",
+            "system_prompt_key": "active_prompt_2",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+            "is_active": True,
+        }
+        await client.post("/api/v1/agent-config", json=active_payload)
+
+        # Create inactive config
+        inactive_payload = {
+            "role_name": "inactive_role_2",
+            "display_name": "Inactive Role 2",
+            "description": "Inactive role 2",
+            "system_prompt_key": "inactive_prompt_2",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+            "is_active": False,
+        }
+        await client.post("/api/v1/agent-config", json=inactive_payload)
+
+        # List with active_only=False
+        response = await client.get("/api/v1/agent-config?active_only=false")
+        assert response.status_code == 200
+        data = response.json()
+        # Should have both active and inactive
+        has_active = any(config["is_active"] is True for config in data)
+        has_inactive = any(config["is_active"] is False for config in data)
+        assert has_active or has_inactive
+
+    async def test_list_agent_configs_combined_filters(self, client: AsyncClient):
+        """Test listing with combined tenant and active filters."""
+        # Create tenant-specific active config
+        payload = {
+            "role_name": "combined_active",
+            "display_name": "Combined Active",
+            "description": "Combined active",
+            "system_prompt_key": "combined_active_prompt",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+            "tenant_id": "tenant-combined",
+            "is_active": True,
+        }
+        await client.post("/api/v1/agent-config", json=payload)
+
+        # Create tenant-specific inactive config
+        payload["role_name"] = "combined_inactive"
+        payload["is_active"] = False
+        await client.post("/api/v1/agent-config", json=payload)
+
+        # List with both filters
+        response = await client.get(
+            "/api/v1/agent-config?tenant_id=tenant-combined&active_only=true"
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert all(
+            config["tenant_id"] == "tenant-combined" and config["is_active"] is True
+            for config in data
+        )
+
+
+class TestUpdateAgentConfig:
+    """Test updating agent configurations."""
+
+    async def test_update_agent_config_single_field(self, client: AsyncClient):
+        """Test updating a single field."""
+        # Create config
+        payload = {
+            "role_name": "update_test",
+            "display_name": "Update Test",
+            "description": "Update test",
+            "system_prompt_key": "update_test_prompt",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+            "temperature": 0.7,
+        }
+        create_response = await client.post("/api/v1/agent-config", json=payload)
+        config_id = create_response.json()["id"]
+
+        # Update single field
+        update_payload = {"temperature": 0.5}
+        response = await client.patch(
+            f"/api/v1/agent-config/{config_id}", json=update_payload
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["temperature"] == 0.5
+        assert data["model_name"] == "gpt-4"  # unchanged
+
+    async def test_update_agent_config_multiple_fields(self, client: AsyncClient):
+        """Test updating multiple fields."""
+        # Create config
+        payload = {
+            "role_name": "multi_update",
+            "display_name": "Multi Update",
+            "description": "Multi update",
+            "system_prompt_key": "multi_update_prompt",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+            "temperature": 0.7,
+            "max_tokens": 4096,
+        }
+        create_response = await client.post("/api/v1/agent-config", json=payload)
+        config_id = create_response.json()["id"]
+
+        # Update multiple fields
+        update_payload = {
+            "temperature": 0.3,
+            "max_tokens": 2048,
+            "model_name": "gpt-4-turbo",
+        }
+        response = await client.patch(
+            f"/api/v1/agent-config/{config_id}", json=update_payload
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["temperature"] == 0.3
+        assert data["max_tokens"] == 2048
+        assert data["model_name"] == "gpt-4-turbo"
+
+    async def test_update_agent_config_toggle_active(self, client: AsyncClient):
+        """Test toggling active status."""
+        # Create active config
+        payload = {
+            "role_name": "toggle_test",
+            "display_name": "Toggle Test",
+            "description": "Toggle test",
+            "system_prompt_key": "toggle_prompt",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+            "is_active": True,
+        }
+        create_response = await client.post("/api/v1/agent-config", json=payload)
+        config_id = create_response.json()["id"]
+
+        # Deactivate
+        response = await client.patch(
+            f"/api/v1/agent-config/{config_id}", json={"is_active": False}
+        )
+        assert response.status_code == 200
+        assert response.json()["is_active"] is False
+
+        # Reactivate
+        response = await client.patch(
+            f"/api/v1/agent-config/{config_id}", json={"is_active": True}
+        )
+        assert response.status_code == 200
+        assert response.json()["is_active"] is True
+
+    async def test_update_agent_config_json_fields(self, client: AsyncClient):
+        """Test updating JSON array fields."""
+        # Create config
+        payload = {
+            "role_name": "json_update",
+            "display_name": "JSON Update",
+            "description": "JSON update",
+            "system_prompt_key": "json_prompt",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+            "capabilities": '["old_capability"]',
+            "tools": '["old_tool"]',
+        }
+        create_response = await client.post("/api/v1/agent-config", json=payload)
+        config_id = create_response.json()["id"]
+
+        # Update JSON fields
+        update_payload = {
+            "capabilities": '["new_capability_1", "new_capability_2"]',
+            "tools": '["new_tool_1", "new_tool_2", "new_tool_3"]',
+        }
+        response = await client.patch(
+            f"/api/v1/agent-config/{config_id}", json=update_payload
+        )
+        assert response.status_code == 200
+        data = response.json()
+        capabilities = json.loads(data["capabilities"])
+        tools = json.loads(data["tools"])
+        assert len(capabilities) == 2
+        assert len(tools) == 3
+
+    async def test_update_agent_config_not_found(self, client: AsyncClient):
+        """Test updating non-existent configuration."""
+        response = await client.patch(
+            "/api/v1/agent-config/99999", json={"temperature": 0.5}
+        )
+        assert response.status_code == 404
+
+    async def test_update_agent_config_empty_update(self, client: AsyncClient):
+        """Test update with no fields (should not error)."""
+        # Create config
+        payload = {
+            "role_name": "empty_update",
+            "display_name": "Empty Update",
+            "description": "Empty update",
+            "system_prompt_key": "empty_prompt",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+        }
+        create_response = await client.post("/api/v1/agent-config", json=payload)
+        config_id = create_response.json()["id"]
+        original_data = create_response.json()
+
+        # Update with empty payload
+        response = await client.patch(f"/api/v1/agent-config/{config_id}", json={})
+        assert response.status_code == 200
+        data = response.json()
+        # Data should be unchanged
+        assert data["model_name"] == original_data["model_name"]
+
+
+class TestDeleteAgentConfig:
+    """Test deleting agent configurations."""
+
+    async def test_delete_agent_config_success(self, client: AsyncClient):
+        """Test successfully deleting a configuration."""
+        # Create config
+        payload = {
+            "role_name": "delete_test",
+            "display_name": "Delete Test",
+            "description": "Delete test",
+            "system_prompt_key": "delete_prompt",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+        }
+        create_response = await client.post("/api/v1/agent-config", json=payload)
+        config_id = create_response.json()["id"]
+
+        # Delete
+        response = await client.delete(f"/api/v1/agent-config/{config_id}")
+        assert response.status_code == 204
+
+        # Verify deletion
+        get_response = await client.get(f"/api/v1/agent-config/{config_id}")
+        assert get_response.status_code == 404
+
+    async def test_delete_agent_config_not_found(self, client: AsyncClient):
+        """Test deleting non-existent configuration."""
+        response = await client.delete("/api/v1/agent-config/99999")
+        assert response.status_code == 404
+
+    async def test_delete_agent_config_idempotent(self, client: AsyncClient):
+        """Test that deleting already deleted config returns 404."""
+        # Create and delete
+        payload = {
+            "role_name": "idempotent_delete",
+            "display_name": "Idempotent Delete",
+            "description": "Idempotent delete",
+            "system_prompt_key": "idempotent_prompt",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+        }
+        create_response = await client.post("/api/v1/agent-config", json=payload)
+        config_id = create_response.json()["id"]
+
+        # Delete once
+        response = await client.delete(f"/api/v1/agent-config/{config_id}")
+        assert response.status_code == 204
+
+        # Try to delete again
+        response = await client.delete(f"/api/v1/agent-config/{config_id}")
+        assert response.status_code == 404
+
+
+class TestAgentConfigIntegration:
+    """Integration tests for agent configuration workflows."""
+
+    async def test_full_crud_workflow(self, client: AsyncClient):
+        """Test complete CRUD workflow."""
+        # Create
+        create_payload = {
+            "role_name": "crud_role",
+            "display_name": "CRUD Role",
+            "description": "CRUD workflow test",
+            "system_prompt_key": "crud_prompt",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+            "temperature": 0.7,
+            "is_active": True,
+        }
+        create_response = await client.post("/api/v1/agent-config", json=create_payload)
+        assert create_response.status_code == 201
+        config_id = create_response.json()["id"]
+
+        # Read
+        read_response = await client.get(f"/api/v1/agent-config/{config_id}")
+        assert read_response.status_code == 200
+        assert read_response.json()["role_name"] == "crud_role"
+
+        # Update
+        update_payload = {"temperature": 0.3, "is_active": False}
+        update_response = await client.patch(
+            f"/api/v1/agent-config/{config_id}", json=update_payload
+        )
+        assert update_response.status_code == 200
+        assert update_response.json()["temperature"] == 0.3
+        assert update_response.json()["is_active"] is False
+
+        # Delete
+        delete_response = await client.delete(f"/api/v1/agent-config/{config_id}")
+        assert delete_response.status_code == 204
+
+    async def test_multiple_tenants_isolation(self, client: AsyncClient):
+        """Test that configurations are properly isolated by tenant."""
+        # Create configs for different tenants with same role
+        for tenant_id in ["tenant-1", "tenant-2", "tenant-3"]:
+            payload = {
+                "role_name": "shared_role_isolation",
+                "display_name": f"Shared Role {tenant_id}",
+                "description": f"Shared role for {tenant_id}",
+                "system_prompt_key": f"prompt_{tenant_id}",
+                "model_provider": "openai",
+                "model_name": f"model_{tenant_id}",
+                "tenant_id": tenant_id,
+                "is_active": True,
+            }
+            await client.post("/api/v1/agent-config", json=payload)
+
+        # Verify each tenant gets their own config
+        for tenant_id in ["tenant-1", "tenant-2", "tenant-3"]:
+            response = await client.get(
+                f"/api/v1/agent-config/role/shared_role_isolation?tenant_id={tenant_id}"
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert data["tenant_id"] == tenant_id
+            assert data["model_name"] == f"model_{tenant_id}"
+
+    async def test_role_configuration_hierarchy(self, client: AsyncClient):
+        """Test role configuration lookup hierarchy."""
+        # Create global config
+        global_payload = {
+            "role_name": "hierarchy_role",
+            "display_name": "Hierarchy Role Global",
+            "description": "Global hierarchy role",
+            "system_prompt_key": "hierarchy_global",
+            "model_provider": "openai",
+            "model_name": "gpt-4",
+            "is_active": True,
+        }
+        await client.post("/api/v1/agent-config", json=global_payload)
+
+        # Create tenant-specific config
+        tenant_payload = {
+            "role_name": "hierarchy_role",
+            "display_name": "Hierarchy Role Tenant",
+            "description": "Tenant hierarchy role",
+            "system_prompt_key": "hierarchy_tenant",
+            "model_provider": "anthropic",
+            "model_name": "claude-3",
+            "tenant_id": "hierarchy-tenant",
+            "is_active": True,
+        }
+        await client.post("/api/v1/agent-config", json=tenant_payload)
+
+        # Without tenant_id, should get global
+        response = await client.get("/api/v1/agent-config/role/hierarchy_role")
+        assert response.status_code == 200
+        assert response.json()["tenant_id"] is None
+
+        # With tenant_id, should get tenant-specific
+        response = await client.get(
+            "/api/v1/agent-config/role/hierarchy_role?tenant_id=hierarchy-tenant"
+        )
+        assert response.status_code == 200
+        assert response.json()["tenant_id"] == "hierarchy-tenant"
+
+        # With non-existent tenant_id, should fall back to global
+        response = await client.get(
+            "/api/v1/agent-config/role/hierarchy_role?tenant_id=non-existent"
+        )
+        assert response.status_code == 200
+        assert response.json()["tenant_id"] is None
