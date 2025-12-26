@@ -12,6 +12,7 @@ Tests cover all CRUD operations and various scenarios including:
 """
 
 import json
+
 import pytest
 from httpx import AsyncClient
 
@@ -257,9 +258,7 @@ class TestGetAgentConfigByRole:
         await client.post("/api/v1/agent-config", json=tenant_payload)
 
         # Get with tenant_id should return tenant-specific
-        response = await client.get(
-            "/api/v1/agent-config/role/shared_role?tenant_id=tenant-abc"
-        )
+        response = await client.get("/api/v1/agent-config/role/shared_role?tenant_id=tenant-abc")
         assert response.status_code == 200
         data = response.json()
         assert data["tenant_id"] == "tenant-abc"
@@ -280,9 +279,7 @@ class TestGetAgentConfigByRole:
         await client.post("/api/v1/agent-config", json=payload)
 
         # Request with non-existent tenant should fall back to global
-        response = await client.get(
-            "/api/v1/agent-config/role/fallback_role?tenant_id=non-existent-tenant"
-        )
+        response = await client.get("/api/v1/agent-config/role/fallback_role?tenant_id=non-existent-tenant")
         assert response.status_code == 200
         data = response.json()
         assert data["tenant_id"] is None  # Global config
@@ -463,15 +460,10 @@ class TestListAgentConfigs:
         await client.post("/api/v1/agent-config", json=payload)
 
         # List with both filters
-        response = await client.get(
-            "/api/v1/agent-config?tenant_id=tenant-combined&active_only=true"
-        )
+        response = await client.get("/api/v1/agent-config?tenant_id=tenant-combined&active_only=true")
         assert response.status_code == 200
         data = response.json()
-        assert all(
-            config["tenant_id"] == "tenant-combined" and config["is_active"] is True
-            for config in data
-        )
+        assert all(config["tenant_id"] == "tenant-combined" and config["is_active"] is True for config in data)
 
 
 class TestUpdateAgentConfig:
@@ -494,9 +486,7 @@ class TestUpdateAgentConfig:
 
         # Update single field
         update_payload = {"temperature": 0.5}
-        response = await client.patch(
-            f"/api/v1/agent-config/{config_id}", json=update_payload
-        )
+        response = await client.patch(f"/api/v1/agent-config/{config_id}", json=update_payload)
         assert response.status_code == 200
         data = response.json()
         assert data["temperature"] == 0.5
@@ -524,9 +514,7 @@ class TestUpdateAgentConfig:
             "max_tokens": 2048,
             "model_name": "gpt-4-turbo",
         }
-        response = await client.patch(
-            f"/api/v1/agent-config/{config_id}", json=update_payload
-        )
+        response = await client.patch(f"/api/v1/agent-config/{config_id}", json=update_payload)
         assert response.status_code == 200
         data = response.json()
         assert data["temperature"] == 0.3
@@ -549,16 +537,12 @@ class TestUpdateAgentConfig:
         config_id = create_response.json()["id"]
 
         # Deactivate
-        response = await client.patch(
-            f"/api/v1/agent-config/{config_id}", json={"is_active": False}
-        )
+        response = await client.patch(f"/api/v1/agent-config/{config_id}", json={"is_active": False})
         assert response.status_code == 200
         assert response.json()["is_active"] is False
 
         # Reactivate
-        response = await client.patch(
-            f"/api/v1/agent-config/{config_id}", json={"is_active": True}
-        )
+        response = await client.patch(f"/api/v1/agent-config/{config_id}", json={"is_active": True})
         assert response.status_code == 200
         assert response.json()["is_active"] is True
 
@@ -583,9 +567,7 @@ class TestUpdateAgentConfig:
             "capabilities": '["new_capability_1", "new_capability_2"]',
             "tools": '["new_tool_1", "new_tool_2", "new_tool_3"]',
         }
-        response = await client.patch(
-            f"/api/v1/agent-config/{config_id}", json=update_payload
-        )
+        response = await client.patch(f"/api/v1/agent-config/{config_id}", json=update_payload)
         assert response.status_code == 200
         data = response.json()
         capabilities = json.loads(data["capabilities"])
@@ -595,9 +577,7 @@ class TestUpdateAgentConfig:
 
     async def test_update_agent_config_not_found(self, client: AsyncClient):
         """Test updating non-existent configuration."""
-        response = await client.patch(
-            "/api/v1/agent-config/99999", json={"temperature": 0.5}
-        )
+        response = await client.patch("/api/v1/agent-config/99999", json={"temperature": 0.5})
         assert response.status_code == 404
 
     async def test_update_agent_config_empty_update(self, client: AsyncClient):
@@ -703,9 +683,7 @@ class TestAgentConfigIntegration:
 
         # Update
         update_payload = {"temperature": 0.3, "is_active": False}
-        update_response = await client.patch(
-            f"/api/v1/agent-config/{config_id}", json=update_payload
-        )
+        update_response = await client.patch(f"/api/v1/agent-config/{config_id}", json=update_payload)
         assert update_response.status_code == 200
         assert update_response.json()["temperature"] == 0.3
         assert update_response.json()["is_active"] is False
@@ -732,9 +710,7 @@ class TestAgentConfigIntegration:
 
         # Verify each tenant gets their own config
         for tenant_id in ["tenant-1", "tenant-2", "tenant-3"]:
-            response = await client.get(
-                f"/api/v1/agent-config/role/shared_role_isolation?tenant_id={tenant_id}"
-            )
+            response = await client.get(f"/api/v1/agent-config/role/shared_role_isolation?tenant_id={tenant_id}")
             assert response.status_code == 200
             data = response.json()
             assert data["tenant_id"] == tenant_id
@@ -773,15 +749,11 @@ class TestAgentConfigIntegration:
         assert response.json()["tenant_id"] is None
 
         # With tenant_id, should get tenant-specific
-        response = await client.get(
-            "/api/v1/agent-config/role/hierarchy_role?tenant_id=hierarchy-tenant"
-        )
+        response = await client.get("/api/v1/agent-config/role/hierarchy_role?tenant_id=hierarchy-tenant")
         assert response.status_code == 200
         assert response.json()["tenant_id"] == "hierarchy-tenant"
 
         # With non-existent tenant_id, should fall back to global
-        response = await client.get(
-            "/api/v1/agent-config/role/hierarchy_role?tenant_id=non-existent"
-        )
+        response = await client.get("/api/v1/agent-config/role/hierarchy_role?tenant_id=non-existent")
         assert response.status_code == 200
         assert response.json()["tenant_id"] is None

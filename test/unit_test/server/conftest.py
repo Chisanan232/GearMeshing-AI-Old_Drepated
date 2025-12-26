@@ -50,8 +50,9 @@ os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 @pytest_asyncio.fixture(scope="session")
 async def test_engine():
     """Create a test database engine once per session."""
-    from gearmeshing_ai.agent_core.repos.models import Base as AgentCoreBase
     from sqlmodel import SQLModel
+
+    from gearmeshing_ai.agent_core.repos.models import Base as AgentCoreBase
 
     engine = create_async_engine(
         TEST_DATABASE_URL,

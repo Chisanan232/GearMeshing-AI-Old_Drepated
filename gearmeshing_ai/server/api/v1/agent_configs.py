@@ -8,10 +8,10 @@ replacing the YAML-based configuration system.
 from __future__ import annotations
 
 from typing import Optional
-from sqlmodel import Session, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
 
 from gearmeshing_ai.core.logging_config import get_logger
 from gearmeshing_ai.server.core.database import get_session
@@ -109,9 +109,7 @@ async def get_agent_config_by_role(
 
     # Fall back to default (no tenant) config
     statement = select(AgentConfig).where(
-        (AgentConfig.role_name == role_name)
-        & (AgentConfig.tenant_id == None)
-        & (AgentConfig.is_active == True)
+        (AgentConfig.role_name == role_name) & (AgentConfig.tenant_id == None) & (AgentConfig.is_active == True)
     )
     result = await session.execute(statement)
     config = result.scalars().first()
@@ -188,7 +186,9 @@ async def list_agent_configs(
             statement = statement.where(AgentConfig.is_active == True)
         result = await session.execute(statement)
         configs = result.scalars().all()
-        logger.debug(f"Retrieved {len(configs)} agent configurations (tenant_id={tenant_id}, active_only={active_only})")
+        logger.debug(
+            f"Retrieved {len(configs)} agent configurations (tenant_id={tenant_id}, active_only={active_only})"
+        )
         return [AgentConfigRead.model_validate(config) for config in configs]
     except Exception as e:
         logger.error(f"Failed to list agent configurations: {str(e)}", exc_info=True)
@@ -228,11 +228,11 @@ async def update_agent_config(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Agent config {config_id} not found",
         )
-    
+
     update_data = config_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(config, key, value)
-    
+
     session.add(config)
     await session.commit()
     await session.refresh(config)
