@@ -5,12 +5,9 @@ Tests verify that the application startup and shutdown events are properly
 handled, including database initialization and connection verification.
 """
 
-import os
-from contextlib import asynccontextmanager
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
-import pytest_asyncio
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
@@ -55,8 +52,9 @@ class TestLifespanStartup:
 
     async def test_lifespan_startup_initializes_database(self):
         """Test that lifespan startup calls init_db."""
-        from gearmeshing_ai.server.main import lifespan
         from fastapi import FastAPI
+
+        from gearmeshing_ai.server.main import lifespan
 
         app = FastAPI()
 
@@ -67,8 +65,9 @@ class TestLifespanStartup:
 
     async def test_lifespan_startup_logs_success(self):
         """Test that lifespan startup logs success message."""
-        from gearmeshing_ai.server.main import lifespan
         from fastapi import FastAPI
+
+        from gearmeshing_ai.server.main import lifespan
 
         app = FastAPI()
 
@@ -86,8 +85,9 @@ class TestLifespanStartup:
 
     async def test_lifespan_startup_handles_init_db_exception(self):
         """Test that lifespan startup handles init_db exceptions gracefully."""
-        from gearmeshing_ai.server.main import lifespan
         from fastapi import FastAPI
+
+        from gearmeshing_ai.server.main import lifespan
 
         app = FastAPI()
 
@@ -104,8 +104,9 @@ class TestLifespanStartup:
 
     async def test_lifespan_shutdown_logs_message(self):
         """Test that lifespan shutdown logs shutdown message."""
-        from gearmeshing_ai.server.main import lifespan
         from fastapi import FastAPI
+
+        from gearmeshing_ai.server.main import lifespan
 
         app = FastAPI()
 
@@ -117,21 +118,21 @@ class TestLifespanStartup:
 
                 # Verify shutdown log was called (after yield)
                 shutdown_logs = [
-                    call[0][0] for call in mock_logger.info.call_args_list
-                    if "Shutting down" in call[0][0]
+                    call[0][0] for call in mock_logger.info.call_args_list if "Shutting down" in call[0][0]
                 ]
                 assert len(shutdown_logs) > 0
 
     async def test_lifespan_context_manager_protocol(self):
         """Test that lifespan properly implements async context manager protocol."""
-        from gearmeshing_ai.server.main import lifespan
         from fastapi import FastAPI
+
+        from gearmeshing_ai.server.main import lifespan
 
         app = FastAPI()
 
         with patch("gearmeshing_ai.server.main.init_db") as mock_init_db:
             mock_init_db.return_value = AsyncMock()
-            
+
             # Verify lifespan can be used as async context manager
             async with lifespan(app) as result:
                 # App is running here
@@ -143,14 +144,15 @@ class TestDatabaseInitialization:
 
     async def test_init_db_creates_tables(self, test_engine_fixture):
         """Test that init_db creates all required tables."""
-        from gearmeshing_ai.agent_core.repos.models import Base
 
         # Verify tables exist
         inspector_result = []
 
         async with test_engine_fixture.begin() as conn:
+
             def get_table_names(conn):
                 from sqlalchemy import inspect
+
                 inspector = inspect(conn)
                 return inspector.get_table_names()
 
@@ -167,8 +169,7 @@ class TestDatabaseInitialization:
 
         for table_name in expected_tables:
             assert table_name in inspector_result, (
-                f"Expected table {table_name} not found. "
-                f"Available tables: {inspector_result}"
+                f"Expected table {table_name} not found. " f"Available tables: {inspector_result}"
             )
 
     async def test_init_db_with_real_engine(self, test_engine_fixture):
@@ -184,8 +185,10 @@ class TestDatabaseInitialization:
             inspector_result = []
 
             async with test_engine_fixture.begin() as conn:
+
                 def get_table_names(conn):
                     from sqlalchemy import inspect
+
                     inspector = inspect(conn)
                     return inspector.get_table_names()
 
@@ -199,9 +202,7 @@ class TestDatabaseInitialization:
         from gearmeshing_ai.server.core.database import get_session
 
         # Create a test session factory
-        async_session_maker = sessionmaker(
-            test_engine_fixture, class_=AsyncSession, expire_on_commit=False
-        )
+        async_session_maker = sessionmaker(test_engine_fixture, class_=AsyncSession, expire_on_commit=False)
 
         with patch(
             "gearmeshing_ai.server.core.database.async_session_maker",
@@ -253,9 +254,7 @@ class TestApplicationStartup:
         """Test that database connection is available after startup."""
         from gearmeshing_ai.server.core.database import get_session
 
-        async_session_maker = sessionmaker(
-            test_engine_fixture, class_=AsyncSession, expire_on_commit=False
-        )
+        async_session_maker = sessionmaker(test_engine_fixture, class_=AsyncSession, expire_on_commit=False)
 
         with patch(
             "gearmeshing_ai.server.core.database.async_session_maker",
@@ -269,9 +268,7 @@ class TestApplicationStartup:
 
     async def test_multiple_sessions_from_factory(self, test_engine_fixture):
         """Test that multiple sessions can be created from the factory."""
-        async_session_maker = sessionmaker(
-            test_engine_fixture, class_=AsyncSession, expire_on_commit=False
-        )
+        async_session_maker = sessionmaker(test_engine_fixture, class_=AsyncSession, expire_on_commit=False)
 
         sessions = []
         for _ in range(3):
