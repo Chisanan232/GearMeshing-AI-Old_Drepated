@@ -62,7 +62,6 @@ async def test_engine():
 
     # Import server models to register them with SQLModel
     import gearmeshing_ai.server.models.agent_config  # noqa: F401
-    import gearmeshing_ai.server.models.chat_session  # noqa: F401
 
     # Create tables using both agent_core and server models
     async with engine.begin() as conn:
