@@ -597,13 +597,13 @@ class TestPolicyRepository:
     async def test_create_and_get_policy(self, repos: SqlRepoBundle) -> None:
         """Test creating and retrieving a policy."""
         config = PolicyConfig(autonomy_profile="strict")
-        config_dict = config.model_dump(mode="json")
 
-        await repos.policies.update("tenant-1", config_dict)
+        await repos.policies.update("tenant-1", config)
         retrieved = await repos.policies.get("tenant-1")
 
         assert retrieved is not None
-        assert retrieved["autonomy_profile"] == "strict"
+        assert isinstance(retrieved, PolicyConfig)
+        assert retrieved.autonomy_profile == "strict"
 
     @pytest.mark.asyncio
     async def test_get_nonexistent_policy(self, repos: SqlRepoBundle) -> None:
@@ -615,16 +615,15 @@ class TestPolicyRepository:
     async def test_update_existing_policy(self, repos: SqlRepoBundle) -> None:
         """Test updating an existing policy."""
         config1 = PolicyConfig(autonomy_profile="balanced")
-        config1_dict = config1.model_dump(mode="json")
-        await repos.policies.update("tenant-1", config1_dict)
+        await repos.policies.update("tenant-1", config1)
 
         config2 = PolicyConfig(autonomy_profile="strict")
-        config2_dict = config2.model_dump(mode="json")
-        await repos.policies.update("tenant-1", config2_dict)
+        await repos.policies.update("tenant-1", config2)
 
         retrieved = await repos.policies.get("tenant-1")
         assert retrieved is not None
-        assert retrieved["autonomy_profile"] == "strict"
+        assert isinstance(retrieved, PolicyConfig)
+        assert retrieved.autonomy_profile == "strict"
 
     @pytest.mark.asyncio
     async def test_policy_with_nested_config(self, repos: SqlRepoBundle) -> None:
@@ -633,16 +632,14 @@ class TestPolicyRepository:
             autonomy_profile="strict",
             version="policy-v1",
         )
-        config_dict = config.model_dump(mode="json")
 
-        await repos.policies.update("tenant-1", config_dict)
+        await repos.policies.update("tenant-1", config)
         retrieved = await repos.policies.get("tenant-1")
 
         assert retrieved is not None
-        assert retrieved["autonomy_profile"] == "strict"
-        assert retrieved["version"] == "policy-v1"
-        assert "tool_policy" in retrieved
-        assert "approval_policy" in retrieved
+        assert isinstance(retrieved, PolicyConfig)
+        assert retrieved.autonomy_profile == "strict"
+        assert retrieved.version == "policy-v1"
 
 
 class TestRepositoryIntegration:

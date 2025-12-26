@@ -141,6 +141,7 @@ class TestRunRepositoryEdgeCases:
         for status in status_sequence:
             await repos.runs.update_status("run-multi-status", status=status.value)
             retrieved = await repos.runs.get("run-multi-status")
+            assert retrieved
             assert retrieved.status == status
 
     @pytest.mark.asyncio
@@ -341,6 +342,7 @@ class TestApprovalRepositoryEdgeCases:
         retrieved = await repos.approvals.get("approval-expired")
 
         assert retrieved is not None
+        assert retrieved.expires_at
         assert retrieved.expires_at < datetime.now(timezone.utc)
 
     @pytest.mark.asyncio
@@ -369,6 +371,7 @@ class TestApprovalRepositoryEdgeCases:
         resolved = await repos.approvals.get("approval-long-reason")
         assert resolved is not None
         assert len(resolved.reason) == 2000
+        assert resolved.decided_by
         assert len(resolved.decided_by) > 100
 
     @pytest.mark.asyncio
@@ -427,6 +430,7 @@ class TestApprovalRepositoryEdgeCases:
         )
 
         first_resolve = await repos.approvals.get("approval-re-resolve")
+        assert first_resolve
         first_decided_at = first_resolve.decided_at
 
         await asyncio.sleep(0.1)
@@ -437,8 +441,13 @@ class TestApprovalRepositoryEdgeCases:
 
         second_resolve = await repos.approvals.get("approval-re-resolve")
 
+        assert second_resolve
+        assert second_resolve.decision
         assert second_resolve.decision == ApprovalDecision.rejected
+        assert second_resolve.decided_by
         assert second_resolve.decided_by == "user-2"
+        assert second_resolve.decided_at
+        assert first_decided_at
         assert second_resolve.decided_at > first_decided_at
 
 
@@ -698,30 +707,28 @@ class TestPolicyRepositoryEdgeCases:
             autonomy_profile="strict",
             version="policy-v1",
         )
-        config_dict = config.model_dump(mode="json")
 
-        await repos.policies.update("tenant-complex", config_dict)
+        await repos.policies.update("tenant-complex", config)
         retrieved = await repos.policies.get("tenant-complex")
 
         assert retrieved is not None
-        assert "tool_policy" in retrieved
-        assert "approval_policy" in retrieved
-        assert "safety_policy" in retrieved
-        assert "budget_policy" in retrieved
+        assert isinstance(retrieved, PolicyConfig)
+        assert retrieved.autonomy_profile == "strict"
+        assert retrieved.version == "policy-v1"
 
     @pytest.mark.asyncio
     async def test_policy_update_overwrites_completely(self, repos: SqlRepoBundle) -> None:
         """Test that policy update completely overwrites previous config."""
         config1 = PolicyConfig(autonomy_profile="balanced")
-        config1_dict = config1.model_dump(mode="json")
-        await repos.policies.update("tenant-overwrite", config1_dict)
+        await repos.policies.update("tenant-overwrite", config1)
 
         config2 = PolicyConfig(autonomy_profile="strict")
-        config2_dict = config2.model_dump(mode="json")
-        await repos.policies.update("tenant-overwrite", config2_dict)
+        await repos.policies.update("tenant-overwrite", config2)
 
         retrieved = await repos.policies.get("tenant-overwrite")
-        assert retrieved["autonomy_profile"] == "strict"
+        assert retrieved is not None
+        assert isinstance(retrieved, PolicyConfig)
+        assert retrieved.autonomy_profile == "strict"
 
     @pytest.mark.asyncio
     async def test_policy_with_special_tenant_ids(self, repos: SqlRepoBundle) -> None:
@@ -736,12 +743,12 @@ class TestPolicyRepositoryEdgeCases:
 
         for tenant_id in special_tenant_ids:
             config = PolicyConfig(autonomy_profile="balanced")
-            config_dict = config.model_dump(mode="json")
-            await repos.policies.update(tenant_id, config_dict)
+            await repos.policies.update(tenant_id, config)
 
             retrieved = await repos.policies.get(tenant_id)
             assert retrieved is not None
-            assert retrieved["autonomy_profile"] == "balanced"
+            assert isinstance(retrieved, PolicyConfig)
+            assert retrieved.autonomy_profile == "balanced"
 
 
 class TestRepositoryConcurrency:
