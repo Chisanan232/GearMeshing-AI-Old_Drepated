@@ -38,6 +38,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from ..policy.models import PolicyConfig
 from ..schemas.domain import (
     AgentEvent,
     AgentRun,
@@ -569,33 +570,34 @@ class SqlPolicyRepository(PolicyRepository):
 
     session_factory: async_sessionmaker[AsyncSession]
 
-    async def get(self, tenant_id: str) -> Optional[dict]:
+    async def get(self, tenant_id: str) -> Optional[PolicyConfig]:
         async with self.session_factory() as s:
             stmt = select(PolicyRow).where(PolicyRow.tenant_id == tenant_id)
             result = await s.execute(stmt)
             row = result.scalar_one_or_none()
             if row is None:
                 return None
-            return row.config
+            return PolicyConfig.model_validate(row.config)
 
-    async def update(self, tenant_id: str, config: dict) -> None:
+    async def update(self, tenant_id: str, config: PolicyConfig) -> None:
         async with self.session_factory() as s:
             stmt = select(PolicyRow).where(PolicyRow.tenant_id == tenant_id)
             result = await s.execute(stmt)
             row = result.scalar_one_or_none()
+            config_dict = config.model_dump(mode="json")
             if row is None:
                 import uuid
 
                 row = PolicyRow(
                     id=str(uuid.uuid4()),
                     tenant_id=tenant_id,
-                    config=config,
+                    config=config_dict,
                     created_at=_utc_now_naive(),
                     updated_at=_utc_now_naive(),
                 )
                 s.add(row)
             else:
-                row.config = config
+                row.config = config_dict
                 row.updated_at = _utc_now_naive()
             await s.commit()
 
