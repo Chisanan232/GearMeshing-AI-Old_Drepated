@@ -8,10 +8,17 @@ and includes all API routers. It serves as the root of the web server.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from ..server.core import constant
+from gearmeshing_ai.core.logging_config import get_logger, setup_logging
 from .api.v1 import (
+    policies,
     health,
 )
+from .core.database import init_db
+from .core import constant
+
+# Initialize logging
+setup_logging()
+logger = get_logger(__name__)
 
 app = FastAPI(
     title=constant.PROJECT_NAME,
@@ -36,4 +43,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Startup event to initialize database
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database on startup."""
+    try:
+        logger.info("Starting up GearMeshing-AI Server...")
+        await init_db()
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}", exc_info=True)
+
 app.include_router(health.router, tags=["health"])
+app.include_router(policies.router, prefix=f"{constant.API_V1_STR}/policies", tags=["policies"])
