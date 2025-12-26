@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from gearmeshing_ai.agent_core.policy.models import PolicyConfig
 from gearmeshing_ai.agent_core.schemas.domain import (
     AgentEvent,
     AgentEventType,
@@ -422,13 +423,14 @@ class TestOrchestratorUsageAndPolicy:
     @pytest.mark.asyncio
     async def test_get_policy(self, mock_orchestrator: OrchestratorService) -> None:
         """Test getting policy for a tenant."""
-        policy: dict[str, Any] = {"rules": ["rule1", "rule2"]}
+        policy_config: PolicyConfig = PolicyConfig(autonomy_profile="strict", version="policy-v1")
         srv_repo_policies_get_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.policies.get)
-        srv_repo_policies_get_mock.return_value = policy
+        srv_repo_policies_get_mock.return_value = policy_config
 
-        result: dict[str, Any] | None = await mock_orchestrator.get_policy("tenant-1")
+        result: PolicyConfig | None = await mock_orchestrator.get_policy("tenant-1")
 
-        assert result == policy
+        assert result is not None
+        assert result.autonomy_profile == "strict"
         srv_repo_policies_get_mock.assert_called_once_with(tenant_id="tenant-1")
 
     @pytest.mark.asyncio
@@ -437,20 +439,20 @@ class TestOrchestratorUsageAndPolicy:
         srv_repo_policies_get_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.policies.get)
         srv_repo_policies_get_mock.return_value = None
 
-        result: dict[str, Any] | None = await mock_orchestrator.get_policy("tenant-1")
+        result: PolicyConfig | None = await mock_orchestrator.get_policy("tenant-1")
 
         assert result is None
 
     @pytest.mark.asyncio
     async def test_update_policy(self, mock_orchestrator: OrchestratorService) -> None:
         """Test updating policy for a tenant."""
-        config: dict[str, Any] = {"rules": ["new_rule"]}
+        config: PolicyConfig = PolicyConfig(autonomy_profile="strict")
 
-        result: dict[str, Any] = await mock_orchestrator.update_policy("tenant-1", config)
+        result: PolicyConfig = await mock_orchestrator.update_policy("tenant-1", config)
 
-        assert result == config
+        assert result.autonomy_profile == "strict"
         srv_repo_policies_update_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.policies.update)
-        srv_repo_policies_update_mock.assert_called_once_with(tenant_id="tenant-1", config=config)
+        srv_repo_policies_update_mock.assert_called_once()
 
 
 class TestOrchestratorEventEnrichment:

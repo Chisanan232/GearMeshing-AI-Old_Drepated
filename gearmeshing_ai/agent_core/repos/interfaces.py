@@ -27,6 +27,7 @@ These interfaces intentionally mirror the engine’s audit needs:
 from datetime import datetime
 from typing import Optional, Protocol
 
+from ..policy.models import PolicyConfig
 from ..schemas.domain import (
     AgentEvent,
     AgentRun,
@@ -231,7 +232,7 @@ class UsageRepository(Protocol):
 class PolicyRepository(Protocol):
     """Store and retrieve tenant policy configurations."""
 
-    async def get(self, tenant_id: str) -> Optional[dict]:
+    async def get(self, tenant_id: str) -> Optional[PolicyConfig]:
         """
         Retrieve policy config for a tenant.
 
@@ -239,16 +240,16 @@ class PolicyRepository(Protocol):
             tenant_id: The tenant identifier.
 
         Returns:
-            The policy configuration dict if found, else None.
+            The PolicyConfig object if found, else None.
         """
         ...
 
-    async def update(self, tenant_id: str, config: dict) -> None:
+    async def update(self, tenant_id: str, config: PolicyConfig) -> None:
         """
         Update or create policy config for a tenant.
 
         Args:
             tenant_id: The tenant identifier.
-            config: The new configuration dict.
+            config: The new PolicyConfig object.
         """
         ...
