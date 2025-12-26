@@ -26,6 +26,7 @@ def _global_offline_http_guard(monkeypatch: pytest.MonkeyPatch):
         "http://localhost",
         "http://127.0.0.1",
         "http://0.0.0.0",
+        "/",  # Allow relative paths (used by ASGI transport)
     )
     litellm_prices_prefix = "https://raw.githubusercontent.com/BerriAI/litellm/"
 
