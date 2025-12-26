@@ -5,6 +5,8 @@ This module initializes the FastAPI application, configures middleware (CORS),
 and includes all API routers. It serves as the root of the web server.
 """
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -21,6 +23,29 @@ from .core.database import init_db
 setup_logging()
 logger = get_logger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Manage application lifespan events.
+    
+    Handles startup and shutdown events for the FastAPI application.
+    This is the modern approach replacing the deprecated @app.on_event decorators.
+    """
+    # Startup
+    try:
+        logger.info("Starting up GearMeshing-AI Server...")
+        await init_db()
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}", exc_info=True)
+    
+    yield
+    
+    # Shutdown
+    logger.info("Shutting down GearMeshing-AI Server...")
+
+
 app = FastAPI(
     title=constant.PROJECT_NAME,
     description="""
@@ -33,6 +58,7 @@ app = FastAPI(
     openapi_url=f"{constant.API_V1_STR}/openapi.json",
     docs_url=f"{constant.API_V1_STR}/docs",
     redoc_url=f"{constant.API_V1_STR}/redoc",
+    lifespan=lifespan,
 )
 
 # Set all CORS enabled origins
@@ -43,18 +69,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-# Startup event to initialize database
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database on startup."""
-    try:
-        logger.info("Starting up GearMeshing-AI Server...")
-        await init_db()
-        logger.info("Database initialized successfully")
-    except Exception as e:
-        logger.error(f"Database initialization failed: {e}", exc_info=True)
 
 
 app.include_router(health.router, tags=["health"])
