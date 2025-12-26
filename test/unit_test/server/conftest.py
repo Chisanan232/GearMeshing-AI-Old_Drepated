@@ -23,7 +23,7 @@ def patched_jsonb_init(self, *args, **kwargs):
     if not hasattr(self, '_sqlite_patched'):
         self._sqlite_patched = True
 
-JSONB.__init__ = patched_jsonb_init
+JSONB.__init__ = patched_jsonb_init  # type: ignore[method-assign]
 
 # Patch the SQLiteTypeCompiler to handle JSONB
 original_process = sqlite_base.SQLiteTypeCompiler.process
@@ -35,7 +35,7 @@ def patched_process(self, type_, **kw):
         return "JSON"
     return original_process(self, type_, **kw)
 
-sqlite_base.SQLiteTypeCompiler.process = patched_process
+sqlite_base.SQLiteTypeCompiler.process = patched_process  # type: ignore[method-assign]
 
 # Use in-memory SQLite for testing
 # Note: We use check_same_thread=False for SQLite with async
@@ -72,7 +72,7 @@ async def session_fixture(test_engine) -> AsyncGenerator[AsyncSession, None]:
         test_engine, class_=AsyncSession, expire_on_commit=False
     )
     
-    async with async_session_maker() as session:
+    async with async_session_maker() as session:  # type: ignore[attr-defined]
         yield session
 
 
