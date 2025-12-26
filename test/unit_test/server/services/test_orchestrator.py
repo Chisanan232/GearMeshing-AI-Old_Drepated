@@ -706,19 +706,6 @@ class TestOrchestratorRoles:
         assert len(result) > 0
         assert all(isinstance(role, str) for role in result)
 
-    @pytest.mark.asyncio
-    async def test_override_role_prompt(self, mock_orchestrator: OrchestratorService) -> None:
-        """Test overriding a role prompt."""
-        result: dict[str, Any] = await mock_orchestrator.override_role_prompt(
-            tenant_id="tenant-1",
-            role="analyst",
-            prompt="Custom prompt",
-        )
-
-        assert result["status"] == "updated"
-        assert result["role"] == "analyst"
-        assert result["tenant_id"] == "tenant-1"
-
 
 class TestOrchestratorEventStreaming:
     """Test event streaming functionality."""

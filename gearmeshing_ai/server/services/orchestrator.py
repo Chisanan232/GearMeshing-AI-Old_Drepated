@@ -342,10 +342,6 @@ class OrchestratorService:
 
         return [role.value for role in AgentRole]
 
-    async def override_role_prompt(self, tenant_id: str, role: str, prompt: str) -> Dict[str, Any]:
-        # Placeholder for prompt provider integration
-        return {"status": "updated", "role": role, "version": "v_custom_1", "tenant_id": tenant_id}
-
 
 # Global singleton
 _orchestrator: Optional[OrchestratorService] = None
