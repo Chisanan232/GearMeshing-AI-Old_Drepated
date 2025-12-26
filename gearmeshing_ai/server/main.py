@@ -9,12 +9,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from gearmeshing_ai.core.logging_config import get_logger, setup_logging
+
 from .api.v1 import (
-    policies,
     health,
+    policies,
 )
-from .core.database import init_db
 from .core import constant
+from .core.database import init_db
 
 # Initialize logging
 setup_logging()
@@ -43,6 +44,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Startup event to initialize database
 @app.on_event("startup")
 async def startup_event():
@@ -53,6 +55,7 @@ async def startup_event():
         logger.info("Database initialized successfully")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}", exc_info=True)
+
 
 app.include_router(health.router, tags=["health"])
 app.include_router(policies.router, prefix=f"{constant.API_V1_STR}/policies", tags=["policies"])
