@@ -10,6 +10,7 @@ from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from gearmeshing_ai.agent_core.policy.models import PolicyConfig
 from gearmeshing_ai.agent_core.schemas.domain import ApprovalDecision, AutonomyProfile
 
 
@@ -94,10 +95,27 @@ class PolicyUpdate(BaseModel):
     Allows modifying configuration settings like allowed tools and budget limits.
     """
 
-    config: Dict[str, Any] = Field(
+    config: PolicyConfig = Field(
         ...,
-        description="The configuration object to update or merge into the tenant's policy.",
-        examples=[{"allowed_tools": ["web_search"], "max_budget_usd": 50.0}],
+        description="The policy configuration object to update or merge into the tenant's policy.",
+    )
+
+
+class PolicyResponse(BaseModel):
+    """
+    Schema for policy response.
+
+    Returns the current policy configuration for a tenant.
+    """
+
+    tenant_id: str = Field(
+        ...,
+        description="The identifier of the tenant.",
+        examples=["tenant-123"],
+    )
+    config: PolicyConfig = Field(
+        ...,
+        description="The policy configuration for the tenant.",
     )
 
 
