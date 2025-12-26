@@ -571,16 +571,28 @@ class SqlPolicyRepository(PolicyRepository):
 
     async def get(self, tenant_id: str) -> Optional[dict]:
         async with self.session_factory() as s:
-            row = await s.get(PolicyRow, tenant_id)
+            stmt = select(PolicyRow).where(PolicyRow.tenant_id == tenant_id)
+            result = await s.execute(stmt)
+            row = result.scalar_one_or_none()
             if row is None:
                 return None
             return row.config
 
     async def update(self, tenant_id: str, config: dict) -> None:
         async with self.session_factory() as s:
-            row = await s.get(PolicyRow, tenant_id)
+            stmt = select(PolicyRow).where(PolicyRow.tenant_id == tenant_id)
+            result = await s.execute(stmt)
+            row = result.scalar_one_or_none()
             if row is None:
-                row = PolicyRow(tenant_id=tenant_id, config=config, updated_at=_utc_now_naive())
+                import uuid
+
+                row = PolicyRow(
+                    id=str(uuid.uuid4()),
+                    tenant_id=tenant_id,
+                    config=config,
+                    created_at=_utc_now_naive(),
+                    updated_at=_utc_now_naive(),
+                )
                 s.add(row)
             else:
                 row.config = config
