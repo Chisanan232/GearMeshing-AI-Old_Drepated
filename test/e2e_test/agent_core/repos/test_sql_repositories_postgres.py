@@ -7,7 +7,6 @@ and edge cases that are closer to production usage.
 
 import asyncio
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
 import pytest
 from testcontainers.postgres import PostgresContainer
@@ -75,7 +74,7 @@ class TestRunRepositoryEdgeCases:
             role="analyst/researcher",
             autonomy_profile=AutonomyProfile.balanced,
             objective="Analyze 'quoted' data & special chars: @#$%",
-            done_when="Analysis with \"quotes\" complete",
+            done_when='Analysis with "quotes" complete',
             prompt_provider_version="v1.0-beta+build.123",
             status=AgentRunStatus.running,
             created_at=datetime.now(timezone.utc),
@@ -87,7 +86,7 @@ class TestRunRepositoryEdgeCases:
 
         assert retrieved is not None
         assert retrieved.objective == "Analyze 'quoted' data & special chars: @#$%"
-        assert retrieved.done_when == "Analysis with \"quotes\" complete"
+        assert retrieved.done_when == 'Analysis with "quotes" complete'
 
     @pytest.mark.asyncio
     async def test_create_run_with_very_long_objective(self, repos: SqlRepoBundle) -> None:
@@ -231,14 +230,7 @@ class TestEventRepositoryEdgeCases:
     @pytest.mark.asyncio
     async def test_append_event_with_large_payload(self, repos: SqlRepoBundle) -> None:
         """Test appending event with large JSON payload."""
-        large_payload = {
-            "data": "X" * 10000,
-            "nested": {
-                "deep": {
-                    "structure": ["item"] * 1000
-                }
-            }
-        }
+        large_payload = {"data": "X" * 10000, "nested": {"deep": {"structure": ["item"] * 1000}}}
 
         event = AgentEvent(
             id="event-large-payload",
@@ -371,7 +363,7 @@ class TestApprovalRepositoryEdgeCases:
         await repos.approvals.resolve(
             "approval-long-reason",
             decision=ApprovalDecision.approved.value,
-            decided_by="user-with-very-long-name-" + "X" * 100
+            decided_by="user-with-very-long-name-" + "X" * 100,
         )
 
         resolved = await repos.approvals.get("approval-long-reason")
@@ -430,14 +422,18 @@ class TestApprovalRepositoryEdgeCases:
         )
 
         await repos.approvals.create(approval)
-        await repos.approvals.resolve("approval-re-resolve", decision=ApprovalDecision.approved.value, decided_by="user-1")
+        await repos.approvals.resolve(
+            "approval-re-resolve", decision=ApprovalDecision.approved.value, decided_by="user-1"
+        )
 
         first_resolve = await repos.approvals.get("approval-re-resolve")
         first_decided_at = first_resolve.decided_at
 
         await asyncio.sleep(0.1)
 
-        await repos.approvals.resolve("approval-re-resolve", decision=ApprovalDecision.rejected.value, decided_by="user-2")
+        await repos.approvals.resolve(
+            "approval-re-resolve", decision=ApprovalDecision.rejected.value, decided_by="user-2"
+        )
 
         second_resolve = await repos.approvals.get("approval-re-resolve")
 
@@ -456,7 +452,7 @@ class TestCheckpointRepositoryEdgeCases:
         large_state = {
             "graph_state": {
                 "nodes": [{"id": i, "data": "X" * 100} for i in range(100)],
-                "edges": [[i, i+1] for i in range(99)],
+                "edges": [[i, i + 1] for i in range(99)],
             }
         }
 
@@ -498,7 +494,7 @@ class TestCheckpointRepositoryEdgeCases:
     async def test_checkpoint_with_empty_state(self, repos: SqlRepoBundle) -> None:
         """Test checkpoint with empty state object."""
         run_id = "run-empty-checkpoint"
-        
+
         checkpoint = Checkpoint(
             id="checkpoint-empty",
             run_id=run_id,
@@ -754,6 +750,7 @@ class TestRepositoryConcurrency:
     @pytest.mark.asyncio
     async def test_concurrent_run_creation(self, repos: SqlRepoBundle) -> None:
         """Test creating multiple runs concurrently."""
+
         async def create_run(i: int):
             run = AgentRun(
                 id=f"run-concurrent-{i}",
@@ -831,9 +828,7 @@ class TestRepositoryConcurrency:
 
         async def resolve_approval(i: int):
             await repos.approvals.resolve(
-                f"approval-concurrent-{i}",
-                decision=ApprovalDecision.approved.value,
-                decided_by=f"user-{i}"
+                f"approval-concurrent-{i}", decision=ApprovalDecision.approved.value, decided_by=f"user-{i}"
             )
 
         await asyncio.gather(*[resolve_approval(i) for i in range(10)])

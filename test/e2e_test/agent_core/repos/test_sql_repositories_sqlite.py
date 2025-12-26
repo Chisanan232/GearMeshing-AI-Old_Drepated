@@ -6,10 +6,7 @@ Tests cover all repositories: Run, Event, Approval, Checkpoint, ToolInvocation,
 Usage, and Policy repositories.
 """
 
-import os
-import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Any
 
 import pytest
 from sqlalchemy import JSON
