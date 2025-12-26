@@ -139,10 +139,10 @@ class OrchestratorService:
     ) -> List[UsageLedgerEntry]:
         return await self.repos.usage.list(tenant_id=tenant_id, from_date=from_date, to_date=to_date)
 
-    async def get_policy(self, tenant_id: str) -> Optional[Dict[str, Any]]:
+    async def get_policy(self, tenant_id: str) -> Optional[PolicyConfig]:
         return await self.repos.policies.get(tenant_id=tenant_id)
 
-    async def update_policy(self, tenant_id: str, config: Dict[str, Any]) -> Dict[str, Any]:
+    async def update_policy(self, tenant_id: str, config: PolicyConfig) -> PolicyConfig:
         await self.repos.policies.update(tenant_id=tenant_id, config=config)
         return config
 
