@@ -6,13 +6,13 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_health_check(client: AsyncClient):
-    response = await client.get("http://localhost/health")
+    response = await client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
 
 async def test_version(client: AsyncClient):
-    response = await client.get("http://localhost/version")
+    response = await client.get("/version")
     assert response.status_code == 200
     data = response.json()
     assert "version" in data
