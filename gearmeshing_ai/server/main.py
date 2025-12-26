@@ -28,7 +28,7 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     """
     Manage application lifespan events.
-    
+
     Handles startup and shutdown events for the FastAPI application.
     This is the modern approach replacing the deprecated @app.on_event decorators.
     """
@@ -39,9 +39,9 @@ async def lifespan(app: FastAPI):
         logger.info("Database initialized successfully")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}", exc_info=True)
-    
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down GearMeshing-AI Server...")
 
