@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
-from typing import Any, AsyncGenerator, Dict, List, Optional, Union
+from typing import AsyncGenerator, List, Optional, Union
 
 from gearmeshing_ai.agent_core.factory import build_default_registry
 from gearmeshing_ai.agent_core.planning.planner import StructuredPlanner
@@ -341,10 +341,6 @@ class OrchestratorService:
         from gearmeshing_ai.agent_core.schemas.domain import AgentRole
 
         return [role.value for role in AgentRole]
-
-    async def override_role_prompt(self, tenant_id: str, role: str, prompt: str) -> Dict[str, Any]:
-        # Placeholder for prompt provider integration
-        return {"status": "updated", "role": role, "version": "v_custom_1", "tenant_id": tenant_id}
 
 
 # Global singleton
