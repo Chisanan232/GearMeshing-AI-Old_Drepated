@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
-from typing import Any, AsyncGenerator, Dict, List, Optional, Union
+from typing import AsyncGenerator, List, Optional, Union
 
 from gearmeshing_ai.agent_core.factory import build_default_registry
 from gearmeshing_ai.agent_core.planning.planner import StructuredPlanner

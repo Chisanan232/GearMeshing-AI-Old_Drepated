@@ -8,12 +8,15 @@ for use in agent runs and configurations.
 Note: This module only provides read-only endpoints. Role configuration
 and customization are managed through agent configurations.
 """
-from fastapi import APIRouter
+
 from typing import List
+
+from fastapi import APIRouter
 
 from gearmeshing_ai.server.services.deps import OrchestratorDep
 
 router = APIRouter()
+
 
 @router.get(
     "/",
