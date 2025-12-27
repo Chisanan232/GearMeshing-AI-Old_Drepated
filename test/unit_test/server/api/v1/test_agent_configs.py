@@ -814,6 +814,7 @@ class TestCreateAgentConfigEdgeCases:
         assert "updated_at" in data
         # Both should be set to approximately the same time (within 1 second)
         from datetime import datetime
+
         created = datetime.fromisoformat(data["created_at"].replace("Z", "+00:00"))
         updated = datetime.fromisoformat(data["updated_at"].replace("Z", "+00:00"))
         time_diff = abs((updated - created).total_seconds())
@@ -951,9 +952,7 @@ class TestGetAgentConfigByRoleEdgeCases:
         await client.post("/api/v1/agent-config", json=tenant_payload)
 
         # Request with tenant should return tenant config
-        response = await client.get(
-            "/api/v1/agent-config/role/precedence_role?tenant_id=precedence-tenant"
-        )
+        response = await client.get("/api/v1/agent-config/role/precedence_role?tenant_id=precedence-tenant")
         assert response.status_code == 200
         data = response.json()
         assert data["model_name"] == "claude-3"
@@ -1267,9 +1266,7 @@ class TestUpdateAgentConfigEdgeCases:
         config_id = create_response.json()["id"]
 
         # Update with special characters
-        update_payload = {
-            "description": "Updated with special chars: @#$%^&*() 中文 العربية"
-        }
+        update_payload = {"description": "Updated with special chars: @#$%^&*() 中文 العربية"}
         response = await client.patch(f"/api/v1/agent-config/{config_id}", json=update_payload)
         assert response.status_code == 200
         data = response.json()
@@ -1353,9 +1350,7 @@ class TestMissingCodeCoverage:
         await client.post("/api/v1/agent-config", json=payload)
 
         # Request with exact tenant_id should find it
-        response = await client.get(
-            "/api/v1/agent-config/role/tenant_found_role?tenant_id=tenant-found"
-        )
+        response = await client.get("/api/v1/agent-config/role/tenant_found_role?tenant_id=tenant-found")
         assert response.status_code == 200
         data = response.json()
         assert data["tenant_id"] == "tenant-found"
@@ -1422,9 +1417,7 @@ class TestMissingCodeCoverage:
             "description": "Updated description",
             "temperature": 0.3,
         }
-        response = await client.patch(
-            f"/api/v1/agent-config/{config_id}", json=update_payload
-        )
+        response = await client.patch(f"/api/v1/agent-config/{config_id}", json=update_payload)
         assert response.status_code == 200
         data = response.json()
         # Verify get was successful
@@ -1440,9 +1433,7 @@ class TestMissingCodeCoverage:
     async def test_update_config_not_found(self, client: AsyncClient):
         """Test update config not found error (lines 226-230)."""
         update_payload = {"temperature": 0.5}
-        response = await client.patch(
-            "/api/v1/agent-config/77777", json=update_payload
-        )
+        response = await client.patch("/api/v1/agent-config/77777", json=update_payload)
         assert response.status_code == 404
         error_data = response.json()
         assert "not found" in error_data["detail"].lower()
@@ -1570,7 +1561,7 @@ class TestMissingCodeCoverage:
 
 class TestDirectFunctionCalls:
     """Direct function call tests to ensure proper coverage detection of async code.
-    
+
     These tests call the endpoint functions directly with AsyncSession,
     bypassing the HTTP layer so coverage.py can properly track execution.
     """
@@ -1608,9 +1599,7 @@ class TestDirectFunctionCalls:
         await session.commit()
 
         # Get by role with tenant_id
-        result = await agent_configs.get_agent_config_by_role(
-            "direct_role_test", "direct-tenant", session
-        )
+        result = await agent_configs.get_agent_config_by_role("direct_role_test", "direct-tenant", session)
         assert result.tenant_id == "direct-tenant"
         assert result.role_name == "direct_role_test"
 
@@ -1619,9 +1608,7 @@ class TestDirectFunctionCalls:
         from fastapi import HTTPException
 
         with pytest.raises(HTTPException) as exc_info:
-            await agent_configs.get_agent_config_by_role(
-                "nonexistent_direct_role", None, session
-            )
+            await agent_configs.get_agent_config_by_role("nonexistent_direct_role", None, session)
         assert exc_info.value.status_code == 404
 
     async def test_get_agent_config_by_id_direct_call(self, session: AsyncSession):
@@ -1774,7 +1761,7 @@ class TestDirectFunctionCalls:
 
     async def test_get_agent_config_by_role_return_statement(self, session: AsyncSession):
         """Test get by role return statement - covers lines 121-122.
-        
+
         This test specifically ensures the return statement after finding
         a global config is executed and properly validates the model.
         """
@@ -1792,9 +1779,7 @@ class TestDirectFunctionCalls:
         await session.commit()
 
         # Get by role without tenant_id - should hit the return statement at line 121
-        result = await agent_configs.get_agent_config_by_role(
-            "return_test_role", None, session
-        )
+        result = await agent_configs.get_agent_config_by_role("return_test_role", None, session)
         # Verify the return statement executed and model_validate was called
         assert result is not None
         assert result.role_name == "return_test_role"
@@ -1803,11 +1788,11 @@ class TestDirectFunctionCalls:
 
     async def test_list_agent_configs_exception_handling(self, session: AsyncSession):
         """Test list endpoint exception handling - covers lines 193-196.
-        
+
         This test verifies that exceptions during list operation are properly
         caught, logged, and re-raised.
         """
-        from unittest.mock import AsyncMock, patch
+        from unittest.mock import AsyncMock
 
         # Create a valid config first
         config = AgentConfig(
