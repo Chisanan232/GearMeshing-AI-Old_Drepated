@@ -15,6 +15,7 @@ from gearmeshing_ai.core.logging_config import get_logger, setup_logging
 from .api.v1 import (
     agent_configs,
     approvals,
+    chat_sessions,
     health,
     policies,
     roles,
@@ -83,3 +84,4 @@ app.include_router(policies.router, prefix=f"{constant.API_V1_STR}/policies", ta
 app.include_router(roles.router, prefix=f"{constant.API_V1_STR}/roles", tags=["roles"])
 app.include_router(usage.router, prefix=f"{constant.API_V1_STR}/usage", tags=["usage"])
 app.include_router(agent_configs.router, prefix=f"{constant.API_V1_STR}/agent-config")
+app.include_router(chat_sessions.router, prefix=f"{constant.API_V1_STR}/chat-sessions")
