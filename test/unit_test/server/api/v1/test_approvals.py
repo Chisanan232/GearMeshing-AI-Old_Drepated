@@ -11,8 +11,9 @@ These tests use direct function calls to ensure proper coverage detection of asy
 See TestDirectFunctionCalls class documentation for why direct calls are necessary.
 """
 
-import pytest
 from unittest.mock import AsyncMock
+
+import pytest
 
 from gearmeshing_ai.agent_core.schemas.domain import ApprovalDecision
 from gearmeshing_ai.server.schemas import ApprovalSubmit
@@ -84,7 +85,7 @@ class TestDirectFunctionCalls:
                     "id": "approval-2",
                     "run_id": "test-run",
                     "decision": None,
-                }
+                },
             ]
         )
 
@@ -153,23 +154,15 @@ class TestDirectFunctionCalls:
             "run_id": "test-run",
             "decision": "approved",
             "decided_by": "user-placeholder",
-            "note": "Looks good"
+            "note": "Looks good",
         }
         mock_orchestrator.submit_approval = AsyncMock(return_value=mock_approval)
 
         # Create submission
-        submission = ApprovalSubmit(
-            decision=ApprovalDecision.approved,
-            note="Looks good"
-        )
+        submission = ApprovalSubmit(decision=ApprovalDecision.approved, note="Looks good")
 
         # Call endpoint directly
-        result = await approvals.submit_approval(
-            "test-run",
-            "approval-1",
-            submission,
-            mock_orchestrator
-        )
+        result = await approvals.submit_approval("test-run", "approval-1", submission, mock_orchestrator)
 
         # Verify
         assert result is not None
@@ -179,7 +172,7 @@ class TestDirectFunctionCalls:
             approval_id="approval-1",
             decision="approved",
             note="Looks good",
-            decided_by="user-placeholder"
+            decided_by="user-placeholder",
         )
 
     async def test_submit_approval_reject_direct_call(self):
@@ -211,23 +204,15 @@ class TestDirectFunctionCalls:
             "run_id": "test-run",
             "decision": "rejected",
             "decided_by": "user-placeholder",
-            "note": "Not approved"
+            "note": "Not approved",
         }
         mock_orchestrator.submit_approval = AsyncMock(return_value=mock_approval)
 
         # Create submission with reject decision
-        submission = ApprovalSubmit(
-            decision=ApprovalDecision.rejected,
-            note="Not approved"
-        )
+        submission = ApprovalSubmit(decision=ApprovalDecision.rejected, note="Not approved")
 
         # Call endpoint directly
-        result = await approvals.submit_approval(
-            "test-run",
-            "approval-2",
-            submission,
-            mock_orchestrator
-        )
+        result = await approvals.submit_approval("test-run", "approval-2", submission, mock_orchestrator)
 
         # Verify
         assert result is not None
@@ -237,7 +222,7 @@ class TestDirectFunctionCalls:
             approval_id="approval-2",
             decision="rejected",
             note="Not approved",
-            decided_by="user-placeholder"
+            decided_by="user-placeholder",
         )
 
     async def test_submit_approval_without_note_direct_call(self):
@@ -264,24 +249,14 @@ class TestDirectFunctionCalls:
 
         # Mock orchestrator
         mock_orchestrator = AsyncMock()
-        mock_approval = {
-            "id": "approval-3",
-            "run_id": "test-run",
-            "decision": "approved",
-            "note": None
-        }
+        mock_approval = {"id": "approval-3", "run_id": "test-run", "decision": "approved", "note": None}
         mock_orchestrator.submit_approval = AsyncMock(return_value=mock_approval)
 
         # Create submission without note
         submission = ApprovalSubmit(decision=ApprovalDecision.approved)
 
         # Call endpoint directly
-        result = await approvals.submit_approval(
-            "test-run",
-            "approval-3",
-            submission,
-            mock_orchestrator
-        )
+        result = await approvals.submit_approval("test-run", "approval-3", submission, mock_orchestrator)
 
         # Verify
         assert result is not None
@@ -306,6 +281,7 @@ class TestDirectFunctionCalls:
         - status_code == 404: Proves the correct error was raised
         """
         from fastapi import HTTPException
+
         from gearmeshing_ai.server.api.v1 import approvals
 
         # Mock orchestrator to return None
@@ -313,19 +289,11 @@ class TestDirectFunctionCalls:
         mock_orchestrator.submit_approval = AsyncMock(return_value=None)
 
         # Create submission
-        submission = ApprovalSubmit(
-            decision=ApprovalDecision.rejected,
-            note="Not approved"
-        )
+        submission = ApprovalSubmit(decision=ApprovalDecision.rejected, note="Not approved")
 
         # Call endpoint directly - should raise HTTPException
         with pytest.raises(HTTPException) as exc_info:
-            await approvals.submit_approval(
-                "test-run",
-                "nonexistent-approval",
-                submission,
-                mock_orchestrator
-            )
+            await approvals.submit_approval("test-run", "nonexistent-approval", submission, mock_orchestrator)
 
         # Verify
         assert exc_info.value.status_code == 404
@@ -356,27 +324,14 @@ class TestDirectFunctionCalls:
         # Mock orchestrator
         long_note = "A" * 1000
         mock_orchestrator = AsyncMock()
-        mock_approval = {
-            "id": "approval-4",
-            "run_id": "test-run",
-            "decision": "approved",
-            "note": long_note
-        }
+        mock_approval = {"id": "approval-4", "run_id": "test-run", "decision": "approved", "note": long_note}
         mock_orchestrator.submit_approval = AsyncMock(return_value=mock_approval)
 
         # Create submission with long note
-        submission = ApprovalSubmit(
-            decision=ApprovalDecision.approved,
-            note=long_note
-        )
+        submission = ApprovalSubmit(decision=ApprovalDecision.approved, note=long_note)
 
         # Call endpoint directly
-        result = await approvals.submit_approval(
-            "test-run",
-            "approval-4",
-            submission,
-            mock_orchestrator
-        )
+        result = await approvals.submit_approval("test-run", "approval-4", submission, mock_orchestrator)
 
         # Verify
         assert result is not None
@@ -410,27 +365,14 @@ class TestDirectFunctionCalls:
         # Mock orchestrator
         special_note = "Special chars: @#$%^&*() 中文 العربية"
         mock_orchestrator = AsyncMock()
-        mock_approval = {
-            "id": "approval-5",
-            "run_id": "test-run",
-            "decision": "rejected",
-            "note": special_note
-        }
+        mock_approval = {"id": "approval-5", "run_id": "test-run", "decision": "rejected", "note": special_note}
         mock_orchestrator.submit_approval = AsyncMock(return_value=mock_approval)
 
         # Create submission with special characters
-        submission = ApprovalSubmit(
-            decision=ApprovalDecision.rejected,
-            note=special_note
-        )
+        submission = ApprovalSubmit(decision=ApprovalDecision.rejected, note=special_note)
 
         # Call endpoint directly
-        result = await approvals.submit_approval(
-            "test-run",
-            "approval-5",
-            submission,
-            mock_orchestrator
-        )
+        result = await approvals.submit_approval("test-run", "approval-5", submission, mock_orchestrator)
 
         # Verify
         assert result is not None
@@ -496,23 +438,15 @@ class TestDirectFunctionCalls:
             "run_id": "test-run",
             "decision": "expired",
             "decided_by": "system",
-            "note": "Approval expired"
+            "note": "Approval expired",
         }
         mock_orchestrator.submit_approval = AsyncMock(return_value=mock_approval)
 
         # Create submission with expired decision
-        submission = ApprovalSubmit(
-            decision=ApprovalDecision.expired,
-            note="Approval expired"
-        )
+        submission = ApprovalSubmit(decision=ApprovalDecision.expired, note="Approval expired")
 
         # Call endpoint directly
-        result = await approvals.submit_approval(
-            "test-run",
-            "approval-6",
-            submission,
-            mock_orchestrator
-        )
+        result = await approvals.submit_approval("test-run", "approval-6", submission, mock_orchestrator)
 
         # Verify
         assert result is not None
@@ -522,5 +456,5 @@ class TestDirectFunctionCalls:
             approval_id="approval-6",
             decision="expired",
             note="Approval expired",
-            decided_by="user-placeholder"
+            decided_by="user-placeholder",
         )
