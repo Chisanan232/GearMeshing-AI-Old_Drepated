@@ -13,23 +13,31 @@ These tests use direct function calls to ensure proper coverage detection of asy
 See TestDirectFunctionCalls class documentation for why direct calls are necessary.
 """
 
+from unittest.mock import AsyncMock
+
 import pytest
 from httpx import AsyncClient
-from unittest.mock import AsyncMock
-from gearmeshing_ai.agent_core.schemas.domain import AgentRunStatus, AgentRun, AutonomyProfile
+
+from gearmeshing_ai.agent_core.schemas.domain import (
+    AgentRun,
+    AgentRunStatus,
+    AutonomyProfile,
+)
 
 pytestmark = pytest.mark.asyncio
+
 
 async def test_create_run(client_with_mocked_runs: AsyncClient):
     """Test creating a new agent run."""
     import uuid
+
     tenant_id = f"test-tenant-{uuid.uuid4().hex[:8]}"
     payload = {
         "tenant_id": tenant_id,
         "objective": "Test objective",
         "role": "planner",
         "autonomy_profile": "balanced",
-        "input": {"key": "value"}
+        "input": {"key": "value"},
     }
     response = await client_with_mocked_runs.post("/api/v1/runs/", json=payload)
     assert response.status_code == 201
@@ -40,18 +48,17 @@ async def test_create_run(client_with_mocked_runs: AsyncClient):
     assert data["status"] in [AgentRunStatus.running.value, AgentRunStatus.succeeded.value]
     assert "id" in data
 
+
 async def test_get_run(client_with_mocked_runs: AsyncClient):
     """Test retrieving a specific run."""
     import uuid
+
     tenant_id = f"test-tenant-{uuid.uuid4().hex[:8]}"
     # Create first
-    payload = {
-        "tenant_id": tenant_id,
-        "objective": "Test objective"
-    }
+    payload = {"tenant_id": tenant_id, "objective": "Test objective"}
     create_res = await client_with_mocked_runs.post("/api/v1/runs/", json=payload)
     run_id = create_res.json()["id"]
-    
+
     # Get
     response = await client_with_mocked_runs.get(f"/api/v1/runs/{run_id}")
     assert response.status_code == 200
@@ -59,14 +66,16 @@ async def test_get_run(client_with_mocked_runs: AsyncClient):
     assert data["id"] == run_id
     assert data["objective"] == "Test objective"
 
+
 async def test_list_runs(client_with_mocked_runs: AsyncClient):
     """Test listing runs for a tenant."""
     import uuid
+
     tenant_id = f"t-{uuid.uuid4().hex[:8]}"
     # Create two runs for the same tenant
     await client_with_mocked_runs.post("/api/v1/runs/", json={"tenant_id": tenant_id, "objective": "o1"})
     await client_with_mocked_runs.post("/api/v1/runs/", json={"tenant_id": tenant_id, "objective": "o2"})
-    
+
     # List all for this tenant
     response = await client_with_mocked_runs.get(f"/api/v1/runs/?tenant_id={tenant_id}")
     assert response.status_code == 200
@@ -74,14 +83,16 @@ async def test_list_runs(client_with_mocked_runs: AsyncClient):
     assert len(data) == 2
     assert all(d["tenant_id"] == tenant_id for d in data)
 
+
 async def test_cancel_run(client_with_mocked_runs: AsyncClient):
     """Test cancelling a run."""
     import uuid
+
     tenant_id = f"t-{uuid.uuid4().hex[:8]}"
     # Create
     create_res = await client_with_mocked_runs.post("/api/v1/runs/", json={"tenant_id": tenant_id, "objective": "o1"})
     run_id = create_res.json()["id"]
-    
+
     # Cancel
     response = await client_with_mocked_runs.post(f"/api/v1/runs/{run_id}/cancel")
     assert response.status_code == 200
@@ -143,8 +154,9 @@ class TestDirectFunctionCalls:
         - result is not None: Proves the orchestrator call was awaited
         - result.id is not None: Proves the created run was returned
         """
-        from gearmeshing_ai.server.api.v1 import runs
         from fastapi import BackgroundTasks
+
+        from gearmeshing_ai.server.api.v1 import runs
 
         # Mock orchestrator
         mock_orchestrator = AsyncMock()
@@ -154,17 +166,15 @@ class TestDirectFunctionCalls:
             objective="Test objective",
             role="planner",
             autonomy_profile=AutonomyProfile.balanced,
-            status=AgentRunStatus.running
+            status=AgentRunStatus.running,
         )
         mock_orchestrator.create_run = AsyncMock(return_value=mock_run)
 
         # Create run input
         from gearmeshing_ai.server.schemas import RunCreate
+
         run_in = RunCreate(
-            tenant_id="test-tenant",
-            objective="Test objective",
-            role="planner",
-            autonomy_profile="balanced"
+            tenant_id="test-tenant", objective="Test objective", role="planner", autonomy_profile="balanced"
         )
 
         # Call endpoint directly
@@ -203,7 +213,7 @@ class TestDirectFunctionCalls:
                 objective="Objective 1",
                 role="planner",
                 autonomy_profile=AutonomyProfile.balanced,
-                status=AgentRunStatus.running
+                status=AgentRunStatus.running,
             ),
             AgentRun(
                 id="run-2",
@@ -211,8 +221,8 @@ class TestDirectFunctionCalls:
                 objective="Objective 2",
                 role="planner",
                 autonomy_profile=AutonomyProfile.balanced,
-                status=AgentRunStatus.succeeded
-            )
+                status=AgentRunStatus.succeeded,
+            ),
         ]
         mock_orchestrator.list_runs = AsyncMock(return_value=mock_runs)
 
@@ -222,9 +232,7 @@ class TestDirectFunctionCalls:
         # Verify
         assert isinstance(result, list)
         assert len(result) == 2
-        mock_orchestrator.list_runs.assert_called_once_with(
-            tenant_id="test-tenant", limit=100, offset=0
-        )
+        mock_orchestrator.list_runs.assert_called_once_with(tenant_id="test-tenant", limit=100, offset=0)
 
     async def test_get_run_success_direct_call(self):
         """Test get run endpoint directly - covers line 114.
@@ -250,7 +258,7 @@ class TestDirectFunctionCalls:
             objective="Test objective",
             role="planner",
             autonomy_profile=AutonomyProfile.balanced,
-            status=AgentRunStatus.running
+            status=AgentRunStatus.running,
         )
         mock_orchestrator.get_run = AsyncMock(return_value=mock_run)
 
@@ -278,6 +286,7 @@ class TestDirectFunctionCalls:
         - status_code == 404: Proves the correct error was raised
         """
         from fastapi import HTTPException
+
         from gearmeshing_ai.server.api.v1 import runs
 
         # Mock orchestrator to return None
@@ -322,7 +331,7 @@ class TestDirectFunctionCalls:
             objective="Test objective",
             role="planner",
             autonomy_profile=AutonomyProfile.balanced,
-            status=AgentRunStatus.cancelled
+            status=AgentRunStatus.cancelled,
         )
         mock_orchestrator.get_run = AsyncMock(return_value=mock_run)
         mock_orchestrator.cancel_run = AsyncMock()
@@ -350,19 +359,12 @@ class TestDirectFunctionCalls:
         - result is a list: Proves the orchestrator call was awaited
         - len(result) >= 0: Proves events were returned
         """
-        from gearmeshing_ai.server.api.v1 import runs
         from gearmeshing_ai.agent_core.schemas.domain import AgentEvent, AgentEventType
+        from gearmeshing_ai.server.api.v1 import runs
 
         # Mock orchestrator
         mock_orchestrator = AsyncMock()
-        mock_events = [
-            AgentEvent(
-                id="event-1",
-                run_id="run-1",
-                type=AgentEventType.run_started,
-                payload={}
-            )
-        ]
+        mock_events = [AgentEvent(id="event-1", run_id="run-1", type=AgentEventType.run_started, payload={})]
         mock_orchestrator.get_run_events = AsyncMock(return_value=mock_events)
 
         # Call endpoint directly
@@ -398,7 +400,7 @@ class TestDirectFunctionCalls:
             objective="Test objective",
             role="planner",
             autonomy_profile=AutonomyProfile.balanced,
-            status=AgentRunStatus.running
+            status=AgentRunStatus.running,
         )
         mock_orchestrator.get_run = AsyncMock(return_value=mock_run)
 
@@ -429,8 +431,9 @@ class TestDirectFunctionCalls:
         - Exception is raised: Proves the exception handling path was executed
         - Exception is re-raised: Proves the exception was not swallowed
         """
-        from gearmeshing_ai.server.api.v1 import runs
         from fastapi import BackgroundTasks
+
+        from gearmeshing_ai.server.api.v1 import runs
 
         # Mock orchestrator to raise an exception
         mock_orchestrator = AsyncMock()
@@ -438,11 +441,9 @@ class TestDirectFunctionCalls:
 
         # Create run input
         from gearmeshing_ai.server.schemas import RunCreate
+
         run_in = RunCreate(
-            tenant_id="test-tenant",
-            objective="Test objective",
-            role="planner",
-            autonomy_profile="balanced"
+            tenant_id="test-tenant", objective="Test objective", role="planner", autonomy_profile="balanced"
         )
 
         # Call endpoint directly - should raise the exception
@@ -469,6 +470,7 @@ class TestDirectFunctionCalls:
         - status_code == 404: Proves the correct error was raised
         """
         from fastapi import HTTPException
+
         from gearmeshing_ai.server.api.v1 import runs
         from gearmeshing_ai.server.schemas import RunResume
 
@@ -503,6 +505,7 @@ class TestDirectFunctionCalls:
         - status_code == 404: Proves the correct error was raised
         """
         from fastapi import HTTPException
+
         from gearmeshing_ai.server.api.v1 import runs
 
         # Mock orchestrator to return None
