@@ -1,7 +1,7 @@
 import os
-from typing import AsyncGenerator
-from unittest.mock import patch, AsyncMock, MagicMock
 import uuid
+from typing import AsyncGenerator
+from unittest.mock import patch
 
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
