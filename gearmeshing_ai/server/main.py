@@ -9,20 +9,18 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pathlib import Path
-from starlette.staticfiles import StaticFiles
 
 from gearmeshing_ai.core.logging_config import get_logger, setup_logging
 
 from .api.v1 import (
     agent_configs,
     approvals,
+    chat_sessions,
     health,
     policies,
     roles,
     runs,
     usage,
-    chat_sessions,
 )
 from .core import constant
 from .core.database import init_db
