@@ -9,6 +9,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
+from starlette.staticfiles import StaticFiles
 
 from gearmeshing_ai.core.logging_config import get_logger, setup_logging
 
@@ -20,6 +22,7 @@ from .api.v1 import (
     roles,
     runs,
     usage,
+    chat_sessions,
 )
 from .core import constant
 from .core.database import init_db
@@ -83,3 +86,4 @@ app.include_router(policies.router, prefix=f"{constant.API_V1_STR}/policies", ta
 app.include_router(roles.router, prefix=f"{constant.API_V1_STR}/roles", tags=["roles"])
 app.include_router(usage.router, prefix=f"{constant.API_V1_STR}/usage", tags=["usage"])
 app.include_router(agent_configs.router, prefix=f"{constant.API_V1_STR}/agent-config")
+app.include_router(chat_sessions.router, prefix=f"{constant.API_V1_STR}/chat-sessions")
