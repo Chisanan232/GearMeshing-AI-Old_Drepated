@@ -4,26 +4,31 @@ Agent Runs API Endpoints.
 This module provides the primary interface for creating, managing, and retrieving
 agent execution runs. It handles the lifecycle of an agent task from start to finish.
 """
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
+
 from typing import List
 
+from fastapi import APIRouter, BackgroundTasks, HTTPException
+
+from gearmeshing_ai.agent_core.schemas.domain import (
+    AgentEvent,
+    AgentRun,
+    AgentRunStatus,
+)
 from gearmeshing_ai.core.logging_config import get_logger
-from gearmeshing_ai.server.services.deps import OrchestratorDep
 from gearmeshing_ai.server.schemas import RunCreate, RunResume
-from gearmeshing_ai.agent_core.schemas.domain import AgentRun, AgentRunStatus, AgentEvent
+from gearmeshing_ai.server.services.deps import OrchestratorDep
 
 logger = get_logger(__name__)
 router = APIRouter()
 
+
 @router.post(
-    "/", 
-    response_model=AgentRun, 
+    "/",
+    response_model=AgentRun,
     status_code=201,
     summary="Create Agent Run",
     description="Initiates a new agent run with the specified objective, role, and configuration.",
-    response_description="The created agent run object."
+    response_description="The created agent run object.",
 )
 async def create_run(run_in: RunCreate, orchestrator: OrchestratorDep, background_tasks: BackgroundTasks):
     """
@@ -31,7 +36,7 @@ async def create_run(run_in: RunCreate, orchestrator: OrchestratorDep, backgroun
 
     This endpoint initializes a new agent run session. It accepts the user's objective,
     tenant identification, and optional configuration for the agent's role and autonomy.
-    
+
     - **objective**: The goal for the agent.
     - **tenant_id**: The tenant identifier.
     - **role**: The agent role (optional, defaults to 'planner').
@@ -39,22 +44,22 @@ async def create_run(run_in: RunCreate, orchestrator: OrchestratorDep, backgroun
     - **input**: Initial input payload (optional).
     """
     logger.info(f"Creating new run for tenant: {run_in.tenant_id}, objective: {run_in.objective}")
-    
+
     if not run_in.role:
         run_in.role = "planner"
         logger.debug(f"Role not specified, defaulting to: {run_in.role}")
 
     # Map API schema to Domain Schema
-    # Note: AgentRun domain object does not strictly have 'input_payload' in the constructor 
+    # Note: AgentRun domain object does not strictly have 'input_payload' in the constructor
     # if it wasn't added to the domain class. The AgentRunTable has it.
     # The domain AgentRun class in agent_core/schemas/domain.py does NOT have input_payload.
     # However, for now we will just pass what matches.
-    
+
     from gearmeshing_ai.agent_core.schemas.domain import AutonomyProfile
-    
+
     autonomy = AutonomyProfile(run_in.autonomy_profile) if run_in.autonomy_profile else AutonomyProfile.balanced
     logger.debug(f"Autonomy profile set to: {autonomy}")
-    
+
     run_domain = AgentRun(
         tenant_id=run_in.tenant_id,
         role=run_in.role,
@@ -62,7 +67,7 @@ async def create_run(run_in: RunCreate, orchestrator: OrchestratorDep, backgroun
         autonomy_profile=autonomy,
         status=AgentRunStatus.running,
     )
-    
+
     # Delegate to Orchestrator
     # Note: We are using await here. Ideally run should be backgrounded if it takes time.
     # But Orchestrator.create_run calls AgentService.run which plans + starts.
@@ -76,19 +81,15 @@ async def create_run(run_in: RunCreate, orchestrator: OrchestratorDep, backgroun
         logger.error(f"Failed to create run for tenant {run_in.tenant_id}: {e}", exc_info=True)
         raise
 
+
 @router.get(
-    "/", 
+    "/",
     response_model=List[AgentRun],
     summary="List Agent Runs",
     description="Retrieve a list of agent runs, optionally filtered by tenant.",
-    response_description="A list of agent runs."
+    response_description="A list of agent runs.",
 )
-async def list_runs(
-    orchestrator: OrchestratorDep,
-    tenant_id: str | None = None, 
-    limit: int = 100, 
-    offset: int = 0
-):
+async def list_runs(orchestrator: OrchestratorDep, tenant_id: str | None = None, limit: int = 100, offset: int = 0):
     """
     List agent runs.
 
@@ -97,13 +98,14 @@ async def list_runs(
     """
     return await orchestrator.list_runs(tenant_id=tenant_id, limit=limit, offset=offset)
 
+
 @router.get(
-    "/{run_id}", 
+    "/{run_id}",
     response_model=AgentRun,
     summary="Get Run Details",
     description="Retrieve detailed information about a specific agent run by its ID.",
     response_description="The agent run object.",
-    responses={404: {"description": "Run not found"}}
+    responses={404: {"description": "Run not found"}},
 )
 async def get_run(run_id: str, orchestrator: OrchestratorDep):
     """
@@ -116,13 +118,14 @@ async def get_run(run_id: str, orchestrator: OrchestratorDep):
         raise HTTPException(status_code=404, detail="Run not found")
     return run
 
+
 @router.post(
-    "/{run_id}/resume", 
+    "/{run_id}/resume",
     response_model=AgentRun,
     summary="Resume Paused Run",
     description="Resume a run that is paused waiting for approval.",
     response_description="The updated agent run object.",
-    responses={404: {"description": "Run not found"}}
+    responses={404: {"description": "Run not found"}},
 )
 async def resume_run(run_id: str, resume_in: RunResume, orchestrator: OrchestratorDep):
     """
@@ -130,24 +133,25 @@ async def resume_run(run_id: str, resume_in: RunResume, orchestrator: Orchestrat
 
     This endpoint signals the agent to continue execution after a pause (e.g., for approval).
     """
-    # Logic is now handled via approval submission usually. 
+    # Logic is now handled via approval submission usually.
     # If explicit resume is needed without approval ID, it implies something else.
     # However, AgentService.resume requires an approval_id.
     # This endpoint seems slightly redundant if we assume resume happens on approval.
-    # But maybe it is for resuming from a generic pause? 
+    # But maybe it is for resuming from a generic pause?
     # For now, let's just return the run status.
     run = await orchestrator.get_run(run_id)
     if not run:
-         raise HTTPException(status_code=404, detail="Run not found")
+        raise HTTPException(status_code=404, detail="Run not found")
     return run
 
+
 @router.post(
-    "/{run_id}/cancel", 
+    "/{run_id}/cancel",
     response_model=AgentRun,
     summary="Cancel Run",
     description="Cancel an active agent run.",
     response_description="The cancelled agent run object.",
-    responses={404: {"description": "Run not found"}}
+    responses={404: {"description": "Run not found"}},
 )
 async def cancel_run(run_id: str, orchestrator: OrchestratorDep):
     """
@@ -157,27 +161,24 @@ async def cancel_run(run_id: str, orchestrator: OrchestratorDep):
     """
     run = await orchestrator.get_run(run_id)
     if not run:
-         raise HTTPException(status_code=404, detail="Run not found")
-    
+        raise HTTPException(status_code=404, detail="Run not found")
+
     # Update run status to cancelled
     await orchestrator.cancel_run(run_id)
-    
+
     # Fetch and return updated run
     updated_run = await orchestrator.get_run(run_id)
     return updated_run
 
+
 @router.get(
-    "/{run_id}/events", 
+    "/{run_id}/events",
     response_model=List[AgentEvent],
     summary="List Run Events",
     description="Retrieve the event history for a specific run.",
-    response_description="A list of agent events."
+    response_description="A list of agent events.",
 )
-async def list_run_events(
-    run_id: str, 
-    orchestrator: OrchestratorDep,
-    limit: int = 100
-):
+async def list_run_events(run_id: str, orchestrator: OrchestratorDep, limit: int = 100):
     """
     List run events.
 
