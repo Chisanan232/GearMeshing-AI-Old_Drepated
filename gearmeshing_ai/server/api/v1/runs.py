@@ -73,7 +73,7 @@ async def create_run(run_in: RunCreate, orchestrator: OrchestratorDep, backgroun
     # But Orchestrator.create_run calls AgentService.run which plans + starts.
     # Planning might take a few seconds.
     try:
-        logger.debug(f"Delegating to orchestrator for run creation")
+        logger.debug("Delegating to orchestrator for run creation")
         created_run = await orchestrator.create_run(run_domain)
         logger.info(f"Run created successfully: {created_run.id}")
         return created_run
