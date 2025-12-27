@@ -1562,12 +1562,59 @@ class TestMissingCodeCoverage:
 class TestDirectFunctionCalls:
     """Direct function call tests to ensure proper coverage detection of async code.
 
-    These tests call the endpoint functions directly with AsyncSession,
+    IMPORTANT: These tests call the endpoint functions directly with AsyncSession,
     bypassing the HTTP layer so coverage.py can properly track execution.
+
+    WHY DIRECT CALLS ARE NECESSARY FOR COVERAGE:
+    ============================================
+    When tests use AsyncClient (HTTP layer), the code execution flow goes through:
+    1. HTTP request serialization
+    2. FastAPI routing and dependency injection
+    3. Async context managers and middleware
+    4. The actual endpoint function
+    5. Response serialization
+
+    Coverage.py struggles to properly instrument and track code execution in this
+    flow because:
+    - Async context managers can obscure the actual code paths
+    - Exception handling in FastAPI's exception handlers may not be tracked
+    - The HTTP layer adds abstraction that coverage tools can't fully penetrate
+    - SQLAlchemy async operations (await session.refresh(), await session.commit())
+      may not be properly detected when called through HTTP
+
+    SOLUTION: Direct function calls with AsyncSession allow coverage.py to:
+    - Directly instrument the endpoint function code
+    - Track all await statements and async operations
+    - Properly detect exception handling paths
+    - Verify that specific lines like model_validate() and session operations execute
+
+    LINES THAT REQUIRE DIRECT CALLS:
+    - Lines 64-65: await session.commit() and await session.refresh() in create
+    - Lines 106-108: Tenant-specific config found path in get_by_role
+    - Lines 115-121: Return statement after config validation in get_by_role
+    - Lines 148-153: Config retrieval and validation in get_by_id
+    - Lines 188-195: List operation with model_validate and exception handling
+    - Lines 226-239: Update operation with commit, refresh, and validation
+    - Lines 266-272: Delete operation with commit
     """
 
     async def test_create_agent_config_direct_call(self, session: AsyncSession):
-        """Test create endpoint directly - covers lines 64-65."""
+        """Test create endpoint directly - covers lines 64-65.
+
+        COVERAGE TARGET: Lines 64-65 in agent_configs.py
+            await session.commit()
+            await session.refresh(db_config)
+
+        WHY DIRECT CALL IS NEEDED:
+        - HTTP layer tests cannot properly detect await session.commit() execution
+        - HTTP layer tests cannot properly detect await session.refresh() execution
+        - These are async SQLAlchemy operations that coverage.py misses through HTTP
+        - Direct function call allows coverage.py to instrument the actual await statements
+
+        VERIFICATION:
+        - result.id is not None: Proves refresh() was called (ID populated from DB)
+        - result.created_at is not None: Proves model_validate() executed after refresh
+        """
         payload = AgentConfigCreate(
             role_name="direct_create_role",
             display_name="Direct Create",
@@ -1583,7 +1630,23 @@ class TestDirectFunctionCalls:
         assert result.updated_at is not None
 
     async def test_get_agent_config_by_role_direct_call(self, session: AsyncSession):
-        """Test get by role endpoint directly - covers lines 106-108."""
+        """Test get by role endpoint directly - covers lines 106-108.
+
+        COVERAGE TARGET: Lines 106-108 in agent_configs.py
+            config = result.scalars().first()
+            if config:
+                return AgentConfigRead.model_validate(config)
+
+        WHY DIRECT CALL IS NEEDED:
+        - HTTP layer cannot properly detect the query execution path
+        - HTTP layer cannot properly detect model_validate() call on found config
+        - The conditional check (if config:) and return statement are missed by coverage
+        - Direct function call allows coverage.py to track the query result and validation
+
+        VERIFICATION:
+        - result.tenant_id == "direct-tenant": Proves config was found and validated
+        - isinstance(result, AgentConfigRead): Proves model_validate() was executed
+        """
         # Create a config first
         config = AgentConfig(
             role_name="direct_role_test",
@@ -1691,7 +1754,28 @@ class TestDirectFunctionCalls:
         assert all(config.is_active for config in result)
 
     async def test_update_agent_config_direct_call(self, session: AsyncSession):
-        """Test update endpoint directly - covers lines 226-239."""
+        """Test update endpoint directly - covers lines 226-239.
+
+        COVERAGE TARGET: Lines 226-239 in agent_configs.py
+            update_data = config_update.model_dump(exclude_unset=True)
+            for key, value in update_data.items():
+                setattr(config, key, value)
+            await session.commit()
+            await session.refresh(config)
+            return AgentConfigRead.model_validate(config)
+
+        WHY DIRECT CALL IS NEEDED:
+        - HTTP layer cannot properly detect the loop iteration and setattr() calls
+        - HTTP layer cannot properly detect await session.commit() in update context
+        - HTTP layer cannot properly detect await session.refresh() after update
+        - HTTP layer cannot properly detect model_validate() on updated config
+        - These async operations and attribute assignments are missed by coverage through HTTP
+
+        VERIFICATION:
+        - result.description == "Updated": Proves setattr() and commit() worked
+        - result.temperature == 0.3: Proves partial update was applied
+        - result.updated_at >= original_updated_at: Proves refresh() was called
+        """
         # Create a config
         config = AgentConfig(
             role_name="direct_update_test",
@@ -1728,7 +1812,24 @@ class TestDirectFunctionCalls:
         assert exc_info.value.status_code == 404
 
     async def test_delete_agent_config_direct_call(self, session: AsyncSession):
-        """Test delete endpoint directly - covers lines 266-272."""
+        """Test delete endpoint directly - covers lines 266-272.
+
+        COVERAGE TARGET: Lines 266-272 in agent_configs.py
+            if not config:
+                raise HTTPException(status_code=404, detail=...)
+            await session.delete(config)
+            await session.commit()
+
+        WHY DIRECT CALL IS NEEDED:
+        - HTTP layer cannot properly detect await session.delete() execution
+        - HTTP layer cannot properly detect await session.commit() in delete context
+        - The session.delete() call is an async operation that coverage.py misses through HTTP
+        - Direct function call allows coverage.py to instrument the actual delete and commit operations
+
+        VERIFICATION:
+        - deleted_config is None: Proves delete() and commit() were executed successfully
+        - No exception raised: Proves the config was found (404 check passed)
+        """
         # Create a config
         config = AgentConfig(
             role_name="direct_delete_test",
@@ -1762,8 +1863,22 @@ class TestDirectFunctionCalls:
     async def test_get_agent_config_by_role_return_statement(self, session: AsyncSession):
         """Test get by role return statement - covers lines 121-122.
 
+        COVERAGE TARGET: Lines 121-122 in agent_configs.py
+            return AgentConfigRead.model_validate(config)
+
         This test specifically ensures the return statement after finding
         a global config is executed and properly validates the model.
+
+        WHY DIRECT CALL IS NEEDED:
+        - HTTP layer cannot properly detect the return statement execution
+        - HTTP layer cannot properly detect model_validate() call on global config
+        - The fallback path (when tenant_id is None) and its return are missed by coverage
+        - Direct function call allows coverage.py to track the specific return path
+
+        VERIFICATION:
+        - result is not None: Proves the return statement was executed
+        - isinstance(result, AgentConfigRead): Proves model_validate() was called
+        - result.id == config.id: Proves the correct config was returned
         """
         # Create a global config (no tenant_id)
         config = AgentConfig(
@@ -1789,8 +1904,25 @@ class TestDirectFunctionCalls:
     async def test_list_agent_configs_exception_handling(self, session: AsyncSession):
         """Test list endpoint exception handling - covers lines 193-196.
 
+        COVERAGE TARGET: Lines 193-196 in agent_configs.py
+            except Exception as e:
+                logger.error(f"Failed to list agent configurations: {str(e)}", exc_info=True)
+                raise
+
         This test verifies that exceptions during list operation are properly
         caught, logged, and re-raised.
+
+        WHY DIRECT CALL IS NEEDED:
+        - HTTP layer cannot properly detect the except block execution
+        - HTTP layer cannot properly detect logger.error() call in exception handler
+        - HTTP layer cannot properly detect the re-raise statement
+        - Exception handling paths are difficult to track through HTTP layer
+        - Direct function call with mocked session allows coverage.py to trigger the exception path
+
+        VERIFICATION:
+        - RuntimeError is raised: Proves the exception was re-raised
+        - logger.error was called: Proves the exception was logged (verified by log output)
+        - Exception message preserved: Proves the exception handling didn't suppress the error
         """
         from unittest.mock import AsyncMock
 
