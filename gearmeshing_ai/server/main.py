@@ -14,6 +14,7 @@ from gearmeshing_ai.core.logging_config import get_logger, setup_logging
 
 from .api.v1 import (
     agent_configs,
+    runs,
     health,
     policies,
     roles,
@@ -74,6 +75,7 @@ app.add_middleware(
 
 
 app.include_router(health.router, tags=["health"])
+app.include_router(runs.router, prefix=f"{constant.API_V1_STR}/runs", tags=["runs"])
 app.include_router(policies.router, prefix=f"{constant.API_V1_STR}/policies", tags=["policies"])
 app.include_router(roles.router, prefix=f"{constant.API_V1_STR}/roles", tags=["roles"])
 app.include_router(agent_configs.router, prefix=f"{constant.API_V1_STR}/agent-config")
