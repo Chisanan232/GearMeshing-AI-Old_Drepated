@@ -11,21 +11,21 @@ exchange messages. Each session maintains its own message history and metadata.
 from __future__ import annotations
 
 from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from fastapi import APIRouter, Depends, HTTPException, status
-
 from gearmeshing_ai.server.core.database import get_session
 from gearmeshing_ai.server.models.chat_session import (
+    ChatHistoryRead,
+    ChatMessage,
+    ChatMessageCreate,
+    ChatMessageRead,
     ChatSession,
     ChatSessionCreate,
     ChatSessionRead,
     ChatSessionUpdate,
-    ChatMessage,
-    ChatMessageCreate,
-    ChatMessageRead,
-    ChatHistoryRead,
 )
 
 router = APIRouter(tags=["chat-sessions"])
@@ -166,11 +166,11 @@ async def update_chat_session(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Chat session {session_id} not found",
         )
-    
+
     update_data = session_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(chat_session, key, value)
-    
+
     session.add(chat_session)
     await session.commit()
     await session.refresh(chat_session)
@@ -205,14 +205,14 @@ async def delete_chat_session(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Chat session {session_id} not found",
         )
-    
+
     # Delete all messages in the session
     statement = select(ChatMessage).where(ChatMessage.session_id == session_id)
     result = await session.execute(statement)
     messages = result.scalars().all()
     for message in messages:
         await session.delete(message)
-    
+
     # Delete the session
     await session.delete(chat_session)
     await session.commit()
@@ -257,14 +257,14 @@ async def add_message(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Chat session {session_id} not found",
         )
-    
+
     # Ensure message belongs to this session
     if message_data.session_id != session_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Message session_id does not match URL session_id",
         )
-    
+
     db_message = ChatMessage.model_validate(message_data)
     session.add(db_message)
     await session.commit()
@@ -306,7 +306,7 @@ async def get_messages(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Chat session {session_id} not found",
         )
-    
+
     statement = (
         select(ChatMessage)
         .where(ChatMessage.session_id == session_id)
@@ -350,7 +350,7 @@ async def get_chat_history(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Chat session {session_id} not found",
         )
-    
+
     # Get all messages
     statement = (
         select(ChatMessage)
@@ -359,8 +359,11 @@ async def get_chat_history(
     )
     result = await session.execute(statement)
     messages = result.scalars().all()
-    
-    return ChatHistoryRead(session=ChatSessionRead.model_validate(chat_session), messages=[ChatMessageRead.model_validate(m) for m in messages])
+
+    return ChatHistoryRead(
+        session=ChatSessionRead.model_validate(chat_session),
+        messages=[ChatMessageRead.model_validate(m) for m in messages],
+    )
 
 
 @router.delete(
@@ -394,12 +397,12 @@ async def delete_message(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Message {message_id} not found",
         )
-    
+
     if message.session_id != session_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Message does not belong to this session",
         )
-    
+
     await session.delete(message)
     await session.commit()

@@ -18,18 +18,13 @@ See TestDirectFunctionCalls class documentation for why direct calls are necessa
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
-from unittest.mock import AsyncMock, MagicMock
-from datetime import datetime
 
 from gearmeshing_ai.server.models.chat_session import (
-    ChatSession,
-    ChatSessionCreate,
-    ChatSessionRead,
-    ChatSessionUpdate,
     ChatMessage,
     ChatMessageCreate,
-    ChatMessageRead,
-    ChatHistoryRead,
+    ChatSession,
+    ChatSessionCreate,
+    ChatSessionUpdate,
 )
 
 pytestmark = pytest.mark.asyncio
@@ -102,7 +97,7 @@ class TestDirectFunctionCalls:
             title="Test Session",
             description="A test chat session",
             agent_role="planner",
-            is_active=True
+            is_active=True,
         )
 
         # Call endpoint directly
@@ -132,11 +127,7 @@ class TestDirectFunctionCalls:
 
         # Create a session first
         db_session = ChatSession(
-            tenant_id="test-tenant",
-            title="Test Session",
-            description="Test",
-            agent_role="planner",
-            is_active=True
+            tenant_id="test-tenant", title="Test Session", description="Test", agent_role="planner", is_active=True
         )
         session.add(db_session)
         await session.commit()
@@ -171,6 +162,7 @@ class TestDirectFunctionCalls:
         - status_code == 404: Proves the correct error was raised
         """
         from fastapi import HTTPException
+
         from gearmeshing_ai.server.api.v1 import chat_sessions
 
         # Call endpoint directly with non-existent session ID
@@ -206,28 +198,14 @@ class TestDirectFunctionCalls:
         from gearmeshing_ai.server.api.v1 import chat_sessions
 
         # Create test sessions
-        session1 = ChatSession(
-            tenant_id="tenant-1",
-            title="Session 1",
-            agent_role="planner",
-            is_active=True
-        )
-        session2 = ChatSession(
-            tenant_id="tenant-2",
-            title="Session 2",
-            agent_role="dev",
-            is_active=False
-        )
+        session1 = ChatSession(tenant_id="tenant-1", title="Session 1", agent_role="planner", is_active=True)
+        session2 = ChatSession(tenant_id="tenant-2", title="Session 2", agent_role="dev", is_active=False)
         session.add(session1)
         session.add(session2)
         await session.commit()
 
         # Call endpoint directly with tenant filter
-        result = await chat_sessions.list_chat_sessions(
-            tenant_id="tenant-1",
-            active_only=True,
-            session=session
-        )
+        result = await chat_sessions.list_chat_sessions(tenant_id="tenant-1", active_only=True, session=session)
 
         # Verify
         assert isinstance(result, list)
@@ -262,12 +240,7 @@ class TestDirectFunctionCalls:
         from gearmeshing_ai.server.api.v1 import chat_sessions
 
         # Create a session first
-        db_session = ChatSession(
-            tenant_id="test-tenant",
-            title="Original Title",
-            agent_role="planner",
-            is_active=True
-        )
+        db_session = ChatSession(tenant_id="test-tenant", title="Original Title", agent_role="planner", is_active=True)
         session.add(db_session)
         await session.commit()
         await session.refresh(db_session)
@@ -309,23 +282,14 @@ class TestDirectFunctionCalls:
         from gearmeshing_ai.server.api.v1 import chat_sessions
 
         # Create a session with a message
-        db_session = ChatSession(
-            tenant_id="test-tenant",
-            title="Test Session",
-            agent_role="planner",
-            is_active=True
-        )
+        db_session = ChatSession(tenant_id="test-tenant", title="Test Session", agent_role="planner", is_active=True)
         session.add(db_session)
         await session.commit()
         await session.refresh(db_session)
         session_id = db_session.id
 
         # Add a message
-        message = ChatMessage(
-            session_id=session_id,
-            role="user",
-            content="Test message"
-        )
+        message = ChatMessage(session_id=session_id, role="user", content="Test message")
         session.add(message)
         await session.commit()
 
@@ -363,23 +327,14 @@ class TestDirectFunctionCalls:
         from gearmeshing_ai.server.api.v1 import chat_sessions
 
         # Create a session first
-        db_session = ChatSession(
-            tenant_id="test-tenant",
-            title="Test Session",
-            agent_role="planner",
-            is_active=True
-        )
+        db_session = ChatSession(tenant_id="test-tenant", title="Test Session", agent_role="planner", is_active=True)
         session.add(db_session)
         await session.commit()
         await session.refresh(db_session)
         session_id = db_session.id
 
         # Add a message
-        message_data = ChatMessageCreate(
-            session_id=session_id,
-            role="user",
-            content="Test message"
-        )
+        message_data = ChatMessageCreate(session_id=session_id, role="user", content="Test message")
         result = await chat_sessions.add_message(session_id, message_data, session)
 
         # Verify
@@ -419,12 +374,7 @@ class TestDirectFunctionCalls:
         from gearmeshing_ai.server.api.v1 import chat_sessions
 
         # Create a session with messages
-        db_session = ChatSession(
-            tenant_id="test-tenant",
-            title="Test Session",
-            agent_role="planner",
-            is_active=True
-        )
+        db_session = ChatSession(tenant_id="test-tenant", title="Test Session", agent_role="planner", is_active=True)
         session.add(db_session)
         await session.commit()
         await session.refresh(db_session)
@@ -433,9 +383,7 @@ class TestDirectFunctionCalls:
         # Add messages
         for i in range(3):
             message = ChatMessage(
-                session_id=session_id,
-                role="user" if i % 2 == 0 else "assistant",
-                content=f"Message {i}"
+                session_id=session_id, role="user" if i % 2 == 0 else "assistant", content=f"Message {i}"
             )
             session.add(message)
         await session.commit()
@@ -477,12 +425,7 @@ class TestDirectFunctionCalls:
         from gearmeshing_ai.server.api.v1 import chat_sessions
 
         # Create a session with messages
-        db_session = ChatSession(
-            tenant_id="test-tenant",
-            title="Test Session",
-            agent_role="planner",
-            is_active=True
-        )
+        db_session = ChatSession(tenant_id="test-tenant", title="Test Session", agent_role="planner", is_active=True)
         session.add(db_session)
         await session.commit()
         await session.refresh(db_session)
@@ -491,9 +434,7 @@ class TestDirectFunctionCalls:
         # Add messages
         for i in range(2):
             message = ChatMessage(
-                session_id=session_id,
-                role="user" if i % 2 == 0 else "assistant",
-                content=f"Message {i}"
+                session_id=session_id, role="user" if i % 2 == 0 else "assistant", content=f"Message {i}"
             )
             session.add(message)
         await session.commit()
@@ -531,23 +472,14 @@ class TestDirectFunctionCalls:
         from gearmeshing_ai.server.api.v1 import chat_sessions
 
         # Create a session with a message
-        db_session = ChatSession(
-            tenant_id="test-tenant",
-            title="Test Session",
-            agent_role="planner",
-            is_active=True
-        )
+        db_session = ChatSession(tenant_id="test-tenant", title="Test Session", agent_role="planner", is_active=True)
         session.add(db_session)
         await session.commit()
         await session.refresh(db_session)
         session_id = db_session.id
 
         # Add a message
-        message = ChatMessage(
-            session_id=session_id,
-            role="user",
-            content="Test message"
-        )
+        message = ChatMessage(session_id=session_id, role="user", content="Test message")
         session.add(message)
         await session.commit()
         await session.refresh(message)
@@ -579,26 +511,18 @@ class TestDirectFunctionCalls:
         - status_code == 400: Proves the correct error was raised
         """
         from fastapi import HTTPException
+
         from gearmeshing_ai.server.api.v1 import chat_sessions
 
         # Create a session first
-        db_session = ChatSession(
-            tenant_id="test-tenant",
-            title="Test Session",
-            agent_role="planner",
-            is_active=True
-        )
+        db_session = ChatSession(tenant_id="test-tenant", title="Test Session", agent_role="planner", is_active=True)
         session.add(db_session)
         await session.commit()
         await session.refresh(db_session)
         session_id = db_session.id
 
         # Try to add a message with mismatched session_id
-        message_data = ChatMessageCreate(
-            session_id=999,  # Wrong session ID
-            role="user",
-            content="Test message"
-        )
+        message_data = ChatMessageCreate(session_id=999, role="user", content="Test message")  # Wrong session ID
 
         with pytest.raises(HTTPException) as exc_info:
             await chat_sessions.add_message(session_id, message_data, session)
@@ -626,21 +550,12 @@ class TestDirectFunctionCalls:
         - status_code == 400: Proves the correct error was raised
         """
         from fastapi import HTTPException
+
         from gearmeshing_ai.server.api.v1 import chat_sessions
 
         # Create two sessions
-        session1 = ChatSession(
-            tenant_id="test-tenant",
-            title="Session 1",
-            agent_role="planner",
-            is_active=True
-        )
-        session2 = ChatSession(
-            tenant_id="test-tenant",
-            title="Session 2",
-            agent_role="dev",
-            is_active=True
-        )
+        session1 = ChatSession(tenant_id="test-tenant", title="Session 1", agent_role="planner", is_active=True)
+        session2 = ChatSession(tenant_id="test-tenant", title="Session 2", agent_role="dev", is_active=True)
         session.add(session1)
         session.add(session2)
         await session.commit()
@@ -648,11 +563,7 @@ class TestDirectFunctionCalls:
         await session.refresh(session2)
 
         # Add a message to session1
-        message = ChatMessage(
-            session_id=session1.id,
-            role="user",
-            content="Test message"
-        )
+        message = ChatMessage(session_id=session1.id, role="user", content="Test message")
         session.add(message)
         await session.commit()
         await session.refresh(message)
@@ -684,6 +595,7 @@ class TestDirectFunctionCalls:
         - status_code == 404: Proves the correct error was raised
         """
         from fastapi import HTTPException
+
         from gearmeshing_ai.server.api.v1 import chat_sessions
 
         # Call endpoint directly with non-existent session ID
@@ -713,6 +625,7 @@ class TestDirectFunctionCalls:
         - status_code == 404: Proves the correct error was raised
         """
         from fastapi import HTTPException
+
         from gearmeshing_ai.server.api.v1 import chat_sessions
 
         # Call endpoint directly with non-existent session ID
@@ -742,6 +655,7 @@ class TestDirectFunctionCalls:
         - status_code == 404: Proves the correct error was raised
         """
         from fastapi import HTTPException
+
         from gearmeshing_ai.server.api.v1 import chat_sessions
 
         # Call endpoint directly with non-existent session ID
@@ -772,6 +686,7 @@ class TestDirectFunctionCalls:
         - status_code == 404: Proves the correct error was raised
         """
         from fastapi import HTTPException
+
         from gearmeshing_ai.server.api.v1 import chat_sessions
 
         # Call endpoint directly with non-existent session ID
@@ -801,6 +716,7 @@ class TestDirectFunctionCalls:
         - status_code == 404: Proves the correct error was raised
         """
         from fastapi import HTTPException
+
         from gearmeshing_ai.server.api.v1 import chat_sessions
 
         # Call endpoint directly with non-existent session ID
@@ -830,15 +746,11 @@ class TestDirectFunctionCalls:
         - status_code == 404: Proves the correct error was raised
         """
         from fastapi import HTTPException
+
         from gearmeshing_ai.server.api.v1 import chat_sessions
 
         # Create a session first
-        db_session = ChatSession(
-            tenant_id="test-tenant",
-            title="Test Session",
-            agent_role="planner",
-            is_active=True
-        )
+        db_session = ChatSession(tenant_id="test-tenant", title="Test Session", agent_role="planner", is_active=True)
         session.add(db_session)
         await session.commit()
         await session.refresh(db_session)
@@ -882,7 +794,7 @@ class TestDirectFunctionCalls:
             title="Original Title",
             description="Original Desc",
             agent_role="planner",
-            is_active=True
+            is_active=True,
         )
         session.add(db_session)
         await session.commit()
@@ -890,11 +802,7 @@ class TestDirectFunctionCalls:
         session_id = db_session.id
 
         # Update multiple fields
-        update_data = ChatSessionUpdate(
-            title="New Title",
-            description="New Desc",
-            is_active=False
-        )
+        update_data = ChatSessionUpdate(title="New Title", description="New Desc", is_active=False)
         result = await chat_sessions.update_chat_session(session_id, update_data, session)
 
         # Verify all fields were updated
@@ -931,7 +839,7 @@ class TestDirectFunctionCalls:
             title="Original Title",
             description="Original Desc",
             agent_role="planner",
-            is_active=True
+            is_active=True,
         )
         session.add(db_session)
         await session.commit()
@@ -968,14 +876,11 @@ class TestDirectFunctionCalls:
         - status_code == 404: Proves the correct error was raised
         """
         from fastapi import HTTPException
+
         from gearmeshing_ai.server.api.v1 import chat_sessions
 
         # Try to add a message to non-existent session
-        message_data = ChatMessageCreate(
-            session_id=99999,
-            role="user",
-            content="Test message"
-        )
+        message_data = ChatMessageCreate(session_id=99999, role="user", content="Test message")
 
         # Call endpoint directly with non-existent session ID
         with pytest.raises(HTTPException) as exc_info:
