@@ -50,7 +50,9 @@ os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 @pytest_asyncio.fixture(scope="session")
 async def test_engine():
     """Create a test database engine once per session."""
-    from gearmeshing_ai.agent_core.repos.models import Base
+    from sqlmodel import SQLModel
+
+    from gearmeshing_ai.agent_core.repos.models import Base as AgentCoreBase
 
     engine = create_async_engine(
         TEST_DATABASE_URL,
@@ -58,9 +60,15 @@ async def test_engine():
         poolclass=StaticPool,
     )
 
-    # Create tables using the actual Base metadata from agent_core.repos.models
+    # Import server models to register them with SQLModel
+    import gearmeshing_ai.server.models.agent_config  # noqa: F401
+
+    # Create tables using both agent_core and server models
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        # Create agent_core tables
+        await conn.run_sync(AgentCoreBase.metadata.create_all)
+        # Create server model tables
+        await conn.run_sync(SQLModel.metadata.create_all)
 
     yield engine
 
