@@ -8,10 +8,10 @@ This module defines SQLModel-based models for storing chat sessions
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
 from enum import Enum
+from typing import Optional
 
-from sqlmodel import Column, DateTime, Field, SQLModel, ForeignKey
+from sqlmodel import Column, DateTime, Field, SQLModel
 
 
 class MessageRole(str, Enum):
@@ -39,14 +39,10 @@ class ChatSession(ChatSessionBase, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column=Column(DateTime, nullable=False),
-        description="Creation timestamp"
+        default_factory=datetime.utcnow, sa_column=Column(DateTime, nullable=False), description="Creation timestamp"
     )
     updated_at: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column=Column(DateTime, nullable=False),
-        description="Last update timestamp"
+        default_factory=datetime.utcnow, sa_column=Column(DateTime, nullable=False), description="Last update timestamp"
     )
 
 
@@ -60,8 +56,6 @@ class ChatSessionRead(ChatSessionBase):
 
 class ChatSessionCreate(ChatSessionBase):
     """Schema for creating chat session."""
-
-    pass
 
 
 class ChatSessionUpdate(SQLModel):
@@ -89,9 +83,7 @@ class ChatMessage(ChatMessageBase, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column=Column(DateTime, nullable=False),
-        description="Message timestamp"
+        default_factory=datetime.utcnow, sa_column=Column(DateTime, nullable=False), description="Message timestamp"
     )
 
 
@@ -104,8 +96,6 @@ class ChatMessageRead(ChatMessageBase):
 
 class ChatMessageCreate(ChatMessageBase):
     """Schema for creating chat message."""
-
-    pass
 
 
 class ChatHistoryRead(SQLModel):
