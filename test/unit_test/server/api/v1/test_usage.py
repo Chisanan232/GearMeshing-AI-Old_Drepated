@@ -11,9 +11,10 @@ These tests use direct function calls to ensure proper coverage detection of asy
 See TestDirectFunctionCalls class documentation for why direct calls are necessary.
 """
 
-import pytest
+from datetime import datetime
 from unittest.mock import AsyncMock
-from datetime import datetime, timedelta
+
+import pytest
 
 from gearmeshing_ai.agent_core.schemas.domain import UsageLedgerEntry
 
@@ -79,31 +80,16 @@ class TestDirectFunctionCalls:
         mock_orchestrator = AsyncMock()
         mock_entries = [
             UsageLedgerEntry(
-                id="entry-1",
-                run_id="run-1",
-                prompt_tokens=100,
-                completion_tokens=200,
-                total_tokens=300,
-                cost_usd=3.0
+                id="entry-1", run_id="run-1", prompt_tokens=100, completion_tokens=200, total_tokens=300, cost_usd=3.0
             ),
             UsageLedgerEntry(
-                id="entry-2",
-                run_id="run-2",
-                prompt_tokens=200,
-                completion_tokens=500,
-                total_tokens=700,
-                cost_usd=7.0
-            )
+                id="entry-2", run_id="run-2", prompt_tokens=200, completion_tokens=500, total_tokens=700, cost_usd=7.0
+            ),
         ]
         mock_orchestrator.list_usage = AsyncMock(return_value=mock_entries)
 
         # Call endpoint directly
-        result = await usage.get_usage(
-            mock_orchestrator,
-            tenant_id="test-tenant",
-            from_date=None,
-            to_date=None
-        )
+        result = await usage.get_usage(mock_orchestrator, tenant_id="test-tenant", from_date=None, to_date=None)
 
         # Verify
         assert result is not None
@@ -111,9 +97,7 @@ class TestDirectFunctionCalls:
         assert result["total_tokens"] == 1000
         assert result["total_cost_usd"] == 10.0
         assert result["entries_count"] == 2
-        mock_orchestrator.list_usage.assert_called_once_with(
-            tenant_id="test-tenant", from_date=None, to_date=None
-        )
+        mock_orchestrator.list_usage.assert_called_once_with(tenant_id="test-tenant", from_date=None, to_date=None)
 
     async def test_get_usage_empty_entries_direct_call(self):
         """Test get usage with no entries - covers lines 35-47.
@@ -139,12 +123,7 @@ class TestDirectFunctionCalls:
         mock_orchestrator.list_usage = AsyncMock(return_value=[])
 
         # Call endpoint directly
-        result = await usage.get_usage(
-            mock_orchestrator,
-            tenant_id="test-tenant",
-            from_date=None,
-            to_date=None
-        )
+        result = await usage.get_usage(mock_orchestrator, tenant_id="test-tenant", from_date=None, to_date=None)
 
         # Verify
         assert result is not None
@@ -177,26 +156,16 @@ class TestDirectFunctionCalls:
         mock_orchestrator = AsyncMock()
         from_date = datetime(2025, 1, 1)
         to_date = datetime(2025, 1, 31)
-        
+
         mock_entries = [
             UsageLedgerEntry(
-                id="entry-1",
-                run_id="run-1",
-                prompt_tokens=100,
-                completion_tokens=200,
-                total_tokens=300,
-                cost_usd=3.0
+                id="entry-1", run_id="run-1", prompt_tokens=100, completion_tokens=200, total_tokens=300, cost_usd=3.0
             )
         ]
         mock_orchestrator.list_usage = AsyncMock(return_value=mock_entries)
 
         # Call endpoint directly
-        result = await usage.get_usage(
-            mock_orchestrator,
-            tenant_id="test-tenant",
-            from_date=from_date,
-            to_date=to_date
-        )
+        result = await usage.get_usage(mock_orchestrator, tenant_id="test-tenant", from_date=from_date, to_date=to_date)
 
         # Verify
         assert result is not None
@@ -226,12 +195,7 @@ class TestDirectFunctionCalls:
         mock_orchestrator = AsyncMock()
         mock_entries = [
             UsageLedgerEntry(
-                id="entry-1",
-                run_id="run-1",
-                prompt_tokens=100,
-                completion_tokens=200,
-                total_tokens=300,
-                cost_usd=5.0
+                id="entry-1", run_id="run-1", prompt_tokens=100, completion_tokens=200, total_tokens=300, cost_usd=5.0
             ),
             UsageLedgerEntry(
                 id="entry-2",
@@ -239,18 +203,13 @@ class TestDirectFunctionCalls:
                 prompt_tokens=50,
                 completion_tokens=100,
                 total_tokens=150,
-                cost_usd=None  # Null cost
-            )
+                cost_usd=None,  # Null cost
+            ),
         ]
         mock_orchestrator.list_usage = AsyncMock(return_value=mock_entries)
 
         # Call endpoint directly
-        result = await usage.get_usage(
-            mock_orchestrator,
-            tenant_id="test-tenant",
-            from_date=None,
-            to_date=None
-        )
+        result = await usage.get_usage(mock_orchestrator, tenant_id="test-tenant", from_date=None, to_date=None)
 
         # Verify
         assert result is not None
@@ -284,7 +243,7 @@ class TestDirectFunctionCalls:
                 prompt_tokens=300000,
                 completion_tokens=200000,
                 total_tokens=500000,
-                cost_usd=5000.0
+                cost_usd=5000.0,
             ),
             UsageLedgerEntry(
                 id="entry-2",
@@ -292,18 +251,13 @@ class TestDirectFunctionCalls:
                 prompt_tokens=300000,
                 completion_tokens=200000,
                 total_tokens=500000,
-                cost_usd=5000.0
-            )
+                cost_usd=5000.0,
+            ),
         ]
         mock_orchestrator.list_usage = AsyncMock(return_value=mock_entries)
 
         # Call endpoint directly
-        result = await usage.get_usage(
-            mock_orchestrator,
-            tenant_id="test-tenant",
-            from_date=None,
-            to_date=None
-        )
+        result = await usage.get_usage(mock_orchestrator, tenant_id="test-tenant", from_date=None, to_date=None)
 
         # Verify
         assert result is not None
@@ -333,23 +287,13 @@ class TestDirectFunctionCalls:
         mock_orchestrator = AsyncMock()
         mock_entries = [
             UsageLedgerEntry(
-                id="entry-1",
-                run_id="run-1",
-                prompt_tokens=200,
-                completion_tokens=300,
-                total_tokens=500,
-                cost_usd=5.0
+                id="entry-1", run_id="run-1", prompt_tokens=200, completion_tokens=300, total_tokens=500, cost_usd=5.0
             )
         ]
         mock_orchestrator.list_usage = AsyncMock(return_value=mock_entries)
 
         # Call endpoint directly
-        result = await usage.get_usage(
-            mock_orchestrator,
-            tenant_id="test-tenant",
-            from_date=None,
-            to_date=None
-        )
+        result = await usage.get_usage(mock_orchestrator, tenant_id="test-tenant", from_date=None, to_date=None)
 
         # Verify
         assert result is not None
