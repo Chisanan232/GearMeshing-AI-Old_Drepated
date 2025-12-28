@@ -188,29 +188,6 @@ def initialize_langsmith() -> None:
         logger.error(f"Failed to initialize LangSmith: {e}", exc_info=True)
 
 
-def get_langsmith_context() -> Optional[dict]:
-    """
-    Get the current LangSmith trace context.
-
-    Returns:
-        Dictionary with current LangSmith trace context or None if not available.
-        Includes run_id, session_name, and run_type if available.
-    """
-    try:
-        from langsmith.run_trees import get_run_tree
-
-        run_tree = get_run_tree()
-        if run_tree:
-            return {
-                "run_id": str(run_tree.id),
-                "session_name": run_tree.session_name,
-                "run_type": run_tree.run_type,
-            }
-        return None
-    except Exception:
-        return None
-
-
 def wrap_openai_client(client):
     """
     Wrap an OpenAI client for LangSmith tracing.

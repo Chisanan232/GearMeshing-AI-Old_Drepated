@@ -1065,48 +1065,6 @@ class TestInitializeLangSmith:
                 del os.environ["LANGSMITH_API_KEY"]
 
 
-class TestGetLangSmithContext:
-    """Test get_langsmith_context function."""
-
-    def test_get_langsmith_context_returns_none_when_unavailable(self):
-        """Test that None is returned when LangSmith context is unavailable."""
-        from gearmeshing_ai.core.monitoring import get_langsmith_context
-
-        result = get_langsmith_context()
-        # Should return None or dict
-        assert result is None or isinstance(result, dict)
-
-    def test_get_langsmith_context_handles_import_error(self):
-        """Test that ImportError is handled gracefully."""
-        from gearmeshing_ai.core.monitoring import get_langsmith_context
-
-        with patch("builtins.__import__", side_effect=ImportError("langsmith not installed")):
-            result = get_langsmith_context()
-
-            # Should return None on ImportError
-            assert result is None
-
-    def test_get_langsmith_context_handles_exception(self):
-        """Test that exceptions are handled gracefully."""
-        from gearmeshing_ai.core.monitoring import get_langsmith_context
-
-        with patch("builtins.__import__") as mock_import:
-            mock_langsmith = MagicMock()
-            mock_langsmith.get_run_tree.side_effect = RuntimeError("LangSmith error")
-
-            def import_side_effect(name, *args, **kwargs):
-                if name == "langsmith":
-                    return mock_langsmith
-                return __import__(name, *args, **kwargs)
-
-            mock_import.side_effect = import_side_effect
-
-            result = get_langsmith_context()
-
-            # Should return None on exception
-            assert result is None
-
-
 class TestWrapOpenAIClient:
     """Test OpenAI client wrapping for LangSmith tracing."""
 
