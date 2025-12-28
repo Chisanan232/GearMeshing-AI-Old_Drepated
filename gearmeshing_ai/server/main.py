@@ -11,6 +11,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from gearmeshing_ai.core.logging_config import get_logger, setup_logging
+from gearmeshing_ai.core.monitoring import initialize_logfire
+from gearmeshing_ai.server.middleware.logfire_middleware import LogfireMiddleware
 
 from .api.v1 import (
     agent_configs,
@@ -66,6 +68,12 @@ app = FastAPI(
     redoc_url=f"{constant.API_V1_STR}/redoc",
     lifespan=lifespan,
 )
+
+# Initialize Logfire monitoring with FastAPI app instance
+initialize_logfire(app=app)
+
+# Add Logfire middleware for request tracing
+app.add_middleware(LogfireMiddleware)
 
 # Set all CORS enabled origins
 app.add_middleware(

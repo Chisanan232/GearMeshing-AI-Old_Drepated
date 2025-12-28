@@ -84,6 +84,12 @@ pre-commit-ci = [
     "pylint>=3.1.0,<5",
     "mypy>=1.2.0,<2",
 ]
+# Optional monitoring and observability
+monitoring = [
+    "logfire>=4.16.0",
+    "logfire[fastapi]>=4.16.0",
+    "logfire[sqlalchemy]>=4.16.0",
+]
 
 # Optional group for contract tests with external AI agent frameworks.
 # These are heavy optional dependencies and are not enabled by default.
@@ -120,6 +126,7 @@ contract-test-with-ai-frameworks = [
 default-groups = [
     "dev",
     "pre-commit-ci",
+    "monitoring",
 ]
 
 [tool.hatch.build.targets.sdist]

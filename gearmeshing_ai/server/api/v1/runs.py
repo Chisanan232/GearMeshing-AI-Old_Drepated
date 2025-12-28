@@ -3,6 +3,12 @@ Agent Runs API Endpoints.
 
 This module provides the primary interface for creating, managing, and retrieving
 agent execution runs. It handles the lifecycle of an agent task from start to finish.
+
+Includes monitoring and tracing via Pydantic AI Logfire for:
+- Agent run lifecycle tracking
+- Performance metrics
+- Error tracking
+- Resource usage monitoring
 """
 
 from typing import List
@@ -15,6 +21,10 @@ from gearmeshing_ai.agent_core.schemas.domain import (
     AgentRunStatus,
 )
 from gearmeshing_ai.core.logging_config import get_logger
+from gearmeshing_ai.core.monitoring import (
+    log_agent_run,
+    log_error,
+)
 from gearmeshing_ai.server.schemas import RunCreate, RunResume
 from gearmeshing_ai.server.services.deps import OrchestratorDep
 
@@ -76,9 +86,30 @@ async def create_run(run_in: RunCreate, orchestrator: OrchestratorDep, backgroun
         logger.debug("Delegating to orchestrator for run creation")
         created_run = await orchestrator.create_run(run_domain)
         logger.info(f"Run created successfully: {created_run.id}")
+
+        # Log to Logfire for monitoring
+        log_agent_run(
+            run_id=created_run.id,
+            tenant_id=run_in.tenant_id,
+            objective=run_in.objective,
+            role=run_in.role,
+        )
+
         return created_run
     except Exception as e:
         logger.error(f"Failed to create run for tenant {run_in.tenant_id}: {e}", exc_info=True)
+
+        # Log error to Logfire for monitoring
+        log_error(
+            error_type="RunCreationError",
+            error_message=str(e),
+            context={
+                "tenant_id": run_in.tenant_id,
+                "objective": run_in.objective,
+                "role": run_in.role,
+            },
+        )
+
         raise
 
 
