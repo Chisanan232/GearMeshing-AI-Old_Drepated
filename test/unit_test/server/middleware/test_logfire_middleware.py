@@ -40,15 +40,10 @@ class TestLogfireMiddlewareDispatch:
 
         middleware = LogfireMiddleware(app=AsyncMock())
 
-        with patch("gearmeshing_ai.server.middleware.logfire_middleware.log_api_request") as mock_log:
-            response = await middleware.dispatch(mock_request, mock_call_next)
+        response = await middleware.dispatch(mock_request, mock_call_next)
 
-            assert response.status_code == 200
-            mock_log.assert_called_once()
-            call_args = mock_log.call_args
-            assert call_args[1]["method"] == "GET"
-            assert call_args[1]["path"] == "/api/v1/test"
-            assert call_args[1]["status_code"] == 200
+        assert response.status_code == 200
+        assert "X-Process-Time" in response.headers
 
     @pytest.mark.asyncio
     async def test_middleware_measures_request_duration(self):
@@ -70,13 +65,13 @@ class TestLogfireMiddlewareDispatch:
 
         middleware = LogfireMiddleware(app=AsyncMock())
 
-        with patch("gearmeshing_ai.server.middleware.logfire_middleware.log_api_request") as mock_log:
-            response = await middleware.dispatch(mock_request, mock_call_next)
+        response = await middleware.dispatch(mock_request, mock_call_next)
 
-            mock_log.assert_called_once()
-            call_args = mock_log.call_args
-            # Duration should be a positive number
-            assert call_args[1]["duration_ms"] >= 0
+        assert response.status_code == 201
+        # Duration should be in header
+        assert "X-Process-Time" in response.headers
+        duration_ms = float(response.headers["X-Process-Time"])
+        assert duration_ms >= 0
 
     @pytest.mark.asyncio
     async def test_middleware_adds_process_time_header(self):
@@ -96,12 +91,11 @@ class TestLogfireMiddlewareDispatch:
 
         middleware = LogfireMiddleware(app=AsyncMock())
 
-        with patch("gearmeshing_ai.server.middleware.logfire_middleware.log_api_request"):
-            response = await middleware.dispatch(mock_request, mock_call_next)
+        response = await middleware.dispatch(mock_request, mock_call_next)
 
-            assert "X-Process-Time" in response.headers
-            # Should be a numeric string
-            assert float(response.headers["X-Process-Time"]) >= 0
+        assert "X-Process-Time" in response.headers
+        # Should be a numeric string
+        assert float(response.headers["X-Process-Time"]) >= 0
 
     @pytest.mark.asyncio
     async def test_middleware_detects_slow_requests(self):
@@ -123,18 +117,17 @@ class TestLogfireMiddlewareDispatch:
 
         middleware = LogfireMiddleware(app=AsyncMock())
 
-        with patch("gearmeshing_ai.server.middleware.logfire_middleware.log_api_request"):
-            with patch("gearmeshing_ai.server.middleware.logfire_middleware.logger") as mock_logger:
-                with patch("gearmeshing_ai.server.middleware.logfire_middleware.time.time") as mock_time:
-                    # Simulate 1.5 second duration
-                    mock_time.side_effect = [0, 1.5]
+        with patch("gearmeshing_ai.server.middleware.logfire_middleware.logger") as mock_logger:
+            with patch("gearmeshing_ai.server.middleware.logfire_middleware.time.time") as mock_time:
+                # Simulate 1.5 second duration
+                mock_time.side_effect = [0, 1.5]
 
-                    response = await middleware.dispatch(mock_request, mock_call_next)
+                response = await middleware.dispatch(mock_request, mock_call_next)
 
-                    # Should log warning for slow request
-                    mock_logger.warning.assert_called_once()
-                    call_args = mock_logger.warning.call_args
-                    assert "Slow API request" in call_args[0][0]
+                # Should log warning for slow request
+                mock_logger.warning.assert_called_once()
+                call_args = mock_logger.warning.call_args
+                assert "Slow API request" in call_args[0][0]
 
     @pytest.mark.asyncio
     async def test_middleware_handles_request_exception(self):
@@ -152,17 +145,12 @@ class TestLogfireMiddlewareDispatch:
 
         middleware = LogfireMiddleware(app=AsyncMock())
 
-        with patch("gearmeshing_ai.server.middleware.logfire_middleware.log_api_request") as mock_log:
-            with patch("gearmeshing_ai.server.middleware.logfire_middleware.logger") as mock_logger:
-                with pytest.raises(ValueError):
-                    await middleware.dispatch(mock_request, mock_call_next)
+        with patch("gearmeshing_ai.server.middleware.logfire_middleware.logger") as mock_logger:
+            with pytest.raises(ValueError):
+                await middleware.dispatch(mock_request, mock_call_next)
 
-                # Should log error
-                mock_logger.error.assert_called_once()
-                # Should still log API request with 500 status
-                mock_log.assert_called_once()
-                call_args = mock_log.call_args
-                assert call_args[1]["status_code"] == 500
+            # Should log error
+            mock_logger.error.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_middleware_stores_request_context(self):
@@ -182,13 +170,12 @@ class TestLogfireMiddlewareDispatch:
 
         middleware = LogfireMiddleware(app=AsyncMock())
 
-        with patch("gearmeshing_ai.server.middleware.logfire_middleware.log_api_request"):
-            response = await middleware.dispatch(mock_request, mock_call_next)
+        response = await middleware.dispatch(mock_request, mock_call_next)
 
-            # Check that request state was populated
-            assert mock_request.state.start_time is not None
-            assert mock_request.state.method == "POST"
-            assert mock_request.state.path == "/api/v1/runs"
+        # Check that request state was populated
+        assert mock_request.state.start_time is not None
+        assert mock_request.state.method == "POST"
+        assert mock_request.state.path == "/api/v1/runs"
 
     @pytest.mark.asyncio
     async def test_middleware_logs_different_http_methods(self):
@@ -211,11 +198,10 @@ class TestLogfireMiddlewareDispatch:
 
             middleware = LogfireMiddleware(app=AsyncMock())
 
-            with patch("gearmeshing_ai.server.middleware.logfire_middleware.log_api_request") as mock_log:
-                response = await middleware.dispatch(mock_request, mock_call_next)
+            response = await middleware.dispatch(mock_request, mock_call_next)
 
-                call_args = mock_log.call_args
-                assert call_args[1]["method"] == method
+            assert response.status_code == 200
+            assert "X-Process-Time" in response.headers
 
     @pytest.mark.asyncio
     async def test_middleware_logs_different_status_codes(self):
@@ -238,11 +224,9 @@ class TestLogfireMiddlewareDispatch:
 
             middleware = LogfireMiddleware(app=AsyncMock())
 
-            with patch("gearmeshing_ai.server.middleware.logfire_middleware.log_api_request") as mock_log:
-                response = await middleware.dispatch(mock_request, mock_call_next)
+            response = await middleware.dispatch(mock_request, mock_call_next)
 
-                call_args = mock_log.call_args
-                assert call_args[1]["status_code"] == status_code
+            assert response.status_code == status_code
 
     @pytest.mark.asyncio
     async def test_middleware_handles_exception_with_logging(self):
@@ -262,15 +246,14 @@ class TestLogfireMiddlewareDispatch:
 
         middleware = LogfireMiddleware(app=AsyncMock())
 
-        with patch("gearmeshing_ai.server.middleware.logfire_middleware.log_api_request"):
-            with patch("gearmeshing_ai.server.middleware.logfire_middleware.logger") as mock_logger:
-                with pytest.raises(RuntimeError):
-                    await middleware.dispatch(mock_request, mock_call_next)
+        with patch("gearmeshing_ai.server.middleware.logfire_middleware.logger") as mock_logger:
+            with pytest.raises(RuntimeError):
+                await middleware.dispatch(mock_request, mock_call_next)
 
-                # Should log error with exc_info
-                mock_logger.error.assert_called_once()
-                call_args = mock_logger.error.call_args
-                assert call_args[1]["exc_info"] is True
+            # Should log error with exc_info
+            mock_logger.error.assert_called_once()
+            call_args = mock_logger.error.call_args
+            assert call_args[1]["exc_info"] is True
 
     @pytest.mark.asyncio
     async def test_middleware_preserves_response_content(self):
@@ -291,10 +274,9 @@ class TestLogfireMiddlewareDispatch:
 
         middleware = LogfireMiddleware(app=AsyncMock())
 
-        with patch("gearmeshing_ai.server.middleware.logfire_middleware.log_api_request"):
-            response = await middleware.dispatch(mock_request, mock_call_next)
+        response = await middleware.dispatch(mock_request, mock_call_next)
 
-            assert response.body == expected_content
+        assert response.body == expected_content
 
 
 class TestLogfireMiddlewareIntegration:
@@ -332,13 +314,12 @@ class TestLogfireMiddlewareEdgeCases:
 
         middleware = LogfireMiddleware(app=AsyncMock())
 
-        with patch("gearmeshing_ai.server.middleware.logfire_middleware.log_api_request") as mock_log:
-            response = await middleware.dispatch(mock_request, mock_call_next)
+        response = await middleware.dispatch(mock_request, mock_call_next)
 
-            mock_log.assert_called_once()
-            call_args = mock_log.call_args
-            # Duration should be >= 0
-            assert call_args[1]["duration_ms"] >= 0
+        assert response.status_code == 200
+        assert "X-Process-Time" in response.headers
+        duration_ms = float(response.headers["X-Process-Time"])
+        assert duration_ms >= 0
 
     @pytest.mark.asyncio
     async def test_middleware_with_empty_path(self):
@@ -358,12 +339,10 @@ class TestLogfireMiddlewareEdgeCases:
 
         middleware = LogfireMiddleware(app=AsyncMock())
 
-        with patch("gearmeshing_ai.server.middleware.logfire_middleware.log_api_request") as mock_log:
-            response = await middleware.dispatch(mock_request, mock_call_next)
+        response = await middleware.dispatch(mock_request, mock_call_next)
 
-            mock_log.assert_called_once()
-            call_args = mock_log.call_args
-            assert call_args[1]["path"] == "/"
+        assert response.status_code == 200
+        assert mock_request.state.path == "/"
 
     @pytest.mark.asyncio
     async def test_middleware_with_special_characters_in_path(self):
@@ -383,12 +362,10 @@ class TestLogfireMiddlewareEdgeCases:
 
         middleware = LogfireMiddleware(app=AsyncMock())
 
-        with patch("gearmeshing_ai.server.middleware.logfire_middleware.log_api_request") as mock_log:
-            response = await middleware.dispatch(mock_request, mock_call_next)
+        response = await middleware.dispatch(mock_request, mock_call_next)
 
-            mock_log.assert_called_once()
-            call_args = mock_log.call_args
-            assert call_args[1]["path"] == "/api/v1/test-endpoint_123"
+        assert response.status_code == 200
+        assert mock_request.state.path == "/api/v1/test-endpoint_123"
 
     @pytest.mark.asyncio
     async def test_middleware_with_large_response(self):
@@ -410,8 +387,7 @@ class TestLogfireMiddlewareEdgeCases:
 
         middleware = LogfireMiddleware(app=AsyncMock())
 
-        with patch("gearmeshing_ai.server.middleware.logfire_middleware.log_api_request") as mock_log:
-            response = await middleware.dispatch(mock_request, mock_call_next)
+        response = await middleware.dispatch(mock_request, mock_call_next)
 
-            mock_log.assert_called_once()
-            assert response.body == large_content
+        assert response.status_code == 200
+        assert response.body == large_content

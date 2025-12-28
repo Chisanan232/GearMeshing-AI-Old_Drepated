@@ -451,49 +451,6 @@ class TestLogLLMCall:
         assert True
 
 
-class TestLogAPIRequest:
-    """Test log_api_request function."""
-
-    def test_log_api_request_success(self):
-        """Test successful API request logging."""
-        from gearmeshing_ai.core.monitoring import log_api_request
-
-        log_api_request(
-            method="POST",
-            path="/api/v1/runs/",
-            status_code=201,
-            duration_ms=234.5
-        )
-        assert True
-
-    def test_log_api_request_with_different_methods(self):
-        """Test API request logging with different HTTP methods."""
-        from gearmeshing_ai.core.monitoring import log_api_request
-
-        methods = ["GET", "POST", "PUT", "DELETE", "PATCH"]
-        for method in methods:
-            log_api_request(method=method, path="/api/test", status_code=200, duration_ms=100)
-
-        assert True
-
-    def test_log_api_request_with_error_status(self):
-        """Test API request logging with error status codes."""
-        from gearmeshing_ai.core.monitoring import log_api_request
-
-        error_codes = [400, 401, 403, 404, 500, 502, 503]
-        for code in error_codes:
-            log_api_request(method="GET", path="/api/test", status_code=code, duration_ms=100)
-
-        assert True
-
-    def test_log_api_request_handles_exception(self):
-        """Test that exceptions are handled gracefully."""
-        from gearmeshing_ai.core.monitoring import log_api_request
-
-        log_api_request(method="GET", path="/api/test", status_code=200, duration_ms=100)
-        assert True
-
-
 class TestLogError:
     """Test log_error function."""
 
