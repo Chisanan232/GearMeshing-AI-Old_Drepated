@@ -41,7 +41,6 @@ class LogfireMiddleware(BaseHTTPMiddleware):
         # Extract request information
         method = request.method
         path = request.url.path
-        query_string = request.url.query
 
         # Add request context to logs
         request.state.start_time = start_time
