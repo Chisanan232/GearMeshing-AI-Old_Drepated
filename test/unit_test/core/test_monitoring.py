@@ -1065,6 +1065,191 @@ class TestInitializeLangSmith:
                 del os.environ["LANGSMITH_API_KEY"]
 
 
+class TestInitializeLangSmithErrorHandling:
+    """Test error handling in LangSmith initialization."""
+
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_TRACING", True)
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_API_KEY", "test-key")
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_PROJECT", "test-project")
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_initialize_langsmith_handles_runtime_error(self, mock_logger):
+        """Test that RuntimeError during initialization is handled."""
+        from gearmeshing_ai.core.monitoring import initialize_langsmith
+
+        # Mock os.environ as a dict-like object that raises on setitem
+        mock_environ = MagicMock()
+        mock_environ.__setitem__.side_effect = RuntimeError("Unexpected error")
+
+        with patch("gearmeshing_ai.core.monitoring.os.environ", mock_environ):
+            initialize_langsmith()
+
+            # Should log error with exc_info
+            mock_logger.error.assert_called_once()
+            call_args = mock_logger.error.call_args
+            assert "Failed to initialize LangSmith" in call_args[0][0]
+            assert call_args[1].get("exc_info") is True
+
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_TRACING", True)
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_API_KEY", "test-key")
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_PROJECT", "test-project")
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_initialize_langsmith_handles_type_error(self, mock_logger):
+        """Test that TypeError during initialization is handled."""
+        from gearmeshing_ai.core.monitoring import initialize_langsmith
+
+        mock_environ = MagicMock()
+        mock_environ.__setitem__.side_effect = TypeError("Invalid type")
+
+        with patch("gearmeshing_ai.core.monitoring.os.environ", mock_environ):
+            initialize_langsmith()
+
+            # Should log error
+            mock_logger.error.assert_called_once()
+            assert "Failed to initialize LangSmith" in mock_logger.error.call_args[0][0]
+
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_TRACING", True)
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_API_KEY", "test-key")
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_PROJECT", "test-project")
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_initialize_langsmith_handles_value_error(self, mock_logger):
+        """Test that ValueError during initialization is handled."""
+        from gearmeshing_ai.core.monitoring import initialize_langsmith
+
+        mock_environ = MagicMock()
+        mock_environ.__setitem__.side_effect = ValueError("Invalid value")
+
+        with patch("gearmeshing_ai.core.monitoring.os.environ", mock_environ):
+            initialize_langsmith()
+
+            # Should log error
+            mock_logger.error.assert_called_once()
+            assert "Failed to initialize LangSmith" in mock_logger.error.call_args[0][0]
+
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_TRACING", True)
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_API_KEY", "test-key")
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_PROJECT", "test-project")
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_initialize_langsmith_handles_generic_exception(self, mock_logger):
+        """Test that generic exceptions during initialization are handled."""
+        from gearmeshing_ai.core.monitoring import initialize_langsmith
+
+        mock_environ = MagicMock()
+        mock_environ.__setitem__.side_effect = Exception("Generic error")
+
+        with patch("gearmeshing_ai.core.monitoring.os.environ", mock_environ):
+            initialize_langsmith()
+
+            # Should log error
+            mock_logger.error.assert_called_once()
+            assert "Failed to initialize LangSmith" in mock_logger.error.call_args[0][0]
+
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_TRACING", True)
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_API_KEY", "test-key")
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_PROJECT", "test-project")
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_initialize_langsmith_error_includes_exception_info(self, mock_logger):
+        """Test that error logging includes exception info for debugging."""
+        from gearmeshing_ai.core.monitoring import initialize_langsmith
+
+        mock_environ = MagicMock()
+        mock_environ.__setitem__.side_effect = RuntimeError("Test error")
+
+        with patch("gearmeshing_ai.core.monitoring.os.environ", mock_environ):
+            initialize_langsmith()
+
+            # Should log error with exc_info=True for full traceback
+            mock_logger.error.assert_called_once()
+            call_args = mock_logger.error.call_args
+            assert call_args[1].get("exc_info") is True
+
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_TRACING", True)
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_API_KEY", "test-key")
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_PROJECT", "test-project")
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_initialize_langsmith_continues_after_error(self, mock_logger):
+        """Test that application continues even if initialization fails."""
+        from gearmeshing_ai.core.monitoring import initialize_langsmith
+
+        mock_environ = MagicMock()
+        mock_environ.__setitem__.side_effect = RuntimeError("Initialization failed")
+
+        with patch("gearmeshing_ai.core.monitoring.os.environ", mock_environ):
+            # Should not raise exception
+            try:
+                initialize_langsmith()
+            except Exception as e:
+                pytest.fail(f"initialize_langsmith should not raise exception, but raised {type(e).__name__}: {e}")
+
+            # Should log error
+            mock_logger.error.assert_called_once()
+
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_TRACING", True)
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_API_KEY", "test-key")
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_PROJECT", "test-project")
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_initialize_langsmith_error_message_includes_exception_details(self, mock_logger):
+        """Test that error message includes exception details."""
+        from gearmeshing_ai.core.monitoring import initialize_langsmith
+
+        error_msg = "Specific error message"
+        mock_environ = MagicMock()
+        mock_environ.__setitem__.side_effect = RuntimeError(error_msg)
+
+        with patch("gearmeshing_ai.core.monitoring.os.environ", mock_environ):
+            initialize_langsmith()
+
+            # Should log error with exception message
+            mock_logger.error.assert_called_once()
+            call_args = mock_logger.error.call_args[0][0]
+            assert error_msg in call_args
+
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_TRACING", True)
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_API_KEY", "test-key")
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_PROJECT", "test-project")
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_initialize_langsmith_handles_os_error(self, mock_logger):
+        """Test that OSError during initialization is handled."""
+        from gearmeshing_ai.core.monitoring import initialize_langsmith
+
+        mock_environ = MagicMock()
+        mock_environ.__setitem__.side_effect = OSError("Permission denied")
+
+        with patch("gearmeshing_ai.core.monitoring.os.environ", mock_environ):
+            initialize_langsmith()
+
+            # Should log error
+            mock_logger.error.assert_called_once()
+            assert "Failed to initialize LangSmith" in mock_logger.error.call_args[0][0]
+
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_TRACING", True)
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_API_KEY", "test-key")
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_PROJECT", "test-project")
+    @patch("gearmeshing_ai.core.monitoring.LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_initialize_langsmith_error_on_first_setitem(self, mock_logger):
+        """Test error handling when first environment variable fails."""
+        from gearmeshing_ai.core.monitoring import initialize_langsmith
+
+        mock_environ = MagicMock()
+        # Fail on the first call to __setitem__
+        mock_environ.__setitem__.side_effect = RuntimeError("First setitem failed")
+
+        with patch("gearmeshing_ai.core.monitoring.os.environ", mock_environ):
+            initialize_langsmith()
+
+            # Should log error
+            mock_logger.error.assert_called_once()
+            assert "Failed to initialize LangSmith" in mock_logger.error.call_args[0][0]
+
+
 class TestWrapOpenAIClient:
     """Test OpenAI client wrapping for LangSmith tracing."""
 
