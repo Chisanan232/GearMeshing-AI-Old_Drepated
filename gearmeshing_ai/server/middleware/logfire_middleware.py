@@ -17,7 +17,6 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
 from gearmeshing_ai.core.logging_config import get_logger
-from gearmeshing_ai.core.monitoring import log_api_request
 
 logger = get_logger(__name__)
 
@@ -56,14 +55,6 @@ class LogfireMiddleware(BaseHTTPMiddleware):
             # Calculate duration
             duration_ms = (time.time() - start_time) * 1000
 
-            # Log the request
-            log_api_request(
-                method=method,
-                path=path,
-                status_code=response.status_code,
-                duration_ms=duration_ms,
-            )
-
             # Add performance header
             response.headers["X-Process-Time"] = str(duration_ms)
 
@@ -95,14 +86,6 @@ class LogfireMiddleware(BaseHTTPMiddleware):
                     "duration_ms": duration_ms,
                     "error": str(e),
                 },
-            )
-
-            # Log to Logfire
-            log_api_request(
-                method=method,
-                path=path,
-                status_code=500,
-                duration_ms=duration_ms,
             )
 
             raise

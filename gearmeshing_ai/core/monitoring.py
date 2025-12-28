@@ -221,30 +221,6 @@ def log_llm_call(model: str, tokens_used: int, cost_usd: Optional[float] = None)
         logger.debug(f"Could not log LLM call to Logfire: model={model}")
 
 
-def log_api_request(method: str, path: str, status_code: int, duration_ms: float) -> None:
-    """
-    Log an API request with performance metrics.
-
-    Args:
-        method: HTTP method
-        path: Request path
-        status_code: HTTP status code
-        duration_ms: Request duration in milliseconds
-    """
-    try:
-        import logfire
-
-        logfire.info(
-            "API request completed",
-            method=method,
-            path=path,
-            status_code=status_code,
-            duration_ms=duration_ms,
-        )
-    except Exception:
-        logger.debug(f"Could not log API request to Logfire: {method} {path}")
-
-
 def log_error(error_type: str, error_message: str, context: Optional[dict] = None) -> None:
     """
     Log an error with context for debugging.
