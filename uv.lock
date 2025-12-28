@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -1053,6 +1053,9 @@ dev = [
     { name = "pytest-rerunfailures" },
     { name = "testcontainers" },
 ]
+monitoring = [
+    { name = "logfire" },
+]
 pre-commit-ci = [
     { name = "mypy" },
     { name = "pre-commit" },
@@ -1089,6 +1092,7 @@ dev = [
     { name = "pytest-rerunfailures", specifier = "~=16.0" },
     { name = "testcontainers", specifier = ">=4.7.2" },
 ]
+monitoring = [{ name = "logfire", specifier = ">=4.16.0" }]
 pre-commit-ci = [
     { name = "mypy", specifier = ">=1.2.0,<2" },
     { name = "pre-commit", specifier = ">=3.5.0,<5" },
