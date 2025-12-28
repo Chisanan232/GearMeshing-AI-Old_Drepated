@@ -488,3 +488,444 @@ class TestGetLogfireContext:
         result = get_logfire_context()
         # Should handle gracefully and return None or dict
         assert result is None or isinstance(result, dict)
+
+
+class TestInitializeLogfireErrorHandling:
+    """Test error handling in Logfire initialization."""
+
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_ENABLED", True)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TOKEN", "test-token")
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_PYDANTIC_AI", True)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_SQLALCHEMY", False)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_HTTPX", False)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_FASTAPI", False)
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_initialize_logfire_handles_pydantic_ai_instrumentation_failure(self, mock_logger):
+        """Test that Pydantic AI instrumentation failure is handled gracefully."""
+        from gearmeshing_ai.core.monitoring import initialize_logfire
+
+        with patch("builtins.__import__") as mock_import:
+            mock_logfire = MagicMock()
+            mock_logfire.instrument_pydantic_ai.side_effect = RuntimeError("Instrumentation failed")
+
+            def import_side_effect(name, *args, **kwargs):
+                if name == "logfire":
+                    return mock_logfire
+                return __import__(name, *args, **kwargs)
+
+            mock_import.side_effect = import_side_effect
+
+            # Should not raise, should handle gracefully
+            initialize_logfire()
+
+            # Should log warning about failure
+            mock_logger.warning.assert_called()
+
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_ENABLED", True)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TOKEN", "test-token")
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_PYDANTIC_AI", False)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_SQLALCHEMY", True)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_HTTPX", False)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_FASTAPI", False)
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_initialize_logfire_handles_sqlalchemy_instrumentation_failure(self, mock_logger):
+        """Test that SQLAlchemy instrumentation failure is handled gracefully."""
+        from gearmeshing_ai.core.monitoring import initialize_logfire
+
+        with patch("builtins.__import__") as mock_import:
+            mock_logfire = MagicMock()
+            mock_logfire.instrument_sqlalchemy.side_effect = RuntimeError("SQLAlchemy instrumentation failed")
+
+            def import_side_effect(name, *args, **kwargs):
+                if name == "logfire":
+                    return mock_logfire
+                return __import__(name, *args, **kwargs)
+
+            mock_import.side_effect = import_side_effect
+
+            # Should not raise, should handle gracefully
+            initialize_logfire()
+
+            # Should log warning about failure
+            mock_logger.warning.assert_called()
+
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_ENABLED", True)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TOKEN", "test-token")
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_PYDANTIC_AI", False)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_SQLALCHEMY", False)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_HTTPX", True)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_FASTAPI", False)
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_initialize_logfire_handles_httpx_instrumentation_failure(self, mock_logger):
+        """Test that HTTPX instrumentation failure is handled gracefully."""
+        from gearmeshing_ai.core.monitoring import initialize_logfire
+
+        with patch("builtins.__import__") as mock_import:
+            mock_logfire = MagicMock()
+            mock_logfire.instrument_httpx.side_effect = RuntimeError("HTTPX instrumentation failed")
+
+            def import_side_effect(name, *args, **kwargs):
+                if name == "logfire":
+                    return mock_logfire
+                return __import__(name, *args, **kwargs)
+
+            mock_import.side_effect = import_side_effect
+
+            # Should not raise, should handle gracefully
+            initialize_logfire()
+
+            # Should log warning about failure
+            mock_logger.warning.assert_called()
+
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_ENABLED", True)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TOKEN", "test-token")
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_PYDANTIC_AI", False)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_SQLALCHEMY", False)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_HTTPX", False)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_FASTAPI", True)
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_initialize_logfire_handles_fastapi_instrumentation_failure(self, mock_logger):
+        """Test that FastAPI instrumentation failure is handled gracefully."""
+        from fastapi import FastAPI
+
+        from gearmeshing_ai.core.monitoring import initialize_logfire
+
+        with patch("builtins.__import__") as mock_import:
+            mock_logfire = MagicMock()
+            mock_logfire.instrument_fastapi.side_effect = RuntimeError("FastAPI instrumentation failed")
+
+            def import_side_effect(name, *args, **kwargs):
+                if name == "logfire":
+                    return mock_logfire
+                return __import__(name, *args, **kwargs)
+
+            mock_import.side_effect = import_side_effect
+
+            app = FastAPI()
+            # Should not raise, should handle gracefully
+            initialize_logfire(app=app)
+
+            # Should log warning about failure
+            mock_logger.warning.assert_called()
+
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_ENABLED", True)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TOKEN", "test-token")
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_PYDANTIC_AI", False)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_SQLALCHEMY", False)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_HTTPX", False)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_FASTAPI", False)
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_initialize_logfire_handles_import_error_gracefully(self, mock_logger):
+        """Test that ImportError is handled gracefully during initialization."""
+        from gearmeshing_ai.core.monitoring import initialize_logfire
+
+        with patch("builtins.__import__", side_effect=ImportError("logfire not installed")):
+            # Should not raise, should handle gracefully
+            initialize_logfire()
+
+            # Should log warning about import error
+            mock_logger.warning.assert_called()
+
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_ENABLED", True)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TOKEN", "test-token")
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_PYDANTIC_AI", False)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_SQLALCHEMY", False)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_HTTPX", False)
+    @patch("gearmeshing_ai.core.monitoring.LOGFIRE_TRACE_FASTAPI", False)
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_initialize_logfire_handles_general_exception_gracefully(self, mock_logger):
+        """Test that general exceptions are handled gracefully during initialization."""
+        from gearmeshing_ai.core.monitoring import initialize_logfire
+
+        with patch("builtins.__import__") as mock_import:
+            mock_logfire = MagicMock()
+            mock_logfire.configure.side_effect = RuntimeError("Configuration failed")
+
+            def import_side_effect(name, *args, **kwargs):
+                if name == "logfire":
+                    return mock_logfire
+                return __import__(name, *args, **kwargs)
+
+            mock_import.side_effect = import_side_effect
+
+            # Should not raise, should handle gracefully
+            initialize_logfire()
+
+            # Should log error about failure
+            mock_logger.error.assert_called()
+
+
+class TestGetLogfireContextErrorHandling:
+    """Test error handling in get_logfire_context function."""
+
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_get_logfire_context_returns_none_on_exception(self, mock_logger):
+        """Test that None is returned when exception occurs."""
+        from gearmeshing_ai.core.monitoring import get_logfire_context
+
+        with patch("builtins.__import__", side_effect=RuntimeError("Unexpected error")):
+            result = get_logfire_context()
+
+            # Should return None on exception
+            assert result is None
+
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_get_logfire_context_handles_attribute_error(self, mock_logger):
+        """Test that AttributeError is handled gracefully."""
+        from gearmeshing_ai.core.monitoring import get_logfire_context
+
+        with patch("builtins.__import__") as mock_import:
+            mock_logfire = MagicMock()
+            mock_logfire.current_trace_context.side_effect = AttributeError("Method not found")
+
+            def import_side_effect(name, *args, **kwargs):
+                if name == "logfire":
+                    return mock_logfire
+                return __import__(name, *args, **kwargs)
+
+            mock_import.side_effect = import_side_effect
+
+            result = get_logfire_context()
+
+            # Should return None on AttributeError
+            assert result is None
+
+
+class TestLogAgentRunErrorHandling:
+    """Test error handling in log_agent_run function."""
+
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_log_agent_run_handles_import_error(self, mock_logger):
+        """Test that ImportError is handled gracefully."""
+        from gearmeshing_ai.core.monitoring import log_agent_run
+
+        with patch("builtins.__import__", side_effect=ImportError("logfire not installed")):
+            # Should not raise
+            log_agent_run(run_id="run-123", tenant_id="tenant-456", objective="Test", role="developer")
+
+            # Should log debug message
+            mock_logger.debug.assert_called()
+
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_log_agent_run_handles_runtime_error(self, mock_logger):
+        """Test that RuntimeError is handled gracefully."""
+        from gearmeshing_ai.core.monitoring import log_agent_run
+
+        with patch("builtins.__import__") as mock_import:
+            mock_logfire = MagicMock()
+            mock_logfire.info.side_effect = RuntimeError("Logfire error")
+
+            def import_side_effect(name, *args, **kwargs):
+                if name == "logfire":
+                    return mock_logfire
+                return __import__(name, *args, **kwargs)
+
+            mock_import.side_effect = import_side_effect
+
+            # Should not raise
+            log_agent_run(run_id="run-123", tenant_id="tenant-456", objective="Test", role="developer")
+
+            # Should log debug message
+            mock_logger.debug.assert_called()
+
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_log_agent_run_handles_attribute_error(self, mock_logger):
+        """Test that AttributeError is handled gracefully."""
+        from gearmeshing_ai.core.monitoring import log_agent_run
+
+        with patch("builtins.__import__") as mock_import:
+            mock_logfire = MagicMock()
+            mock_logfire.info.side_effect = AttributeError("info method not found")
+
+            def import_side_effect(name, *args, **kwargs):
+                if name == "logfire":
+                    return mock_logfire
+                return __import__(name, *args, **kwargs)
+
+            mock_import.side_effect = import_side_effect
+
+            # Should not raise
+            log_agent_run(run_id="run-123", tenant_id="tenant-456", objective="Test", role="developer")
+
+            # Should log debug message
+            mock_logger.debug.assert_called()
+
+
+class TestLogAgentCompletionErrorHandling:
+    """Test error handling in log_agent_completion function."""
+
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_log_agent_completion_handles_import_error(self, mock_logger):
+        """Test that ImportError is handled gracefully."""
+        from gearmeshing_ai.core.monitoring import log_agent_completion
+
+        with patch("builtins.__import__", side_effect=ImportError("logfire not installed")):
+            # Should not raise
+            log_agent_completion(run_id="run-123", status="succeeded", duration_ms=1000.0)
+
+            # Should log debug message
+            mock_logger.debug.assert_called()
+
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_log_agent_completion_handles_runtime_error(self, mock_logger):
+        """Test that RuntimeError is handled gracefully."""
+        from gearmeshing_ai.core.monitoring import log_agent_completion
+
+        with patch("builtins.__import__") as mock_import:
+            mock_logfire = MagicMock()
+            mock_logfire.info.side_effect = RuntimeError("Logfire error")
+
+            def import_side_effect(name, *args, **kwargs):
+                if name == "logfire":
+                    return mock_logfire
+                return __import__(name, *args, **kwargs)
+
+            mock_import.side_effect = import_side_effect
+
+            # Should not raise
+            log_agent_completion(run_id="run-123", status="succeeded", duration_ms=1000.0)
+
+            # Should log debug message
+            mock_logger.debug.assert_called()
+
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_log_agent_completion_handles_type_error(self, mock_logger):
+        """Test that TypeError is handled gracefully."""
+        from gearmeshing_ai.core.monitoring import log_agent_completion
+
+        with patch("builtins.__import__") as mock_import:
+            mock_logfire = MagicMock()
+            mock_logfire.info.side_effect = TypeError("Invalid argument type")
+
+            def import_side_effect(name, *args, **kwargs):
+                if name == "logfire":
+                    return mock_logfire
+                return __import__(name, *args, **kwargs)
+
+            mock_import.side_effect = import_side_effect
+
+            # Should not raise
+            log_agent_completion(run_id="run-123", status="succeeded", duration_ms=1000.0)
+
+            # Should log debug message
+            mock_logger.debug.assert_called()
+
+
+class TestLogLLMCallErrorHandling:
+    """Test error handling in log_llm_call function."""
+
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_log_llm_call_handles_import_error(self, mock_logger):
+        """Test that ImportError is handled gracefully."""
+        from gearmeshing_ai.core.monitoring import log_llm_call
+
+        with patch("builtins.__import__", side_effect=ImportError("logfire not installed")):
+            # Should not raise
+            log_llm_call(model="gpt-4o", tokens_used=1000, cost_usd=0.05)
+
+            # Should log debug message
+            mock_logger.debug.assert_called()
+
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_log_llm_call_handles_runtime_error(self, mock_logger):
+        """Test that RuntimeError is handled gracefully."""
+        from gearmeshing_ai.core.monitoring import log_llm_call
+
+        with patch("builtins.__import__") as mock_import:
+            mock_logfire = MagicMock()
+            mock_logfire.info.side_effect = RuntimeError("Logfire error")
+
+            def import_side_effect(name, *args, **kwargs):
+                if name == "logfire":
+                    return mock_logfire
+                return __import__(name, *args, **kwargs)
+
+            mock_import.side_effect = import_side_effect
+
+            # Should not raise
+            log_llm_call(model="gpt-4o", tokens_used=1000, cost_usd=0.05)
+
+            # Should log debug message
+            mock_logger.debug.assert_called()
+
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_log_llm_call_handles_value_error(self, mock_logger):
+        """Test that ValueError is handled gracefully."""
+        from gearmeshing_ai.core.monitoring import log_llm_call
+
+        with patch("builtins.__import__") as mock_import:
+            mock_logfire = MagicMock()
+            mock_logfire.info.side_effect = ValueError("Invalid value")
+
+            def import_side_effect(name, *args, **kwargs):
+                if name == "logfire":
+                    return mock_logfire
+                return __import__(name, *args, **kwargs)
+
+            mock_import.side_effect = import_side_effect
+
+            # Should not raise
+            log_llm_call(model="gpt-4o", tokens_used=1000)
+
+            # Should log debug message
+            mock_logger.debug.assert_called()
+
+
+class TestLogErrorErrorHandling:
+    """Test error handling in log_error function."""
+
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_log_error_handles_import_error(self, mock_logger):
+        """Test that ImportError is handled gracefully."""
+        from gearmeshing_ai.core.monitoring import log_error
+
+        with patch("builtins.__import__", side_effect=ImportError("logfire not installed")):
+            # Should not raise
+            log_error(error_type="TestError", error_message="Test message", context={"key": "value"})
+
+            # Should log debug message
+            mock_logger.debug.assert_called()
+
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_log_error_handles_runtime_error(self, mock_logger):
+        """Test that RuntimeError is handled gracefully."""
+        from gearmeshing_ai.core.monitoring import log_error
+
+        with patch("builtins.__import__") as mock_import:
+            mock_logfire = MagicMock()
+            mock_logfire.error.side_effect = RuntimeError("Logfire error")
+
+            def import_side_effect(name, *args, **kwargs):
+                if name == "logfire":
+                    return mock_logfire
+                return __import__(name, *args, **kwargs)
+
+            mock_import.side_effect = import_side_effect
+
+            # Should not raise
+            log_error(error_type="TestError", error_message="Test message")
+
+            # Should log debug message
+            mock_logger.debug.assert_called()
+
+    @patch("gearmeshing_ai.core.monitoring.logger")
+    def test_log_error_handles_type_error_with_context(self, mock_logger):
+        """Test that TypeError is handled gracefully with context."""
+        from gearmeshing_ai.core.monitoring import log_error
+
+        with patch("builtins.__import__") as mock_import:
+            mock_logfire = MagicMock()
+            mock_logfire.error.side_effect = TypeError("Invalid type")
+
+            def import_side_effect(name, *args, **kwargs):
+                if name == "logfire":
+                    return mock_logfire
+                return __import__(name, *args, **kwargs)
+
+            mock_import.side_effect = import_side_effect
+
+            # Should not raise
+            log_error(error_type="TestError", error_message="Test message", context={"run_id": "123"})
+
+            # Should log debug message
+            mock_logger.debug.assert_called()
