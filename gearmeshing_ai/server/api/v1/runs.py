@@ -14,9 +14,7 @@ Includes:
   - Resource usage monitoring
 """
 
-import asyncio
 import json
-from datetime import datetime
 from typing import List, Union
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
@@ -33,7 +31,13 @@ from gearmeshing_ai.core.monitoring import (
     log_agent_run,
     log_error,
 )
-from gearmeshing_ai.server.schemas import RunCreate, RunResume, SSEResponse, KeepAliveEvent, ErrorEvent
+from gearmeshing_ai.server.schemas import (
+    ErrorEvent,
+    KeepAliveEvent,
+    RunCreate,
+    RunResume,
+    SSEResponse,
+)
 from gearmeshing_ai.server.services.deps import OrchestratorDep
 
 logger = get_logger(__name__)
@@ -43,12 +47,12 @@ router = APIRouter()
 def serialize_event(event: Union[SSEResponse, KeepAliveEvent, ErrorEvent, BaseModel]) -> str:
     """
     Serialize a Pydantic model event to JSON string.
-    
+
     Converts Pydantic models to JSON-serializable format with proper datetime handling.
-    
+
     Args:
         event: Pydantic model (SSEResponse, KeepAliveEvent, ErrorEvent, or other BaseModel)
-        
+
     Returns:
         JSON string representation of the event
     """
@@ -261,19 +265,11 @@ async def list_run_events(run_id: str, orchestrator: OrchestratorDep, limit: int
     responses={
         200: {
             "description": "SSE stream established",
-            "content": {
-                "text/event-stream": {
-                    "example": "data: {\"comment\": \"keep-alive\"}\n\n"
-                }
-            }
+            "content": {"text/event-stream": {"example": 'data: {"comment": "keep-alive"}\n\n'}},
         }
-    }
+    },
 )
-async def stream_run_events(
-    run_id: str,
-    request: Request,
-    orchestrator: OrchestratorDep
-):
+async def stream_run_events(run_id: str, request: Request, orchestrator: OrchestratorDep):
     """
     Stream events for a specific run via Server-Sent Events (SSE).
 
@@ -281,16 +277,16 @@ async def stream_run_events(
     for the given run ID. This allows clients to follow the agent's progress live.
 
     The stream emits JSON-formatted events. Each event payload mirrors the `AgentEvent` schema.
-    
+
     **Path Parameters:**
     - `run_id`: The unique identifier of the run to stream events from
-    
+
     **Response:**
     - Streams JSON-formatted event objects in real-time
     - Connection maintains until client disconnects or run completes
     """
     logger.info(f"Starting event stream for run: {run_id}")
-    
+
     async def event_generator():
         try:
             async for event in orchestrator.stream_events(run_id):
