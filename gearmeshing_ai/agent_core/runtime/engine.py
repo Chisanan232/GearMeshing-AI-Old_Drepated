@@ -39,6 +39,7 @@ from pydantic_ai import Agent as PydanticAIAgent
 
 from ..capabilities.base import CapabilityContext
 from ..model_provider import async_create_model_for_role
+from ..monitoring_integration import trace_capability_execution
 from ..planning.steps import normalize_plan
 from ..policy.global_policy import GlobalPolicy
 from ..roles import get_role_spec
@@ -190,6 +191,28 @@ class AgentEngine:
             AgentEvent(run_id=run_id, type=AgentEventType.state_transition, payload={"resume": True})
         )
         await self._graph.ainvoke(state)
+
+    async def _execute_capability_traced(self, cap: CapabilityName, cap_impl: Any, ctx: CapabilityContext, args: dict) -> Any:
+        """Execute a capability with LangSmith tracing.
+        
+        This method wraps capability execution with @trace_capability_execution
+        to capture capability invocation details in LangSmith traces.
+        
+        Args:
+            cap: The capability name
+            cap_impl: The capability implementation
+            ctx: The capability context
+            args: The capability arguments
+            
+        Returns:
+            The capability execution result
+        """
+        # Create a traced wrapper for the capability execution
+        @trace_capability_execution(cap.value)
+        async def _traced_execution():
+            return await cap_impl.execute(ctx, args=args)
+        
+        return await _traced_execution()
 
     async def _node_start(self, state: _GraphState) -> _GraphState:
         """Graph entry node. Currently a no-op."""
@@ -374,7 +397,9 @@ class AgentEngine:
         await self._deps.events.append(
             AgentEvent(run_id=run_id, type=AgentEventType.capability_requested, payload={"capability": cap})
         )
-        res = await cap_impl.execute(ctx, args=args)
+        
+        # Execute capability with LangSmith tracing
+        res = await self._execute_capability_traced(cap, cap_impl, ctx, args)
 
         await self._deps.events.append(
             AgentEvent(
