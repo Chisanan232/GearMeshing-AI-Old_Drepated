@@ -16,7 +16,7 @@ Usage:
 
 import logging
 from functools import wraps
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, Callable, Optional, TypeVar, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -306,7 +306,7 @@ def get_llm_context(
     Returns:
         Dictionary with context information for tracing
     """
-    context = {
+    context: Dict[str, str | int | float] = {
         "model": model,
         "provider": provider,
     }
