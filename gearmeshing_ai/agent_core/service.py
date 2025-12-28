@@ -95,8 +95,9 @@ class AgentService:
         str
             The run id.
         """
-        from .factory import build_engine
         from gearmeshing_ai.core.monitoring import get_traceable_decorator
+
+        from .factory import build_engine
 
         # Get the traceable decorator (no-op if LangSmith unavailable)
         traceable = get_traceable_decorator()
@@ -121,8 +122,9 @@ class AgentService:
             run_id: The run identifier
             approval_id: The approval identifier
         """
-        from .factory import build_engine
         from gearmeshing_ai.core.monitoring import get_traceable_decorator
+
+        from .factory import build_engine
 
         # Get the traceable decorator (no-op if LangSmith unavailable)
         traceable = get_traceable_decorator()

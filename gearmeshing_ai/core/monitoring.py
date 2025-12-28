@@ -179,9 +179,7 @@ def initialize_langsmith() -> None:
         os.environ["LANGSMITH_ENDPOINT"] = LANGSMITH_ENDPOINT
 
         logger.info(
-            f"LangSmith tracing initialized: "
-            f"project={LANGSMITH_PROJECT}, "
-            f"endpoint={LANGSMITH_ENDPOINT}"
+            f"LangSmith tracing initialized: " f"project={LANGSMITH_PROJECT}, " f"endpoint={LANGSMITH_ENDPOINT}"
         )
 
     except Exception as e:
@@ -271,6 +269,7 @@ def get_traceable_decorator():
         return traceable
     except Exception as e:
         logger.debug(f"Could not import LangSmith traceable decorator: {e}")
+
         # Return a no-op decorator
         def noop_decorator(func):
             return func

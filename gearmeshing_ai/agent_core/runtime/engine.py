@@ -192,26 +192,29 @@ class AgentEngine:
         )
         await self._graph.ainvoke(state)
 
-    async def _execute_capability_traced(self, cap: CapabilityName, cap_impl: Any, ctx: CapabilityContext, args: dict) -> Any:
+    async def _execute_capability_traced(
+        self, cap: CapabilityName, cap_impl: Any, ctx: CapabilityContext, args: dict
+    ) -> Any:
         """Execute a capability with LangSmith tracing.
-        
+
         This method wraps capability execution with @trace_capability_execution
         to capture capability invocation details in LangSmith traces.
-        
+
         Args:
             cap: The capability name
             cap_impl: The capability implementation
             ctx: The capability context
             args: The capability arguments
-            
+
         Returns:
             The capability execution result
         """
+
         # Create a traced wrapper for the capability execution
         @trace_capability_execution(cap.value)
         async def _traced_execution():
             return await cap_impl.execute(ctx, args=args)
-        
+
         return await _traced_execution()
 
     async def _node_start(self, state: _GraphState) -> _GraphState:
@@ -397,7 +400,7 @@ class AgentEngine:
         await self._deps.events.append(
             AgentEvent(run_id=run_id, type=AgentEventType.capability_requested, payload={"capability": cap})
         )
-        
+
         # Execute capability with LangSmith tracing
         res = await self._execute_capability_traced(cap, cap_impl, ctx, args)
 

@@ -16,7 +16,7 @@ Usage:
 
 import logging
 from functools import wraps
-from typing import Any, Callable, Optional, TypeVar, Dict
+from typing import Callable, Dict, Optional, TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -269,9 +269,7 @@ def get_agent_run_context(run_id: str, tenant_id: str, role: str) -> dict:
     }
 
 
-def get_capability_context(
-    capability_name: str, inputs: Optional[dict] = None
-) -> dict:
+def get_capability_context(capability_name: str, inputs: Optional[dict] = None) -> dict:
     """
     Get context information for a capability execution to include in traces.
 
