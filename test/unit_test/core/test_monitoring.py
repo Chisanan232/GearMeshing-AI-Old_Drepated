@@ -369,18 +369,12 @@ class TestLogAgentRun:
 
             log_agent_run(run_id="run-123", tenant_id="tenant-456", objective="Test objective", role="developer")
 
-            # Verify the function completed without error
-            assert True
-
     def test_log_agent_run_handles_import_error(self):
         """Test that ImportError is handled gracefully."""
         from gearmeshing_ai.core.monitoring import log_agent_run
 
         # Just verify the function handles errors gracefully
         log_agent_run(run_id="run-123", tenant_id="tenant-456", objective="Test objective", role="developer")
-
-        # If we get here, error handling worked
-        assert True
 
 
 class TestLogAgentCompletion:
@@ -392,7 +386,6 @@ class TestLogAgentCompletion:
 
         # Verify function executes without error
         log_agent_completion(run_id="run-123", status="succeeded", duration_ms=5432.1)
-        assert True
 
     def test_log_agent_completion_with_failed_status(self):
         """Test agent completion logging with failed status."""
@@ -400,7 +393,6 @@ class TestLogAgentCompletion:
 
         # Verify function executes with different status
         log_agent_completion(run_id="run-456", status="failed", duration_ms=1234.5)
-        assert True
 
     def test_log_agent_completion_handles_exception(self):
         """Test that exceptions are handled gracefully."""
@@ -408,7 +400,6 @@ class TestLogAgentCompletion:
 
         # Verify function handles missing logfire gracefully
         log_agent_completion(run_id="run-123", status="succeeded", duration_ms=5432.1)
-        assert True
 
 
 class TestLogLLMCall:
@@ -419,14 +410,12 @@ class TestLogLLMCall:
         from gearmeshing_ai.core.monitoring import log_llm_call
 
         log_llm_call(model="gpt-4o", tokens_used=1250, cost_usd=0.05)
-        assert True
 
     def test_log_llm_call_without_cost(self):
         """Test LLM call logging without cost."""
         from gearmeshing_ai.core.monitoring import log_llm_call
 
         log_llm_call(model="gpt-4o", tokens_used=1250, cost_usd=None)
-        assert True
 
     def test_log_llm_call_with_different_models(self):
         """Test LLM call logging with different models."""
@@ -436,14 +425,11 @@ class TestLogLLMCall:
         for model in models:
             log_llm_call(model=model, tokens_used=1000)
 
-        assert True
-
     def test_log_llm_call_handles_exception(self):
         """Test that exceptions are handled gracefully."""
         from gearmeshing_ai.core.monitoring import log_llm_call
 
         log_llm_call(model="gpt-4o", tokens_used=1250)
-        assert True
 
 
 class TestLogError:
@@ -454,14 +440,12 @@ class TestLogError:
         from gearmeshing_ai.core.monitoring import log_error
 
         log_error(error_type="ValidationError", error_message="Invalid configuration", context={"field": "objective"})
-        assert True
 
     def test_log_error_without_context(self):
         """Test error logging without context."""
         from gearmeshing_ai.core.monitoring import log_error
 
         log_error(error_type="RuntimeError", error_message="Something went wrong")
-        assert True
 
     def test_log_error_with_complex_context(self):
         """Test error logging with complex context."""
@@ -470,14 +454,12 @@ class TestLogError:
         context = {"run_id": "run-123", "tenant_id": "tenant-456", "error_code": 500, "details": {"nested": "value"}}
 
         log_error(error_type="SystemError", error_message="System failure", context=context)
-        assert True
 
     def test_log_error_handles_exception(self):
         """Test that exceptions are handled gracefully."""
         from gearmeshing_ai.core.monitoring import log_error
 
         log_error(error_type="TestError", error_message="Test message")
-        assert True
 
 
 class TestGetLogfireContext:
