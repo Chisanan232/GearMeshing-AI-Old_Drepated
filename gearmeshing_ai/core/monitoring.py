@@ -1,9 +1,9 @@
 """
 Monitoring and Tracing Configuration Module.
 
-This module provides integration with Pydantic AI Logfire for comprehensive
+This module provides integration with Pydantic AI Logfire and LangSmith for comprehensive
 monitoring and tracing of AI application operations, including:
-- Agent execution traces
+- Agent execution traces (LangGraph/LangSmith)
 - LLM model calls and performance metrics
 - API endpoint tracing
 - Database operation monitoring
@@ -11,7 +11,8 @@ monitoring and tracing of AI application operations, including:
 - Performance metrics collection
 
 Features:
-- Automatic instrumentation of Pydantic AI operations
+- Automatic instrumentation of Pydantic AI operations via Logfire
+- LangSmith integration for LangGraph agent tracing
 - Structured logging with context
 - Performance metrics and latency tracking
 - Error and exception tracking
@@ -43,6 +44,13 @@ LOGFIRE_TRACE_PYDANTIC_AI = os.getenv("LOGFIRE_TRACE_PYDANTIC_AI", "true").lower
 LOGFIRE_TRACE_SQLALCHEMY = os.getenv("LOGFIRE_TRACE_SQLALCHEMY", "true").lower() in ("true", "1", "yes")
 LOGFIRE_TRACE_HTTPX = os.getenv("LOGFIRE_TRACE_HTTPX", "true").lower() in ("true", "1", "yes")
 LOGFIRE_TRACE_FASTAPI = os.getenv("LOGFIRE_TRACE_FASTAPI", "true").lower() in ("true", "1", "yes")
+
+# LangSmith configuration from environment
+# LANGSMITH_TRACING enables automatic tracing of LangGraph and LangChain operations
+LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING", "false").lower() in ("true", "1", "yes")
+LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY", "")
+LANGSMITH_PROJECT = os.getenv("LANGSMITH_PROJECT", "gearmeshing-ai")
+LANGSMITH_ENDPOINT = os.getenv("LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
 
 
 def initialize_logfire(app: FastAPI | None = None) -> None:
@@ -131,6 +139,135 @@ def initialize_logfire(app: FastAPI | None = None) -> None:
         )
     except Exception as e:
         logger.error(f"Failed to initialize Logfire: {e}", exc_info=True)
+
+
+def initialize_langsmith() -> None:
+    """
+    Initialize LangSmith for LangGraph agent tracing and monitoring.
+
+    This function sets up LangSmith integration for:
+    - Automatic LangGraph agent execution tracing
+    - LLM call tracking and cost monitoring
+    - Agent run performance metrics
+    - Error and exception tracking in agent workflows
+
+    LangSmith uses environment variables for configuration:
+    - LANGSMITH_TRACING: Enable/disable tracing (true/false)
+    - LANGSMITH_API_KEY: API key for authentication
+    - LANGSMITH_PROJECT: Project name for organizing traces
+    - LANGSMITH_ENDPOINT: API endpoint (default: https://api.smith.langchain.com)
+
+    When LANGSMITH_TRACING=true, LangGraph runs are automatically traced.
+    """
+    if not LANGSMITH_TRACING:
+        logger.debug("LangSmith tracing is disabled. Set LANGSMITH_TRACING=true to enable.")
+        return
+
+    if not LANGSMITH_API_KEY:
+        logger.warning(
+            "LangSmith tracing is enabled but LANGSMITH_API_KEY is not set. "
+            "Tracing will not work. Set LANGSMITH_API_KEY to enable LangSmith."
+        )
+        return
+
+    try:
+        # Set LangSmith environment variables for automatic instrumentation
+        # These must be set before LangGraph/LangChain operations are initialized
+        os.environ["LANGSMITH_TRACING"] = "true"
+        os.environ["LANGSMITH_API_KEY"] = LANGSMITH_API_KEY
+        os.environ["LANGSMITH_PROJECT"] = LANGSMITH_PROJECT
+        os.environ["LANGSMITH_ENDPOINT"] = LANGSMITH_ENDPOINT
+
+        logger.info(
+            f"LangSmith tracing initialized: " f"project={LANGSMITH_PROJECT}, " f"endpoint={LANGSMITH_ENDPOINT}"
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to initialize LangSmith: {e}", exc_info=True)
+
+
+def wrap_openai_client(client):
+    """
+    Wrap an OpenAI client for LangSmith tracing.
+
+    This wraps OpenAI API calls so they are automatically traced in LangSmith,
+    capturing prompts, responses, and token usage.
+
+    Args:
+        client: An OpenAI client instance
+
+    Returns:
+        Wrapped OpenAI client with tracing enabled, or original client if wrapping fails
+    """
+    try:
+        from langsmith.wrappers import wrap_openai
+
+        return wrap_openai(client)
+    except Exception as e:
+        logger.debug(f"Could not wrap OpenAI client for LangSmith tracing: {e}")
+        return client
+
+
+def wrap_anthropic_client(client):
+    """
+    Wrap an Anthropic client for LangSmith tracing.
+
+    This wraps Anthropic API calls so they are automatically traced in LangSmith,
+    capturing prompts, responses, and token usage.
+
+    Args:
+        client: An Anthropic client instance
+
+    Returns:
+        Wrapped Anthropic client with tracing enabled, or original client if wrapping fails
+    """
+    try:
+        from langsmith.wrappers import wrap_anthropic
+
+        return wrap_anthropic(client)
+    except Exception as e:
+        logger.debug(f"Could not wrap Anthropic client for LangSmith tracing: {e}")
+        return client
+
+
+def get_traceable_decorator():
+    """
+    Get the LangSmith @traceable decorator for tracing functions.
+
+    The @traceable decorator traces function execution, capturing inputs, outputs,
+    and any nested LangGraph/LangChain operations.
+
+    Returns:
+        The traceable decorator function, or a no-op decorator if LangSmith is unavailable
+    """
+    try:
+        from langsmith import traceable
+
+        return traceable
+    except Exception as e:
+        logger.debug(f"Could not import LangSmith traceable decorator: {e}")
+
+        # Return a no-op decorator
+        def noop_decorator(func):
+            return func
+
+        return noop_decorator
+
+
+def get_langsmith_client():
+    """
+    Get a LangSmith client for manual trace operations.
+
+    Returns:
+        LangSmith Client instance, or None if unavailable
+    """
+    try:
+        from langsmith import Client
+
+        return Client()
+    except Exception as e:
+        logger.debug(f"Could not create LangSmith client: {e}")
+        return None
 
 
 def get_logfire_context() -> Optional[dict]:
@@ -236,5 +373,6 @@ def log_error(error_type: str, error_message: str, context: Optional[dict] = Non
         logger.debug(f"Could not log error to Logfire: {error_type}")
 
 
-# Initialize Logfire on module import
+# Initialize monitoring systems on module import
 initialize_logfire()
+initialize_langsmith()

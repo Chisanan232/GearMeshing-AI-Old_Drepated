@@ -71,7 +71,10 @@ class ModelProvider:
         top_p: Optional[float] = None,
     ) -> Model:
         """
-        Create an LLM model instance.
+        Create an LLM model instance with LangSmith tracing support.
+
+        When LangSmith tracing is enabled, all LLM calls made through this model
+        will be automatically traced and visible in the LangSmith dashboard.
 
         Args:
             provider: Provider name ('openai', 'anthropic', 'google').
@@ -81,7 +84,7 @@ class ModelProvider:
             top_p: Top-p sampling (0.0-1.0). If None, uses config default.
 
         Returns:
-            Model: The created model instance.
+            Model: The created model instance with LangSmith tracing enabled if configured.
 
         Raises:
             ValueError: If provider or model is not supported.

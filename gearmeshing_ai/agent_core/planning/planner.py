@@ -28,6 +28,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic_ai import Agent
 
+from ..monitoring_integration import trace_planning
 from .steps import ActionStep, ThoughtStep
 
 logger = logging.getLogger(__name__)
@@ -67,8 +68,14 @@ class StructuredPlanner:
         # Note: Model creation from role is deferred to async context (plan method)
         # This avoids blocking the constructor and async/sync session mismatches
 
+    @trace_planning
     async def plan(self, *, objective: str, role: str) -> List[Dict[str, Any]]:
-        """Generate a plan for a run.
+        """Generate a plan for a run with LangSmith tracing.
+
+        This method is traced by LangSmith to capture:
+        - Plan generation algorithm execution
+        - LLM calls for planning
+        - Plan validation and step creation
 
         Parameters
         ----------
