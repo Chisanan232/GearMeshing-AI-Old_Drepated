@@ -4,16 +4,22 @@ Agent Runs API Endpoints.
 This module provides the primary interface for creating, managing, and retrieving
 agent execution runs. It handles the lifecycle of an agent task from start to finish.
 
-Includes monitoring and tracing via Pydantic AI Logfire for:
-- Agent run lifecycle tracking
-- Performance metrics
-- Error tracking
-- Resource usage monitoring
+Includes:
+- Run CRUD operations (create, list, get, resume, cancel)
+- Real-time event streaming via Server-Sent Events (SSE)
+- Monitoring and tracing via Pydantic AI Logfire for:
+  - Agent run lifecycle tracking
+  - Performance metrics
+  - Error tracking
+  - Resource usage monitoring
 """
 
-from typing import List
+import json
+from typing import List, Union
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from pydantic import BaseModel
+from sse_starlette.sse import EventSourceResponse
 
 from gearmeshing_ai.agent_core.schemas.domain import (
     AgentEvent,
@@ -25,11 +31,43 @@ from gearmeshing_ai.core.monitoring import (
     log_agent_run,
     log_error,
 )
-from gearmeshing_ai.server.schemas import RunCreate, RunResume
+from gearmeshing_ai.server.schemas import (
+    ErrorEvent,
+    KeepAliveEvent,
+    RunCreate,
+    RunResume,
+    SSEResponse,
+)
 from gearmeshing_ai.server.services.deps import OrchestratorDep
 
 logger = get_logger(__name__)
 router = APIRouter()
+
+
+def serialize_event(event: Union[SSEResponse, KeepAliveEvent, ErrorEvent, BaseModel]) -> str:
+    """
+    Serialize a Pydantic model event to JSON string.
+
+    Converts Pydantic models to JSON-serializable format with proper datetime handling.
+
+    Args:
+        event: Pydantic model (SSEResponse, KeepAliveEvent, ErrorEvent, or other BaseModel)
+
+    Returns:
+        JSON string representation of the event
+    """
+    try:
+        # Use Pydantic's model_dump_json for proper serialization
+        if isinstance(event, BaseModel):
+            return event.model_dump_json()
+        else:
+            # Fallback for non-Pydantic objects
+            return json.dumps(event)
+    except Exception as e:
+        logger.error(f"Failed to serialize event: {e}", exc_info=True)
+        # Return error event instead of crashing
+        error_event = ErrorEvent(error="Failed to serialize event", details=str(e))
+        return error_event.model_dump_json()
 
 
 @router.post(
@@ -217,3 +255,48 @@ async def list_run_events(run_id: str, orchestrator: OrchestratorDep, limit: int
     Useful for debugging and auditing the agent's behavior.
     """
     return await orchestrator.get_run_events(run_id, limit=limit)
+
+
+@router.get(
+    "/{run_id}/event",
+    summary="Stream Run Events",
+    description="Subscribe to a Server-Sent Events (SSE) stream for a specific run.",
+    response_description="A stream of event objects.",
+    responses={
+        200: {
+            "description": "SSE stream established",
+            "content": {"text/event-stream": {"example": 'data: {"comment": "keep-alive"}\n\n'}},
+        }
+    },
+)
+async def stream_run_events(run_id: str, request: Request, orchestrator: OrchestratorDep):
+    """
+    Stream events for a specific run via Server-Sent Events (SSE).
+
+    Provides a real-time feed of events (like 'thought', 'tool_invoked', 'run_completed')
+    for the given run ID. This allows clients to follow the agent's progress live.
+
+    The stream emits JSON-formatted events. Each event payload mirrors the `AgentEvent` schema.
+
+    **Path Parameters:**
+    - `run_id`: The unique identifier of the run to stream events from
+
+    **Response:**
+    - Streams JSON-formatted event objects in real-time
+    - Connection maintains until client disconnects or run completes
+    """
+    logger.info(f"Starting event stream for run: {run_id}")
+
+    async def event_generator():
+        try:
+            async for event in orchestrator.stream_events(run_id):
+                if await request.is_disconnected():
+                    logger.info(f"Client disconnected from stream for run: {run_id}")
+                    break
+                # Format event as JSON string for SSE, handling datetime serialization
+                yield serialize_event(event)
+        except Exception as e:
+            logger.error(f"Error in event stream for run {run_id}: {e}", exc_info=True)
+            yield serialize_event({"error": str(e)})
+
+    return EventSourceResponse(event_generator())
