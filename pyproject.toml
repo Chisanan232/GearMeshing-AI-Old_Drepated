@@ -87,6 +87,7 @@ pre-commit-ci = [
 # Optional monitoring and observability
 monitoring = [
     "logfire>=4.16.0",
+    "logfire[fastapi]>=4.16.0",
     "logfire[sqlalchemy]>=4.16.0",
 ]
 
