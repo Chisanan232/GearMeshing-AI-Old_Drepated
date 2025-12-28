@@ -28,8 +28,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic_ai import Agent
 
-from .steps import ActionStep, ThoughtStep
 from ..monitoring_integration import trace_planning
+from .steps import ActionStep, ThoughtStep
 
 logger = logging.getLogger(__name__)
 

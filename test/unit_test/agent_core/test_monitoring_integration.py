@@ -8,8 +8,7 @@ Tests verify that:
 - No performance impact when tracing is disabled
 """
 
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -279,9 +278,7 @@ class TestDecoratorGracefulDegradation:
     @pytest.mark.asyncio
     async def test_trace_agent_run_without_langsmith(self):
         """Test agent run tracing without LangSmith available."""
-        with patch(
-            "gearmeshing_ai.core.monitoring.get_traceable_decorator"
-        ) as mock_get_decorator:
+        with patch("gearmeshing_ai.core.monitoring.get_traceable_decorator") as mock_get_decorator:
             # Simulate LangSmith unavailable with a no-op decorator
             def noop_decorator(func=None, **kwargs):
                 if func is None:
@@ -300,9 +297,8 @@ class TestDecoratorGracefulDegradation:
     @pytest.mark.asyncio
     async def test_trace_planning_without_langsmith(self):
         """Test planning tracing without LangSmith available."""
-        with patch(
-            "gearmeshing_ai.core.monitoring.get_traceable_decorator"
-        ) as mock_get_decorator:
+        with patch("gearmeshing_ai.core.monitoring.get_traceable_decorator") as mock_get_decorator:
+
             def noop_decorator(func=None, **kwargs):
                 if func is None:
                     return lambda f: f
@@ -320,9 +316,8 @@ class TestDecoratorGracefulDegradation:
     @pytest.mark.asyncio
     async def test_trace_capability_without_langsmith(self):
         """Test capability tracing without LangSmith available."""
-        with patch(
-            "gearmeshing_ai.core.monitoring.get_traceable_decorator"
-        ) as mock_get_decorator:
+        with patch("gearmeshing_ai.core.monitoring.get_traceable_decorator") as mock_get_decorator:
+
             def noop_decorator(func=None, **kwargs):
                 if func is None:
                     return lambda f: f
