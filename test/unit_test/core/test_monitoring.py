@@ -11,9 +11,7 @@ This test suite covers:
 """
 
 import os
-import pytest
-from unittest.mock import Mock, patch, MagicMock, call
-from typing import Optional
+from unittest.mock import MagicMock, patch
 
 
 class TestLogfireEnvironmentConfiguration:
@@ -24,7 +22,9 @@ class TestLogfireEnvironmentConfiguration:
         with patch.dict(os.environ, {}, clear=True):
             # Re-import to get fresh environment values
             import importlib
+
             import gearmeshing_ai.core.monitoring as monitoring_module
+
             importlib.reload(monitoring_module)
 
             assert monitoring_module.LOGFIRE_ENABLED is False
@@ -33,7 +33,9 @@ class TestLogfireEnvironmentConfiguration:
         """Test Logfire enabled with 'true' string."""
         with patch.dict(os.environ, {"LOGFIRE_ENABLED": "true"}):
             import importlib
+
             import gearmeshing_ai.core.monitoring as monitoring_module
+
             importlib.reload(monitoring_module)
 
             assert monitoring_module.LOGFIRE_ENABLED is True
@@ -42,7 +44,9 @@ class TestLogfireEnvironmentConfiguration:
         """Test Logfire enabled with '1' string."""
         with patch.dict(os.environ, {"LOGFIRE_ENABLED": "1"}):
             import importlib
+
             import gearmeshing_ai.core.monitoring as monitoring_module
+
             importlib.reload(monitoring_module)
 
             assert monitoring_module.LOGFIRE_ENABLED is True
@@ -51,7 +55,9 @@ class TestLogfireEnvironmentConfiguration:
         """Test Logfire enabled with 'yes' string."""
         with patch.dict(os.environ, {"LOGFIRE_ENABLED": "yes"}):
             import importlib
+
             import gearmeshing_ai.core.monitoring as monitoring_module
+
             importlib.reload(monitoring_module)
 
             assert monitoring_module.LOGFIRE_ENABLED is True
@@ -61,7 +67,9 @@ class TestLogfireEnvironmentConfiguration:
         test_token = "test-token-12345"
         with patch.dict(os.environ, {"LOGFIRE_TOKEN": test_token}):
             import importlib
+
             import gearmeshing_ai.core.monitoring as monitoring_module
+
             importlib.reload(monitoring_module)
 
             assert monitoring_module.LOGFIRE_TOKEN == test_token
@@ -71,7 +79,9 @@ class TestLogfireEnvironmentConfiguration:
         test_service = "my-custom-service"
         with patch.dict(os.environ, {"LOGFIRE_SERVICE_NAME": test_service}):
             import importlib
+
             import gearmeshing_ai.core.monitoring as monitoring_module
+
             importlib.reload(monitoring_module)
 
             assert monitoring_module.LOGFIRE_SERVICE_NAME == test_service
@@ -81,7 +91,9 @@ class TestLogfireEnvironmentConfiguration:
         test_env = "production"
         with patch.dict(os.environ, {"LOGFIRE_ENVIRONMENT": test_env}):
             import importlib
+
             import gearmeshing_ai.core.monitoring as monitoring_module
+
             importlib.reload(monitoring_module)
 
             assert monitoring_module.LOGFIRE_ENVIRONMENT == test_env
@@ -91,7 +103,9 @@ class TestLogfireEnvironmentConfiguration:
         test_version = "1.2.3"
         with patch.dict(os.environ, {"LOGFIRE_SERVICE_VERSION": test_version}):
             import importlib
+
             import gearmeshing_ai.core.monitoring as monitoring_module
+
             importlib.reload(monitoring_module)
 
             assert monitoring_module.LOGFIRE_SERVICE_VERSION == test_version
@@ -100,7 +114,9 @@ class TestLogfireEnvironmentConfiguration:
         """Test Logfire sample rate is read from environment."""
         with patch.dict(os.environ, {"LOGFIRE_SAMPLE_RATE": "0.5"}):
             import importlib
+
             import gearmeshing_ai.core.monitoring as monitoring_module
+
             importlib.reload(monitoring_module)
 
             assert monitoring_module.LOGFIRE_SAMPLE_RATE == 0.5
@@ -109,7 +125,9 @@ class TestLogfireEnvironmentConfiguration:
         """Test Logfire trace sample rate is read from environment."""
         with patch.dict(os.environ, {"LOGFIRE_TRACE_SAMPLE_RATE": "0.1"}):
             import importlib
+
             import gearmeshing_ai.core.monitoring as monitoring_module
+
             importlib.reload(monitoring_module)
 
             assert monitoring_module.LOGFIRE_TRACE_SAMPLE_RATE == 0.1
@@ -118,7 +136,9 @@ class TestLogfireEnvironmentConfiguration:
         """Test that feature flags default to true."""
         with patch.dict(os.environ, {}, clear=True):
             import importlib
+
             import gearmeshing_ai.core.monitoring as monitoring_module
+
             importlib.reload(monitoring_module)
 
             assert monitoring_module.LOGFIRE_TRACE_PYDANTIC_AI is True
@@ -136,7 +156,9 @@ class TestLogfireEnvironmentConfiguration:
         }
         with patch.dict(os.environ, env_vars):
             import importlib
+
             import gearmeshing_ai.core.monitoring as monitoring_module
+
             importlib.reload(monitoring_module)
 
             assert monitoring_module.LOGFIRE_TRACE_PYDANTIC_AI is False
@@ -269,6 +291,7 @@ class TestInitializeLogfire:
     def test_initialize_logfire_instruments_fastapi_with_app(self, mock_logger):
         """Test that FastAPI instrumentation is enabled when app is provided."""
         from fastapi import FastAPI
+
         from gearmeshing_ai.core.monitoring import initialize_logfire
 
         app = FastAPI()
@@ -336,18 +359,15 @@ class TestLogAgentRun:
 
         with patch("builtins.__import__") as mock_import:
             mock_logfire = MagicMock()
+
             def import_side_effect(name, *args, **kwargs):
                 if name == "logfire":
                     return mock_logfire
                 return __import__(name, *args, **kwargs)
+
             mock_import.side_effect = import_side_effect
 
-            log_agent_run(
-                run_id="run-123",
-                tenant_id="tenant-456",
-                objective="Test objective",
-                role="developer"
-            )
+            log_agent_run(run_id="run-123", tenant_id="tenant-456", objective="Test objective", role="developer")
 
             # Verify the function completed without error
             assert True
@@ -357,12 +377,7 @@ class TestLogAgentRun:
         from gearmeshing_ai.core.monitoring import log_agent_run
 
         # Just verify the function handles errors gracefully
-        log_agent_run(
-            run_id="run-123",
-            tenant_id="tenant-456",
-            objective="Test objective",
-            role="developer"
-        )
+        log_agent_run(run_id="run-123", tenant_id="tenant-456", objective="Test objective", role="developer")
 
         # If we get here, error handling worked
         assert True
@@ -376,11 +391,7 @@ class TestLogAgentCompletion:
         from gearmeshing_ai.core.monitoring import log_agent_completion
 
         # Verify function executes without error
-        log_agent_completion(
-            run_id="run-123",
-            status="succeeded",
-            duration_ms=5432.1
-        )
+        log_agent_completion(run_id="run-123", status="succeeded", duration_ms=5432.1)
         assert True
 
     def test_log_agent_completion_with_failed_status(self):
@@ -388,11 +399,7 @@ class TestLogAgentCompletion:
         from gearmeshing_ai.core.monitoring import log_agent_completion
 
         # Verify function executes with different status
-        log_agent_completion(
-            run_id="run-456",
-            status="failed",
-            duration_ms=1234.5
-        )
+        log_agent_completion(run_id="run-456", status="failed", duration_ms=1234.5)
         assert True
 
     def test_log_agent_completion_handles_exception(self):
@@ -400,11 +407,7 @@ class TestLogAgentCompletion:
         from gearmeshing_ai.core.monitoring import log_agent_completion
 
         # Verify function handles missing logfire gracefully
-        log_agent_completion(
-            run_id="run-123",
-            status="succeeded",
-            duration_ms=5432.1
-        )
+        log_agent_completion(run_id="run-123", status="succeeded", duration_ms=5432.1)
         assert True
 
 
@@ -415,22 +418,14 @@ class TestLogLLMCall:
         """Test successful LLM call logging."""
         from gearmeshing_ai.core.monitoring import log_llm_call
 
-        log_llm_call(
-            model="gpt-4o",
-            tokens_used=1250,
-            cost_usd=0.05
-        )
+        log_llm_call(model="gpt-4o", tokens_used=1250, cost_usd=0.05)
         assert True
 
     def test_log_llm_call_without_cost(self):
         """Test LLM call logging without cost."""
         from gearmeshing_ai.core.monitoring import log_llm_call
 
-        log_llm_call(
-            model="gpt-4o",
-            tokens_used=1250,
-            cost_usd=None
-        )
+        log_llm_call(model="gpt-4o", tokens_used=1250, cost_usd=None)
         assert True
 
     def test_log_llm_call_with_different_models(self):
@@ -458,39 +453,23 @@ class TestLogError:
         """Test successful error logging."""
         from gearmeshing_ai.core.monitoring import log_error
 
-        log_error(
-            error_type="ValidationError",
-            error_message="Invalid configuration",
-            context={"field": "objective"}
-        )
+        log_error(error_type="ValidationError", error_message="Invalid configuration", context={"field": "objective"})
         assert True
 
     def test_log_error_without_context(self):
         """Test error logging without context."""
         from gearmeshing_ai.core.monitoring import log_error
 
-        log_error(
-            error_type="RuntimeError",
-            error_message="Something went wrong"
-        )
+        log_error(error_type="RuntimeError", error_message="Something went wrong")
         assert True
 
     def test_log_error_with_complex_context(self):
         """Test error logging with complex context."""
         from gearmeshing_ai.core.monitoring import log_error
 
-        context = {
-            "run_id": "run-123",
-            "tenant_id": "tenant-456",
-            "error_code": 500,
-            "details": {"nested": "value"}
-        }
+        context = {"run_id": "run-123", "tenant_id": "tenant-456", "error_code": 500, "details": {"nested": "value"}}
 
-        log_error(
-            error_type="SystemError",
-            error_message="System failure",
-            context=context
-        )
+        log_error(error_type="SystemError", error_message="System failure", context=context)
         assert True
 
     def test_log_error_handles_exception(self):

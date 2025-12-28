@@ -21,6 +21,7 @@ Features:
 import logging
 import os
 from typing import Optional
+
 from fastapi import FastAPI
 
 logger = logging.getLogger(__name__)
@@ -126,8 +127,7 @@ def initialize_logfire(app: FastAPI | None = None) -> None:
 
     except ImportError:
         logger.warning(
-            "Logfire is enabled but 'logfire' package is not installed. "
-            "Install it with: pip install logfire"
+            "Logfire is enabled but 'logfire' package is not installed. " "Install it with: pip install logfire"
         )
     except Exception as e:
         logger.error(f"Failed to initialize Logfire: {e}", exc_info=True)

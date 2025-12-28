@@ -11,7 +11,6 @@ Includes monitoring and tracing via Pydantic AI Logfire for:
 - Resource usage monitoring
 """
 
-import time
 from typing import List
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
@@ -22,7 +21,10 @@ from gearmeshing_ai.agent_core.schemas.domain import (
     AgentRunStatus,
 )
 from gearmeshing_ai.core.logging_config import get_logger
-from gearmeshing_ai.core.monitoring import log_agent_run, log_agent_completion, log_error
+from gearmeshing_ai.core.monitoring import (
+    log_agent_run,
+    log_error,
+)
 from gearmeshing_ai.server.schemas import RunCreate, RunResume
 from gearmeshing_ai.server.services.deps import OrchestratorDep
 

@@ -10,12 +10,11 @@ This test suite covers:
 - Header injection
 """
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-import time
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
 from fastapi import FastAPI, Request
 from starlette.responses import Response
-from starlette.testclient import TestClient
 
 
 class TestLogfireMiddlewareDispatch:
@@ -24,7 +23,9 @@ class TestLogfireMiddlewareDispatch:
     @pytest.mark.asyncio
     async def test_middleware_processes_successful_request(self):
         """Test that middleware processes successful requests."""
-        from gearmeshing_ai.server.middleware.logfire_middleware import LogfireMiddleware
+        from gearmeshing_ai.server.middleware.logfire_middleware import (
+            LogfireMiddleware,
+        )
 
         # Create mock request and call_next
         mock_request = AsyncMock(spec=Request)
@@ -48,7 +49,9 @@ class TestLogfireMiddlewareDispatch:
     @pytest.mark.asyncio
     async def test_middleware_measures_request_duration(self):
         """Test that middleware measures request duration."""
-        from gearmeshing_ai.server.middleware.logfire_middleware import LogfireMiddleware
+        from gearmeshing_ai.server.middleware.logfire_middleware import (
+            LogfireMiddleware,
+        )
 
         mock_request = AsyncMock(spec=Request)
         mock_request.method = "POST"
@@ -76,7 +79,9 @@ class TestLogfireMiddlewareDispatch:
     @pytest.mark.asyncio
     async def test_middleware_adds_process_time_header(self):
         """Test that middleware adds X-Process-Time header."""
-        from gearmeshing_ai.server.middleware.logfire_middleware import LogfireMiddleware
+        from gearmeshing_ai.server.middleware.logfire_middleware import (
+            LogfireMiddleware,
+        )
 
         mock_request = AsyncMock(spec=Request)
         mock_request.method = "GET"
@@ -100,7 +105,9 @@ class TestLogfireMiddlewareDispatch:
     @pytest.mark.asyncio
     async def test_middleware_detects_slow_requests(self):
         """Test that middleware detects and logs slow requests."""
-        from gearmeshing_ai.server.middleware.logfire_middleware import LogfireMiddleware
+        from gearmeshing_ai.server.middleware.logfire_middleware import (
+            LogfireMiddleware,
+        )
 
         mock_request = AsyncMock(spec=Request)
         mock_request.method = "GET"
@@ -132,7 +139,9 @@ class TestLogfireMiddlewareDispatch:
     @pytest.mark.asyncio
     async def test_middleware_handles_request_exception(self):
         """Test that middleware handles exceptions during request processing."""
-        from gearmeshing_ai.server.middleware.logfire_middleware import LogfireMiddleware
+        from gearmeshing_ai.server.middleware.logfire_middleware import (
+            LogfireMiddleware,
+        )
 
         mock_request = AsyncMock(spec=Request)
         mock_request.method = "GET"
@@ -155,7 +164,9 @@ class TestLogfireMiddlewareDispatch:
     @pytest.mark.asyncio
     async def test_middleware_stores_request_context(self):
         """Test that middleware stores request context in request.state."""
-        from gearmeshing_ai.server.middleware.logfire_middleware import LogfireMiddleware
+        from gearmeshing_ai.server.middleware.logfire_middleware import (
+            LogfireMiddleware,
+        )
 
         mock_request = AsyncMock(spec=Request)
         mock_request.method = "POST"
@@ -180,7 +191,9 @@ class TestLogfireMiddlewareDispatch:
     @pytest.mark.asyncio
     async def test_middleware_logs_different_http_methods(self):
         """Test that middleware logs requests with different HTTP methods."""
-        from gearmeshing_ai.server.middleware.logfire_middleware import LogfireMiddleware
+        from gearmeshing_ai.server.middleware.logfire_middleware import (
+            LogfireMiddleware,
+        )
 
         methods = ["GET", "POST", "PUT", "DELETE", "PATCH"]
 
@@ -206,7 +219,9 @@ class TestLogfireMiddlewareDispatch:
     @pytest.mark.asyncio
     async def test_middleware_logs_different_status_codes(self):
         """Test that middleware logs requests with different status codes."""
-        from gearmeshing_ai.server.middleware.logfire_middleware import LogfireMiddleware
+        from gearmeshing_ai.server.middleware.logfire_middleware import (
+            LogfireMiddleware,
+        )
 
         status_codes = [200, 201, 204, 400, 401, 403, 404, 500, 502, 503]
 
@@ -231,7 +246,9 @@ class TestLogfireMiddlewareDispatch:
     @pytest.mark.asyncio
     async def test_middleware_handles_exception_with_logging(self):
         """Test that middleware logs exceptions with context."""
-        from gearmeshing_ai.server.middleware.logfire_middleware import LogfireMiddleware
+        from gearmeshing_ai.server.middleware.logfire_middleware import (
+            LogfireMiddleware,
+        )
 
         mock_request = AsyncMock(spec=Request)
         mock_request.method = "POST"
@@ -258,7 +275,9 @@ class TestLogfireMiddlewareDispatch:
     @pytest.mark.asyncio
     async def test_middleware_preserves_response_content(self):
         """Test that middleware preserves response content."""
-        from gearmeshing_ai.server.middleware.logfire_middleware import LogfireMiddleware
+        from gearmeshing_ai.server.middleware.logfire_middleware import (
+            LogfireMiddleware,
+        )
 
         mock_request = AsyncMock(spec=Request)
         mock_request.method = "GET"
@@ -284,11 +303,13 @@ class TestLogfireMiddlewareIntegration:
 
     def test_middleware_instantiation(self):
         """Test middleware can be instantiated with FastAPI app."""
-        from gearmeshing_ai.server.middleware.logfire_middleware import LogfireMiddleware
+        from gearmeshing_ai.server.middleware.logfire_middleware import (
+            LogfireMiddleware,
+        )
 
         app = FastAPI()
         middleware = LogfireMiddleware(app=app)
-        
+
         assert middleware is not None
         assert middleware.app == app
 
@@ -299,7 +320,9 @@ class TestLogfireMiddlewareEdgeCases:
     @pytest.mark.asyncio
     async def test_middleware_with_very_fast_request(self):
         """Test middleware with very fast request (near-zero duration)."""
-        from gearmeshing_ai.server.middleware.logfire_middleware import LogfireMiddleware
+        from gearmeshing_ai.server.middleware.logfire_middleware import (
+            LogfireMiddleware,
+        )
 
         mock_request = AsyncMock(spec=Request)
         mock_request.method = "GET"
@@ -324,7 +347,9 @@ class TestLogfireMiddlewareEdgeCases:
     @pytest.mark.asyncio
     async def test_middleware_with_empty_path(self):
         """Test middleware with empty path."""
-        from gearmeshing_ai.server.middleware.logfire_middleware import LogfireMiddleware
+        from gearmeshing_ai.server.middleware.logfire_middleware import (
+            LogfireMiddleware,
+        )
 
         mock_request = AsyncMock(spec=Request)
         mock_request.method = "GET"
@@ -347,7 +372,9 @@ class TestLogfireMiddlewareEdgeCases:
     @pytest.mark.asyncio
     async def test_middleware_with_special_characters_in_path(self):
         """Test middleware with special characters in path."""
-        from gearmeshing_ai.server.middleware.logfire_middleware import LogfireMiddleware
+        from gearmeshing_ai.server.middleware.logfire_middleware import (
+            LogfireMiddleware,
+        )
 
         mock_request = AsyncMock(spec=Request)
         mock_request.method = "GET"
@@ -370,7 +397,9 @@ class TestLogfireMiddlewareEdgeCases:
     @pytest.mark.asyncio
     async def test_middleware_with_large_response(self):
         """Test middleware with large response body."""
-        from gearmeshing_ai.server.middleware.logfire_middleware import LogfireMiddleware
+        from gearmeshing_ai.server.middleware.logfire_middleware import (
+            LogfireMiddleware,
+        )
 
         mock_request = AsyncMock(spec=Request)
         mock_request.method = "GET"
