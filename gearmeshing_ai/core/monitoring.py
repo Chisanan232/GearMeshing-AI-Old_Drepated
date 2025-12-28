@@ -73,7 +73,6 @@ def initialize_logfire(app: FastAPI | None = None) -> None:
 
     try:
         import logfire
-        from logfire import SamplingOptions
 
         # Configure Logfire with project settings
         logfire.configure(
@@ -81,10 +80,6 @@ def initialize_logfire(app: FastAPI | None = None) -> None:
             service_name=LOGFIRE_SERVICE_NAME,
             service_version=LOGFIRE_SERVICE_VERSION,
             environment=LOGFIRE_ENVIRONMENT,
-            sampling=SamplingOptions(
-                head=LOGFIRE_SAMPLE_RATE,
-                tail=LOGFIRE_TRACE_SAMPLE_RATE,
-            ),
         )
 
         # Instrument Pydantic AI
