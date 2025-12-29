@@ -29,6 +29,7 @@ class ChatSessionBase(SQLModel):
     description: Optional[str] = Field(default=None, description="Chat session description")
     agent_role: str = Field(description="Agent role for this session (e.g., 'dev', 'planner')")
     tenant_id: Optional[str] = Field(default=None, index=True, description="Tenant identifier")
+    run_id: Optional[str] = Field(default=None, index=True, description="Associated agent run ID")
     is_active: bool = Field(default=True, description="Whether session is active")
 
 
