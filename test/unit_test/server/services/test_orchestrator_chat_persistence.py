@@ -12,6 +12,7 @@ Tests cover:
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Optional
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -855,7 +856,7 @@ class TestOrchestratorStreamEventsCallbackIntegration:
 
         dt = datetime(2025, 12, 28, 22, 0, 0, tzinfo=timezone.utc)
 
-        async def mock_get_events(run_id: str, since_event_id: str = None):
+        async def mock_get_events(run_id: str, since_event_id: Optional[str] = None):
             event = AgentEvent(
                 id="evt-6",
                 type="capability_executed",

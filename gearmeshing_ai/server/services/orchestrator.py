@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
-from typing import AsyncGenerator, Callable, List, Optional, Union
+from typing import AsyncGenerator, Awaitable, Callable, List, Optional, Union
 
 from gearmeshing_ai.agent_core.factory import build_default_registry
 from gearmeshing_ai.agent_core.planning.planner import StructuredPlanner
@@ -153,7 +153,7 @@ class OrchestratorService:
     async def stream_events(
         self,
         run_id: str,
-        on_event_persisted: Optional[Callable[[str, str, str], None]] = None,
+        on_event_persisted: Optional[Callable[[str, str, str], Awaitable[None]]] = None,
     ) -> AsyncGenerator[Union[SSEResponse, KeepAliveEvent, ErrorEvent], None]:
         """
         Yields JSON-serializable events for a run as they happen (or via polling).
@@ -202,9 +202,9 @@ class OrchestratorService:
                             if display_text:
                                 try:
                                     await on_event_persisted(
-                                        run_id=run_id,
-                                        display_text=display_text,
-                                        event_type=sse_event.data.type,
+                                        run_id,
+                                        display_text,
+                                        sse_event.data.type,
                                     )
                                 except Exception as e:
                                     logger.warning(f"Failed to persist event to chat: {e}")
@@ -408,7 +408,7 @@ class OrchestratorService:
         elif category == "approval" and event_data.approval_resolution:
             resolution = event_data.approval_resolution
             decision_icon = "✓" if resolution.decision == "approved" else "✗"
-            display_text = f"{decision_icon} Approval {resolution.decision.upper()}"
+            display_text = f"{decision_icon} Approval {resolution.decision.upper() if resolution.decision else 'UNKNOWN'}"
             if resolution.decided_by:
                 display_text += f" (by {resolution.decided_by})"
 
