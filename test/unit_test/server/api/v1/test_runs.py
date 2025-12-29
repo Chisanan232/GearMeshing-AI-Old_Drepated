@@ -15,24 +15,26 @@ See TestDirectFunctionCalls class documentation for why direct calls are necessa
 """
 
 import json
-from datetime import datetime, timezone, timedelta
-from typing import AsyncGenerator
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock
 
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
-from pydantic import BaseModel
 
 from gearmeshing_ai.agent_core.schemas.domain import (
-    AgentEvent,
-    AgentEventType,
     AgentRun,
     AgentRunStatus,
     AutonomyProfile,
 )
 from gearmeshing_ai.server.api.v1.runs import serialize_event
-from gearmeshing_ai.server.schemas import SSEResponse, SSEEventData, KeepAliveEvent, ErrorEvent, ThinkingData
+from gearmeshing_ai.server.schemas import (
+    ErrorEvent,
+    KeepAliveEvent,
+    SSEEventData,
+    SSEResponse,
+    ThinkingData,
+)
 
 pytestmark = pytest.mark.asyncio
 
@@ -538,11 +540,7 @@ class TestPydanticSSEModels:
         """Test SSEEventData serializes datetime to ISO format."""
         dt = datetime(2025, 12, 24, 10, 30, 45, tzinfo=timezone.utc)
         event_data = SSEEventData(
-            id="event-1",
-            type="thought_executed",
-            category="thinking",
-            created_at=dt,
-            run_id="run-123"
+            id="event-1", type="thought_executed", category="thinking", created_at=dt, run_id="run-123"
         )
         json_str = event_data.model_dump_json()
         decoded = json.loads(json_str)
@@ -553,18 +551,14 @@ class TestPydanticSSEModels:
     def test_sse_response_with_enriched_data(self):
         """Test SSEResponse with enriched thinking data."""
         dt = datetime(2025, 12, 24, 10, 30, 45, tzinfo=timezone.utc)
-        thinking = ThinkingData(
-            thought="Analyzing the problem",
-            idx=0,
-            timestamp=dt
-        )
+        thinking = ThinkingData(thought="Analyzing the problem", idx=0, timestamp=dt)
         event_data = SSEEventData(
             id="event-1",
             type="thought_executed",
             category="thinking",
             created_at=dt,
             run_id="run-123",
-            thinking=thinking
+            thinking=thinking,
         )
         response = SSEResponse(data=event_data)
         json_str = response.model_dump_json()
@@ -592,11 +586,7 @@ class TestPydanticSSEModels:
         """Test that Pydantic models don't contain Python object references."""
         dt = datetime(2025, 12, 24, 10, 30, 45, tzinfo=timezone.utc)
         event_data = SSEEventData(
-            id="event-1",
-            type="thought_executed",
-            category="thinking",
-            created_at=dt,
-            run_id="run-123"
+            id="event-1", type="thought_executed", category="thinking", created_at=dt, run_id="run-123"
         )
         json_str = event_data.model_dump_json()
         # Should not raise any serialization errors
@@ -613,11 +603,7 @@ class TestSerializeEvent:
         """Test serializing an SSEResponse Pydantic model."""
         dt = datetime(2025, 12, 24, 10, 30, 45, tzinfo=timezone.utc)
         event_data = SSEEventData(
-            id="event-1",
-            type="thought_executed",
-            category="thinking",
-            created_at=dt,
-            run_id="run-123"
+            id="event-1", type="thought_executed", category="thinking", created_at=dt, run_id="run-123"
         )
         response = SSEResponse(data=event_data)
         result = serialize_event(response)
@@ -643,18 +629,14 @@ class TestSerializeEvent:
     def test_serialize_event_with_enriched_data(self):
         """Test serializing event with enriched thinking data."""
         dt = datetime(2025, 12, 24, 10, 30, 45, tzinfo=timezone.utc)
-        thinking = ThinkingData(
-            thought="Analyzing the problem",
-            idx=0,
-            timestamp=dt
-        )
+        thinking = ThinkingData(thought="Analyzing the problem", idx=0, timestamp=dt)
         event_data = SSEEventData(
             id="event-1",
             type="thought_executed",
             category="thinking",
             created_at=dt,
             run_id="run-123",
-            thinking=thinking
+            thinking=thinking,
         )
         response = SSEResponse(data=event_data)
         result = serialize_event(response)
@@ -665,11 +647,12 @@ class TestSerializeEvent:
 
     def test_serialize_event_handles_errors_gracefully(self):
         """Test that serialize_event handles errors gracefully."""
+
         # Create a mock object that will fail serialization
         class BadObject:
             def __getstate__(self):
                 raise RuntimeError("Cannot serialize")
-        
+
         # This should not raise, but return an error event
         try:
             # Since we're passing a non-Pydantic object, it will try json.dumps
@@ -703,37 +686,33 @@ class TestStreamRunEventsEndpoint:
     async def test_stream_events_with_sse_response_models(self, mock_orchestrator, mock_request):
         """Test streaming with SSEResponse Pydantic models."""
         dt = datetime(2025, 12, 24, 10, 30, 45, tzinfo=timezone.utc)
-        
+
         # Create mock SSEResponse events
         event1_data = SSEEventData(
-            id="event-1",
-            type="thought_executed",
-            category="thinking",
-            created_at=dt,
-            run_id="run-123"
+            id="event-1", type="thought_executed", category="thinking", created_at=dt, run_id="run-123"
         )
         event1 = SSEResponse(data=event1_data)
-        
+
         event2_data = SSEEventData(
             id="event-2",
             type="capability_executed",
             category="operation",
             created_at=dt + timedelta(seconds=1),
-            run_id="run-123"
+            run_id="run-123",
         )
         event2 = SSEResponse(data=event2_data)
-        
-        async def mock_stream(run_id, on_event_persisted=None):
+
+        async def mock_stream(run_id):
             yield event1
             yield event2
-        
+
         mock_orchestrator.stream_events = mock_stream
-        
+
         collected_events = []
         async for event in mock_orchestrator.stream_events("run-123"):
             serialized = serialize_event(event)
             collected_events.append(json.loads(serialized))
-        
+
         assert len(collected_events) == 2
         assert collected_events[0]["data"]["id"] == "event-1"
         assert collected_events[0]["data"]["created_at"] == "2025-12-24T10:30:45+00:00"
@@ -743,31 +722,27 @@ class TestStreamRunEventsEndpoint:
     async def test_stream_events_with_keep_alive_and_error_events(self, mock_orchestrator, mock_request):
         """Test streaming with KeepAliveEvent and ErrorEvent models."""
         dt = datetime(2025, 12, 24, 10, 30, 45, tzinfo=timezone.utc)
-        
+
         event1_data = SSEEventData(
-            id="event-1",
-            type="thought_executed",
-            category="thinking",
-            created_at=dt,
-            run_id="run-123"
+            id="event-1", type="thought_executed", category="thinking", created_at=dt, run_id="run-123"
         )
         event1 = SSEResponse(data=event1_data)
-        
+
         keep_alive = KeepAliveEvent()
         error = ErrorEvent(error="Stream timeout")
-        
+
         async def mock_stream(run_id, on_event_persisted=None):
             yield event1
             yield keep_alive
             yield error
-        
+
         mock_orchestrator.stream_events = mock_stream
-        
+
         collected_events = []
         async for event in mock_orchestrator.stream_events("run-123"):
             serialized = serialize_event(event)
             collected_events.append(json.loads(serialized))
-        
+
         assert len(collected_events) == 3
         assert collected_events[0]["data"]["id"] == "event-1"
         assert collected_events[1]["comment"] == "keep-alive"
@@ -777,26 +752,22 @@ class TestStreamRunEventsEndpoint:
     async def test_stream_events_with_enriched_thinking_data(self):
         """Test streaming enriched events with thinking data."""
         dt = datetime(2025, 12, 24, 10, 30, 45, tzinfo=timezone.utc)
-        
-        thinking = ThinkingData(
-            thought="Analyzing the problem",
-            idx=0,
-            timestamp=dt
-        )
-        
+
+        thinking = ThinkingData(thought="Analyzing the problem", idx=0, timestamp=dt)
+
         event_data = SSEEventData(
             id="event-1",
             type="thought_executed",
             category="thinking",
             created_at=dt,
             run_id="run-123",
-            thinking=thinking
+            thinking=thinking,
         )
         response = SSEResponse(data=event_data)
-        
+
         serialized = serialize_event(response)
         decoded = json.loads(serialized)
-        
+
         assert decoded["data"]["thinking"]["thought"] == "Analyzing the problem"
         # Pydantic serializes UTC as 'Z' suffix
         assert decoded["data"]["thinking"]["timestamp"] in ["2025-12-24T10:30:45Z", "2025-12-24T10:30:45+00:00"]
@@ -814,21 +785,17 @@ class TestStreamRunEventsEndpoint:
         offset_dt = datetime(2025, 12, 24, 10, 30, 45, tzinfo=timezone(timedelta(hours=8)))
         # Datetime with microseconds
         micro_dt = datetime(2025, 12, 24, 10, 30, 45, 123456, tzinfo=timezone.utc)
-        
+
         datetimes = [naive_dt, utc_dt, offset_dt, micro_dt]
-        
+
         for i, dt in enumerate(datetimes):
             event_data = SSEEventData(
-                id=f"event-{i+1}",
-                type="thought_executed",
-                category="thinking",
-                created_at=dt,
-                run_id="run-123"
+                id=f"event-{i+1}", type="thought_executed", category="thinking", created_at=dt, run_id="run-123"
             )
             response = SSEResponse(data=event_data)
             serialized = serialize_event(response)
             decoded = json.loads(serialized)
-            
+
             # Verify it's a valid ISO format string
             assert isinstance(decoded["data"]["created_at"], str)
             assert "T" in decoded["data"]["created_at"]
@@ -837,26 +804,22 @@ class TestStreamRunEventsEndpoint:
     async def test_all_event_types_are_json_serializable(self):
         """Test that all event types produce valid JSON."""
         dt = datetime(2025, 12, 24, 10, 30, 45, tzinfo=timezone.utc)
-        
+
         # Test SSEResponse
         event_data = SSEEventData(
-            id="event-1",
-            type="thought_executed",
-            category="thinking",
-            created_at=dt,
-            run_id="run-123"
+            id="event-1", type="thought_executed", category="thinking", created_at=dt, run_id="run-123"
         )
         response = SSEResponse(data=event_data)
         json_str = serialize_event(response)
         decoded = json.loads(json_str)
         assert isinstance(decoded, dict)
-        
+
         # Test KeepAliveEvent
         keep_alive = KeepAliveEvent()
         json_str = serialize_event(keep_alive)
         decoded = json.loads(json_str)
         assert decoded["comment"] == "keep-alive"
-        
+
         # Test ErrorEvent
         error = ErrorEvent(error="Test error")
         json_str = serialize_event(error)
@@ -887,11 +850,7 @@ class TestStreamRunEventsEndpoint:
 
         dt = datetime(2025, 12, 24, 10, 30, 45, tzinfo=timezone.utc)
         event_data = SSEEventData(
-            id="event-1",
-            type="thought_executed",
-            category="thinking",
-            created_at=dt,
-            run_id="run-123"
+            id="event-1", type="thought_executed", category="thinking", created_at=dt, run_id="run-123"
         )
         event = SSEResponse(data=event_data)
 
@@ -905,6 +864,7 @@ class TestStreamRunEventsEndpoint:
 
         # Verify EventSourceResponse is returned
         from sse_starlette.sse import EventSourceResponse
+
         assert isinstance(result, EventSourceResponse)
 
     @pytest.mark.asyncio
@@ -930,11 +890,7 @@ class TestStreamRunEventsEndpoint:
 
         dt = datetime(2025, 12, 24, 10, 30, 45, tzinfo=timezone.utc)
         event1_data = SSEEventData(
-            id="event-1",
-            type="thought_executed",
-            category="thinking",
-            created_at=dt,
-            run_id="run-123"
+            id="event-1", type="thought_executed", category="thinking", created_at=dt, run_id="run-123"
         )
         event1 = SSEResponse(data=event1_data)
 
@@ -943,7 +899,7 @@ class TestStreamRunEventsEndpoint:
             type="capability_executed",
             category="operation",
             created_at=dt + timedelta(seconds=1),
-            run_id="run-123"
+            run_id="run-123",
         )
         event2 = SSEResponse(data=event2_data)
 
@@ -992,11 +948,7 @@ class TestStreamRunEventsEndpoint:
 
         dt = datetime(2025, 12, 24, 10, 30, 45, tzinfo=timezone.utc)
         event_data = SSEEventData(
-            id="event-1",
-            type="thought_executed",
-            category="thinking",
-            created_at=dt,
-            run_id="run-123"
+            id="event-1", type="thought_executed", category="thinking", created_at=dt, run_id="run-123"
         )
         event = SSEResponse(data=event_data)
 
@@ -1139,7 +1091,7 @@ class TestStreamRunEventsEndpoint:
                 type="thought_executed",
                 category="thinking",
                 created_at=dt + timedelta(seconds=i),
-                run_id="run-123"
+                run_id="run-123",
             )
             events.append(SSEResponse(data=event_data))
 
@@ -1189,7 +1141,7 @@ class TestStreamRunEventsEndpoint:
                 type="thought_executed",
                 category="thinking",
                 created_at=dt + timedelta(seconds=i),
-                run_id="run-123"
+                run_id="run-123",
             )
             events.append(SSEResponse(data=event_data))
 

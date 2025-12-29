@@ -14,9 +14,7 @@ Includes:
   - Resource usage monitoring
 """
 
-import asyncio
 import json
-from datetime import datetime
 from typing import List, Union
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
@@ -34,8 +32,14 @@ from gearmeshing_ai.core.monitoring import (
     log_agent_run,
     log_error,
 )
+from gearmeshing_ai.server.schemas import (
+    ErrorEvent,
+    KeepAliveEvent,
+    RunCreate,
+    RunResume,
+    SSEResponse,
+)
 from gearmeshing_ai.server.core.database import get_session
-from gearmeshing_ai.server.schemas import RunCreate, RunResume, SSEResponse, KeepAliveEvent, ErrorEvent
 from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
 from gearmeshing_ai.server.services.deps import OrchestratorDep
 
@@ -46,12 +50,12 @@ router = APIRouter()
 def serialize_event(event: Union[SSEResponse, KeepAliveEvent, ErrorEvent, BaseModel]) -> str:
     """
     Serialize a Pydantic model event to JSON string.
-    
+
     Converts Pydantic models to JSON-serializable format with proper datetime handling.
-    
+
     Args:
         event: Pydantic model (SSEResponse, KeepAliveEvent, ErrorEvent, or other BaseModel)
-        
+
     Returns:
         JSON string representation of the event
     """
@@ -264,13 +268,9 @@ async def list_run_events(run_id: str, orchestrator: OrchestratorDep, limit: int
     responses={
         200: {
             "description": "SSE stream established",
-            "content": {
-                "text/event-stream": {
-                    "example": "data: {\"comment\": \"keep-alive\"}\n\n"
-                }
-            }
+            "content": {"text/event-stream": {"example": 'data: {"comment": "keep-alive"}\n\n'}},
         }
-    }
+    },
 )
 async def stream_run_events(
     run_id: str,
@@ -285,26 +285,26 @@ async def stream_run_events(
     for the given run ID. This allows clients to follow the agent's progress live.
 
     The stream emits JSON-formatted events. Each event payload mirrors the `AgentEvent` schema.
-    
+
     **Path Parameters:**
     - `run_id`: The unique identifier of the run to stream events from
-    
+
     **Response:**
     - Streams JSON-formatted event objects in real-time
     - Connection maintains until client disconnects or run completes
     - Chat history is automatically persisted on the backend
     """
     logger.info(f"Starting event stream for run: {run_id}")
-    
+
     async def event_generator():
         chat_service = ChatPersistenceService(db_session)
         chat_session = None
         user_message_persisted = False
-        
+
         async def persist_event_to_chat(run_id: str, display_text: str, event_type: str) -> None:
             """Callback to persist events to chat history."""
             nonlocal chat_session, user_message_persisted
-            
+
             # Initialize chat session on first event
             if chat_session is None:
                 try:
@@ -318,7 +318,7 @@ async def stream_run_events(
                             description=f"Chat history for run {run_id}",
                         )
                         logger.debug(f"Initialized chat session {chat_session.id} for run {run_id}")
-                        
+
                         # Persist user's initial objective as the first message
                         if not user_message_persisted and run.objective:
                             try:
@@ -334,7 +334,7 @@ async def stream_run_events(
                 except Exception as e:
                     logger.warning(f"Failed to initialize chat session for run {run_id}: {e}")
                     return
-            
+
             # Persist message to chat session
             if chat_session:
                 try:
@@ -345,13 +345,13 @@ async def stream_run_events(
                     )
                 except Exception as e:
                     logger.warning(f"Failed to persist event to chat session: {e}")
-        
+
         try:
             async for event in orchestrator.stream_events(run_id, on_event_persisted=persist_event_to_chat):
                 if await request.is_disconnected():
                     logger.info(f"Client disconnected from stream for run: {run_id}")
                     break
-                
+
                 # Format event as JSON string for SSE, handling datetime serialization
                 yield serialize_event(event)
         except Exception as e:
