@@ -12,7 +12,6 @@ from __future__ import annotations
 
 from datetime import datetime
 
-
 from gearmeshing_ai.server.models.chat_session import (
     ChatMessage,
     ChatMessageCreate,
