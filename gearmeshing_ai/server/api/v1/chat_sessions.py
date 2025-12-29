@@ -103,7 +103,7 @@ async def get_chat_session(
     "",
     response_model=list[ChatSessionRead],
     summary="List Chat Sessions",
-    description="Retrieve a list of chat sessions, optionally filtered by tenant and active status.",
+    description="Retrieve a list of chat sessions, optionally filtered by tenant, run_id, and active status.",
     response_description="A list of chat session objects.",
     responses={
         200: {"description": "List of sessions retrieved successfully"},
@@ -111,6 +111,7 @@ async def get_chat_session(
 )
 async def list_chat_sessions(
     tenant_id: Optional[str] = None,
+    run_id: Optional[str] = None,
     active_only: bool = True,
     session: AsyncSession = Depends(get_session),
 ) -> list[ChatSessionRead]:
@@ -118,20 +119,104 @@ async def list_chat_sessions(
     List chat sessions.
 
     Retrieves all chat sessions with optional filtering. By default, only active
-    sessions are returned. You can filter by tenant_id to get sessions for a specific
-    tenant or include inactive sessions.
+    sessions are returned. You can filter by tenant_id or run_id to get sessions for a specific
+    tenant or agent run, or include inactive sessions.
 
     - **tenant_id**: Optional filter for a specific tenant. If not provided, returns all sessions.
+    - **run_id**: Optional filter for a specific agent run ID. Useful for retrieving chat history for a specific run.
     - **active_only**: If True (default), only returns active sessions. Set to False to include inactive ones.
     """
     statement = select(ChatSession)
     if tenant_id:
         statement = statement.where(ChatSession.tenant_id == tenant_id)
+    if run_id:
+        statement = statement.where(ChatSession.run_id == run_id)
     if active_only:
         statement = statement.where(ChatSession.is_active == True)
     result = await session.execute(statement)
     sessions = result.scalars().all()
     return [ChatSessionRead.model_validate(s) for s in sessions]
+
+
+@router.post(
+    "/by-run/{run_id}",
+    response_model=ChatSessionRead,
+    status_code=status.HTTP_200_OK,
+    summary="Get or Create Chat Session by Run ID",
+    description="Get an existing chat session for a run, or create one if it doesn't exist. Useful for persisting chat history with specific agent runs.",
+    response_description="The chat session object (existing or newly created).",
+    responses={
+        200: {"description": "Chat session retrieved or created successfully"},
+        400: {"description": "Invalid session data"},
+    },
+)
+async def get_or_create_chat_session_by_run(
+    run_id: str,
+    session_data: ChatSessionCreate,
+    session: AsyncSession = Depends(get_session),
+) -> ChatSessionRead:
+    """
+    Get or create chat session by run ID.
+
+    Retrieves an existing chat session for a specific agent run, or creates a new one
+    if it doesn't exist. This is useful for maintaining persistent chat history across
+    multiple interactions with the same agent run.
+
+    - **run_id**: The unique identifier of the agent run.
+    - **session_data**: Chat session metadata (title, description, agent_role, tenant_id).
+      The run_id will be automatically set to the URL parameter.
+    """
+    # Check if session already exists for this run
+    statement = select(ChatSession).where(ChatSession.run_id == run_id)
+    result = await session.execute(statement)
+    existing_session = result.scalars().first()
+    
+    if existing_session:
+        return ChatSessionRead.model_validate(existing_session)
+    
+    # Create new session with run_id
+    session_data_dict = session_data.model_dump()
+    session_data_dict['run_id'] = run_id
+    db_session = ChatSession.model_validate(session_data_dict)
+    session.add(db_session)
+    await session.commit()
+    await session.refresh(db_session)
+    return ChatSessionRead.model_validate(db_session)
+
+
+@router.get(
+    "/by-run/{run_id}",
+    response_model=ChatSessionRead,
+    summary="Get Chat Session by Run ID",
+    description="Retrieve a chat session associated with a specific agent run.",
+    response_description="The chat session object.",
+    responses={
+        200: {"description": "Chat session found"},
+        404: {"description": "Chat session not found for this run"},
+    },
+)
+async def get_chat_session_by_run(
+    run_id: str,
+    session: AsyncSession = Depends(get_session),
+) -> ChatSessionRead:
+    """
+    Get chat session by run ID.
+
+    Retrieves the chat session associated with a specific agent run.
+    This allows you to fetch the conversation history for a particular run.
+
+    - **run_id**: The unique identifier of the agent run.
+    """
+    statement = select(ChatSession).where(ChatSession.run_id == run_id)
+    result = await session.execute(statement)
+    chat_session = result.scalars().first()
+    
+    if not chat_session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Chat session not found for run {run_id}",
+        )
+    return ChatSessionRead.model_validate(chat_session)
 
 
 @router.patch(
