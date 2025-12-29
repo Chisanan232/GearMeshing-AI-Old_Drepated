@@ -32,6 +32,7 @@ from gearmeshing_ai.core.monitoring import (
     log_agent_run,
     log_error,
 )
+from gearmeshing_ai.server.core.database import get_session
 from gearmeshing_ai.server.schemas import (
     ErrorEvent,
     KeepAliveEvent,
@@ -39,7 +40,6 @@ from gearmeshing_ai.server.schemas import (
     RunResume,
     SSEResponse,
 )
-from gearmeshing_ai.server.core.database import get_session
 from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
 from gearmeshing_ai.server.services.deps import OrchestratorDep
 

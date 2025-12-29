@@ -170,13 +170,13 @@ async def get_or_create_chat_session_by_run(
     statement = select(ChatSession).where(ChatSession.run_id == run_id)
     result = await session.execute(statement)
     existing_session = result.scalars().first()
-    
+
     if existing_session:
         return ChatSessionRead.model_validate(existing_session)
-    
+
     # Create new session with run_id
     session_data_dict = session_data.model_dump()
-    session_data_dict['run_id'] = run_id
+    session_data_dict["run_id"] = run_id
     db_session = ChatSession.model_validate(session_data_dict)
     session.add(db_session)
     await session.commit()
@@ -210,7 +210,7 @@ async def get_chat_session_by_run(
     statement = select(ChatSession).where(ChatSession.run_id == run_id)
     result = await session.execute(statement)
     chat_session = result.scalars().first()
-    
+
     if not chat_session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

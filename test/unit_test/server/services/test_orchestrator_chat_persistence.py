@@ -19,12 +19,12 @@ import pytest
 
 from gearmeshing_ai.agent_core.schemas.domain import AgentEvent
 from gearmeshing_ai.server.schemas import (
+    ApprovalRequestData,
+    ApprovalResolutionData,
     OperationData,
     SSEEventData,
     SSEResponse,
     ToolExecutionData,
-    ApprovalRequestData,
-    ApprovalResolutionData,
 )
 from gearmeshing_ai.server.services.orchestrator import OrchestratorService
 
@@ -241,11 +241,13 @@ class TestOrchestratorCallbackIntegration:
         callback_calls = []
 
         async def test_callback(run_id: str, display_text: str, event_type: str):
-            callback_calls.append({
-                "run_id": run_id,
-                "display_text": display_text,
-                "event_type": event_type,
-            })
+            callback_calls.append(
+                {
+                    "run_id": run_id,
+                    "display_text": display_text,
+                    "event_type": event_type,
+                }
+            )
 
         # Simulate orchestrator calling callback
         await test_callback("run-123", "✓ Operation: search (success)", "capability_executed")
@@ -547,15 +549,17 @@ class TestOrchestratorStreamEventsCallbackIntegration:
         callback_invocations = []
 
         async def capture_callback(run_id: str, display_text: str, event_type: str) -> None:
-            callback_invocations.append({
-                "run_id": run_id,
-                "display_text": display_text,
-                "event_type": event_type,
-            })
+            callback_invocations.append(
+                {
+                    "run_id": run_id,
+                    "display_text": display_text,
+                    "event_type": event_type,
+                }
+            )
 
         # Mock the repository to return events
         dt = datetime(2025, 12, 28, 22, 0, 0, tzinfo=timezone.utc)
-        
+
         event = AgentEvent(
             id="evt-1",
             type="capability.executed",
@@ -566,7 +570,7 @@ class TestOrchestratorStreamEventsCallbackIntegration:
 
         mock_events_repo = AsyncMock()
         mock_events_repo.list = AsyncMock(return_value=[event])
-        
+
         mock_repos = MagicMock()
         mock_repos.events = mock_events_repo
         orchestrator.repos = mock_repos
@@ -630,7 +634,7 @@ class TestOrchestratorStreamEventsCallbackIntegration:
 
         mock_events_repo = AsyncMock()
         mock_events_repo.list = AsyncMock(return_value=[event])
-        
+
         mock_repos = MagicMock()
         mock_repos.events = mock_events_repo
         orchestrator.repos = mock_repos
@@ -693,7 +697,7 @@ class TestOrchestratorStreamEventsCallbackIntegration:
 
         mock_events_repo = AsyncMock()
         mock_events_repo.list = AsyncMock(return_value=[event])
-        
+
         mock_repos = MagicMock()
         mock_repos.events = mock_events_repo
         orchestrator.repos = mock_repos
@@ -745,7 +749,7 @@ class TestOrchestratorStreamEventsCallbackIntegration:
 
         mock_events_repo = AsyncMock()
         mock_events_repo.list = AsyncMock(return_value=[event])
-        
+
         mock_repos = MagicMock()
         mock_repos.events = mock_events_repo
         orchestrator.repos = mock_repos
@@ -809,7 +813,7 @@ class TestOrchestratorStreamEventsCallbackIntegration:
 
         mock_events_repo = AsyncMock()
         mock_events_repo.list = AsyncMock(return_value=[event])
-        
+
         mock_repos = MagicMock()
         mock_repos.events = mock_events_repo
         orchestrator.repos = mock_repos

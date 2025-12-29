@@ -17,14 +17,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from gearmeshing_ai.agent_core.schemas.domain import AgentRun, AgentRunStatus
-from gearmeshing_ai.server.models.chat_session import ChatSession, MessageRole
+from gearmeshing_ai.server.models.chat_session import ChatSession
 from gearmeshing_ai.server.schemas import (
+    ApprovalRequestData,
     OperationData,
     SSEEventData,
     SSEResponse,
     ToolExecutionData,
-    ApprovalRequestData,
-    ApprovalResolutionData,
 )
 
 
@@ -34,8 +33,9 @@ class TestPersistEventToChatCallback:
     @pytest.mark.asyncio
     async def test_callback_initializes_chat_session_on_first_event(self):
         """Test that callback initializes chat session on first event."""
-        from gearmeshing_ai.server.api.v1 import runs
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
 
         # Mock orchestrator
         mock_orchestrator = AsyncMock()
@@ -96,7 +96,9 @@ class TestPersistEventToChatCallback:
     @pytest.mark.asyncio
     async def test_callback_reuses_existing_session(self):
         """Test that callback reuses existing chat session."""
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
 
         mock_chat_service = AsyncMock(spec=ChatPersistenceService)
         mock_chat_session = ChatSession(
@@ -133,7 +135,9 @@ class TestPersistEventToChatCallback:
     @pytest.mark.asyncio
     async def test_callback_persists_operation_event(self):
         """Test callback persists operation events correctly."""
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
 
         mock_chat_service = AsyncMock(spec=ChatPersistenceService)
         mock_chat_session = ChatSession(
@@ -174,7 +178,9 @@ class TestPersistEventToChatCallback:
     @pytest.mark.asyncio
     async def test_callback_persists_tool_execution_event(self):
         """Test callback persists tool execution events correctly."""
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
 
         mock_chat_service = AsyncMock(spec=ChatPersistenceService)
         mock_chat_session = ChatSession(
@@ -215,7 +221,9 @@ class TestPersistEventToChatCallback:
     @pytest.mark.asyncio
     async def test_callback_persists_approval_request_event(self):
         """Test callback persists approval request events correctly."""
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
 
         mock_chat_service = AsyncMock(spec=ChatPersistenceService)
         mock_chat_session = ChatSession(
@@ -255,7 +263,9 @@ class TestPersistEventToChatCallback:
     @pytest.mark.asyncio
     async def test_callback_handles_missing_session_gracefully(self):
         """Test callback handles missing session gracefully."""
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
 
         mock_chat_service = AsyncMock(spec=ChatPersistenceService)
         mock_chat_service.get_or_create_session = AsyncMock(return_value=None)
@@ -291,7 +301,9 @@ class TestPersistEventToChatCallback:
     @pytest.mark.asyncio
     async def test_callback_handles_service_errors_gracefully(self):
         """Test callback handles service errors gracefully."""
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
 
         mock_chat_service = AsyncMock(spec=ChatPersistenceService)
         mock_chat_session = ChatSession(
@@ -303,9 +315,7 @@ class TestPersistEventToChatCallback:
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
         )
-        mock_chat_service.add_agent_message = AsyncMock(
-            side_effect=RuntimeError("Database error")
-        )
+        mock_chat_service.add_agent_message = AsyncMock(side_effect=RuntimeError("Database error"))
 
         chat_session_holder = {"session": mock_chat_session}
 
@@ -329,7 +339,9 @@ class TestPersistEventToChatCallback:
     @pytest.mark.asyncio
     async def test_callback_with_multiple_events_in_sequence(self):
         """Test callback handles multiple events in sequence."""
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
 
         mock_chat_service = AsyncMock(spec=ChatPersistenceService)
         mock_chat_session = ChatSession(
@@ -372,7 +384,9 @@ class TestPersistEventToChatCallback:
     @pytest.mark.asyncio
     async def test_callback_preserves_event_metadata(self):
         """Test callback preserves event metadata in persistence."""
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
 
         mock_chat_service = AsyncMock(spec=ChatPersistenceService)
         mock_chat_session = ChatSession(
@@ -608,7 +622,9 @@ class TestUserMessagePersistence:
     @pytest.mark.asyncio
     async def test_user_objective_persisted_on_first_event(self):
         """Test that user objective is persisted when chat session is initialized."""
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
 
         # Mock database session
         mock_session = MagicMock()
@@ -618,11 +634,13 @@ class TestUserMessagePersistence:
         user_messages = []
 
         async def mock_add_user_message(session_id, content, metadata=None):
-            user_messages.append({
-                "session_id": session_id,
-                "content": content,
-                "metadata": metadata,
-            })
+            user_messages.append(
+                {
+                    "session_id": session_id,
+                    "content": content,
+                    "metadata": metadata,
+                }
+            )
             return MagicMock(id=1, content=content)
 
         service.add_user_message = mock_add_user_message
@@ -644,7 +662,9 @@ class TestUserMessagePersistence:
     @pytest.mark.asyncio
     async def test_user_objective_with_metadata(self):
         """Test user objective is persisted with correct metadata."""
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
 
         mock_session = MagicMock()
         service = ChatPersistenceService(mock_session)
@@ -652,11 +672,13 @@ class TestUserMessagePersistence:
         user_messages = []
 
         async def mock_add_user_message(session_id, content, metadata=None):
-            user_messages.append({
-                "session_id": session_id,
-                "content": content,
-                "metadata": metadata,
-            })
+            user_messages.append(
+                {
+                    "session_id": session_id,
+                    "content": content,
+                    "metadata": metadata,
+                }
+            )
             return MagicMock(id=1)
 
         service.add_user_message = mock_add_user_message
@@ -684,7 +706,9 @@ class TestUserMessagePersistence:
     @pytest.mark.asyncio
     async def test_user_and_agent_messages_in_sequence(self):
         """Test that user and agent messages are persisted in correct sequence."""
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
 
         mock_session = MagicMock()
         service = ChatPersistenceService(mock_session)
@@ -733,7 +757,9 @@ class TestUserMessagePersistence:
     @pytest.mark.asyncio
     async def test_empty_objective_not_persisted(self):
         """Test that empty objectives are not persisted."""
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
 
         mock_session = MagicMock()
         service = ChatPersistenceService(mock_session)
@@ -761,7 +787,9 @@ class TestUserMessagePersistence:
     @pytest.mark.asyncio
     async def test_long_objective_persisted(self):
         """Test that long objectives are persisted correctly."""
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
 
         mock_session = MagicMock()
         service = ChatPersistenceService(mock_session)
@@ -775,9 +803,11 @@ class TestUserMessagePersistence:
         service.add_user_message = mock_add_user_message
 
         # Create a long objective
-        long_objective = "Analyze and optimize the performance of our e-commerce platform by examining user behavior patterns, " \
-                        "identifying bottlenecks in the checkout process, and recommending improvements to increase conversion rates " \
-                        "and reduce cart abandonment. Include competitor analysis and best practices from industry leaders."
+        long_objective = (
+            "Analyze and optimize the performance of our e-commerce platform by examining user behavior patterns, "
+            "identifying bottlenecks in the checkout process, and recommending improvements to increase conversion rates "
+            "and reduce cart abandonment. Include competitor analysis and best practices from industry leaders."
+        )
 
         await service.add_user_message(
             session_id=1,
@@ -793,7 +823,9 @@ class TestUserMessagePersistence:
     @pytest.mark.asyncio
     async def test_objective_with_special_characters(self):
         """Test that objectives with special characters are persisted."""
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
 
         mock_session = MagicMock()
         service = ChatPersistenceService(mock_session)
@@ -825,7 +857,9 @@ class TestUserMessagePersistence:
     @pytest.mark.asyncio
     async def test_complete_chat_history_flow(self):
         """Test complete chat history with user objective and agent responses."""
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
 
         mock_session = MagicMock()
         service = ChatPersistenceService(mock_session)
@@ -833,20 +867,24 @@ class TestUserMessagePersistence:
         chat_history = []
 
         async def mock_add_user_message(session_id, content, metadata=None):
-            chat_history.append({
-                "role": "user",
-                "content": content,
-                "metadata": metadata,
-            })
+            chat_history.append(
+                {
+                    "role": "user",
+                    "content": content,
+                    "metadata": metadata,
+                }
+            )
             return MagicMock(id=len(chat_history))
 
         async def mock_add_agent_message(session_id, content, event_type=None, event_category=None, metadata=None):
-            chat_history.append({
-                "role": "agent",
-                "content": content,
-                "event_type": event_type,
-                "event_category": event_category,
-            })
+            chat_history.append(
+                {
+                    "role": "agent",
+                    "content": content,
+                    "event_type": event_type,
+                    "event_category": event_category,
+                }
+            )
             return MagicMock(id=len(chat_history))
 
         service.add_user_message = mock_add_user_message
@@ -901,14 +939,16 @@ class TestRunsEndpointCallbackRealExecution:
     async def test_stream_run_events_initializes_chat_session_on_first_event(self):
         """Test that stream_run_events callback initializes chat session (lines 309-320)."""
         from gearmeshing_ai.server.api.v1.runs import stream_run_events
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
-        
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
+
         # Mock dependencies
         mock_db_session = AsyncMock()
         mock_orchestrator = AsyncMock()
         mock_request = AsyncMock()
         mock_request.is_disconnected = AsyncMock(return_value=False)
-        
+
         # Create test run
         test_run = AgentRun(
             id="run-stream-test",
@@ -918,30 +958,30 @@ class TestRunsEndpointCallbackRealExecution:
             status=AgentRunStatus.running.value,
             created_at=datetime.now(timezone.utc),
         )
-        
+
         # Mock orchestrator methods
         mock_orchestrator.get_run = AsyncMock(return_value=test_run)
-        
+
         # Mock chat service
         mock_chat_session = MagicMock()
         mock_chat_session.id = 1
-        
+
         mock_chat_service_instance = AsyncMock(spec=ChatPersistenceService)
         mock_chat_service_instance.get_or_create_session = AsyncMock(return_value=mock_chat_session)
         mock_chat_service_instance.add_user_message = AsyncMock()
         mock_chat_service_instance.add_agent_message = AsyncMock()
-        
+
         # Mock stream_events to yield a test event
         async def mock_stream_events(run_id, on_event_persisted=None):
             # Simulate event that triggers callback
             if on_event_persisted:
                 await on_event_persisted("run-stream-test", "Test event", "capability_executed")
             yield MagicMock()  # Yield a mock SSE response
-        
+
         mock_orchestrator.stream_events = mock_stream_events
-        
+
         # Patch ChatPersistenceService to use our mock
-        with patch('gearmeshing_ai.server.api.v1.runs.ChatPersistenceService', return_value=mock_chat_service_instance):
+        with patch("gearmeshing_ai.server.api.v1.runs.ChatPersistenceService", return_value=mock_chat_service_instance):
             # Call the real stream_run_events function (lines 275-361)
             response = await stream_run_events(
                 run_id="run-stream-test",
@@ -949,14 +989,14 @@ class TestRunsEndpointCallbackRealExecution:
                 orchestrator=mock_orchestrator,
                 db_session=mock_db_session,
             )
-            
+
             # Consume the EventSourceResponse generator to execute the real code
             event_count = 0
             async for event in response.body_iterator:
                 event_count += 1
                 if event_count >= 1:
                     break
-        
+
         # Verify chat session was created (lines 313-319)
         mock_chat_service_instance.get_or_create_session.assert_called_once()
         call_kwargs = mock_chat_service_instance.get_or_create_session.call_args[1]
@@ -967,13 +1007,15 @@ class TestRunsEndpointCallbackRealExecution:
     async def test_stream_run_events_callback_persists_user_objective(self):
         """Test that user objective is persisted (lines 323-333)."""
         from gearmeshing_ai.server.api.v1.runs import stream_run_events
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
-        
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
+
         mock_db_session = AsyncMock()
         mock_orchestrator = AsyncMock()
         mock_request = AsyncMock()
         mock_request.is_disconnected = AsyncMock(return_value=False)
-        
+
         test_run = AgentRun(
             id="run-user-obj",
             tenant_id="tenant-2",
@@ -982,40 +1024,40 @@ class TestRunsEndpointCallbackRealExecution:
             status=AgentRunStatus.running.value,
             created_at=datetime.now(timezone.utc),
         )
-        
+
         mock_orchestrator.get_run = AsyncMock(return_value=test_run)
-        
+
         mock_chat_session = MagicMock()
         mock_chat_session.id = 2
-        
+
         mock_chat_service_instance = AsyncMock(spec=ChatPersistenceService)
         mock_chat_service_instance.get_or_create_session = AsyncMock(return_value=mock_chat_session)
         mock_chat_service_instance.add_user_message = AsyncMock()
         mock_chat_service_instance.add_agent_message = AsyncMock()
-        
+
         async def mock_stream_events(run_id, on_event_persisted=None):
             if on_event_persisted:
                 await on_event_persisted("run-user-obj", "Event", "type")
             yield MagicMock()
-        
+
         mock_orchestrator.stream_events = mock_stream_events
-        
+
         # Call the real stream_run_events function
-        with patch('gearmeshing_ai.server.api.v1.runs.ChatPersistenceService', return_value=mock_chat_service_instance):
+        with patch("gearmeshing_ai.server.api.v1.runs.ChatPersistenceService", return_value=mock_chat_service_instance):
             response = await stream_run_events(
                 run_id="run-user-obj",
                 request=mock_request,
                 orchestrator=mock_orchestrator,
                 db_session=mock_db_session,
             )
-            
+
             # Consume the EventSourceResponse generator to execute the real code
             event_count = 0
             async for event in response.body_iterator:
                 event_count += 1
                 if event_count >= 1:
                     break
-        
+
         # Verify user message was persisted (lines 325-329)
         mock_chat_service_instance.add_user_message.assert_called_once()
         call_kwargs = mock_chat_service_instance.add_user_message.call_args[1]
@@ -1026,13 +1068,15 @@ class TestRunsEndpointCallbackRealExecution:
     async def test_stream_run_events_callback_persists_agent_messages(self):
         """Test that agent messages are persisted (lines 341-345)."""
         from gearmeshing_ai.server.api.v1.runs import stream_run_events
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
-        
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
+
         mock_db_session = AsyncMock()
         mock_orchestrator = AsyncMock()
         mock_request = AsyncMock()
         mock_request.is_disconnected = AsyncMock(return_value=False)
-        
+
         test_run = AgentRun(
             id="run-agent-msg",
             tenant_id="tenant-3",
@@ -1041,40 +1085,40 @@ class TestRunsEndpointCallbackRealExecution:
             status=AgentRunStatus.running.value,
             created_at=datetime.now(timezone.utc),
         )
-        
+
         mock_orchestrator.get_run = AsyncMock(return_value=test_run)
-        
+
         mock_chat_session = MagicMock()
         mock_chat_session.id = 3
-        
+
         mock_chat_service_instance = AsyncMock(spec=ChatPersistenceService)
         mock_chat_service_instance.get_or_create_session = AsyncMock(return_value=mock_chat_session)
         mock_chat_service_instance.add_user_message = AsyncMock()
         mock_chat_service_instance.add_agent_message = AsyncMock()
-        
+
         async def mock_stream_events(run_id, on_event_persisted=None):
             if on_event_persisted:
                 await on_event_persisted("run-agent-msg", "Agent response", "capability_executed")
             yield MagicMock()
-        
+
         mock_orchestrator.stream_events = mock_stream_events
-        
+
         # Call the real stream_run_events function
-        with patch('gearmeshing_ai.server.api.v1.runs.ChatPersistenceService', return_value=mock_chat_service_instance):
+        with patch("gearmeshing_ai.server.api.v1.runs.ChatPersistenceService", return_value=mock_chat_service_instance):
             response = await stream_run_events(
                 run_id="run-agent-msg",
                 request=mock_request,
                 orchestrator=mock_orchestrator,
                 db_session=mock_db_session,
             )
-            
+
             # Consume the EventSourceResponse generator to execute the real code
             event_count = 0
             async for event in response.body_iterator:
                 event_count += 1
                 if event_count >= 1:
                     break
-        
+
         # Verify agent message was persisted (lines 341-345)
         mock_chat_service_instance.add_agent_message.assert_called_once()
         call_kwargs = mock_chat_service_instance.add_agent_message.call_args[1]
@@ -1085,44 +1129,46 @@ class TestRunsEndpointCallbackRealExecution:
     async def test_stream_run_events_handles_orchestrator_get_run_exception(self):
         """Test exception handling when orchestrator.get_run fails (lines 310-336)."""
         from gearmeshing_ai.server.api.v1.runs import stream_run_events
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
-        
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
+
         mock_db_session = AsyncMock()
         mock_orchestrator = AsyncMock()
         mock_request = AsyncMock()
         mock_request.is_disconnected = AsyncMock(return_value=False)
-        
+
         # Mock orchestrator to raise exception
         mock_orchestrator.get_run = AsyncMock(side_effect=Exception("Failed to get run"))
-        
+
         mock_chat_service_instance = AsyncMock(spec=ChatPersistenceService)
         mock_chat_service_instance.get_or_create_session = AsyncMock()
         mock_chat_service_instance.add_user_message = AsyncMock()
         mock_chat_service_instance.add_agent_message = AsyncMock()
-        
+
         async def mock_stream_events(run_id, on_event_persisted=None):
             if on_event_persisted:
                 await on_event_persisted("run-error", "Event", "type")
             yield MagicMock()
-        
+
         mock_orchestrator.stream_events = mock_stream_events
-        
+
         # Call the real stream_run_events function
-        with patch('gearmeshing_ai.server.api.v1.runs.ChatPersistenceService', return_value=mock_chat_service_instance):
+        with patch("gearmeshing_ai.server.api.v1.runs.ChatPersistenceService", return_value=mock_chat_service_instance):
             response = await stream_run_events(
                 run_id="run-error",
                 request=mock_request,
                 orchestrator=mock_orchestrator,
                 db_session=mock_db_session,
             )
-            
+
             # Consume the EventSourceResponse generator
             event_count = 0
             async for event in response.body_iterator:
                 event_count += 1
                 if event_count >= 1:
                     break
-        
+
         # Verify get_or_create_session was not called due to exception (lines 334-336)
         mock_chat_service_instance.get_or_create_session.assert_not_called()
 
@@ -1130,13 +1176,15 @@ class TestRunsEndpointCallbackRealExecution:
     async def test_stream_run_events_handles_add_user_message_exception(self):
         """Test exception handling when add_user_message fails (lines 332-333)."""
         from gearmeshing_ai.server.api.v1.runs import stream_run_events
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
-        
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
+
         mock_db_session = AsyncMock()
         mock_orchestrator = AsyncMock()
         mock_request = AsyncMock()
         mock_request.is_disconnected = AsyncMock(return_value=False)
-        
+
         test_run = AgentRun(
             id="run-user-msg-error",
             tenant_id="tenant-4",
@@ -1145,41 +1193,41 @@ class TestRunsEndpointCallbackRealExecution:
             status=AgentRunStatus.running.value,
             created_at=datetime.now(timezone.utc),
         )
-        
+
         mock_orchestrator.get_run = AsyncMock(return_value=test_run)
-        
+
         mock_chat_session = MagicMock()
         mock_chat_session.id = 4
-        
+
         mock_chat_service_instance = AsyncMock(spec=ChatPersistenceService)
         mock_chat_service_instance.get_or_create_session = AsyncMock(return_value=mock_chat_session)
         # Simulate add_user_message failure
         mock_chat_service_instance.add_user_message = AsyncMock(side_effect=Exception("Failed to add user message"))
         mock_chat_service_instance.add_agent_message = AsyncMock()
-        
+
         async def mock_stream_events(run_id, on_event_persisted=None):
             if on_event_persisted:
                 await on_event_persisted("run-user-msg-error", "Event", "type")
             yield MagicMock()
-        
+
         mock_orchestrator.stream_events = mock_stream_events
-        
+
         # Call the real stream_run_events function
-        with patch('gearmeshing_ai.server.api.v1.runs.ChatPersistenceService', return_value=mock_chat_service_instance):
+        with patch("gearmeshing_ai.server.api.v1.runs.ChatPersistenceService", return_value=mock_chat_service_instance):
             response = await stream_run_events(
                 run_id="run-user-msg-error",
                 request=mock_request,
                 orchestrator=mock_orchestrator,
                 db_session=mock_db_session,
             )
-            
+
             # Consume the EventSourceResponse generator
             event_count = 0
             async for event in response.body_iterator:
                 event_count += 1
                 if event_count >= 1:
                     break
-        
+
         # Verify add_user_message was called but exception was handled (lines 325-333)
         mock_chat_service_instance.add_user_message.assert_called_once()
 
@@ -1187,13 +1235,15 @@ class TestRunsEndpointCallbackRealExecution:
     async def test_stream_run_events_handles_add_agent_message_exception(self):
         """Test exception handling when add_agent_message fails (lines 346-347)."""
         from gearmeshing_ai.server.api.v1.runs import stream_run_events
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
-        
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
+
         mock_db_session = AsyncMock()
         mock_orchestrator = AsyncMock()
         mock_request = AsyncMock()
         mock_request.is_disconnected = AsyncMock(return_value=False)
-        
+
         test_run = AgentRun(
             id="run-agent-msg-error",
             tenant_id="tenant-5",
@@ -1202,41 +1252,41 @@ class TestRunsEndpointCallbackRealExecution:
             status=AgentRunStatus.running.value,
             created_at=datetime.now(timezone.utc),
         )
-        
+
         mock_orchestrator.get_run = AsyncMock(return_value=test_run)
-        
+
         mock_chat_session = MagicMock()
         mock_chat_session.id = 5
-        
+
         mock_chat_service_instance = AsyncMock(spec=ChatPersistenceService)
         mock_chat_service_instance.get_or_create_session = AsyncMock(return_value=mock_chat_session)
         mock_chat_service_instance.add_user_message = AsyncMock()
         # Simulate add_agent_message failure
         mock_chat_service_instance.add_agent_message = AsyncMock(side_effect=Exception("Failed to add agent message"))
-        
+
         async def mock_stream_events(run_id, on_event_persisted=None):
             if on_event_persisted:
                 await on_event_persisted("run-agent-msg-error", "Agent response", "tool_invoked")
             yield MagicMock()
-        
+
         mock_orchestrator.stream_events = mock_stream_events
-        
+
         # Call the real stream_run_events function
-        with patch('gearmeshing_ai.server.api.v1.runs.ChatPersistenceService', return_value=mock_chat_service_instance):
+        with patch("gearmeshing_ai.server.api.v1.runs.ChatPersistenceService", return_value=mock_chat_service_instance):
             response = await stream_run_events(
                 run_id="run-agent-msg-error",
                 request=mock_request,
                 orchestrator=mock_orchestrator,
                 db_session=mock_db_session,
             )
-            
+
             # Consume the EventSourceResponse generator
             event_count = 0
             async for event in response.body_iterator:
                 event_count += 1
                 if event_count >= 1:
                     break
-        
+
         # Verify add_agent_message was called but exception was handled (lines 341-347)
         mock_chat_service_instance.add_agent_message.assert_called_once()
 
@@ -1244,13 +1294,15 @@ class TestRunsEndpointCallbackRealExecution:
     async def test_stream_run_events_skips_user_objective_when_no_objective(self):
         """Test that user objective is skipped when run has no objective (lines 323-333)."""
         from gearmeshing_ai.server.api.v1.runs import stream_run_events
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
-        
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
+
         mock_db_session = AsyncMock()
         mock_orchestrator = AsyncMock()
         mock_request = AsyncMock()
         mock_request.is_disconnected = AsyncMock(return_value=False)
-        
+
         test_run = AgentRun(
             id="run-no-objective",
             tenant_id="tenant-6",
@@ -1259,40 +1311,40 @@ class TestRunsEndpointCallbackRealExecution:
             status=AgentRunStatus.running.value,
             created_at=datetime.now(timezone.utc),
         )
-        
+
         mock_orchestrator.get_run = AsyncMock(return_value=test_run)
-        
+
         mock_chat_session = MagicMock()
         mock_chat_session.id = 6
-        
+
         mock_chat_service_instance = AsyncMock(spec=ChatPersistenceService)
         mock_chat_service_instance.get_or_create_session = AsyncMock(return_value=mock_chat_session)
         mock_chat_service_instance.add_user_message = AsyncMock()
         mock_chat_service_instance.add_agent_message = AsyncMock()
-        
+
         async def mock_stream_events(run_id, on_event_persisted=None):
             if on_event_persisted:
                 await on_event_persisted("run-no-objective", "Event", "type")
             yield MagicMock()
-        
+
         mock_orchestrator.stream_events = mock_stream_events
-        
+
         # Call the real stream_run_events function
-        with patch('gearmeshing_ai.server.api.v1.runs.ChatPersistenceService', return_value=mock_chat_service_instance):
+        with patch("gearmeshing_ai.server.api.v1.runs.ChatPersistenceService", return_value=mock_chat_service_instance):
             response = await stream_run_events(
                 run_id="run-no-objective",
                 request=mock_request,
                 orchestrator=mock_orchestrator,
                 db_session=mock_db_session,
             )
-            
+
             # Consume the EventSourceResponse generator
             event_count = 0
             async for event in response.body_iterator:
                 event_count += 1
                 if event_count >= 1:
                     break
-        
+
         # Verify add_user_message was not called (lines 323-333)
         mock_chat_service_instance.add_user_message.assert_not_called()
 
@@ -1300,14 +1352,16 @@ class TestRunsEndpointCallbackRealExecution:
     async def test_stream_run_events_client_disconnect_stops_stream(self):
         """Test that stream stops when client disconnects (lines 351-353)."""
         from gearmeshing_ai.server.api.v1.runs import stream_run_events
-        from gearmeshing_ai.server.services.chat_persistence import ChatPersistenceService
-        
+        from gearmeshing_ai.server.services.chat_persistence import (
+            ChatPersistenceService,
+        )
+
         mock_db_session = AsyncMock()
         mock_orchestrator = AsyncMock()
         mock_request = AsyncMock()
         # Simulate client disconnect on second check
         mock_request.is_disconnected = AsyncMock(side_effect=[False, True])
-        
+
         test_run = AgentRun(
             id="run-disconnect",
             tenant_id="tenant-7",
@@ -1316,40 +1370,40 @@ class TestRunsEndpointCallbackRealExecution:
             status=AgentRunStatus.running.value,
             created_at=datetime.now(timezone.utc),
         )
-        
+
         mock_orchestrator.get_run = AsyncMock(return_value=test_run)
-        
+
         mock_chat_session = MagicMock()
         mock_chat_session.id = 7
-        
+
         mock_chat_service_instance = AsyncMock(spec=ChatPersistenceService)
         mock_chat_service_instance.get_or_create_session = AsyncMock(return_value=mock_chat_session)
         mock_chat_service_instance.add_user_message = AsyncMock()
         mock_chat_service_instance.add_agent_message = AsyncMock()
-        
+
         async def mock_stream_events(run_id, on_event_persisted=None):
             if on_event_persisted:
                 await on_event_persisted("run-disconnect", "Event", "type")
             yield MagicMock()
-        
+
         mock_orchestrator.stream_events = mock_stream_events
-        
+
         # Call the real stream_run_events function
-        with patch('gearmeshing_ai.server.api.v1.runs.ChatPersistenceService', return_value=mock_chat_service_instance):
+        with patch("gearmeshing_ai.server.api.v1.runs.ChatPersistenceService", return_value=mock_chat_service_instance):
             response = await stream_run_events(
                 run_id="run-disconnect",
                 request=mock_request,
                 orchestrator=mock_orchestrator,
                 db_session=mock_db_session,
             )
-            
+
             # Consume the EventSourceResponse generator
             event_count = 0
             async for event in response.body_iterator:
                 event_count += 1
                 if event_count >= 2:
                     break
-        
+
         # Verify is_disconnected was called (lines 351-353)
         assert mock_request.is_disconnected.call_count >= 1
 
@@ -1627,9 +1681,7 @@ class TestRunsEndpointCallbackIntegration:
         )
 
         mock_orchestrator.get_run = AsyncMock(return_value=test_run)
-        mock_chat_service.get_or_create_session = AsyncMock(
-            side_effect=Exception("Database error")
-        )
+        mock_chat_service.get_or_create_session = AsyncMock(side_effect=Exception("Database error"))
 
         chat_session = None
         user_message_persisted = False
@@ -1676,9 +1728,7 @@ class TestRunsEndpointCallbackIntegration:
 
         mock_orchestrator.get_run = AsyncMock(return_value=test_run)
         mock_chat_service.get_or_create_session = AsyncMock(return_value=mock_chat_session)
-        mock_chat_service.add_user_message = AsyncMock(
-            side_effect=Exception("User message error")
-        )
+        mock_chat_service.add_user_message = AsyncMock(side_effect=Exception("User message error"))
         mock_chat_service.add_agent_message = AsyncMock()
 
         chat_session = None
@@ -1752,9 +1802,7 @@ class TestRunsEndpointCallbackIntegration:
         mock_orchestrator.get_run = AsyncMock(return_value=test_run)
         mock_chat_service.get_or_create_session = AsyncMock(return_value=mock_chat_session)
         mock_chat_service.add_user_message = AsyncMock()
-        mock_chat_service.add_agent_message = AsyncMock(
-            side_effect=Exception("Agent message error")
-        )
+        mock_chat_service.add_agent_message = AsyncMock(side_effect=Exception("Agent message error"))
 
         chat_session = None
         user_message_persisted = False

@@ -195,7 +195,7 @@ class OrchestratorService:
                     # Yield each new event with enriched data
                     for event in new_events:
                         sse_event = await self._enrich_event_for_sse(event)
-                        
+
                         # Persist event to chat history if callback provided
                         if on_event_persisted and sse_event.data:
                             display_text = self._format_event_for_chat(sse_event.data)
@@ -208,7 +208,7 @@ class OrchestratorService:
                                     )
                                 except Exception as e:
                                     logger.warning(f"Failed to persist event to chat: {e}")
-                        
+
                         yield sse_event
                 else:
                     # No new events, send keep-alive
@@ -362,7 +362,7 @@ class OrchestratorService:
     def _format_event_for_chat(self, event_data: SSEEventData) -> str:
         """
         Format SSE event data as display text for chat persistence.
-        
+
         Only includes user-facing content, excludes thinking details.
         Returns empty string if event should not be persisted to chat.
 
@@ -408,7 +408,9 @@ class OrchestratorService:
         elif category == "approval" and event_data.approval_resolution:
             resolution = event_data.approval_resolution
             decision_icon = "✓" if resolution.decision == "approved" else "✗"
-            display_text = f"{decision_icon} Approval {resolution.decision.upper() if resolution.decision else 'UNKNOWN'}"
+            display_text = (
+                f"{decision_icon} Approval {resolution.decision.upper() if resolution.decision else 'UNKNOWN'}"
+            )
             if resolution.decided_by:
                 display_text += f" (by {resolution.decided_by})"
 

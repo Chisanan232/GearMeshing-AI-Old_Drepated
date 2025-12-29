@@ -13,13 +13,12 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from gearmeshing_ai.server.models.chat_session import (
-    ChatMessage,
     ChatSession,
     MessageRole,
 )
@@ -391,7 +390,7 @@ class TestStreamEventsWithChatPersistence:
 
         # Mock event list to return one event then empty
         async def mock_list(*args, **kwargs):
-            if not hasattr(mock_list, 'call_count'):
+            if not hasattr(mock_list, "call_count"):
                 mock_list.call_count = 0
             mock_list.call_count += 1
             if mock_list.call_count == 1:
@@ -437,7 +436,7 @@ class TestStreamEventsWithChatPersistence:
 
         # Mock event list
         async def mock_list(*args, **kwargs):
-            if not hasattr(mock_list, 'call_count'):
+            if not hasattr(mock_list, "call_count"):
                 mock_list.call_count = 0
             mock_list.call_count += 1
             if mock_list.call_count == 1:
@@ -477,7 +476,7 @@ class TestStreamEventsWithChatPersistence:
 
         # Mock event list
         async def mock_list(*args, **kwargs):
-            if not hasattr(mock_list, 'call_count'):
+            if not hasattr(mock_list, "call_count"):
                 mock_list.call_count = 0
             mock_list.call_count += 1
             if mock_list.call_count == 1:

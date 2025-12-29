@@ -12,7 +12,6 @@ from __future__ import annotations
 
 from datetime import datetime
 
-import pytest
 
 from gearmeshing_ai.server.models.chat_session import (
     ChatMessage,
@@ -255,7 +254,7 @@ class TestChatSessionDataIntegrity:
     def test_run_id_persistence_across_sessions(self):
         """Test that run_id is properly maintained across sessions."""
         run_id = "run-789"
-        
+
         session1 = ChatSession(
             id=1,
             title="Session 1",
