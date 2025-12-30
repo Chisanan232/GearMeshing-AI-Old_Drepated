@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
-from typing import AsyncGenerator, List, Optional, Union
+from typing import AsyncGenerator, Awaitable, Callable, List, Optional, Union
 
 from gearmeshing_ai.agent_core.factory import build_default_registry
 from gearmeshing_ai.agent_core.planning.planner import StructuredPlanner
@@ -150,22 +150,30 @@ class OrchestratorService:
         """Cancel an active run by updating its status to cancelled."""
         await self.repos.runs.update_status(run_id=run_id, status=AgentRunStatus.cancelled.value)
 
-    async def stream_events(self, run_id: str) -> AsyncGenerator[Union[SSEResponse, KeepAliveEvent, ErrorEvent], None]:
+    async def stream_events(
+        self,
+        run_id: str,
+        on_event_persisted: Optional[Callable[[str, str, str], Awaitable[None]]] = None,
+    ) -> AsyncGenerator[Union[SSEResponse, KeepAliveEvent, ErrorEvent], None]:
         """
         Yields JSON-serializable events for a run as they happen (or via polling).
         Polls the event repository periodically and yields new events.
 
-        Events are enriched with thinking details and operation results:
-        - Thought events include the thinking process and model output
-        - Action events include capability execution results and policy decisions
-        - All events are persisted to database for audit trail
+        Events are enriched with operation results and automatically persisted to chat history.
+        Thinking details are excluded from chat persistence to keep history clean.
 
-        Returns Pydantic models that are JSON-serializable.
+        Args:
+            run_id: The agent run ID to stream events for
+            on_event_persisted: Optional async callback(session_id, display_text, event_type) for chat persistence
+
+        Returns:
+            AsyncGenerator yielding SSEResponse, KeepAliveEvent, or ErrorEvent
         """
         last_event_timestamp: Optional[datetime] = None
         poll_interval = 0.5
         max_idle_cycles = 120  # 60 seconds of idle before closing
         idle_cycles = 0
+        chat_session_id: Optional[int] = None
 
         while True:
             try:
@@ -187,6 +195,20 @@ class OrchestratorService:
                     # Yield each new event with enriched data
                     for event in new_events:
                         sse_event = await self._enrich_event_for_sse(event)
+
+                        # Persist event to chat history if callback provided
+                        if on_event_persisted and sse_event.data:
+                            display_text = self._format_event_for_chat(sse_event.data)
+                            if display_text:
+                                try:
+                                    await on_event_persisted(
+                                        run_id,
+                                        display_text,
+                                        sse_event.data.type,
+                                    )
+                                except Exception as e:
+                                    logger.warning(f"Failed to persist event to chat: {e}")
+
                         yield sse_event
                 else:
                     # No new events, send keep-alive
@@ -336,6 +358,72 @@ class OrchestratorService:
         )
 
         return SSEResponse(data=sse_event_data)
+
+    def _format_event_for_chat(self, event_data: SSEEventData) -> str:
+        """
+        Format SSE event data as display text for chat persistence.
+
+        Only includes user-facing content, excludes thinking details.
+        Returns empty string if event should not be persisted to chat.
+
+        Args:
+            event_data: The SSEEventData object
+
+        Returns:
+            Formatted display text or empty string
+        """
+        category = event_data.category
+        display_text = ""
+
+        # Skip thinking events - they're internal and not user-facing
+        if category == "thinking" or category == "thinking_output":
+            return ""
+
+        # Format operation events
+        if category == "operation" and event_data.operation:
+            op = event_data.operation
+            status_icon = "✓" if op.status == "success" else "✗"
+            display_text = f"{status_icon} Operation: {op.capability} ({op.status})"
+            if op.result:
+                display_text += f"\n  Result: {str(op.result)[:200]}"
+
+        # Format tool execution events
+        elif category == "tool_execution" and event_data.tool_execution:
+            tool = event_data.tool_execution
+            status_icon = "✓" if tool.ok else "✗"
+            display_text = f"{status_icon} Tool: {tool.tool_name} ({tool.server_id})"
+            if tool.result:
+                display_text += f"\n  Result: {str(tool.result)[:200]}"
+
+        # Format approval request events
+        elif category == "approval" and event_data.approval_request:
+            approval = event_data.approval_request
+            display_text = f"⚠️ Approval Required: {approval.capability}"
+            if approval.reason:
+                display_text += f"\n  Reason: {approval.reason}"
+            if approval.risk:
+                display_text += f"\n  Risk Level: {approval.risk}"
+
+        # Format approval resolution events
+        elif category == "approval" and event_data.approval_resolution:
+            resolution = event_data.approval_resolution
+            decision_icon = "✓" if resolution.decision == "approved" else "✗"
+            display_text = (
+                f"{decision_icon} Approval {resolution.decision.upper() if resolution.decision else 'UNKNOWN'}"
+            )
+            if resolution.decided_by:
+                display_text += f" (by {resolution.decided_by})"
+
+        # Format run lifecycle events
+        elif category == "run_lifecycle":
+            if event_data.run_start:
+                display_text = "▶️ Run Started"
+            elif event_data.run_completion:
+                display_text = "✓ Run Completed Successfully"
+            elif event_data.run_failure:
+                display_text = f"✗ Run Failed: {event_data.run_failure.error}"
+
+        return display_text
 
     async def list_available_roles(self) -> List[str]:
         from gearmeshing_ai.agent_core.schemas.domain import AgentRole

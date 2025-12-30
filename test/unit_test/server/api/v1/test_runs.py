@@ -731,7 +731,7 @@ class TestStreamRunEventsEndpoint:
         keep_alive = KeepAliveEvent()
         error = ErrorEvent(error="Stream timeout")
 
-        async def mock_stream(run_id):
+        async def mock_stream(run_id, on_event_persisted=None):
             yield event1
             yield keep_alive
             yield error
@@ -854,7 +854,7 @@ class TestStreamRunEventsEndpoint:
         )
         event = SSEResponse(data=event_data)
 
-        async def mock_stream(run_id):
+        async def mock_stream(run_id, on_event_persisted=None):
             yield event
 
         mock_orchestrator.stream_events = mock_stream
@@ -903,7 +903,7 @@ class TestStreamRunEventsEndpoint:
         )
         event2 = SSEResponse(data=event2_data)
 
-        async def mock_stream(run_id):
+        async def mock_stream(run_id, on_event_persisted=None):
             yield event1
             yield event2
 
@@ -964,7 +964,7 @@ class TestStreamRunEventsEndpoint:
 
         mock_request.is_disconnected = mock_is_disconnected
 
-        async def mock_stream(run_id):
+        async def mock_stream(run_id, on_event_persisted=None):
             yield event
             yield event  # This should not be yielded due to disconnection
 
@@ -1001,7 +1001,7 @@ class TestStreamRunEventsEndpoint:
         mock_request = AsyncMock()
         mock_request.is_disconnected = AsyncMock(return_value=False)
 
-        async def mock_stream_with_error(run_id):
+        async def mock_stream_with_error(run_id, on_event_persisted=None):
             raise RuntimeError("Orchestrator stream failed")
             yield  # Never reached
 
@@ -1045,7 +1045,7 @@ class TestStreamRunEventsEndpoint:
             def __getstate__(self):
                 raise RuntimeError("Cannot serialize event")
 
-        async def mock_stream(run_id):
+        async def mock_stream(run_id, on_event_persisted=None):
             yield BadEvent()
 
         mock_orchestrator.stream_events = mock_stream
@@ -1095,7 +1095,7 @@ class TestStreamRunEventsEndpoint:
             )
             events.append(SSEResponse(data=event_data))
 
-        async def mock_stream(run_id):
+        async def mock_stream(run_id, on_event_persisted=None):
             for event in events:
                 yield event
 
@@ -1157,7 +1157,7 @@ class TestStreamRunEventsEndpoint:
 
         mock_request.is_disconnected = mock_is_disconnected
 
-        async def mock_stream(run_id):
+        async def mock_stream(run_id, on_event_persisted=None):
             for event in events:
                 yield event
 
@@ -1195,7 +1195,7 @@ class TestStreamRunEventsEndpoint:
         mock_request = AsyncMock()
         mock_request.is_disconnected = AsyncMock(return_value=False)
 
-        async def mock_stream(run_id):
+        async def mock_stream(run_id, on_event_persisted=None):
             return
             yield  # Never reached
 
