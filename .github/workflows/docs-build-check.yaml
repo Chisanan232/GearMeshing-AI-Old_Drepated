@@ -46,6 +46,7 @@ jobs:
       node-version: '23'
       working-directory: docs
       upload-artifacts: true
+      check-dir: document
 
   validate_build:
     name: Validate Build Quality
