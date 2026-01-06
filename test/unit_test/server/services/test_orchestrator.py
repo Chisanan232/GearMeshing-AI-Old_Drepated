@@ -233,6 +233,32 @@ class TestOrchestratorRunManagement:
         assert event.type == AgentEventType.run_failed
         assert event.payload["error"] == "Workflow failed"
 
+    @pytest.mark.asyncio
+    async def test_execute_resume_failure(self, mock_orchestrator: OrchestratorService) -> None:
+        """Test execute_resume failure handling."""
+        # Setup
+        run_id = "run-1"
+        approval_id = "app-1"
+        error_msg = "Resume failed"
+
+        srv_agent_service_resume_mock: MagicMock = cast(MagicMock, mock_orchestrator.agent_service.resume)
+        srv_agent_service_resume_mock.side_effect = Exception(error_msg)
+
+        # Action
+        await mock_orchestrator.execute_resume(run_id, approval_id)
+
+        # Verify status update to failed
+        srv_repo_run_update_status_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.update_status)
+        srv_repo_run_update_status_mock.assert_called_once_with(run_id, status=AgentRunStatus.failed.value)
+
+        # Verify event log
+        srv_repo_events_append_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.append)
+        srv_repo_events_append_mock.assert_called_once()
+        event = srv_repo_events_append_mock.call_args[0][0]
+        assert event.run_id == run_id
+        assert event.type == AgentEventType.run_failed
+        assert event.payload["error"] == error_msg
+
 
 class TestOrchestratorEventManagement:
     """Test event-related methods."""
@@ -880,6 +906,71 @@ class TestOrchestratorEventStreaming:
 
         # Verify DB append
         inner_repo.append.assert_called_once_with(event)
+
+    @pytest.mark.asyncio
+    async def test_broadcasting_repository_list(self) -> None:
+        """Test BroadcastingEventRepository delegates list to inner repo."""
+        inner_repo = AsyncMock(spec=EventRepository)
+        listeners: Dict[str, Any] = {}
+        repo = BroadcastingEventRepository(inner_repo, listeners)
+
+        expected_events = [AgentEvent(id="1", run_id="run-1", type=AgentEventType.run_started)]
+        inner_repo.list.return_value = expected_events
+
+        # Action
+        result = await repo.list("run-1", limit=50)
+
+        # Verify
+        inner_repo.list.assert_called_once_with("run-1", 50)
+        assert result == expected_events
+
+    @pytest.mark.asyncio
+    async def test_stream_events_deduplication(self, mock_orchestrator: OrchestratorService) -> None:
+        """Test stream_events deduplicates events present in both history and real-time queue."""
+        now = datetime.now(timezone.utc)
+        run_id = "run-dup-test"
+
+        # Event present in history
+        event_1 = AgentEvent(id="evt-1", run_id=run_id, type=AgentEventType.thought_executed, created_at=now)
+
+        # Same event arriving via queue (race condition simulation)
+        event_1_dup = AgentEvent(id="evt-1", run_id=run_id, type=AgentEventType.thought_executed, created_at=now)
+
+        # New event
+        event_2 = AgentEvent(id="evt-2", run_id=run_id, type=AgentEventType.run_completed, created_at=now)
+
+        # Mock history fetch
+        cast(MagicMock, mock_orchestrator.repos.events.list).return_value = [event_1]
+
+        # Use generator to push to queue
+        async def event_generator():
+            stream_gen = mock_orchestrator.stream_events(run_id)
+
+            # 1. Fetch history (should yield event_1)
+            e1 = await anext(stream_gen)
+            yield e1
+
+            # 2. Push duplicate and new event to queue
+            queue = mock_orchestrator.event_listeners[run_id][0]
+            await queue.put(event_1_dup)
+            await queue.put(event_2)
+
+            # 3. Consume next events
+            # Should skip event_1_dup and yield event_2
+            e2 = await anext(stream_gen)
+            yield e2
+
+            # Should be done (event_2 is terminal run_completed)
+            try:
+                await anext(stream_gen)
+            except StopAsyncIteration:
+                pass
+
+        received = [e async for e in event_generator()]
+
+        assert len(received) == 2
+        assert received[0].data.id == "evt-1"
+        assert received[1].data.id == "evt-2"
 
 
 class TestGetOrchestratorSingleton:

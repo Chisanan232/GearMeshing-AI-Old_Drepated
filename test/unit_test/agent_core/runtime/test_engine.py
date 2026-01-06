@@ -560,3 +560,71 @@ async def test_resume_run_happy_path_restores_checkpoint_and_invokes_graph(repos
     assert resolved.payload.get("approval_id") == approval.id
     assert resolved.payload.get("decision") == ApprovalDecision.approved
     assert resolved.payload.get("decided_by") == "tester"
+
+
+@pytest.mark.asyncio
+async def test_start_run_handles_existing_run_gracefully(repos, registry, policy: GlobalPolicy) -> None:
+    """Test start_run proceeds if run already exists (simulating async-first API creation)."""
+    reg, _cap = registry
+    run = AgentRun(role="dev", objective="x")
+
+    # 1. Pre-seed the run in the repo so get() returns it
+    # We access the underlying _RunsRepo method directly to bypass our mock override below initially,
+    # or just rely on the fact that our mock override is only for this test.
+    # Actually, the repo is a simple class, we can just set state.
+    repos["runs"].by_id[run.id] = run
+
+    # 2. Mock create() to raise an exception (simulating DB unique constraint violation)
+    async def create_raising(r: AgentRun) -> None:
+        raise RuntimeError("Unique constraint violation")
+
+    repos["runs"].create = create_raising
+
+    deps = EngineDeps(
+        runs=repos["runs"],
+        events=repos["events"],
+        approvals=repos["approvals"],
+        checkpoints=repos["checkpoints"],
+        tool_invocations=repos["tool_invocations"],
+        usage=repos["usage"],
+        capabilities=reg,
+    )
+    engine = AgentEngine(policy=policy, deps=deps)
+    engine._graph = _GraphSpy()  # Mock graph to avoid execution
+
+    # 3. Call start_run - should catch exception, check get(), and proceed without error
+    await engine.start_run(run=run, plan=[{"capability": CapabilityName.summarize.value, "args": {"text": "hi"}}])
+
+    # Verify run_started event is still emitted (logic flow continues)
+    assert any(e.type == AgentEventType.run_started for e in repos["events"].events)
+
+
+@pytest.mark.asyncio
+async def test_start_run_raises_if_create_fails_and_run_missing(repos, registry, policy: GlobalPolicy) -> None:
+    """Test start_run re-raises exception if create fails and run is not found."""
+    reg, _cap = registry
+    run = AgentRun(role="dev", objective="x")
+
+    # 1. Ensure run is NOT in repo
+    # repos["runs"].by_id is empty by default
+
+    # 2. Mock create() to raise an exception
+    async def create_raising(r: AgentRun) -> None:
+        raise RuntimeError("Database connection error")
+
+    repos["runs"].create = create_raising
+
+    deps = EngineDeps(
+        runs=repos["runs"],
+        events=repos["events"],
+        approvals=repos["approvals"],
+        checkpoints=repos["checkpoints"],
+        tool_invocations=repos["tool_invocations"],
+        usage=repos["usage"],
+        capabilities=reg,
+    )
+    engine = AgentEngine(policy=policy, deps=deps)
+
+    # 3. Call start_run - should re-raise the exception
+    with pytest.raises(RuntimeError, match="Database connection error"):
+        await engine.start_run(run=run, plan=[])
