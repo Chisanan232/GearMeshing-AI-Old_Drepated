@@ -285,7 +285,7 @@ class OrchestratorService:
         """
         Yields events for a run using a combination of historical DB fetch and real-time queue subscription.
         """
-        queue = asyncio.Queue()
+        queue: asyncio.Queue = asyncio.Queue()
         if run_id not in self.event_listeners:
             self.event_listeners[run_id] = []
         self.event_listeners[run_id].append(queue)

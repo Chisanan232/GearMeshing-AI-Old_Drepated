@@ -6,7 +6,7 @@ approval handling, and event enrichment for SSE responses.
 
 import asyncio
 from datetime import datetime, timedelta, timezone
-from typing import Any, Generator, List, cast
+from typing import Any, Generator, List, cast, Dict
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -845,11 +845,11 @@ class TestOrchestratorEventStreaming:
     async def test_broadcasting_repository(self) -> None:
         """Test BroadcastingEventRepository appends to DB and Queue."""
         inner_repo = AsyncMock(spec=EventRepository)
-        listeners = {}
+        listeners: Dict[str, Any] = {}
         repo = BroadcastingEventRepository(inner_repo, listeners)
         
         # Setup listener
-        q = asyncio.Queue()
+        q: asyncio.Queue = asyncio.Queue()
         listeners["run-1"] = [q]
         
         event = AgentEvent(id="1", run_id="run-1", type=AgentEventType.run_started)
@@ -869,7 +869,7 @@ class TestOrchestratorEventStreaming:
     async def test_broadcasting_repository_no_listeners(self) -> None:
         """Test broadcasting repo works without listeners."""
         inner_repo = AsyncMock(spec=EventRepository)
-        listeners = {}
+        listeners: Dict[str, Any] = {}
         repo = BroadcastingEventRepository(inner_repo, listeners)
         
         event = AgentEvent(id="1", run_id="run-1", type=AgentEventType.run_started)
