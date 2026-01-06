@@ -198,7 +198,7 @@ class TestDirectFunctionCalls:
         assert result.id == "run-1"
         assert result.tenant_id == "test-tenant"
         mock_orchestrator.create_run.assert_called_once()
-        
+
         # Verify background task added
         assert len(background_tasks.tasks) == 1
         task = background_tasks.tasks[0]
