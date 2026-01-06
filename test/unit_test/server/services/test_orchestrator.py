@@ -4,13 +4,15 @@ Tests verify orchestrator functionality including run management, event streamin
 approval handling, and event enrichment for SSE responses.
 """
 
-from datetime import datetime, timedelta, timezone
-from typing import Any, Generator, List, cast
+import asyncio
+from datetime import datetime, timezone
+from typing import Any, Dict, Generator, List, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
+from gearmeshing_ai.agent_core.repos.interfaces import EventRepository
 from gearmeshing_ai.agent_core.schemas.domain import (
     AgentEvent,
     AgentEventType,
@@ -20,11 +22,11 @@ from gearmeshing_ai.agent_core.schemas.domain import (
     UsageLedgerEntry,
 )
 from gearmeshing_ai.server.schemas import (
-    ErrorEvent,
     KeepAliveEvent,
     SSEResponse,
 )
 from gearmeshing_ai.server.services.orchestrator import (
+    BroadcastingEventRepository,
     OrchestratorService,
     get_orchestrator,
 )
@@ -110,26 +112,11 @@ class TestOrchestratorRunManagement:
         result: AgentRun = await mock_orchestrator.create_run(run)
 
         assert result.id == "test-run-1"
-        srv_run = cast(MagicMock, mock_orchestrator.agent_service.run)
-        srv_run.assert_called_once_with(run=run)
-        srv_repo_run_get_mock.assert_called_once_with("test-run-1")
-
-    @pytest.mark.asyncio
-    async def test_create_run_failure(self, mock_orchestrator: OrchestratorService) -> None:
-        """Test create_run raises error when run is not persisted."""
-        run: AgentRun = AgentRun(
-            id="test-run-1",
-            tenant_id="default-tenant",
-            role="analyst",
-            objective="Analyze data",
-            status=AgentRunStatus.running,
-        )
-
-        srv_repo_run_get_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.get)
-        srv_repo_run_get_mock.return_value = None
-
-        with pytest.raises(RuntimeError, match="Run test-run-1 creation failed"):
-            await mock_orchestrator.create_run(run)
+        # AgentService.run is NOT called in create_run anymore (it's async background)
+        # srv_run = cast(MagicMock, mock_orchestrator.agent_service.run)
+        # srv_run.assert_called_once_with(run=run)
+        # It calls repos.runs.create
+        cast(MagicMock, mock_orchestrator.repos.runs.create).assert_called_once_with(run)
 
     @pytest.mark.asyncio
     async def test_list_runs(self, mock_orchestrator: OrchestratorService) -> None:
@@ -192,6 +179,85 @@ class TestOrchestratorRunManagement:
 
         srv_repo_run_update_status_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.update_status)
         srv_repo_run_update_status_mock.assert_called_once_with(run_id="run-1", status=AgentRunStatus.cancelled.value)
+
+    @pytest.mark.asyncio
+    async def test_execute_workflow(self, mock_orchestrator: OrchestratorService) -> None:
+        """Test executing workflow success path."""
+        run: AgentRun = AgentRun(
+            id="run-1", tenant_id="tenant-1", role="analyst", objective="Task", status=AgentRunStatus.pending
+        )
+        srv_repo_run_get_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.get)
+        srv_repo_run_get_mock.return_value = run
+
+        await mock_orchestrator.execute_workflow("run-1")
+
+        # Verify status update to running
+        srv_repo_run_update_status_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.update_status)
+        # update_status is called with positional run_id and keyword status
+        srv_repo_run_update_status_mock.assert_called_once_with("run-1", status=AgentRunStatus.running.value)
+
+        # Verify service run called
+        srv_agent_service_run_mock: MagicMock = cast(MagicMock, mock_orchestrator.agent_service.run)
+        srv_agent_service_run_mock.assert_called_once()
+        assert srv_agent_service_run_mock.call_args[1]["run"].id == "run-1"
+
+    @pytest.mark.asyncio
+    async def test_execute_workflow_failure(self, mock_orchestrator: OrchestratorService) -> None:
+        """Test executing workflow failure handling."""
+        run: AgentRun = AgentRun(
+            id="run-1", tenant_id="tenant-1", role="analyst", objective="Task", status=AgentRunStatus.pending
+        )
+        srv_repo_run_get_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.get)
+        srv_repo_run_get_mock.return_value = run
+
+        # Simulate failure in agent service
+        srv_agent_service_run_mock: MagicMock = cast(MagicMock, mock_orchestrator.agent_service.run)
+        srv_agent_service_run_mock.side_effect = Exception("Workflow failed")
+
+        await mock_orchestrator.execute_workflow("run-1")
+
+        # Verify status update to running (start) then failed
+        srv_repo_run_update_status_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.update_status)
+        assert srv_repo_run_update_status_mock.call_count == 2
+
+        # First call: running
+        assert srv_repo_run_update_status_mock.call_args_list[0][1]["status"] == AgentRunStatus.running.value
+        # Second call: failed
+        assert srv_repo_run_update_status_mock.call_args_list[1][1]["status"] == AgentRunStatus.failed.value
+
+        # Verify event log
+        srv_repo_events_append_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.append)
+        srv_repo_events_append_mock.assert_called_once()
+        event = srv_repo_events_append_mock.call_args[0][0]
+        assert event.run_id == "run-1"
+        assert event.type == AgentEventType.run_failed
+        assert event.payload["error"] == "Workflow failed"
+
+    @pytest.mark.asyncio
+    async def test_execute_resume_failure(self, mock_orchestrator: OrchestratorService) -> None:
+        """Test execute_resume failure handling."""
+        # Setup
+        run_id = "run-1"
+        approval_id = "app-1"
+        error_msg = "Resume failed"
+
+        srv_agent_service_resume_mock: MagicMock = cast(MagicMock, mock_orchestrator.agent_service.resume)
+        srv_agent_service_resume_mock.side_effect = Exception(error_msg)
+
+        # Action
+        await mock_orchestrator.execute_resume(run_id, approval_id)
+
+        # Verify status update to failed
+        srv_repo_run_update_status_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.update_status)
+        srv_repo_run_update_status_mock.assert_called_once_with(run_id, status=AgentRunStatus.failed.value)
+
+        # Verify event log
+        srv_repo_events_append_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.append)
+        srv_repo_events_append_mock.assert_called_once()
+        event = srv_repo_events_append_mock.call_args[0][0]
+        assert event.run_id == run_id
+        assert event.type == AgentEventType.run_failed
+        assert event.payload["error"] == error_msg
 
 
 class TestOrchestratorEventManagement:
@@ -303,17 +369,28 @@ class TestOrchestratorApprovalManagement:
         srv_repo_approvals_get_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.approvals.get)
         srv_repo_approvals_get_mock.return_value = approval
 
-        result: Approval = await mock_orchestrator.submit_approval(
-            run_id="run-1",
-            approval_id="approval-1",
-            decision="approved",
-            note="Looks good",
-            decided_by="user-1",
-        )
+        with patch.object(mock_orchestrator, "execute_resume", new_callable=AsyncMock) as mock_exec_resume:
+            result: Approval = await mock_orchestrator.submit_approval(
+                run_id="run-1",
+                approval_id="approval-1",
+                decision="approved",
+                note="Looks good",
+                decided_by="user-1",
+            )
 
-        assert result.id == "approval-1"
-        srv_repo_approvals_resolve_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.approvals.resolve)
-        srv_repo_approvals_resolve_mock.assert_called_once_with("approval-1", decision="approved", decided_by="user-1")
+            assert result.id == "approval-1"
+            srv_repo_approvals_resolve_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.approvals.resolve)
+            srv_repo_approvals_resolve_mock.assert_called_once_with(
+                "approval-1", decision="approved", decided_by="user-1"
+            )
+
+            mock_exec_resume.assert_called_once_with(run_id="run-1", approval_id="approval-1")
+
+    @pytest.mark.asyncio
+    async def test_execute_resume(self, mock_orchestrator: OrchestratorService) -> None:
+        """Test execute_resume calls agent service."""
+        await mock_orchestrator.execute_resume(run_id="run-1", approval_id="approval-1")
+
         srv_agent_service_resume_mock: MagicMock = cast(MagicMock, mock_orchestrator.agent_service.resume)
         srv_agent_service_resume_mock.assert_called_once_with(run_id="run-1", approval_id="approval-1")
 
@@ -338,18 +415,18 @@ class TestOrchestratorApprovalManagement:
         srv_repo_approvals_get_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.approvals.get)
         srv_repo_approvals_get_mock.return_value = approval
 
-        result: Approval = await mock_orchestrator.submit_approval(
-            run_id="run-1",
-            approval_id="approval-1",
-            decision="rejected",
-            note="Not approved",
-            decided_by="user-1",
-        )
+        with patch.object(mock_orchestrator, "execute_resume", new_callable=AsyncMock) as mock_exec_resume:
+            result: Approval = await mock_orchestrator.submit_approval(
+                run_id="run-1",
+                approval_id="approval-1",
+                decision="rejected",
+                note="Not approved",
+                decided_by="user-1",
+            )
 
-        assert result.id == "approval-1"
-        # resume should not be called for rejected
-        srv_agent_service_resume_mock: MagicMock = cast(MagicMock, mock_orchestrator.agent_service.resume)
-        srv_agent_service_resume_mock.assert_not_called()
+            assert result.id == "approval-1"
+            # resume should not be called for rejected
+            mock_exec_resume.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_submit_approval_not_found(self, mock_orchestrator: OrchestratorService) -> None:
@@ -365,6 +442,50 @@ class TestOrchestratorApprovalManagement:
                 note=None,
                 decided_by="user-1",
             )
+
+    @pytest.mark.asyncio
+    async def test_submit_approval_tracks_background_task(self, mock_orchestrator: OrchestratorService) -> None:
+        """Test that submit_approval adds the resume task to background_tasks."""
+        from gearmeshing_ai.agent_core.schemas.domain import (
+            ApprovalDecision,
+            CapabilityName,
+            RiskLevel,
+        )
+
+        approval: Approval = Approval(
+            id="approval-1",
+            run_id="run-1",
+            risk=RiskLevel.high,
+            capability=CapabilityName.shell_exec,
+            reason="Dangerous",
+            decision=ApprovalDecision.approved,
+        )
+        cast(MagicMock, mock_orchestrator.repos.approvals.get).return_value = approval
+
+        # Mock execute_resume to stay pending so we can check the set
+        event = asyncio.Event()
+
+        async def delayed_resume(*args, **kwargs):
+            await event.wait()
+
+        with patch.object(mock_orchestrator, "execute_resume", side_effect=delayed_resume):
+            # Action
+            await mock_orchestrator.submit_approval(
+                run_id="run-1",
+                approval_id="approval-1",
+                decision="approved",
+                note=None,
+                decided_by="user",
+            )
+
+            # Verify task is tracked
+            assert len(mock_orchestrator.background_tasks) == 1
+
+            # Cleanup: let the task finish
+            event.set()
+            # Wait for task to complete and callback to run
+            await asyncio.sleep(0)
+            await asyncio.sleep(0)
 
 
 class TestOrchestratorUsageAndPolicy:
@@ -708,7 +829,7 @@ class TestOrchestratorRoles:
 
 
 class TestOrchestratorEventStreaming:
-    """Test event streaming functionality."""
+    """Test event streaming functionality with broadcasting queue."""
 
     @pytest.fixture
     def mock_orchestrator(self) -> Generator[OrchestratorService, None, None]:
@@ -724,368 +845,187 @@ class TestOrchestratorEventStreaming:
                             yield orchestrator
 
     @pytest.mark.asyncio
-    async def test_stream_events_with_new_events(self, mock_orchestrator: OrchestratorService) -> None:
-        """Test streaming events when new events are available."""
-        now: datetime = datetime.now(timezone.utc)
-        event: AgentEvent = AgentEvent(
-            id="event-1",
-            run_id="run-1",
-            type=AgentEventType.run_started,
-            created_at=now,
-        )
+    async def test_stream_history_and_realtime(self, mock_orchestrator: OrchestratorService) -> None:
+        """Test streaming yields history first, then realtime events."""
+        now = datetime.now(timezone.utc)
 
-        # First call returns event, second call returns empty to stop streaming
-        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
-        srv_repo_events_list_mock.side_effect = [
-            [event],
-            [],
-            [],
-        ]
+        # Historical event
+        hist_event = AgentEvent(id="hist-1", run_id="run-1", type=AgentEventType.run_started, created_at=now)
+        # Real-time event
+        rt_event = AgentEvent(id="rt-1", run_id="run-1", type=AgentEventType.thought_executed, created_at=now)
+        # Terminal event
+        term_event = AgentEvent(id="term-1", run_id="run-1", type=AgentEventType.run_completed, created_at=now)
 
-        events_received: List[Any] = []
-        async for sse_event in mock_orchestrator.stream_events("run-1"):
-            events_received.append(sse_event)
-            if len(events_received) >= 1:
-                break
+        # Mock history fetch
+        cast(MagicMock, mock_orchestrator.repos.events.list).return_value = [hist_event]
 
-        assert len(events_received) >= 1
-        assert isinstance(events_received[0], SSEResponse)
+        # Use a generator to push events to queue after a delay, simulating async arrival
+        async def event_generator():
+            stream_gen = mock_orchestrator.stream_events("run-1")
 
-    @pytest.mark.asyncio
-    async def test_stream_events_keep_alive(self, mock_orchestrator: OrchestratorService) -> None:
-        """Test streaming sends keep-alive when no events."""
-        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
-        srv_repo_events_list_mock.return_value = []
+            # Start consuming
+            # First yield should be from history
+            e1 = await anext(stream_gen)
+            yield e1
 
-        events_received: List[Any] = []
-        async for sse_event in mock_orchestrator.stream_events("run-1"):
-            events_received.append(sse_event)
-            if len(events_received) >= 1:
-                break
+            # Now push realtime events to the queue
+            queue = mock_orchestrator.event_listeners["run-1"][0]
+            await queue.put(rt_event)
+            await queue.put(term_event)
 
-        assert len(events_received) >= 1
-        assert isinstance(events_received[0], KeepAliveEvent)
+            # Consume realtime
+            e2 = await anext(stream_gen)
+            yield e2
+            e3 = await anext(stream_gen)
+            yield e3
 
-    @pytest.mark.asyncio
-    async def test_stream_events_error_handling(self, mock_orchestrator: OrchestratorService) -> None:
-        """Test streaming handles errors gracefully."""
-        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
-        srv_repo_events_list_mock.side_effect = Exception("Database error")
+            # Should stop after terminal
+            try:
+                await anext(stream_gen)
+            except StopAsyncIteration:
+                pass
 
-        events_received: List[Any] = []
-        async for sse_event in mock_orchestrator.stream_events("run-1"):
-            events_received.append(sse_event)
-            if len(events_received) >= 1:
-                break
+        received = [e async for e in event_generator()]
 
-        assert len(events_received) >= 1
-        assert isinstance(events_received[0], ErrorEvent)
+        assert len(received) == 3
+        # Check history
+        assert received[0].data.id == "hist-1"
+        # Check realtime
+        assert received[1].data.id == "rt-1"
+        # Check terminal
+        assert received[2].data.id == "term-1"
 
     @pytest.mark.asyncio
-    async def test_stream_events_filters_by_timestamp(self, mock_orchestrator: OrchestratorService) -> None:
-        """Test streaming filters events by timestamp."""
-        now: datetime = datetime.now(timezone.utc)
-        old_event: AgentEvent = AgentEvent(
-            id="event-1",
-            run_id="run-1",
-            type=AgentEventType.run_started,
-            created_at=now,
-        )
-        new_event: AgentEvent = AgentEvent(
-            id="event-2",
-            run_id="run-1",
-            type=AgentEventType.thought_executed,
-            created_at=datetime.now(timezone.utc),
-        )
+    async def test_stream_keep_alive(self, mock_orchestrator: OrchestratorService) -> None:
+        """Test keep-alive is sent on timeout."""
+        cast(MagicMock, mock_orchestrator.repos.events.list).return_value = []
 
-        # First call returns old event, second call returns both, third returns empty
-        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
-        srv_repo_events_list_mock.side_effect = [
-            [old_event],
-            [old_event, new_event],
-            [],
-        ]
+        # We need to mock wait_for to raise TimeoutError once
+        with patch("asyncio.wait_for", side_effect=[asyncio.TimeoutError, asyncio.CancelledError]) as mock_wait:
+            events = []
+            try:
+                async for event in mock_orchestrator.stream_events("run-1"):
+                    events.append(event)
+            except asyncio.CancelledError:
+                pass
 
-        events_received: List[Any] = []
-        async for sse_event in mock_orchestrator.stream_events("run-1"):
-            events_received.append(sse_event)
-            if len(events_received) >= 2:
-                break
-
-        # Should get old_event and new_event
-        assert len(events_received) >= 1
-
-
-class TestOrchestratorEventStreamingIdleCycleTimeout:
-    """Test idle cycle timeout behavior (line 180-182)."""
-
-    @pytest.fixture
-    def mock_orchestrator(self) -> Generator[OrchestratorService, None, None]:
-        """Create a mock orchestrator."""
-        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
-            with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
-                with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
-                    with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
-                        with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator: OrchestratorService = OrchestratorService()
-                            orchestrator.repos = MagicMock()
-                            orchestrator.repos.events = AsyncMock()
-                            yield orchestrator
+            # Should receive at least one keep-alive
+            assert any(isinstance(e, KeepAliveEvent) for e in events)
 
     @pytest.mark.asyncio
-    async def test_stream_events_closes_after_max_idle_cycles(self, mock_orchestrator: OrchestratorService) -> None:
-        """Test streaming closes after reaching max idle cycles (120)."""
-        # Return empty list to trigger idle cycles
-        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
-        srv_repo_events_list_mock.return_value = []
+    async def test_stream_events_propagates_cancellation(self, mock_orchestrator: OrchestratorService) -> None:
+        """Test that stream_events propagates CancelledError."""
+        cast(MagicMock, mock_orchestrator.repos.events.list).return_value = []
 
-        events_received: List[Any] = []
-        async for sse_event in mock_orchestrator.stream_events("run-1"):
-            events_received.append(sse_event)
-            # After 121 events (120 keep-alives + 1), should close
-            if len(events_received) >= 121:
-                break
-
-        # Should have received exactly 120 keep-alive events before closing
-        assert len(events_received) == 120
-        assert all(isinstance(e, KeepAliveEvent) for e in events_received)
+        # Raise CancelledError immediately when waiting for queue
+        with patch("asyncio.wait_for", side_effect=asyncio.CancelledError):
+            with pytest.raises(asyncio.CancelledError):
+                async for _ in mock_orchestrator.stream_events("run-1"):
+                    pass
 
     @pytest.mark.asyncio
-    async def test_stream_events_resets_idle_cycles_on_new_event(self, mock_orchestrator: OrchestratorService) -> None:
-        """Test idle cycles reset when new events arrive."""
-        now: datetime = datetime.now(timezone.utc)
-        event1: AgentEvent = AgentEvent(
-            id="event-1",
-            run_id="run-1",
-            type=AgentEventType.run_started,
-            created_at=now,
-        )
-        event2: AgentEvent = AgentEvent(
-            id="event-2",
-            run_id="run-1",
-            type=AgentEventType.thought_executed,
-            created_at=datetime.now(timezone.utc),
-        )
+    async def test_broadcasting_repository(self) -> None:
+        """Test BroadcastingEventRepository appends to DB and Queue."""
+        inner_repo = AsyncMock(spec=EventRepository)
+        listeners: Dict[str, Any] = {}
+        repo = BroadcastingEventRepository(inner_repo, listeners)
 
-        # Simulate: event, then empty (idle), then event, then empty (idle), etc.
-        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
-        srv_repo_events_list_mock.side_effect = [
-            [event1],  # Event received, idle_cycles = 0
-            [],  # No event, idle_cycles = 1
-            [],  # No event, idle_cycles = 2
-            [event1, event2],  # New event, idle_cycles resets to 0
-            [],  # No event, idle_cycles = 1
-        ]
+        # Setup listener
+        q: asyncio.Queue = asyncio.Queue()
+        listeners["run-1"] = [q]
 
-        events_received: List[Any] = []
-        async for sse_event in mock_orchestrator.stream_events("run-1"):
-            events_received.append(sse_event)
-            if len(events_received) >= 4:
-                break
+        event = AgentEvent(id="1", run_id="run-1", type=AgentEventType.run_started)
 
-        # Should have: event1, keep-alive, keep-alive, event2
-        assert len(events_received) >= 3
-        assert isinstance(events_received[0], SSEResponse)
-        assert isinstance(events_received[1], KeepAliveEvent)
+        # Action
+        await repo.append(event)
+
+        # Verify DB append
+        inner_repo.append.assert_called_once_with(event)
+
+        # Verify Queue append
+        assert q.qsize() == 1
+        received = await q.get()
+        assert received == event
 
     @pytest.mark.asyncio
-    async def test_stream_events_idle_cycles_increment_on_empty(self, mock_orchestrator: OrchestratorService) -> None:
-        """Test idle cycles increment correctly on empty event lists."""
-        # Return empty list multiple times
-        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
-        srv_repo_events_list_mock.return_value = []
+    async def test_broadcasting_repository_no_listeners(self) -> None:
+        """Test broadcasting repo works without listeners."""
+        inner_repo = AsyncMock(spec=EventRepository)
+        listeners: Dict[str, Any] = {}
+        repo = BroadcastingEventRepository(inner_repo, listeners)
 
-        events_received: List[Any] = []
-        async for sse_event in mock_orchestrator.stream_events("run-1"):
-            events_received.append(sse_event)
-            # Collect first 5 keep-alives to verify incremental behavior
-            if len(events_received) >= 5:
-                break
+        event = AgentEvent(id="1", run_id="run-1", type=AgentEventType.run_started)
 
-        # All should be keep-alive events
-        assert len(events_received) == 5
-        assert all(isinstance(e, KeepAliveEvent) for e in events_received)
+        # Action
+        await repo.append(event)
+
+        # Verify DB append
+        inner_repo.append.assert_called_once_with(event)
 
     @pytest.mark.asyncio
-    async def test_stream_events_closes_exactly_at_max_idle(self, mock_orchestrator: OrchestratorService) -> None:
-        """Test streaming closes exactly at max_idle_cycles threshold."""
-        # Return empty to trigger idle cycles
-        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
-        srv_repo_events_list_mock.return_value = []
+    async def test_broadcasting_repository_list(self) -> None:
+        """Test BroadcastingEventRepository delegates list to inner repo."""
+        inner_repo = AsyncMock(spec=EventRepository)
+        listeners: Dict[str, Any] = {}
+        repo = BroadcastingEventRepository(inner_repo, listeners)
 
-        events_received: List[Any] = []
-        async for sse_event in mock_orchestrator.stream_events("run-1"):
-            events_received.append(sse_event)
-            # Don't break early - let it close naturally
-            if len(events_received) > 125:
-                # Safety break to avoid infinite loop
-                break
+        expected_events = [AgentEvent(id="1", run_id="run-1", type=AgentEventType.run_started)]
+        inner_repo.list.return_value = expected_events
 
-        # Should close at exactly 120 idle cycles
-        assert len(events_received) == 120
+        # Action
+        result = await repo.list("run-1", limit=50)
 
-    @pytest.mark.asyncio
-    async def test_stream_events_idle_cycles_with_mixed_events(self, mock_orchestrator: OrchestratorService) -> None:
-        """Test idle cycles behavior with mixed event and empty responses."""
-        now: datetime = datetime.now(timezone.utc)
-        event1: AgentEvent = AgentEvent(
-            id="event-1",
-            run_id="run-1",
-            type=AgentEventType.run_started,
-            created_at=now,
-        )
-        # Create a second event with a later timestamp to ensure it's considered "new"
-        event2: AgentEvent = AgentEvent(
-            id="event-2",
-            run_id="run-1",
-            type=AgentEventType.thought_executed,
-            created_at=now + timedelta(seconds=1),
-            payload={"thought": "thinking"},
-        )
-
-        # Pattern: event1, empty, empty, event2, empty, empty, ...
-        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
-        srv_repo_events_list_mock.side_effect = [
-            [event1],  # idle_cycles = 0
-            [],  # idle_cycles = 1
-            [],  # idle_cycles = 2
-            [event1, event2],  # idle_cycles = 0 (reset), event2 is new
-            [],  # idle_cycles = 1
-            [],  # idle_cycles = 2
-        ]
-
-        events_received: List[Any] = []
-        async for sse_event in mock_orchestrator.stream_events("run-1"):
-            events_received.append(sse_event)
-            if len(events_received) >= 5:
-                break
-
-        # Should have: event1, keep-alive, keep-alive, event2, keep-alive
-        assert len(events_received) >= 4
-        assert isinstance(events_received[0], SSEResponse)
-        assert isinstance(events_received[1], KeepAliveEvent)
-        assert isinstance(events_received[3], SSEResponse)
-
-
-class TestOrchestratorEventStreamingAsyncSleep:
-    """Test async sleep behavior (line 188-189)."""
-
-    @pytest.fixture
-    def mock_orchestrator(self) -> Generator[OrchestratorService, None, None]:
-        """Create a mock orchestrator."""
-        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
-            with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
-                with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
-                    with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
-                        with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator: OrchestratorService = OrchestratorService()
-                            orchestrator.repos = MagicMock()
-                            orchestrator.repos.events = AsyncMock()
-                            yield orchestrator
+        # Verify
+        inner_repo.list.assert_called_once_with("run-1", 50)
+        assert result == expected_events
 
     @pytest.mark.asyncio
-    async def test_stream_events_calls_asyncio_sleep(self, mock_orchestrator: OrchestratorService) -> None:
-        """Test streaming calls asyncio.sleep between polls."""
-        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
-        srv_repo_events_list_mock.return_value = []
+    async def test_stream_events_deduplication(self, mock_orchestrator: OrchestratorService) -> None:
+        """Test stream_events deduplicates events present in both history and real-time queue."""
+        now = datetime.now(timezone.utc)
+        run_id = "run-dup-test"
 
-        with patch("gearmeshing_ai.server.services.orchestrator.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            events_received: List[Any] = []
-            async for sse_event in mock_orchestrator.stream_events("run-1"):
-                events_received.append(sse_event)
-                if len(events_received) >= 2:
-                    break
+        # Event present in history
+        event_1 = AgentEvent(id="evt-1", run_id=run_id, type=AgentEventType.thought_executed, created_at=now)
 
-            # Should have called sleep at least once
-            assert mock_sleep.call_count >= 1
+        # Same event arriving via queue (race condition simulation)
+        event_1_dup = AgentEvent(id="evt-1", run_id=run_id, type=AgentEventType.thought_executed, created_at=now)
 
-    @pytest.mark.asyncio
-    async def test_stream_events_sleep_interval_is_half_second(self, mock_orchestrator: OrchestratorService) -> None:
-        """Test streaming uses 0.5 second poll interval."""
-        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
-        srv_repo_events_list_mock.return_value = []
+        # New event
+        event_2 = AgentEvent(id="evt-2", run_id=run_id, type=AgentEventType.run_completed, created_at=now)
 
-        with patch("gearmeshing_ai.server.services.orchestrator.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            events_received: List[Any] = []
-            async for sse_event in mock_orchestrator.stream_events("run-1"):
-                events_received.append(sse_event)
-                if len(events_received) >= 3:
-                    break
+        # Mock history fetch
+        cast(MagicMock, mock_orchestrator.repos.events.list).return_value = [event_1]
 
-            # All sleep calls should be with 0.5 second interval
-            for call in mock_sleep.call_args_list:
-                assert call[0][0] == 0.5
+        # Use generator to push to queue
+        async def event_generator():
+            stream_gen = mock_orchestrator.stream_events(run_id)
 
-    @pytest.mark.asyncio
-    async def test_stream_events_sleep_after_each_poll(self, mock_orchestrator: OrchestratorService) -> None:
-        """Test streaming sleeps after each poll cycle."""
-        now: datetime = datetime.now(timezone.utc)
-        event: AgentEvent = AgentEvent(
-            id="event-1",
-            run_id="run-1",
-            type=AgentEventType.run_started,
-            created_at=now,
-        )
+            # 1. Fetch history (should yield event_1)
+            e1 = await anext(stream_gen)
+            yield e1
 
-        # Return event, then empty, then event
-        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
-        srv_repo_events_list_mock.side_effect = [
-            [event],
-            [],
-            [event],
-        ]
+            # 2. Push duplicate and new event to queue
+            queue = mock_orchestrator.event_listeners[run_id][0]
+            await queue.put(event_1_dup)
+            await queue.put(event_2)
 
-        with patch("gearmeshing_ai.server.services.orchestrator.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            events_received: List[Any] = []
-            async for sse_event in mock_orchestrator.stream_events("run-1"):
-                events_received.append(sse_event)
-                if len(events_received) >= 3:
-                    break
+            # 3. Consume next events
+            # Should skip event_1_dup and yield event_2
+            e2 = await anext(stream_gen)
+            yield e2
 
-            # Should sleep after each poll (3 polls = 3 sleeps)
-            assert mock_sleep.call_count >= 2
+            # Should be done (event_2 is terminal run_completed)
+            try:
+                await anext(stream_gen)
+            except StopAsyncIteration:
+                pass
 
-    @pytest.mark.asyncio
-    async def test_stream_events_sleep_on_error(self, mock_orchestrator: OrchestratorService) -> None:
-        """Test streaming sleeps even when error occurs."""
-        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
-        srv_repo_events_list_mock.side_effect = [
-            Exception("Database error"),
-            Exception("Database error"),
-        ]
+        received = [e async for e in event_generator()]
 
-        with patch("gearmeshing_ai.server.services.orchestrator.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            events_received: List[Any] = []
-            async for sse_event in mock_orchestrator.stream_events("run-1"):
-                events_received.append(sse_event)
-                if len(events_received) >= 2:
-                    break
-
-            # Should sleep even on errors
-            assert mock_sleep.call_count >= 1
-            # All calls should be 0.5 seconds
-            for call in mock_sleep.call_args_list:
-                assert call[0][0] == 0.5
-
-    @pytest.mark.asyncio
-    async def test_stream_events_sleep_maintains_consistent_interval(
-        self, mock_orchestrator: OrchestratorService
-    ) -> None:
-        """Test streaming maintains consistent sleep interval across multiple cycles."""
-        srv_repo_events_list_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.list)
-        srv_repo_events_list_mock.return_value = []
-
-        with patch("gearmeshing_ai.server.services.orchestrator.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            events_received: List[Any] = []
-            async for sse_event in mock_orchestrator.stream_events("run-1"):
-                events_received.append(sse_event)
-                if len(events_received) >= 10:
-                    break
-
-            # All sleep calls should have consistent 0.5 second interval
-            assert all(call[0][0] == 0.5 for call in mock_sleep.call_args_list)
-            # Should have slept multiple times
-            assert mock_sleep.call_count >= 9
+        assert len(received) == 2
+        assert received[0].data.id == "evt-1"
+        assert received[1].data.id == "evt-2"
 
 
 class TestGetOrchestratorSingleton:

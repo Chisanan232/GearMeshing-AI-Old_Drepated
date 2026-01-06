@@ -155,7 +155,7 @@ async def client_with_mocked_runs_fixture(test_engine, session: AsyncSession) ->
         # Mock create_run to avoid actual execution
         async def mock_create_run(run: AgentRun) -> AgentRun:
             run.id = str(uuid.uuid4())
-            run.status = AgentRunStatus.running
+            run.status = AgentRunStatus.pending
             runs_store[run.id] = run
             return run
 

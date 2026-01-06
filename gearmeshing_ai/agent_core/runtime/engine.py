@@ -124,7 +124,23 @@ class AgentEngine:
             except Exception:
                 run.prompt_provider_version = run.prompt_provider_version
 
-        await self._deps.runs.create(run)
+        # Try to create the run, but handle if it already exists (e.g. created by API layer)
+        # In the async-first pattern, the API layer creates the run with status PENDING/QUEUED
+        # before handing it off to the background worker (which calls this method).
+        try:
+            await self._deps.runs.create(run)
+        except Exception as e:
+            # We assume any error here might be due to existence if the repo implementation throws
+            # but ideally we should check or have an upsert.
+            # For now, let's try to fetch it to confirm it exists.
+            existing = await self._deps.runs.get(run.id)
+            if existing:
+                logger.debug(f"Run {run.id} already exists, proceeding with execution")
+                # If we want to ensure we update the passed run object with what's in DB or vice versa?
+                # The passed 'run' object is the authoritative source for this execution session.
+            else:
+                raise e
+
         await self._deps.events.append(
             AgentEvent(run_id=run.id, type=AgentEventType.run_started, payload={"role": run.role})
         )
