@@ -76,9 +76,9 @@ def serialize_event(event: Union[SSEResponse, KeepAliveEvent, ErrorEvent, BaseMo
 @router.post(
     "/",
     response_model=AgentRun,
-    status_code=201,
+    status_code=202,
     summary="Create Agent Run",
-    description="Initiates a new agent run with the specified objective, role, and configuration.",
+    description="Initiates a new agent run with the specified objective, role, and configuration. The run is started asynchronously.",
     response_description="The created agent run object.",
 )
 async def create_run(run_in: RunCreate, orchestrator: OrchestratorDep, background_tasks: BackgroundTasks):
@@ -116,25 +116,26 @@ async def create_run(run_in: RunCreate, orchestrator: OrchestratorDep, backgroun
         role=run_in.role,
         objective=run_in.objective,
         autonomy_profile=autonomy,
-        status=AgentRunStatus.running,
+        status=AgentRunStatus.pending,
     )
 
     # Delegate to Orchestrator
-    # Note: We are using await here. Ideally run should be backgrounded if it takes time.
-    # But Orchestrator.create_run calls AgentService.run which plans + starts.
-    # Planning might take a few seconds.
     try:
-        logger.debug("Delegating to orchestrator for run creation")
+        logger.debug("Creating run in orchestrator")
         created_run = await orchestrator.create_run(run_domain)
         logger.info(f"Run created successfully: {created_run.id}")
 
-        # Log to Logfire for monitoring
+        # Log to Logfire for monitoring (initial creation)
         log_agent_run(
             run_id=created_run.id,
             tenant_id=run_in.tenant_id,
             objective=run_in.objective,
             role=run_in.role,
         )
+
+        # Trigger background execution
+        logger.info(f"Scheduling background execution for run: {created_run.id}")
+        background_tasks.add_task(orchestrator.execute_workflow, created_run.id)
 
         return created_run
     except Exception as e:
