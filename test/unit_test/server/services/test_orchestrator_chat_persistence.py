@@ -568,8 +568,15 @@ class TestOrchestratorStreamEventsCallbackIntegration:
             payload={},
         )
 
+        async def mock_list_side_effect(*args, **kwargs):
+            # Inject event into queue to simulate real-time event
+            if "run-123" in orchestrator.event_listeners:
+                queue = orchestrator.event_listeners["run-123"][0]
+                await queue.put(event)
+            return []
+
         mock_events_repo = AsyncMock()
-        mock_events_repo.list = AsyncMock(return_value=[event])
+        mock_events_repo.list = AsyncMock(side_effect=mock_list_side_effect)
 
         mock_repos = MagicMock()
         mock_repos.events = mock_events_repo
@@ -632,8 +639,14 @@ class TestOrchestratorStreamEventsCallbackIntegration:
             payload={},
         )
 
+        async def mock_list_side_effect(*args, **kwargs):
+            if "run-456" in orchestrator.event_listeners:
+                queue = orchestrator.event_listeners["run-456"][0]
+                await queue.put(event)
+            return []
+
         mock_events_repo = AsyncMock()
-        mock_events_repo.list = AsyncMock(return_value=[event])
+        mock_events_repo.list = AsyncMock(side_effect=mock_list_side_effect)
 
         mock_repos = MagicMock()
         mock_repos.events = mock_events_repo
@@ -695,8 +708,14 @@ class TestOrchestratorStreamEventsCallbackIntegration:
             payload={},
         )
 
+        async def mock_list_side_effect(*args, **kwargs):
+            if "run-789" in orchestrator.event_listeners:
+                queue = orchestrator.event_listeners["run-789"][0]
+                await queue.put(event)
+            return []
+
         mock_events_repo = AsyncMock()
-        mock_events_repo.list = AsyncMock(return_value=[event])
+        mock_events_repo.list = AsyncMock(side_effect=mock_list_side_effect)
 
         mock_repos = MagicMock()
         mock_repos.events = mock_events_repo
@@ -747,8 +766,14 @@ class TestOrchestratorStreamEventsCallbackIntegration:
             payload={},
         )
 
+        async def mock_list_side_effect(*args, **kwargs):
+            if "run-error" in orchestrator.event_listeners:
+                queue = orchestrator.event_listeners["run-error"][0]
+                await queue.put(event)
+            return []
+
         mock_events_repo = AsyncMock()
-        mock_events_repo.list = AsyncMock(return_value=[event])
+        mock_events_repo.list = AsyncMock(side_effect=mock_list_side_effect)
 
         mock_repos = MagicMock()
         mock_repos.events = mock_events_repo
@@ -801,7 +826,6 @@ class TestOrchestratorStreamEventsCallbackIntegration:
 
         dt = datetime(2025, 12, 28, 22, 0, 0, tzinfo=timezone.utc)
         test_run_id = "run-param-test-123"
-        test_event_type = "approval.requested"
 
         event = AgentEvent(
             id="evt-5",
@@ -811,8 +835,14 @@ class TestOrchestratorStreamEventsCallbackIntegration:
             payload={},
         )
 
+        async def mock_list_side_effect(*args, **kwargs):
+            if test_run_id in orchestrator.event_listeners:
+                queue = orchestrator.event_listeners[test_run_id][0]
+                await queue.put(event)
+            return []
+
         mock_events_repo = AsyncMock()
-        mock_events_repo.list = AsyncMock(return_value=[event])
+        mock_events_repo.list = AsyncMock(side_effect=mock_list_side_effect)
 
         mock_repos = MagicMock()
         mock_repos.events = mock_events_repo
@@ -860,15 +890,26 @@ class TestOrchestratorStreamEventsCallbackIntegration:
 
         dt = datetime(2025, 12, 28, 22, 0, 0, tzinfo=timezone.utc)
 
-        async def mock_get_events(run_id: str, since_event_id: Optional[str] = None):
-            event = AgentEvent(
-                id="evt-6",
-                type="capability_executed",
-                created_at=dt,
-                run_id=run_id,
-                payload={},
-            )
-            yield event
+        event = AgentEvent(
+            id="evt-6",
+            type="capability.executed",
+            created_at=dt,
+            run_id="run-none",
+            payload={},
+        )
+
+        async def mock_list_side_effect(*args, **kwargs):
+            if "run-none" in orchestrator.event_listeners:
+                queue = orchestrator.event_listeners["run-none"][0]
+                await queue.put(event)
+            return []
+
+        mock_events_repo = AsyncMock()
+        mock_events_repo.list = AsyncMock(side_effect=mock_list_side_effect)
+
+        mock_repos = MagicMock()
+        mock_repos.events = mock_events_repo
+        orchestrator.repos = mock_repos
 
         async def mock_enrich_event(event):
             return SSEResponse(
@@ -890,7 +931,6 @@ class TestOrchestratorStreamEventsCallbackIntegration:
                 ),
             )
 
-        orchestrator._get_events = mock_get_events
         orchestrator._enrich_event_for_sse = mock_enrich_event
 
         # Should not raise exception with None callback

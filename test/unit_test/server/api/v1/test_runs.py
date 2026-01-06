@@ -52,12 +52,12 @@ async def test_create_run(client_with_mocked_runs: AsyncClient):
         "input": {"key": "value"},
     }
     response = await client_with_mocked_runs.post("/api/v1/runs/", json=payload)
-    assert response.status_code == 201
+    assert response.status_code == 202
     data = response.json()
     assert data["tenant_id"] == tenant_id
     assert data["objective"] == "Test objective"
-    # Status can be 'running' or 'succeeded' depending on execution
-    assert data["status"] in [AgentRunStatus.running.value, AgentRunStatus.succeeded.value]
+    # Status should be 'pending' initially in async flow
+    assert data["status"] == AgentRunStatus.pending.value
     assert "id" in data
 
 
@@ -198,6 +198,12 @@ class TestDirectFunctionCalls:
         assert result.id == "run-1"
         assert result.tenant_id == "test-tenant"
         mock_orchestrator.create_run.assert_called_once()
+        
+        # Verify background task added
+        assert len(background_tasks.tasks) == 1
+        task = background_tasks.tasks[0]
+        assert task.func == mock_orchestrator.execute_workflow
+        assert task.args == ("run-1",)
 
     async def test_list_runs_direct_call(self):
         """Test list runs endpoint directly - covers line 98.
