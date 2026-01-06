@@ -71,6 +71,8 @@ class OrchestratorService:
     def __init__(self) -> None:
         # Manage active event listeners: run_id -> List[Queue]
         self.event_listeners: Dict[str, List[asyncio.Queue[AgentEvent]]] = {}
+        # Keep references to background tasks to prevent premature GC
+        self.background_tasks: set[asyncio.Task] = set()
 
         # Build base repositories
         base_repos = build_sql_repos(session_factory=async_session_maker)
@@ -246,7 +248,9 @@ class OrchestratorService:
             # Let's just launch it here with create_task for now to match previous behavior
             # (which awaited it). If I await it, it blocks.
             # I will change it to `asyncio.create_task(self.execute_resume(run_id, approval_id))`
-            asyncio.create_task(self.execute_resume(run_id=run_id, approval_id=approval_id))
+            task = asyncio.create_task(self.execute_resume(run_id=run_id, approval_id=approval_id))
+            self.background_tasks.add(task)
+            task.add_done_callback(self.background_tasks.discard)
 
         approval = await self.repos.approvals.get(approval_id)
         if not approval:
@@ -351,7 +355,7 @@ class OrchestratorService:
                     yield KeepAliveEvent()
 
                 except asyncio.CancelledError:
-                    break
+                    raise
 
         finally:
             # Cleanup listener

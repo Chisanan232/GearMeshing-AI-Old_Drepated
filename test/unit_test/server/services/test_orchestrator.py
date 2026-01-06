@@ -443,6 +443,50 @@ class TestOrchestratorApprovalManagement:
                 decided_by="user-1",
             )
 
+    @pytest.mark.asyncio
+    async def test_submit_approval_tracks_background_task(self, mock_orchestrator: OrchestratorService) -> None:
+        """Test that submit_approval adds the resume task to background_tasks."""
+        from gearmeshing_ai.agent_core.schemas.domain import (
+            ApprovalDecision,
+            CapabilityName,
+            RiskLevel,
+        )
+
+        approval: Approval = Approval(
+            id="approval-1",
+            run_id="run-1",
+            risk=RiskLevel.high,
+            capability=CapabilityName.shell_exec,
+            reason="Dangerous",
+            decision=ApprovalDecision.approved,
+        )
+        cast(MagicMock, mock_orchestrator.repos.approvals.get).return_value = approval
+
+        # Mock execute_resume to stay pending so we can check the set
+        event = asyncio.Event()
+
+        async def delayed_resume(*args, **kwargs):
+            await event.wait()
+
+        with patch.object(mock_orchestrator, "execute_resume", side_effect=delayed_resume):
+            # Action
+            await mock_orchestrator.submit_approval(
+                run_id="run-1",
+                approval_id="approval-1",
+                decision="approved",
+                note=None,
+                decided_by="user",
+            )
+
+            # Verify task is tracked
+            assert len(mock_orchestrator.background_tasks) == 1
+
+            # Cleanup: let the task finish
+            event.set()
+            # Wait for task to complete and callback to run
+            await asyncio.sleep(0)
+            await asyncio.sleep(0)
+
 
 class TestOrchestratorUsageAndPolicy:
     """Test usage and policy methods."""
@@ -867,6 +911,17 @@ class TestOrchestratorEventStreaming:
 
             # Should receive at least one keep-alive
             assert any(isinstance(e, KeepAliveEvent) for e in events)
+
+    @pytest.mark.asyncio
+    async def test_stream_events_propagates_cancellation(self, mock_orchestrator: OrchestratorService) -> None:
+        """Test that stream_events propagates CancelledError."""
+        cast(MagicMock, mock_orchestrator.repos.events.list).return_value = []
+
+        # Raise CancelledError immediately when waiting for queue
+        with patch("asyncio.wait_for", side_effect=asyncio.CancelledError):
+            with pytest.raises(asyncio.CancelledError):
+                async for _ in mock_orchestrator.stream_events("run-1"):
+                    pass
 
     @pytest.mark.asyncio
     async def test_broadcasting_repository(self) -> None:
