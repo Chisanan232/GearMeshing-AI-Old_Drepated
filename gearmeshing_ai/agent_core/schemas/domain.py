@@ -82,6 +82,7 @@ class CapabilityName(str, Enum):
 class AgentRunStatus(str, Enum):
     """Lifecycle status of an agent run."""
 
+    pending = "pending"
     running = "running"
     paused_for_approval = "paused_for_approval"
     succeeded = "succeeded"
@@ -99,6 +100,7 @@ class AgentEventType(str, Enum):
     run_started = "run.started"
     run_completed = "run.completed"
     run_failed = "run.failed"
+    run_cancelled = "run.cancelled"
     state_transition = "state.transition"
     plan_created = "plan.created"
     thought_executed = "thought.executed"
