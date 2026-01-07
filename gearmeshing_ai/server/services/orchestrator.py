@@ -194,6 +194,10 @@ class OrchestratorService:
         """
         try:
             logger.info(f"Resuming execution for run {run_id} (approval {approval_id})")
+            
+            # Update status to running to reflect active processing
+            await self.repos.runs.update_status(run_id, status=AgentRunStatus.running.value)
+            
             await self.agent_service.resume(run_id=run_id, approval_id=approval_id)
             logger.info(f"Resume finished for run {run_id}")
         except Exception as e:
@@ -221,36 +225,9 @@ class OrchestratorService:
     ) -> Approval:
         await self.repos.approvals.resolve(approval_id, decision=decision, decided_by=decided_by)
 
-        if decision == "approved":
-            # Resume in background
-            # We can't easily fire-and-forget inside this async method without BackgroundTasks
-            # But Orchestrator isn't a FastAPI dependency directly in that sense (it is, but...)
-            # Ideally this method returns the approval, and the caller (endpoint) schedules the background task.
-            # But to keep API logic clean, maybe we can launch a task here?
-            # For now, I'll return the approval and let the API handler schedule the resume task
-            # if I return enough info or if I update the API to handle it.
-            # The current API implementation calls `submit_approval`.
-            # I will modify `submit_approval` to NOT await resume, but maybe return intent?
-            # Or just use `asyncio.create_task` here?
-            # Using `asyncio.create_task` is risky if not tracked.
-            # Better to let the controller handle background tasks.
-            # I will assume the controller will handle resume triggering if I don't do it here.
-            # BUT, the current controller calls `submit_approval`.
-            # I will change `submit_approval` to just resolve. The controller should call `resume_run` or `execute_resume`.
-            # Wait, `submit_approval` in `runs.py` (not shown in my read) probably calls this.
-            # I haven't seen `submit_approval` endpoint in `runs.py`?
-            # Ah, `runs.py` has `resume_run` which calls `orchestrator.get_run`.
-            # There might be another router for approvals?
-            # I see `gearmeshing_ai/server/api/v1/runs.py` only.
-            # Maybe `submit_approval` is not in `runs.py` or I missed it.
-            # I see `resume_run` endpoint.
-
-            # Let's just launch it here with create_task for now to match previous behavior
-            # (which awaited it). If I await it, it blocks.
-            # I will change it to `asyncio.create_task(self.execute_resume(run_id, approval_id))`
-            task = asyncio.create_task(self.execute_resume(run_id=run_id, approval_id=approval_id))
-            self.background_tasks.add(task)
-            task.add_done_callback(self.background_tasks.discard)
+        # Note: We do NOT trigger resumption here anymore.
+        # The API controller is responsible for scheduling execute_resume via BackgroundTasks
+        # if the decision is 'approved'.
 
         approval = await self.repos.approvals.get(approval_id)
         if not approval:
