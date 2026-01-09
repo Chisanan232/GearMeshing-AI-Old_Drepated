@@ -78,9 +78,11 @@ class OrchestratorService:
         # Build base repositories
         base_repos = build_sql_repos(session_factory=async_session_maker)
 
-        # Initialize LangGraph Checkpointer
-        # We reuse the global pool. The saver is stateless (depends on pool/conn).
-        self.checkpointer = AsyncPostgresSaver(checkpointer_pool)
+        # Store checkpointer pool for lazy initialization
+        # AsyncPostgresSaver requires an event loop at instantiation, so we defer creation
+        # until it's needed in an async context (in _build_engine_deps)
+        self.checkpointer_pool = checkpointer_pool
+        self._checkpointer: Optional[AsyncPostgresSaver] = None
 
         # Wrap event repository for broadcasting
         self.event_repo_wrapper = BroadcastingEventRepository(base_repos.events, self.event_listeners)
@@ -97,11 +99,10 @@ class OrchestratorService:
             policies=base_repos.policies,
         )
 
-        # Build runtime dependencies (shared across services)
-        self.deps = AgentServiceDeps(
-            engine_deps=self._build_engine_deps(),
-            planner=StructuredPlanner(),
-        )
+        # Defer building engine_deps to avoid event loop issues during init
+        self._engine_deps_cached = None
+        self.deps = None  # Will be set lazily
+        self._agent_service_cached = None
 
         # Create default policy config
         default_policy = PolicyConfig()
@@ -112,14 +113,21 @@ class OrchestratorService:
             policy_repository=self.repos.policies,
             default=default_policy,
         )
+        
+        self._default_policy = default_policy
 
-        # Initialize the core AgentService with policy provider
-        # This enables dynamic, tenant-aware policy resolution per run
-        self.agent_service = AgentService(
-            policy_config=default_policy,
-            deps=self.deps,
-            policy_provider=self.policy_provider,
-        )
+    @property
+    def checkpointer(self) -> AsyncPostgresSaver:
+        """
+        Lazily create and return the AsyncPostgresSaver.
+        
+        This is necessary because AsyncPostgresSaver requires an event loop at instantiation,
+        but OrchestratorService.__init__() is called from a synchronous dependency injection context.
+        The checkpointer is only created when first accessed in an async context.
+        """
+        if self._checkpointer is None:
+            self._checkpointer = AsyncPostgresSaver(self.checkpointer_pool)
+        return self._checkpointer
 
     def _build_engine_deps(self):
         from gearmeshing_ai.agent_core.runtime import EngineDeps
@@ -134,6 +142,25 @@ class OrchestratorService:
             capabilities=build_default_registry(),
             checkpointer=self.checkpointer,
         )
+
+    def _get_engine_deps(self) -> AgentServiceDeps:
+        """Lazily build and cache engine dependencies."""
+        if self._engine_deps_cached is None:
+            self._engine_deps_cached = AgentServiceDeps(
+                engine_deps=self._build_engine_deps(),
+                planner=StructuredPlanner(),
+            )
+        return self._engine_deps_cached
+
+    def _get_agent_service(self) -> AgentService:
+        """Lazily build and cache agent service."""
+        if self._agent_service_cached is None:
+            self._agent_service_cached = AgentService(
+                policy_config=self._default_policy,
+                deps=self._get_engine_deps(),
+                policy_provider=self.policy_provider,
+            )
+        return self._agent_service_cached
 
     async def create_run(self, run: AgentRun) -> AgentRun:
         """Create a new agent run in PENDING status."""
@@ -184,7 +211,7 @@ class OrchestratorService:
             # Update local object too for consistency if passed down
             run.status = AgentRunStatus.running
 
-            await self.agent_service.run(run=run)
+            await self._get_agent_service().run(run=run)
             logger.info(f"Execution finished for run {run_id}")
 
         except Exception as e:
@@ -204,7 +231,7 @@ class OrchestratorService:
             # Update status to running to reflect active processing
             await self.repos.runs.update_status(run_id, status=AgentRunStatus.running.value)
             
-            await self.agent_service.resume(run_id=run_id, approval_id=approval_id)
+            await self._get_agent_service().resume(run_id=run_id, approval_id=approval_id)
             logger.info(f"Resume finished for run {run_id}")
         except Exception as e:
             logger.error(f"Error resuming workflow for run {run_id}: {e}", exc_info=True)

@@ -80,9 +80,9 @@ class TestOrchestratorServiceInitialization:
         """Test OrchestratorService has all required attributes."""
         orchestrator: OrchestratorService = OrchestratorService()
         assert hasattr(orchestrator, "repos")
-        assert hasattr(orchestrator, "deps")
         assert hasattr(orchestrator, "policy_provider")
-        assert hasattr(orchestrator, "agent_service")
+        assert hasattr(orchestrator, "_get_engine_deps")
+        assert hasattr(orchestrator, "_get_agent_service")
 
 
 class TestOrchestratorRunManagement:
@@ -103,11 +103,31 @@ class TestOrchestratorRunManagement:
             # Mock the repos
             orchestrator.repos = MagicMock()
             orchestrator.repos.runs = AsyncMock()
+            orchestrator.repos.runs.create = AsyncMock()
+            orchestrator.repos.runs.get = AsyncMock()
+            orchestrator.repos.runs.list = AsyncMock()
+            orchestrator.repos.runs.update_status = AsyncMock()
+            
             orchestrator.repos.events = AsyncMock()
+            orchestrator.repos.events.append = AsyncMock()
+            orchestrator.repos.events.list = AsyncMock()
+            
             orchestrator.repos.approvals = AsyncMock()
+            orchestrator.repos.approvals.get = AsyncMock()
+            orchestrator.repos.approvals.list = AsyncMock()
+            orchestrator.repos.approvals.resolve = AsyncMock()
+            
             orchestrator.repos.usage = AsyncMock()
             orchestrator.repos.policies = AsyncMock()
-            orchestrator.agent_service = AsyncMock()
+            
+            # Mock the lazy agent service getter
+            mock_agent_service = AsyncMock()
+            # Ensure resume is an AsyncMock (it should be by default with AsyncMock, but be explicit)
+            mock_agent_service.resume = AsyncMock()
+            mock_agent_service.run = AsyncMock()
+            orchestrator._get_agent_service = MagicMock(return_value=mock_agent_service)
+            # Also set agent_service property for backward compatibility with tests
+            orchestrator.agent_service = mock_agent_service
             yield orchestrator
 
     @pytest.mark.asyncio
@@ -339,11 +359,32 @@ class TestOrchestratorApprovalManagement:
              patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"), \
              patch("gearmeshing_ai.server.services.orchestrator.build_default_registry"):
             orchestrator: OrchestratorService = OrchestratorService()
+            # Mock the repos
             orchestrator.repos = MagicMock()
-            orchestrator.repos.approvals = AsyncMock()
             orchestrator.repos.runs = AsyncMock()
+            orchestrator.repos.runs.create = AsyncMock()
+            orchestrator.repos.runs.get = AsyncMock()
+            orchestrator.repos.runs.list = AsyncMock()
             orchestrator.repos.runs.update_status = AsyncMock()
-            orchestrator.agent_service = AsyncMock()
+            
+            orchestrator.repos.events = AsyncMock()
+            orchestrator.repos.events.append = AsyncMock()
+            orchestrator.repos.events.list = AsyncMock()
+            
+            orchestrator.repos.approvals = AsyncMock()
+            orchestrator.repos.approvals.get = AsyncMock()
+            orchestrator.repos.approvals.list = AsyncMock()
+            orchestrator.repos.approvals.resolve = AsyncMock()
+            
+            orchestrator.repos.usage = AsyncMock()
+            orchestrator.repos.policies = AsyncMock()
+            
+            # Mock the lazy agent service getter
+            mock_agent_service = AsyncMock()
+            mock_agent_service.resume = AsyncMock()
+            mock_agent_service.run = AsyncMock()
+            orchestrator._get_agent_service = MagicMock(return_value=mock_agent_service)
+            orchestrator.agent_service = mock_agent_service
             yield orchestrator
 
     @pytest.mark.asyncio
@@ -417,11 +458,14 @@ class TestOrchestratorApprovalManagement:
     @pytest.mark.asyncio
     async def test_execute_resume(self, mock_orchestrator: OrchestratorService) -> None:
         """Test execute_resume calls agent service."""
-        # Ensure resume is an AsyncMock
-        mock_orchestrator.agent_service.resume = AsyncMock()
-        
+        # The agent service is already mocked via _get_agent_service() in the fixture
         await mock_orchestrator.execute_resume(run_id="run-1", approval_id="approval-1")
 
+        # Verify _get_agent_service was called
+        mock_get_agent_service: MagicMock = cast(MagicMock, mock_orchestrator._get_agent_service)
+        mock_get_agent_service.assert_called()
+        
+        # Verify resume was called on the returned mock agent service
         srv_agent_service_resume_mock: MagicMock = cast(MagicMock, mock_orchestrator.agent_service.resume)
         srv_agent_service_resume_mock.assert_called_once_with(run_id="run-1", approval_id="approval-1")
 
