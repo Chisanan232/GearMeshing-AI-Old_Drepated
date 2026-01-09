@@ -40,8 +40,14 @@ class TestOrchestratorServiceInitialization:
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
     @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
+    @patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver")
+    @patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool")
+    @patch("gearmeshing_ai.server.services.orchestrator.build_default_registry")
     def test_orchestrator_service_initializes(
         self,
+        mock_registry: MagicMock,
+        mock_pool: MagicMock,
+        mock_saver: MagicMock,
         mock_repos: MagicMock,
         mock_deps: MagicMock,
         mock_planner: MagicMock,
@@ -57,8 +63,14 @@ class TestOrchestratorServiceInitialization:
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
     @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
+    @patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver")
+    @patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool")
+    @patch("gearmeshing_ai.server.services.orchestrator.build_default_registry")
     def test_orchestrator_has_required_attributes(
         self,
+        mock_registry: MagicMock,
+        mock_pool: MagicMock,
+        mock_saver: MagicMock,
         mock_repos: MagicMock,
         mock_deps: MagicMock,
         mock_planner: MagicMock,
@@ -79,21 +91,24 @@ class TestOrchestratorRunManagement:
     @pytest.fixture
     def mock_orchestrator(self) -> Generator[OrchestratorService, None, None]:
         """Create a mock orchestrator with mocked dependencies."""
-        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
-            with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
-                with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
-                    with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
-                        with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator: OrchestratorService = OrchestratorService()
-                            # Mock the repos
-                            orchestrator.repos = MagicMock()
-                            orchestrator.repos.runs = AsyncMock()
-                            orchestrator.repos.events = AsyncMock()
-                            orchestrator.repos.approvals = AsyncMock()
-                            orchestrator.repos.usage = AsyncMock()
-                            orchestrator.repos.policies = AsyncMock()
-                            orchestrator.agent_service = AsyncMock()
-                            yield orchestrator
+        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"), \
+             patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"), \
+             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentService"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"), \
+             patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"), \
+             patch("gearmeshing_ai.server.services.orchestrator.build_default_registry"):
+            orchestrator: OrchestratorService = OrchestratorService()
+            # Mock the repos
+            orchestrator.repos = MagicMock()
+            orchestrator.repos.runs = AsyncMock()
+            orchestrator.repos.events = AsyncMock()
+            orchestrator.repos.approvals = AsyncMock()
+            orchestrator.repos.usage = AsyncMock()
+            orchestrator.repos.policies = AsyncMock()
+            orchestrator.agent_service = AsyncMock()
+            yield orchestrator
 
     @pytest.mark.asyncio
     async def test_create_run(self, mock_orchestrator: OrchestratorService) -> None:
@@ -247,9 +262,13 @@ class TestOrchestratorRunManagement:
         # Action
         await mock_orchestrator.execute_resume(run_id, approval_id)
 
-        # Verify status update to failed
+        # Verify status update: running then failed
         srv_repo_run_update_status_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.update_status)
-        srv_repo_run_update_status_mock.assert_called_once_with(run_id, status=AgentRunStatus.failed.value)
+        assert srv_repo_run_update_status_mock.call_count == 2
+        
+        # Check calls
+        assert srv_repo_run_update_status_mock.call_args_list[0][1]["status"] == AgentRunStatus.running.value
+        assert srv_repo_run_update_status_mock.call_args_list[1][1]["status"] == AgentRunStatus.failed.value
 
         # Verify event log
         srv_repo_events_append_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.append)
@@ -266,15 +285,18 @@ class TestOrchestratorEventManagement:
     @pytest.fixture
     def mock_orchestrator(self) -> Generator[OrchestratorService, None, None]:
         """Create a mock orchestrator."""
-        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
-            with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
-                with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
-                    with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
-                        with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator: OrchestratorService = OrchestratorService()
-                            orchestrator.repos = MagicMock()
-                            orchestrator.repos.events = AsyncMock()
-                            yield orchestrator
+        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"), \
+             patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"), \
+             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentService"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"), \
+             patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"), \
+             patch("gearmeshing_ai.server.services.orchestrator.build_default_registry"):
+            orchestrator: OrchestratorService = OrchestratorService()
+            orchestrator.repos = MagicMock()
+            orchestrator.repos.events = AsyncMock()
+            yield orchestrator
 
     @pytest.mark.asyncio
     async def test_get_run_events(self, mock_orchestrator: OrchestratorService) -> None:
@@ -308,16 +330,21 @@ class TestOrchestratorApprovalManagement:
     @pytest.fixture
     def mock_orchestrator(self) -> Generator[OrchestratorService, None, None]:
         """Create a mock orchestrator."""
-        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
-            with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
-                with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
-                    with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
-                        with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator: OrchestratorService = OrchestratorService()
-                            orchestrator.repos = MagicMock()
-                            orchestrator.repos.approvals = AsyncMock()
-                            orchestrator.agent_service = AsyncMock()
-                            yield orchestrator
+        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"), \
+             patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"), \
+             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentService"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"), \
+             patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"), \
+             patch("gearmeshing_ai.server.services.orchestrator.build_default_registry"):
+            orchestrator: OrchestratorService = OrchestratorService()
+            orchestrator.repos = MagicMock()
+            orchestrator.repos.approvals = AsyncMock()
+            orchestrator.repos.runs = AsyncMock()
+            orchestrator.repos.runs.update_status = AsyncMock()
+            orchestrator.agent_service = AsyncMock()
+            yield orchestrator
 
     @pytest.mark.asyncio
     async def test_get_pending_approvals(self, mock_orchestrator: OrchestratorService) -> None:
@@ -369,6 +396,7 @@ class TestOrchestratorApprovalManagement:
         srv_repo_approvals_get_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.approvals.get)
         srv_repo_approvals_get_mock.return_value = approval
 
+        # execute_resume should NOT be called by submit_approval anymore (handled by API)
         with patch.object(mock_orchestrator, "execute_resume", new_callable=AsyncMock) as mock_exec_resume:
             result: Approval = await mock_orchestrator.submit_approval(
                 run_id="run-1",
@@ -384,11 +412,14 @@ class TestOrchestratorApprovalManagement:
                 "approval-1", decision="approved", decided_by="user-1"
             )
 
-            mock_exec_resume.assert_called_once_with(run_id="run-1", approval_id="approval-1")
+            mock_exec_resume.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_execute_resume(self, mock_orchestrator: OrchestratorService) -> None:
         """Test execute_resume calls agent service."""
+        # Ensure resume is an AsyncMock
+        mock_orchestrator.agent_service.resume = AsyncMock()
+        
         await mock_orchestrator.execute_resume(run_id="run-1", approval_id="approval-1")
 
         srv_agent_service_resume_mock: MagicMock = cast(MagicMock, mock_orchestrator.agent_service.resume)
@@ -443,49 +474,6 @@ class TestOrchestratorApprovalManagement:
                 decided_by="user-1",
             )
 
-    @pytest.mark.asyncio
-    async def test_submit_approval_tracks_background_task(self, mock_orchestrator: OrchestratorService) -> None:
-        """Test that submit_approval adds the resume task to background_tasks."""
-        from gearmeshing_ai.agent_core.schemas.domain import (
-            ApprovalDecision,
-            CapabilityName,
-            RiskLevel,
-        )
-
-        approval: Approval = Approval(
-            id="approval-1",
-            run_id="run-1",
-            risk=RiskLevel.high,
-            capability=CapabilityName.shell_exec,
-            reason="Dangerous",
-            decision=ApprovalDecision.approved,
-        )
-        cast(MagicMock, mock_orchestrator.repos.approvals.get).return_value = approval
-
-        # Mock execute_resume to stay pending so we can check the set
-        event = asyncio.Event()
-
-        async def delayed_resume(*args, **kwargs):
-            await event.wait()
-
-        with patch.object(mock_orchestrator, "execute_resume", side_effect=delayed_resume):
-            # Action
-            await mock_orchestrator.submit_approval(
-                run_id="run-1",
-                approval_id="approval-1",
-                decision="approved",
-                note=None,
-                decided_by="user",
-            )
-
-            # Verify task is tracked
-            assert len(mock_orchestrator.background_tasks) == 1
-
-            # Cleanup: let the task finish
-            event.set()
-            # Wait for task to complete and callback to run
-            await asyncio.sleep(0)
-            await asyncio.sleep(0)
 
 
 class TestOrchestratorUsageAndPolicy:
@@ -494,16 +482,19 @@ class TestOrchestratorUsageAndPolicy:
     @pytest.fixture
     def mock_orchestrator(self) -> Generator[OrchestratorService, None, None]:
         """Create a mock orchestrator."""
-        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
-            with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
-                with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
-                    with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
-                        with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator: OrchestratorService = OrchestratorService()
-                            orchestrator.repos = MagicMock()
-                            orchestrator.repos.usage = AsyncMock()
-                            orchestrator.repos.policies = AsyncMock()
-                            yield orchestrator
+        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"), \
+             patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"), \
+             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentService"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"), \
+             patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"), \
+             patch("gearmeshing_ai.server.services.orchestrator.build_default_registry"):
+            orchestrator: OrchestratorService = OrchestratorService()
+            orchestrator.repos = MagicMock()
+            orchestrator.repos.usage = AsyncMock()
+            orchestrator.repos.policies = AsyncMock()
+            yield orchestrator
 
     @pytest.mark.asyncio
     async def test_list_usage(self, mock_orchestrator: OrchestratorService) -> None:
@@ -582,13 +573,16 @@ class TestOrchestratorEventEnrichment:
     @pytest.fixture
     def mock_orchestrator(self) -> Generator[OrchestratorService, None, None]:
         """Create a mock orchestrator."""
-        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
-            with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
-                with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
-                    with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
-                        with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator: OrchestratorService = OrchestratorService()
-                            yield orchestrator
+        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"), \
+             patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"), \
+             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentService"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"), \
+             patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"), \
+             patch("gearmeshing_ai.server.services.orchestrator.build_default_registry"):
+            orchestrator: OrchestratorService = OrchestratorService()
+            yield orchestrator
 
     @pytest.mark.asyncio
     async def test_enrich_thought_executed_event(self, mock_orchestrator: OrchestratorService) -> None:
@@ -810,13 +804,16 @@ class TestOrchestratorRoles:
     @pytest.fixture
     def mock_orchestrator(self) -> Generator[OrchestratorService, None, None]:
         """Create a mock orchestrator."""
-        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
-            with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
-                with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
-                    with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
-                        with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator: OrchestratorService = OrchestratorService()
-                            yield orchestrator
+        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"), \
+             patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"), \
+             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentService"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"), \
+             patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"), \
+             patch("gearmeshing_ai.server.services.orchestrator.build_default_registry"):
+            orchestrator: OrchestratorService = OrchestratorService()
+            yield orchestrator
 
     @pytest.mark.asyncio
     async def test_list_available_roles(self, mock_orchestrator: OrchestratorService) -> None:
@@ -834,15 +831,18 @@ class TestOrchestratorEventStreaming:
     @pytest.fixture
     def mock_orchestrator(self) -> Generator[OrchestratorService, None, None]:
         """Create a mock orchestrator."""
-        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
-            with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
-                with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
-                    with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
-                        with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            orchestrator: OrchestratorService = OrchestratorService()
-                            orchestrator.repos = MagicMock()
-                            orchestrator.repos.events = AsyncMock()
-                            yield orchestrator
+        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"), \
+             patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"), \
+             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentService"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"), \
+             patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"), \
+             patch("gearmeshing_ai.server.services.orchestrator.build_default_registry"):
+            orchestrator: OrchestratorService = OrchestratorService()
+            orchestrator.repos = MagicMock()
+            orchestrator.repos.events = AsyncMock()
+            yield orchestrator
 
     @pytest.mark.asyncio
     async def test_stream_history_and_realtime(self, mock_orchestrator: OrchestratorService) -> None:
@@ -1033,33 +1033,37 @@ class TestGetOrchestratorSingleton:
 
     def test_get_orchestrator_returns_singleton(self) -> None:
         """Test get_orchestrator returns the same instance."""
-        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
-            with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
-                with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
-                    with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
-                        with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            # Reset the global singleton
-                            import gearmeshing_ai.server.services.orchestrator as orch_module
+        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"), \
+             patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"), \
+             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentService"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"), \
+             patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"):
+            # Reset the global singleton
+            import gearmeshing_ai.server.services.orchestrator as orch_module
 
-                            orch_module._orchestrator = None
+            orch_module._orchestrator = None
 
-                            orchestrator1: OrchestratorService = get_orchestrator()
-                            orchestrator2: OrchestratorService = get_orchestrator()
+            orchestrator1: OrchestratorService = get_orchestrator()
+            orchestrator2: OrchestratorService = get_orchestrator()
 
-                            assert orchestrator1 is orchestrator2
+            assert orchestrator1 is orchestrator2
 
     def test_get_orchestrator_lazy_initialization(self) -> None:
         """Test get_orchestrator initializes on first call."""
-        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"):
-            with patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"):
-                with patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"):
-                    with patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"):
-                        with patch("gearmeshing_ai.server.services.orchestrator.AgentService"):
-                            import gearmeshing_ai.server.services.orchestrator as orch_module
+        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps"), \
+             patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner"), \
+             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentService"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"), \
+             patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"):
+            import gearmeshing_ai.server.services.orchestrator as orch_module
 
-                            orch_module._orchestrator = None
+            orch_module._orchestrator = None
 
-                            assert orch_module._orchestrator is None
-                            orchestrator: OrchestratorService = get_orchestrator()
-                            assert orch_module._orchestrator is not None
-                            assert orchestrator is orch_module._orchestrator
+            assert orch_module._orchestrator is None
+            orchestrator: OrchestratorService = get_orchestrator()
+            assert orch_module._orchestrator is not None
+            assert orchestrator is orch_module._orchestrator

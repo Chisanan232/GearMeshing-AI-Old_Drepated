@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from langgraph.checkpoint.memory import MemorySaver
 
 from gearmeshing_ai.agent_core.factory import build_engine
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
@@ -68,6 +69,7 @@ class TestPolicyProviderEndToEndFlow:
         deps.checkpoints = MagicMock()
         deps.tool_invocations = MagicMock()
         deps.capabilities = MagicMock()
+        deps.checkpointer = MemorySaver()
         deps.usage = None
         deps.prompt_provider = None
         deps.role_provider = None
@@ -363,6 +365,9 @@ class TestDatabasePolicyProviderIntegration:
             policy_config = provider.get(run)
 
         mock_engine_deps = MagicMock(spec=EngineDeps)
+        mock_engine_deps.checkpoints = MagicMock()
+        mock_engine_deps.events = MagicMock()
+        mock_engine_deps.checkpointer = MemorySaver()
         engine = build_engine(policy_config=policy_config, deps=mock_engine_deps)
 
         assert engine._policy.config.autonomy_profile == AutonomyProfile.strict

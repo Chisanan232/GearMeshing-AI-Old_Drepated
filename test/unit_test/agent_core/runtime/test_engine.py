@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 import pytest
+from langgraph.checkpoint.memory import MemorySaver
 
 from gearmeshing_ai.agent_core.capabilities.base import (
     Capability,
@@ -29,10 +30,14 @@ from gearmeshing_ai.agent_core.schemas.domain import (
 
 class _GraphSpy:
     def __init__(self) -> None:
-        self.invocations: List[_GraphState] = []
+        self.invocations: List[tuple[Optional[_GraphState], Optional[Dict[str, Any]]]] = []
+        self.state_updates: List[tuple[Dict[str, Any], Dict[str, Any]]] = []
 
-    async def ainvoke(self, state: _GraphState) -> None:
-        self.invocations.append(state)
+    async def ainvoke(self, state: Optional[_GraphState], config: Optional[Dict[str, Any]] = None) -> None:
+        self.invocations.append((state, config))
+
+    async def aupdate_state(self, config: Dict[str, Any], values: Dict[str, Any]) -> None:
+        self.state_updates.append((config, values))
 
 
 @pytest.mark.asyncio
@@ -52,6 +57,7 @@ async def test_start_run_prompt_provider_version_error_is_swallowed(repos, regis
         usage=repos["usage"],
         capabilities=reg,
         prompt_provider=_PromptProvider(),  # type: ignore[arg-type]
+        checkpointer=MemorySaver(),
     )
     engine = AgentEngine(policy=policy, deps=deps)
     graph_spy = _GraphSpy()
@@ -62,6 +68,7 @@ async def test_start_run_prompt_provider_version_error_is_swallowed(repos, regis
 
     assert run.prompt_provider_version is None
     assert graph_spy.invocations
+    assert graph_spy.invocations[0][0] is not None  # Start run passes state
 
 
 @pytest.mark.asyncio
@@ -75,6 +82,7 @@ async def test_start_run_emits_plan_created_event(repos, registry, policy: Globa
         tool_invocations=repos["tool_invocations"],
         usage=repos["usage"],
         capabilities=reg,
+        checkpointer=MemorySaver(),
     )
     engine = AgentEngine(policy=policy, deps=deps)
 
@@ -85,8 +93,8 @@ async def test_start_run_emits_plan_created_event(repos, registry, policy: Globa
     await engine.start_run(run=run, plan=[{"capability": CapabilityName.summarize.value, "args": {"text": "hi"}}])
 
     assert any(e.type == AgentEventType.plan_created for e in repos["events"].events)
-    assert any(e.type == AgentEventType.checkpoint_saved for e in repos["events"].events)
-    assert repos["checkpoints"].saved
+    # Checkpoint is saved by LangGraph checkpointer, which is mocked out by _GraphSpy here.
+    # So we don't expect checkpoint_saved event or repos["checkpoints"].saved in this unit test.
     plan_events = [e for e in repos["events"].events if e.type == AgentEventType.plan_created]
     assert len(plan_events) == 1
     assert plan_events[0].payload.get("plan")
@@ -142,6 +150,7 @@ class _ApprovalsRepo:
 class _Checkpoint:
     id: str
     state: Dict[str, Any]
+    node: str = "node"
 
 
 class _CheckpointsRepo:
@@ -150,7 +159,7 @@ class _CheckpointsRepo:
         self.saved: List[_Checkpoint] = []
 
     async def save(self, cp) -> None:
-        chk = _Checkpoint(id=cp.id, state=dict(cp.state))
+        chk = _Checkpoint(id=cp.id, state=dict(cp.state), node=cp.node)
         self.latest_by_run_id[cp.run_id] = chk
         self.saved.append(chk)
 
@@ -225,6 +234,7 @@ def engine_runtime(repos, registry, policy: GlobalPolicy) -> AgentEngine:
         tool_invocations=repos["tool_invocations"],
         usage=repos["usage"],
         capabilities=reg,
+        checkpointer=MemorySaver(),
     )
     return AgentEngine(policy=policy, deps=deps)
 
@@ -251,6 +261,7 @@ async def test_node_execute_next_persists_usage_when_capability_emits_usage(
         tool_invocations=repos["tool_invocations"],
         usage=repos["usage"],
         capabilities=reg,
+        checkpointer=MemorySaver(),
     )
     engine = AgentEngine(policy=policy, deps=deps)
 
@@ -263,7 +274,7 @@ async def test_node_execute_next_persists_usage_when_capability_emits_usage(
         "idx": 0,
         "awaiting_approval_id": None,
     }
-    await engine._node_execute_next(state)
+    await engine._node_execute_next(state, config={})
 
     assert repos["usage"].entries
     assert any(e.type == AgentEventType.usage_recorded for e in repos["events"].events)
@@ -273,7 +284,7 @@ async def test_node_execute_next_persists_usage_when_capability_emits_usage(
 async def test_node_execute_next_run_missing_raises(engine_runtime: AgentEngine) -> None:
     state: _GraphState = {"run_id": "missing", "plan": [], "idx": 0, "awaiting_approval_id": None}
     with pytest.raises(ValueError, match="run not found"):
-        await engine_runtime._node_execute_next(state)
+        await engine_runtime._node_execute_next(state, config={})
 
 
 @pytest.mark.asyncio
@@ -282,7 +293,7 @@ async def test_node_execute_next_marks_finished_when_idx_out_of_range(engine_run
     await repos["runs"].create(run)
 
     state: _GraphState = {"run_id": run.id, "plan": [], "idx": 0, "awaiting_approval_id": None}
-    out = await engine_runtime._node_execute_next(state)
+    out = await engine_runtime._node_execute_next(state, config={})
     assert out.get("_finished") is True
 
 
@@ -295,7 +306,7 @@ async def test_node_execute_next_thought_step_emits_artifact_and_never_invokes_t
 
     plan = [{"kind": "thought", "thought": "design", "args": {"note": "n"}}]
     state: _GraphState = {"run_id": run.id, "plan": plan, "idx": 0, "awaiting_approval_id": None}
-    out = await engine_runtime._node_execute_next(state)
+    out = await engine_runtime._node_execute_next(state, config={})
 
     assert out["idx"] == 1
     assert repos["approvals"].created == []
@@ -317,6 +328,7 @@ async def test_node_execute_next_blocked_capability_fails_run(repos, registry) -
         checkpoints=repos["checkpoints"],
         tool_invocations=repos["tool_invocations"],
         capabilities=reg,
+        checkpointer=MemorySaver(),
     )
     engine_runtime = AgentEngine(policy=policy, deps=deps)
 
@@ -325,18 +337,11 @@ async def test_node_execute_next_blocked_capability_fails_run(repos, registry) -
 
     plan = [{"kind": "action", "capability": CapabilityName.shell_exec.value, "args": {"cmd": "echo hi"}}]
     state: _GraphState = {"run_id": run.id, "plan": plan, "idx": 0, "awaiting_approval_id": None}
-    out = await engine_runtime._node_execute_next(state)
+    out = await engine_runtime._node_execute_next(state, config={})
 
     assert out.get("_finished") is True
     assert out.get("_terminal_status") == AgentRunStatus.failed.value
     assert repos["runs"].status_updates[-1] == (run.id, AgentRunStatus.failed.value)
-
-
-@pytest.mark.asyncio
-async def test_node_pause_for_approval_returns_state_unchanged(engine_runtime: AgentEngine) -> None:
-    state: _GraphState = {"run_id": "r", "plan": [], "idx": 0, "awaiting_approval_id": "a"}
-    out = await engine_runtime._node_pause_for_approval(state)
-    assert out is state
 
 
 @pytest.mark.asyncio
@@ -353,6 +358,7 @@ async def test_node_execute_next_invalid_args_fails_run(repos, registry) -> None
         checkpoints=repos["checkpoints"],
         tool_invocations=repos["tool_invocations"],
         capabilities=reg,
+        checkpointer=MemorySaver(),
     )
     engine_runtime = AgentEngine(policy=policy, deps=deps)
 
@@ -361,13 +367,17 @@ async def test_node_execute_next_invalid_args_fails_run(repos, registry) -> None
 
     plan = [{"kind": "action", "capability": CapabilityName.summarize.value, "args": {"text": "xx"}}]
     state: _GraphState = {"run_id": run.id, "plan": plan, "idx": 0, "awaiting_approval_id": None}
-    out = await engine_runtime._node_execute_next(state)
+    out = await engine_runtime._node_execute_next(state, config={})
 
     assert out.get("_finished") is True
     assert out.get("_terminal_status") == AgentRunStatus.failed.value
     assert repos["runs"].status_updates[-1] == (run.id, AgentRunStatus.failed.value)
     assert any(e.type == AgentEventType.run_failed for e in repos["events"].events)
 
+
+from langgraph.errors import NodeInterrupt
+
+# ...
 
 @pytest.mark.asyncio
 async def test_node_execute_next_requires_approval_creates_checkpoint_and_pauses(repos, registry) -> None:
@@ -383,6 +393,7 @@ async def test_node_execute_next_requires_approval_creates_checkpoint_and_pauses
         checkpoints=repos["checkpoints"],
         tool_invocations=repos["tool_invocations"],
         capabilities=reg,
+        checkpointer=MemorySaver(),
     )
     engine_runtime = AgentEngine(policy=policy, deps=deps)
 
@@ -391,14 +402,34 @@ async def test_node_execute_next_requires_approval_creates_checkpoint_and_pauses
 
     plan = [{"kind": "action", "capability": CapabilityName.summarize.value, "args": {"text": "hello"}}]
     state: _GraphState = {"run_id": run.id, "plan": plan, "idx": 0, "awaiting_approval_id": None}
-    out = await engine_runtime._node_execute_next(state)
-
-    assert out.get("awaiting_approval_id")
+    
+    # Execute next step - should detect approval needed and return state update
+    out = await engine_runtime._node_execute_next(state, config={})
+    
+    # Verify state updated with approval ID
+    assert out.get("awaiting_approval_id") is not None
+    
+    # Verify approval created
     assert repos["runs"].status_updates[-1] == (run.id, AgentRunStatus.paused_for_approval.value)
     assert repos["approvals"].created
-    assert repos["checkpoints"].saved
     assert any(e.type == AgentEventType.approval_requested for e in repos["events"].events)
-    assert any(e.type == AgentEventType.checkpoint_saved for e in repos["events"].events)
+    
+    # Note: Checkpoint is saved by LangGraph runtime (checkpointer) via the graph execution loop.
+
+
+@pytest.mark.asyncio
+async def test_node_wait_for_approval_raises_interrupt(engine_runtime: AgentEngine) -> None:
+    state: _GraphState = {"run_id": "r", "plan": [], "idx": 0, "awaiting_approval_id": "app_1"}
+    with pytest.raises(NodeInterrupt, match="Approval required: app_1"):
+        await engine_runtime._node_wait_for_approval(state)
+
+
+@pytest.mark.asyncio
+async def test_node_wait_for_approval_does_nothing_if_no_id(engine_runtime: AgentEngine) -> None:
+    state: _GraphState = {"run_id": "r", "plan": [], "idx": 0, "awaiting_approval_id": None}
+    out = await engine_runtime._node_wait_for_approval(state)
+    assert out == state
+
 
 
 @pytest.mark.asyncio
@@ -413,7 +444,7 @@ async def test_node_execute_next_executes_capability_and_appends_tool_invocation
 
     plan = [{"kind": "action", "capability": CapabilityName.summarize.value, "args": {"text": "hello"}}]
     state: _GraphState = {"run_id": run.id, "plan": plan, "idx": 0, "awaiting_approval_id": None}
-    out = await engine_runtime._node_execute_next(state)
+    out = await engine_runtime._node_execute_next(state, config={})
 
     assert out["idx"] == 1
     assert cap.calls == [{"run_id": run.id, "args": {"text": "hello"}}]
@@ -451,11 +482,9 @@ async def test_node_finish_honors_terminal_status_failed(engine_runtime: AgentEn
     assert repos["runs"].status_updates[-1] == (run.id, AgentRunStatus.failed.value)
 
 
-def test_route_after_execute_prefers_pause_then_finish_then_continue(engine_runtime: AgentEngine) -> None:
-    assert (
-        engine_runtime._route_after_execute({"run_id": "r", "plan": [], "idx": 0, "awaiting_approval_id": "a"})
-        == "pause"
-    )
+def test_route_after_execute_prefers_finish_then_continue(engine_runtime: AgentEngine) -> None:
+    # 'pause' route is no longer used; NodeInterrupt pauses execution inside the node.
+    # So we only check for finish vs continue.
     assert (
         engine_runtime._route_after_execute(
             {"run_id": "r", "plan": [], "idx": 0, "awaiting_approval_id": None, "_finished": True}
@@ -481,6 +510,7 @@ async def test_resume_run_validation_errors(repos, registry) -> None:
         checkpoints=repos["checkpoints"],
         tool_invocations=repos["tool_invocations"],
         capabilities=reg,
+        checkpointer=MemorySaver(),
     )
     engine_runtime = AgentEngine(policy=policy, deps=deps)
 
@@ -495,6 +525,16 @@ async def test_resume_run_validation_errors(repos, registry) -> None:
         await engine_runtime.resume_run(run_id="r", approval_id=approval.id)
 
     await repos["approvals"].resolve(approval.id, decision=ApprovalDecision.approved.value, decided_by="t")
+    
+    # Mock graph to raise error during update_state (simulating no checkpoint found)
+    class _MockGraph:
+        async def aupdate_state(self, *args, **kwargs):
+            raise ValueError("no checkpoint")
+        async def ainvoke(self, *args, **kwargs):
+            pass
+            
+    engine_runtime._graph = _MockGraph()
+    
     with pytest.raises(ValueError, match="no checkpoint"):
         await engine_runtime.resume_run(run_id="r", approval_id=approval.id)
 
@@ -512,6 +552,7 @@ async def test_resume_run_happy_path_restores_checkpoint_and_invokes_graph(repos
         checkpoints=repos["checkpoints"],
         tool_invocations=repos["tool_invocations"],
         capabilities=reg,
+        checkpointer=MemorySaver(),
     )
     engine_runtime = AgentEngine(policy=policy, deps=deps)
 
@@ -537,8 +578,9 @@ async def test_resume_run_happy_path_restores_checkpoint_and_invokes_graph(repos
             self.id = "cp1"
             self.run_id = run.id
             self.state = dict(restored_state)
+            self.node = "node"
 
-    repos["checkpoints"].latest_by_run_id[run.id] = _Checkpoint(id="cp1", state=dict(restored_state))
+    repos["checkpoints"].latest_by_run_id[run.id] = _Checkpoint(id="cp1", state=dict(restored_state), node="node")
 
     async def _latest(_run_id: str):
         if _run_id != run.id:
@@ -550,10 +592,19 @@ async def test_resume_run_happy_path_restores_checkpoint_and_invokes_graph(repos
     await engine_runtime.resume_run(run_id=run.id, approval_id=approval.id)
 
     assert len(graph_spy.invocations) == 1
-    invoked = graph_spy.invocations[0]
-    assert invoked["run_id"] == run.id
-    assert invoked["idx"] == 0
-    assert invoked.get("awaiting_approval_id") is None
+    state_arg, config_arg = graph_spy.invocations[0]
+    
+    # Resume calls ainvoke(None, config=...)
+    assert state_arg is None
+    assert config_arg["configurable"]["thread_id"] == run.id
+    
+    # Verify state update was called on the graph
+    assert len(graph_spy.state_updates) == 1
+    config_update, values_update = graph_spy.state_updates[0]
+    assert config_update["configurable"]["thread_id"] == run.id
+    assert values_update["awaiting_approval_id"] is None
+    assert values_update["_resume_skip_approval"] is True
+    
     assert any(e.type == AgentEventType.state_transition for e in repos["events"].events)
     assert any(e.type == AgentEventType.approval_resolved for e in repos["events"].events)
     resolved = [e for e in repos["events"].events if e.type == AgentEventType.approval_resolved][0]
@@ -588,6 +639,7 @@ async def test_start_run_handles_existing_run_gracefully(repos, registry, policy
         tool_invocations=repos["tool_invocations"],
         usage=repos["usage"],
         capabilities=reg,
+        checkpointer=MemorySaver(),
     )
     engine = AgentEngine(policy=policy, deps=deps)
     engine._graph = _GraphSpy()  # Mock graph to avoid execution
@@ -622,6 +674,7 @@ async def test_start_run_raises_if_create_fails_and_run_missing(repos, registry,
         tool_invocations=repos["tool_invocations"],
         usage=repos["usage"],
         capabilities=reg,
+        checkpointer=MemorySaver(),
     )
     engine = AgentEngine(policy=policy, deps=deps)
 

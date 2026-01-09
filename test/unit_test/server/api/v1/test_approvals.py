@@ -11,7 +11,7 @@ These tests use direct function calls to ensure proper coverage detection of asy
 See TestDirectFunctionCalls class documentation for why direct calls are necessary.
 """
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -145,6 +145,8 @@ class TestDirectFunctionCalls:
         - result is not None: Proves the orchestrator call was awaited
         - result.id == "approval-1": Proves the correct approval was returned
         """
+        from fastapi import BackgroundTasks
+
         from gearmeshing_ai.server.api.v1 import approvals
 
         # Mock orchestrator
@@ -158,11 +160,16 @@ class TestDirectFunctionCalls:
         }
         mock_orchestrator.submit_approval = AsyncMock(return_value=mock_approval)
 
+        # Mock background tasks
+        mock_background_tasks = MagicMock(spec=BackgroundTasks)
+
         # Create submission
         submission = ApprovalSubmit(decision=ApprovalDecision.approved, note="Looks good")
 
         # Call endpoint directly
-        result = await approvals.submit_approval("test-run", "approval-1", submission, mock_orchestrator)
+        result = await approvals.submit_approval(
+            "test-run", "approval-1", submission, mock_orchestrator, mock_background_tasks
+        )
 
         # Verify
         assert result is not None
@@ -173,6 +180,10 @@ class TestDirectFunctionCalls:
             decision="approved",
             note="Looks good",
             decided_by="user-placeholder",
+        )
+        # Verify background task scheduled
+        mock_background_tasks.add_task.assert_called_once_with(
+            mock_orchestrator.execute_resume, "test-run", "approval-1"
         )
 
     async def test_submit_approval_reject_direct_call(self):
@@ -195,6 +206,8 @@ class TestDirectFunctionCalls:
         - result is not None: Proves the orchestrator call was awaited
         - result.decision == "rejected": Proves the correct decision was passed
         """
+        from fastapi import BackgroundTasks
+
         from gearmeshing_ai.server.api.v1 import approvals
 
         # Mock orchestrator
@@ -208,11 +221,16 @@ class TestDirectFunctionCalls:
         }
         mock_orchestrator.submit_approval = AsyncMock(return_value=mock_approval)
 
+        # Mock background tasks
+        mock_background_tasks = MagicMock(spec=BackgroundTasks)
+
         # Create submission with reject decision
         submission = ApprovalSubmit(decision=ApprovalDecision.rejected, note="Not approved")
 
         # Call endpoint directly
-        result = await approvals.submit_approval("test-run", "approval-2", submission, mock_orchestrator)
+        result = await approvals.submit_approval(
+            "test-run", "approval-2", submission, mock_orchestrator, mock_background_tasks
+        )
 
         # Verify
         assert result is not None
@@ -224,6 +242,8 @@ class TestDirectFunctionCalls:
             note="Not approved",
             decided_by="user-placeholder",
         )
+        # Verify NO background task scheduled
+        mock_background_tasks.add_task.assert_not_called()
 
     async def test_submit_approval_without_note_direct_call(self):
         """Test submit approval without note - covers lines 58-64.
@@ -245,6 +265,8 @@ class TestDirectFunctionCalls:
         - result is not None: Proves the orchestrator call was awaited
         - orchestrator was called with note=None: Proves None was passed correctly
         """
+        from fastapi import BackgroundTasks
+
         from gearmeshing_ai.server.api.v1 import approvals
 
         # Mock orchestrator
@@ -252,17 +274,24 @@ class TestDirectFunctionCalls:
         mock_approval = {"id": "approval-3", "run_id": "test-run", "decision": "approved", "note": None}
         mock_orchestrator.submit_approval = AsyncMock(return_value=mock_approval)
 
+        # Mock background tasks
+        mock_background_tasks = MagicMock(spec=BackgroundTasks)
+
         # Create submission without note
         submission = ApprovalSubmit(decision=ApprovalDecision.approved)
 
         # Call endpoint directly
-        result = await approvals.submit_approval("test-run", "approval-3", submission, mock_orchestrator)
+        result = await approvals.submit_approval(
+            "test-run", "approval-3", submission, mock_orchestrator, mock_background_tasks
+        )
 
         # Verify
         assert result is not None
         mock_orchestrator.submit_approval.assert_called_once()
         call_kwargs = mock_orchestrator.submit_approval.call_args[1]
         assert call_kwargs["note"] is None
+        # Verify background task scheduled
+        mock_background_tasks.add_task.assert_called_once()
 
     async def test_submit_approval_not_found_direct_call(self):
         """Test submit approval not found - covers lines 65-66.
@@ -280,7 +309,7 @@ class TestDirectFunctionCalls:
         - HTTPException is raised: Proves the condition was checked
         - status_code == 404: Proves the correct error was raised
         """
-        from fastapi import HTTPException
+        from fastapi import BackgroundTasks, HTTPException
 
         from gearmeshing_ai.server.api.v1 import approvals
 
@@ -288,12 +317,17 @@ class TestDirectFunctionCalls:
         mock_orchestrator = AsyncMock()
         mock_orchestrator.submit_approval = AsyncMock(return_value=None)
 
+        # Mock background tasks
+        mock_background_tasks = MagicMock(spec=BackgroundTasks)
+
         # Create submission
         submission = ApprovalSubmit(decision=ApprovalDecision.rejected, note="Not approved")
 
         # Call endpoint directly - should raise HTTPException
         with pytest.raises(HTTPException) as exc_info:
-            await approvals.submit_approval("test-run", "nonexistent-approval", submission, mock_orchestrator)
+            await approvals.submit_approval(
+                "test-run", "nonexistent-approval", submission, mock_orchestrator, mock_background_tasks
+            )
 
         # Verify
         assert exc_info.value.status_code == 404
@@ -319,6 +353,8 @@ class TestDirectFunctionCalls:
         - result is not None: Proves the orchestrator call was awaited
         - orchestrator was called with long note: Proves long string was passed correctly
         """
+        from fastapi import BackgroundTasks
+
         from gearmeshing_ai.server.api.v1 import approvals
 
         # Mock orchestrator
@@ -327,11 +363,16 @@ class TestDirectFunctionCalls:
         mock_approval = {"id": "approval-4", "run_id": "test-run", "decision": "approved", "note": long_note}
         mock_orchestrator.submit_approval = AsyncMock(return_value=mock_approval)
 
+        # Mock background tasks
+        mock_background_tasks = MagicMock(spec=BackgroundTasks)
+
         # Create submission with long note
         submission = ApprovalSubmit(decision=ApprovalDecision.approved, note=long_note)
 
         # Call endpoint directly
-        result = await approvals.submit_approval("test-run", "approval-4", submission, mock_orchestrator)
+        result = await approvals.submit_approval(
+            "test-run", "approval-4", submission, mock_orchestrator, mock_background_tasks
+        )
 
         # Verify
         assert result is not None
@@ -360,6 +401,8 @@ class TestDirectFunctionCalls:
         - result is not None: Proves the orchestrator call was awaited
         - orchestrator was called with special characters: Proves special chars were passed correctly
         """
+        from fastapi import BackgroundTasks
+
         from gearmeshing_ai.server.api.v1 import approvals
 
         # Mock orchestrator
@@ -368,11 +411,16 @@ class TestDirectFunctionCalls:
         mock_approval = {"id": "approval-5", "run_id": "test-run", "decision": "rejected", "note": special_note}
         mock_orchestrator.submit_approval = AsyncMock(return_value=mock_approval)
 
+        # Mock background tasks
+        mock_background_tasks = MagicMock(spec=BackgroundTasks)
+
         # Create submission with special characters
         submission = ApprovalSubmit(decision=ApprovalDecision.rejected, note=special_note)
 
         # Call endpoint directly
-        result = await approvals.submit_approval("test-run", "approval-5", submission, mock_orchestrator)
+        result = await approvals.submit_approval(
+            "test-run", "approval-5", submission, mock_orchestrator, mock_background_tasks
+        )
 
         # Verify
         assert result is not None
@@ -429,6 +477,8 @@ class TestDirectFunctionCalls:
         - result is not None: Proves the orchestrator call was awaited
         - result.decision == "expired": Proves the correct decision was passed
         """
+        from fastapi import BackgroundTasks
+
         from gearmeshing_ai.server.api.v1 import approvals
 
         # Mock orchestrator
@@ -442,11 +492,16 @@ class TestDirectFunctionCalls:
         }
         mock_orchestrator.submit_approval = AsyncMock(return_value=mock_approval)
 
+        # Mock background tasks
+        mock_background_tasks = MagicMock(spec=BackgroundTasks)
+
         # Create submission with expired decision
         submission = ApprovalSubmit(decision=ApprovalDecision.expired, note="Approval expired")
 
         # Call endpoint directly
-        result = await approvals.submit_approval("test-run", "approval-6", submission, mock_orchestrator)
+        result = await approvals.submit_approval(
+            "test-run", "approval-6", submission, mock_orchestrator, mock_background_tasks
+        )
 
         # Verify
         assert result is not None
@@ -458,3 +513,5 @@ class TestDirectFunctionCalls:
             note="Approval expired",
             decided_by="user-placeholder",
         )
+        # Verify NO background task scheduled
+        mock_background_tasks.add_task.assert_not_called()

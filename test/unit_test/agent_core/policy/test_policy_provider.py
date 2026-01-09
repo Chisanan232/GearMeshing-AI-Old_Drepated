@@ -3,6 +3,7 @@ from __future__ import annotations
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
 from gearmeshing_ai.agent_core.policy.provider import StaticPolicyProvider
 from gearmeshing_ai.agent_core.schemas.domain import AgentRun, AutonomyProfile
+from langgraph.checkpoint.memory import MemorySaver
 
 
 def test_static_policy_provider_uses_default_when_no_ids() -> None:
@@ -56,6 +57,7 @@ def test_agent_service_overrides_autonomy_profile_from_run(monkeypatch) -> None:
             tool_invocations=object(),  # type: ignore[arg-type]
             capabilities=build_default_registry(),
             usage=None,
+            checkpointer=MemorySaver(),
         ),
         planner=_FakePlanner(model=None),
     )

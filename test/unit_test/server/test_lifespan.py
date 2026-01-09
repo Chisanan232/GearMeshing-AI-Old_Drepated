@@ -5,7 +5,7 @@ Tests verify that the application startup and shutdown events are properly
 handled, including database initialization and connection verification.
 """
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from sqlalchemy import text
@@ -51,17 +51,37 @@ class TestLifespanStartup:
     """Test application startup lifespan events."""
 
     async def test_lifespan_startup_initializes_database(self):
-        """Test that lifespan startup calls init_db."""
+        """Test that lifespan startup calls init_db and checkpointer setup."""
         from fastapi import FastAPI
 
         from gearmeshing_ai.server.main import lifespan
 
         app = FastAPI()
 
-        with patch("gearmeshing_ai.server.main.init_db") as mock_init_db:
-            mock_init_db.return_value = AsyncMock()
+        with patch("gearmeshing_ai.server.main.init_db", new_callable=AsyncMock) as mock_init_db, \
+             patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool, \
+             patch("gearmeshing_ai.server.main.AsyncPostgresSaver") as mock_saver:
+            
+            # Setup pool.connection() async context manager
+            mock_conn = AsyncMock()
+            mock_conn.set_autocommit = AsyncMock()
+            mock_conn_ctx = MagicMock()
+            mock_pool.connection.return_value = mock_conn_ctx
+            mock_conn_ctx.__aenter__ = AsyncMock(return_value=mock_conn)
+            mock_conn_ctx.__aexit__ = AsyncMock(return_value=None)
+            
+            # Setup pool.open()
+            mock_pool.open = AsyncMock()
+            mock_pool.close = AsyncMock()
+            
+            # Setup saver.setup()
+            mock_saver.return_value.setup = AsyncMock()
+
             async with lifespan(app):
                 mock_init_db.assert_called_once()
+                mock_pool.open.assert_called_once()
+                mock_conn.set_autocommit.assert_called_once_with(True)
+                mock_saver.return_value.setup.assert_called_once()
 
     async def test_lifespan_startup_logs_success(self):
         """Test that lifespan startup logs success message."""
@@ -71,17 +91,31 @@ class TestLifespanStartup:
 
         app = FastAPI()
 
-        with patch("gearmeshing_ai.server.main.init_db") as mock_init_db:
-            with patch("gearmeshing_ai.server.main.logger") as mock_logger:
-                mock_init_db.return_value = AsyncMock()
-                async with lifespan(app):
-                    pass
+        with patch("gearmeshing_ai.server.main.init_db", new_callable=AsyncMock) as mock_init_db, \
+             patch("gearmeshing_ai.server.main.logger") as mock_logger, \
+             patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool, \
+             patch("gearmeshing_ai.server.main.AsyncPostgresSaver") as mock_saver:
+            
+            # Setup pool.connection() async context manager
+            mock_conn = AsyncMock()
+            mock_conn.set_autocommit = AsyncMock()
+            mock_conn_ctx = MagicMock()
+            mock_pool.connection.return_value = mock_conn_ctx
+            mock_conn_ctx.__aenter__ = AsyncMock(return_value=mock_conn)
+            mock_conn_ctx.__aexit__ = AsyncMock(return_value=None)
+            
+            mock_pool.open = AsyncMock()
+            mock_pool.close = AsyncMock()
+            mock_saver.return_value.setup = AsyncMock()
 
-                # Verify startup logs
-                assert mock_logger.info.call_count >= 2
-                calls = [call[0][0] for call in mock_logger.info.call_args_list]
-                assert any("Starting up" in call for call in calls)
-                assert any("Database initialized successfully" in call for call in calls)
+            async with lifespan(app):
+                pass
+
+            # Verify startup logs
+            assert mock_logger.info.call_count >= 2
+            calls = [call[0][0] for call in mock_logger.info.call_args_list]
+            assert any("Starting up" in call for call in calls)
+            assert any("Database initialized successfully" in call for call in calls)
 
     async def test_lifespan_startup_handles_init_db_exception(self):
         """Test that lifespan startup handles init_db exceptions gracefully."""
@@ -91,16 +125,21 @@ class TestLifespanStartup:
 
         app = FastAPI()
 
-        with patch("gearmeshing_ai.server.main.init_db") as mock_init_db:
-            with patch("gearmeshing_ai.server.main.logger") as mock_logger:
-                mock_init_db.side_effect = Exception("Database connection failed")
-                async with lifespan(app):
-                    pass
+        with patch("gearmeshing_ai.server.main.init_db", new_callable=AsyncMock) as mock_init_db, \
+             patch("gearmeshing_ai.server.main.logger") as mock_logger, \
+             patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool:
+            
+            mock_init_db.side_effect = Exception("Database connection failed")
+            mock_pool.open = AsyncMock()
+            mock_pool.close = AsyncMock()
 
-                # Verify error was logged
-                mock_logger.error.assert_called_once()
-                error_call = mock_logger.error.call_args[0][0]
-                assert "Database initialization failed" in error_call
+            async with lifespan(app):
+                pass
+
+            # Verify error was logged
+            mock_logger.error.assert_called_once()
+            error_call = mock_logger.error.call_args[0][0]
+            assert "Initialization failed" in error_call
 
     async def test_lifespan_shutdown_logs_message(self):
         """Test that lifespan shutdown logs shutdown message."""
@@ -110,17 +149,32 @@ class TestLifespanStartup:
 
         app = FastAPI()
 
-        with patch("gearmeshing_ai.server.main.init_db") as mock_init_db:
-            with patch("gearmeshing_ai.server.main.logger") as mock_logger:
-                mock_init_db.return_value = AsyncMock()
-                async with lifespan(app):
-                    pass
+        with patch("gearmeshing_ai.server.main.init_db", new_callable=AsyncMock) as mock_init_db, \
+             patch("gearmeshing_ai.server.main.logger") as mock_logger, \
+             patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool, \
+             patch("gearmeshing_ai.server.main.AsyncPostgresSaver") as mock_saver:
+            
+            # Setup pool.connection() async context manager
+            mock_conn = AsyncMock()
+            mock_conn.set_autocommit = AsyncMock()
+            mock_conn_ctx = MagicMock()
+            mock_pool.connection.return_value = mock_conn_ctx
+            mock_conn_ctx.__aenter__ = AsyncMock(return_value=mock_conn)
+            mock_conn_ctx.__aexit__ = AsyncMock(return_value=None)
+            
+            mock_pool.open = AsyncMock()
+            mock_pool.close = AsyncMock()
+            mock_saver.return_value.setup = AsyncMock()
 
-                # Verify shutdown log was called (after yield)
-                shutdown_logs = [
-                    call[0][0] for call in mock_logger.info.call_args_list if "Shutting down" in call[0][0]
-                ]
-                assert len(shutdown_logs) > 0
+            async with lifespan(app):
+                pass
+
+            # Verify shutdown log was called (after yield)
+            shutdown_logs = [
+                call[0][0] for call in mock_logger.info.call_args_list if "Shutting down" in call[0][0]
+            ]
+            assert len(shutdown_logs) > 0
+            mock_pool.close.assert_called_once()
 
     async def test_lifespan_context_manager_protocol(self):
         """Test that lifespan properly implements async context manager protocol."""
@@ -130,8 +184,21 @@ class TestLifespanStartup:
 
         app = FastAPI()
 
-        with patch("gearmeshing_ai.server.main.init_db") as mock_init_db:
-            mock_init_db.return_value = AsyncMock()
+        with patch("gearmeshing_ai.server.main.init_db", new_callable=AsyncMock) as mock_init_db, \
+             patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool, \
+             patch("gearmeshing_ai.server.main.AsyncPostgresSaver") as mock_saver:
+            
+            # Setup pool.connection() async context manager
+            mock_conn = AsyncMock()
+            mock_conn.set_autocommit = AsyncMock()
+            mock_conn_ctx = MagicMock()
+            mock_pool.connection.return_value = mock_conn_ctx
+            mock_conn_ctx.__aenter__ = AsyncMock(return_value=mock_conn)
+            mock_conn_ctx.__aexit__ = AsyncMock(return_value=None)
+            
+            mock_pool.open = AsyncMock()
+            mock_pool.close = AsyncMock()
+            mock_saver.return_value.setup = AsyncMock()
 
             # Verify lifespan can be used as async context manager
             async with lifespan(app) as result:

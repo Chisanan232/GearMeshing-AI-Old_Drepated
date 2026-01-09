@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Dict
 
 import pytest
+from langgraph.checkpoint.memory import MemorySaver
 
 from gearmeshing_ai.agent_core.capabilities.base import CapabilityContext
 from gearmeshing_ai.agent_core.capabilities.builtin import (
@@ -289,6 +290,7 @@ class TestMcpCallCapability:
             capabilities=object(),  # type: ignore[arg-type]
             usage=None,
             mcp_call=None,
+            checkpointer=MemorySaver(),
         )
         ctx = CapabilityContext(run=AgentRun(role="dev", objective="x"), policy=GlobalPolicy(PolicyConfig()), deps=deps)
         res = await McpCallCapability().execute(ctx, args={"server_id": "s", "tool_name": "t"})
@@ -311,6 +313,7 @@ class TestMcpCallCapability:
             capabilities=object(),  # type: ignore[arg-type]
             usage=None,
             mcp_call=_mcp_call,
+            checkpointer=MemorySaver(),
         )
 
         ctx = CapabilityContext(run=AgentRun(role="dev", objective="x"), policy=GlobalPolicy(PolicyConfig()), deps=deps)
@@ -335,6 +338,7 @@ class TestMcpCallCapability:
             capabilities=object(),  # type: ignore[arg-type]
             usage=None,
             mcp_call=_mcp_call,
+            checkpointer=MemorySaver(),
         )
 
         ctx = CapabilityContext(run=AgentRun(role="dev", objective="x"), policy=GlobalPolicy(PolicyConfig()), deps=deps)
@@ -362,6 +366,7 @@ class TestMcpCallCapability:
             capabilities=object(),  # type: ignore[arg-type]
             usage=None,
             mcp_call=_mcp_call,
+            checkpointer=MemorySaver(),
         )
         ctx = CapabilityContext(run=AgentRun(role="dev", objective="x"), policy=GlobalPolicy(PolicyConfig()), deps=deps)
         res = await McpCallCapability().execute(ctx, args={"server_id": "s", "tool_name": "t", "args": {"x": 1}})
@@ -384,6 +389,7 @@ class TestMcpCallCapability:
             capabilities=object(),  # type: ignore[arg-type]
             usage=None,
             mcp_call=_mcp_call,
+            checkpointer=MemorySaver(),
         )
         ctx = CapabilityContext(run=AgentRun(role="dev", objective="x"), policy=GlobalPolicy(PolicyConfig()), deps=deps)
         res = await McpCallCapability().execute(ctx, args={"server_id": "s", "tool_name": "t"})
@@ -404,6 +410,7 @@ class TestMcpCallCapability:
             capabilities=object(),  # type: ignore[arg-type]
             usage=None,
             mcp_call=_mcp_call,
+            checkpointer=MemorySaver(),
         )
         ctx = CapabilityContext(run=AgentRun(role="dev", objective="x"), policy=GlobalPolicy(PolicyConfig()), deps=deps)
         res = await McpCallCapability().execute(ctx, args={"server_id": "s", "tool_name": "t", "tool_args": [1, 2]})
@@ -428,6 +435,7 @@ class TestMcpCallCapability:
             capabilities=object(),  # type: ignore[arg-type]
             usage=None,
             mcp_call=_mcp_call,
+            checkpointer=MemorySaver(),
         )
         ctx = CapabilityContext(run=AgentRun(role="dev", objective="x"), policy=GlobalPolicy(PolicyConfig()), deps=deps)
         res = await McpCallCapability().execute(ctx, args={"server_id": "s", "tool_name": "t", "tool_args": {}})
@@ -451,6 +459,7 @@ class TestMcpCallCapability:
             capabilities=object(),  # type: ignore[arg-type]
             usage=None,
             mcp_call=_mcp_call,
+            checkpointer=MemorySaver(),
         )
         ctx = CapabilityContext(run=AgentRun(role="dev", objective="x"), policy=GlobalPolicy(PolicyConfig()), deps=deps)
         res = await McpCallCapability().execute(ctx, args={"server_id": "s", "tool_name": "t", "tool_args": {}})

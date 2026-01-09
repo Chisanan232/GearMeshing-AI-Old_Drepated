@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import pytest
+from langgraph.checkpoint.memory import MemorySaver
 
 from gearmeshing_ai.agent_core.agent_registry import AgentRegistry
 from gearmeshing_ai.agent_core.factory import build_agent_registry
@@ -157,6 +158,7 @@ def test_build_agent_registry_builds_service_with_run_autonomy_profile() -> None
             tool_invocations=object(),  # type: ignore[arg-type]
             capabilities=object(),  # type: ignore[arg-type]
             usage=None,
+            checkpointer=MemorySaver(),
         ),
         planner=StructuredPlanner(model=None),
     )
@@ -193,6 +195,7 @@ def test_build_agent_registry_applies_role_capabilities_and_intersects_with_base
             tool_invocations=object(),  # type: ignore[arg-type]
             capabilities=object(),  # type: ignore[arg-type]
             usage=None,
+            checkpointer=MemorySaver(),
         ),
         planner=StructuredPlanner(model=None),
     )
@@ -231,6 +234,7 @@ def test_build_agent_registry_applies_role_tools_and_intersects_with_base() -> N
             tool_invocations=object(),  # type: ignore[arg-type]
             capabilities=object(),  # type: ignore[arg-type]
             usage=None,
+            checkpointer=MemorySaver(),
         ),
         planner=StructuredPlanner(model=None),
     )
@@ -281,6 +285,7 @@ def test_build_agent_registry_allowed_tools_assignment_and_intersection(
             tool_invocations=object(),  # type: ignore[arg-type]
             capabilities=object(),  # type: ignore[arg-type]
             usage=None,
+            checkpointer=MemorySaver(),
         ),
         planner=StructuredPlanner(model=None),
     )

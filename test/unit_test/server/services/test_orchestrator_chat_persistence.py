@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from unittest.mock import MagicMock, patch
 
 from gearmeshing_ai.agent_core.schemas.domain import AgentEvent
 from gearmeshing_ai.server.schemas import (
@@ -28,13 +29,22 @@ from gearmeshing_ai.server.schemas import (
 from gearmeshing_ai.server.services.orchestrator import OrchestratorService
 
 
+@pytest.fixture
+def mock_orchestrator():
+    """Create a mock orchestrator with mocked dependencies."""
+    with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"), \
+         patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"), \
+         patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"), \
+         patch("gearmeshing_ai.server.services.orchestrator.AgentService"), \
+         patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"):
+        return OrchestratorService()
+
+
 class TestOrchestratorEventFormatting:
     """Tests for orchestrator event formatting for chat persistence."""
 
-    def test_format_operation_event(self):
+    def test_format_operation_event(self, mock_orchestrator):
         """Test formatting operation events for chat display."""
-        orchestrator = OrchestratorService()
-
         dt = datetime(2025, 12, 28, 22, 0, 0, tzinfo=timezone.utc)
         event_data = SSEEventData(
             id="evt-1",
@@ -51,16 +61,14 @@ class TestOrchestratorEventFormatting:
             ),
         )
 
-        formatted = orchestrator._format_event_for_chat(event_data)
+        formatted = mock_orchestrator._format_event_for_chat(event_data)
 
         assert formatted != ""
         assert "Operation" in formatted or "search" in formatted
         assert "success" in formatted.lower()
 
-    def test_format_tool_execution_event(self):
+    def test_format_tool_execution_event(self, mock_orchestrator):
         """Test formatting tool execution events for chat display."""
-        orchestrator = OrchestratorService()
-
         dt = datetime(2025, 12, 28, 22, 0, 0, tzinfo=timezone.utc)
         event_data = SSEEventData(
             id="evt-1",
@@ -80,16 +88,14 @@ class TestOrchestratorEventFormatting:
             ),
         )
 
-        formatted = orchestrator._format_event_for_chat(event_data)
+        formatted = mock_orchestrator._format_event_for_chat(event_data)
 
         assert formatted != ""
         assert "Tool" in formatted or "search_web" in formatted
         assert "mcp-1" in formatted or "success" in formatted.lower()
 
-    def test_format_approval_request_event(self):
+    def test_format_approval_request_event(self, mock_orchestrator):
         """Test formatting approval request events for chat display."""
-        orchestrator = OrchestratorService()
-
         dt = datetime(2025, 12, 28, 22, 0, 0, tzinfo=timezone.utc)
         event_data = SSEEventData(
             id="evt-1",
@@ -106,16 +112,14 @@ class TestOrchestratorEventFormatting:
             ),
         )
 
-        formatted = orchestrator._format_event_for_chat(event_data)
+        formatted = mock_orchestrator._format_event_for_chat(event_data)
 
         assert formatted != ""
         assert "Approval" in formatted or "delete_file" in formatted
         assert "high" in formatted.lower()
 
-    def test_format_approval_resolution_event(self):
+    def test_format_approval_resolution_event(self, mock_orchestrator):
         """Test formatting approval resolution events for chat display."""
-        orchestrator = OrchestratorService()
-
         dt = datetime(2025, 12, 28, 22, 0, 0, tzinfo=timezone.utc)
         event_data = SSEEventData(
             id="evt-1",
@@ -132,16 +136,14 @@ class TestOrchestratorEventFormatting:
             ),
         )
 
-        formatted = orchestrator._format_event_for_chat(event_data)
+        formatted = mock_orchestrator._format_event_for_chat(event_data)
 
         assert formatted != ""
         assert "Approval" in formatted or "delete_file" in formatted
         assert "approved" in formatted.lower()
 
-    def test_format_thinking_event_returns_empty(self):
+    def test_format_thinking_event_returns_empty(self, mock_orchestrator):
         """Test that thinking events return empty string (not displayed in chat)."""
-        orchestrator = OrchestratorService()
-
         dt = datetime(2025, 12, 28, 22, 0, 0, tzinfo=timezone.utc)
         event_data = SSEEventData(
             id="evt-1",
@@ -152,15 +154,13 @@ class TestOrchestratorEventFormatting:
             payload={},
         )
 
-        formatted = orchestrator._format_event_for_chat(event_data)
+        formatted = mock_orchestrator._format_event_for_chat(event_data)
 
         # Thinking events should return empty string (not displayed in chat)
         assert formatted == ""
 
-    def test_format_unknown_event_type(self):
+    def test_format_unknown_event_type(self, mock_orchestrator):
         """Test formatting unknown event types."""
-        orchestrator = OrchestratorService()
-
         dt = datetime(2025, 12, 28, 22, 0, 0, tzinfo=timezone.utc)
         event_data = SSEEventData(
             id="evt-1",
@@ -171,15 +171,13 @@ class TestOrchestratorEventFormatting:
             payload={},
         )
 
-        formatted = orchestrator._format_event_for_chat(event_data)
+        formatted = mock_orchestrator._format_event_for_chat(event_data)
 
         # Unknown events should return empty string
         assert formatted == ""
 
-    def test_format_operation_failure(self):
+    def test_format_operation_failure(self, mock_orchestrator):
         """Test formatting failed operation events."""
-        orchestrator = OrchestratorService()
-
         dt = datetime(2025, 12, 28, 22, 0, 0, tzinfo=timezone.utc)
         event_data = SSEEventData(
             id="evt-1",
@@ -196,16 +194,14 @@ class TestOrchestratorEventFormatting:
             ),
         )
 
-        formatted = orchestrator._format_event_for_chat(event_data)
+        formatted = mock_orchestrator._format_event_for_chat(event_data)
 
         assert formatted != ""
         assert "Operation" in formatted or "search" in formatted
         assert "failed" in formatted.lower()
 
-    def test_format_tool_execution_failure(self):
+    def test_format_tool_execution_failure(self, mock_orchestrator):
         """Test formatting failed tool execution events."""
-        orchestrator = OrchestratorService()
-
         dt = datetime(2025, 12, 28, 22, 0, 0, tzinfo=timezone.utc)
         event_data = SSEEventData(
             id="evt-1",
@@ -225,7 +221,7 @@ class TestOrchestratorEventFormatting:
             ),
         )
 
-        formatted = orchestrator._format_event_for_chat(event_data)
+        formatted = mock_orchestrator._format_event_for_chat(event_data)
 
         assert formatted != ""
         assert "Tool" in formatted or "search_web" in formatted
@@ -405,10 +401,8 @@ class TestOrchestratorCallbackIntegration:
 class TestOrchestratorEventFormattingEdgeCases:
     """Tests for edge cases in orchestrator event formatting."""
 
-    def test_format_event_with_none_operation(self):
+    def test_format_event_with_none_operation(self, mock_orchestrator):
         """Test formatting event with None operation."""
-        orchestrator = OrchestratorService()
-
         dt = datetime(2025, 12, 28, 22, 0, 0, tzinfo=timezone.utc)
         event_data = SSEEventData(
             id="evt-1",
@@ -420,15 +414,13 @@ class TestOrchestratorEventFormattingEdgeCases:
             operation=None,
         )
 
-        formatted = orchestrator._format_event_for_chat(event_data)
+        formatted = mock_orchestrator._format_event_for_chat(event_data)
 
         # Should handle None gracefully
         assert isinstance(formatted, str)
 
-    def test_format_event_with_empty_operation_result(self):
+    def test_format_event_with_empty_operation_result(self, mock_orchestrator):
         """Test formatting event with empty operation result."""
-        orchestrator = OrchestratorService()
-
         dt = datetime(2025, 12, 28, 22, 0, 0, tzinfo=timezone.utc)
         event_data = SSEEventData(
             id="evt-1",
@@ -445,15 +437,13 @@ class TestOrchestratorEventFormattingEdgeCases:
             ),
         )
 
-        formatted = orchestrator._format_event_for_chat(event_data)
+        formatted = mock_orchestrator._format_event_for_chat(event_data)
 
         # Should still format even with empty result
         assert formatted != ""
 
-    def test_format_event_with_special_capability_names(self):
+    def test_format_event_with_special_capability_names(self, mock_orchestrator):
         """Test formatting events with special capability names."""
-        orchestrator = OrchestratorService()
-
         dt = datetime(2025, 12, 28, 22, 0, 0, tzinfo=timezone.utc)
         special_names = [
             "search_web",
@@ -479,15 +469,13 @@ class TestOrchestratorEventFormattingEdgeCases:
                 ),
             )
 
-            formatted = orchestrator._format_event_for_chat(event_data)
+            formatted = mock_orchestrator._format_event_for_chat(event_data)
 
             assert formatted != ""
             assert capability_name in formatted or "Operation" in formatted
 
-    def test_format_event_with_high_risk_approval(self):
+    def test_format_event_with_high_risk_approval(self, mock_orchestrator):
         """Test formatting approval events with high risk level."""
-        orchestrator = OrchestratorService()
-
         dt = datetime(2025, 12, 28, 22, 0, 0, tzinfo=timezone.utc)
         event_data = SSEEventData(
             id="evt-1",
@@ -504,16 +492,14 @@ class TestOrchestratorEventFormattingEdgeCases:
             ),
         )
 
-        formatted = orchestrator._format_event_for_chat(event_data)
+        formatted = mock_orchestrator._format_event_for_chat(event_data)
 
         assert formatted != ""
         assert "high" in formatted.lower()
         assert "delete_file" in formatted or "Approval" in formatted
 
-    def test_format_event_with_low_risk_approval(self):
+    def test_format_event_with_low_risk_approval(self, mock_orchestrator):
         """Test formatting approval events with low risk level."""
-        orchestrator = OrchestratorService()
-
         dt = datetime(2025, 12, 28, 22, 0, 0, tzinfo=timezone.utc)
         event_data = SSEEventData(
             id="evt-1",
@@ -530,7 +516,7 @@ class TestOrchestratorEventFormattingEdgeCases:
             ),
         )
 
-        formatted = orchestrator._format_event_for_chat(event_data)
+        formatted = mock_orchestrator._format_event_for_chat(event_data)
 
         assert formatted != ""
         assert "low" in formatted.lower()
@@ -542,9 +528,13 @@ class TestOrchestratorStreamEventsCallbackIntegration:
     @pytest.mark.asyncio
     async def test_stream_events_invokes_callback_with_operation_event(self):
         """Test stream_events actually invokes callback for operation events (lines 200-210)."""
-        from gearmeshing_ai.server.services.orchestrator import OrchestratorService
-
-        orchestrator = OrchestratorService()
+        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"), \
+             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentService"), \
+             patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"):
+            orchestrator = OrchestratorService()
+        
         callback_invocations = []
 
         async def capture_callback(run_id: str, display_text: str, event_type: str) -> None:
@@ -620,9 +610,13 @@ class TestOrchestratorStreamEventsCallbackIntegration:
     @pytest.mark.asyncio
     async def test_stream_events_callback_receives_formatted_display_text(self):
         """Test callback receives formatted display_text from _format_event_for_chat (line 201)."""
-        from gearmeshing_ai.server.services.orchestrator import OrchestratorService
-
-        orchestrator = OrchestratorService()
+        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"), \
+             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentService"), \
+             patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"):
+            orchestrator = OrchestratorService()
+        
         received_display_text = []
 
         async def capture_display_text(run_id: str, display_text: str, event_type: str) -> None:
@@ -688,9 +682,13 @@ class TestOrchestratorStreamEventsCallbackIntegration:
     @pytest.mark.asyncio
     async def test_stream_events_skips_callback_when_display_text_empty(self):
         """Test callback is not invoked when display_text is empty (line 202)."""
-        from gearmeshing_ai.server.services.orchestrator import OrchestratorService
-
-        orchestrator = OrchestratorService()
+        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"), \
+             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentService"), \
+             patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"):
+            orchestrator = OrchestratorService()
+        
         callback_invocations = []
 
         async def capture_callback(run_id: str, display_text: str, event_type: str) -> None:
@@ -748,10 +746,13 @@ class TestOrchestratorStreamEventsCallbackIntegration:
     @pytest.mark.asyncio
     async def test_stream_events_callback_exception_handled_gracefully(self):
         """Test callback exception is caught and logged (lines 203-210)."""
-        from gearmeshing_ai.server.services.orchestrator import OrchestratorService
-
-        orchestrator = OrchestratorService()
-
+        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"), \
+             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentService"), \
+             patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"):
+            orchestrator = OrchestratorService()
+        
         async def failing_callback(run_id: str, display_text: str, event_type: str) -> None:
             raise Exception("Callback processing error")
 
@@ -813,9 +814,13 @@ class TestOrchestratorStreamEventsCallbackIntegration:
     @pytest.mark.asyncio
     async def test_stream_events_callback_receives_correct_parameters(self):
         """Test callback receives correct run_id, display_text, and event_type (lines 204-207)."""
-        from gearmeshing_ai.server.services.orchestrator import OrchestratorService
-
-        orchestrator = OrchestratorService()
+        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"), \
+             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentService"), \
+             patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"):
+            orchestrator = OrchestratorService()
+        
         callback_params = {}
 
         async def capture_params(run_id: str, display_text: str, event_type: str) -> None:
@@ -883,10 +888,13 @@ class TestOrchestratorStreamEventsCallbackIntegration:
     @pytest.mark.asyncio
     async def test_stream_events_with_none_callback_parameter(self):
         """Test stream_events handles None callback gracefully (line 200)."""
-        from gearmeshing_ai.server.services.orchestrator import OrchestratorService
-
-        orchestrator = OrchestratorService()
-
+        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"), \
+             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"), \
+             patch("gearmeshing_ai.server.services.orchestrator.AgentService"), \
+             patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"):
+            orchestrator = OrchestratorService()
+        
         dt = datetime(2025, 12, 28, 22, 0, 0, tzinfo=timezone.utc)
 
         event = AgentEvent(
