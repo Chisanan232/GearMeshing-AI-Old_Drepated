@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from langgraph.checkpoint.base import BaseCheckpointSaver
+
 """Runtime dependency bundle and LangGraph state types.
 
 The runtime engine is designed to be dependency-injected.
@@ -68,6 +70,9 @@ class EngineDeps:
     checkpoints: CheckpointRepository
     tool_invocations: ToolInvocationRepository
     capabilities: CapabilityRegistry
+
+    # Native LangGraph checkpointer
+    checkpointer: BaseCheckpointSaver
 
     usage: Optional[UsageRepository] = None
 

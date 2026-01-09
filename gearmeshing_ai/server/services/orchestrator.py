@@ -20,7 +20,7 @@ from gearmeshing_ai.agent_core.schemas.domain import (
 )
 from gearmeshing_ai.agent_core.service import AgentService, AgentServiceDeps
 from gearmeshing_ai.core.logging_config import get_logger
-from gearmeshing_ai.server.core.database import async_session_maker
+from gearmeshing_ai.server.core.database import async_session_maker, checkpointer_pool
 from gearmeshing_ai.server.schemas import (
     ApprovalRequestData,
     ApprovalResolutionData,
@@ -36,6 +36,7 @@ from gearmeshing_ai.server.schemas import (
     ThinkingOutputData,
     ToolExecutionData,
 )
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 logger = get_logger(__name__)
 
@@ -76,6 +77,10 @@ class OrchestratorService:
 
         # Build base repositories
         base_repos = build_sql_repos(session_factory=async_session_maker)
+
+        # Initialize LangGraph Checkpointer
+        # We reuse the global pool. The saver is stateless (depends on pool/conn).
+        self.checkpointer = AsyncPostgresSaver(checkpointer_pool)
 
         # Wrap event repository for broadcasting
         self.event_repo_wrapper = BroadcastingEventRepository(base_repos.events, self.event_listeners)
@@ -127,6 +132,7 @@ class OrchestratorService:
             tool_invocations=self.repos.tool_invocations,
             usage=self.repos.usage,
             capabilities=build_default_registry(),
+            checkpointer=self.checkpointer,
         )
 
     async def create_run(self, run: AgentRun) -> AgentRun:
