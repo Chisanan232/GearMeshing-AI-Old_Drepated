@@ -17,7 +17,7 @@ class PolicyProvider(Protocol):
     Implementations can incorporate tenant/workspace overrides and versioning.
     """
 
-    def get(self, run: AgentRun) -> PolicyConfig: ...
+    async def get(self, run: AgentRun) -> PolicyConfig: ...
 
 
 @dataclass(frozen=True)
@@ -37,7 +37,7 @@ class StaticPolicyProvider(PolicyProvider):
     by_tenant: Dict[str, PolicyConfig] | None = None
     by_workspace: Dict[str, PolicyConfig] | None = None
 
-    def get(self, run: AgentRun) -> PolicyConfig:
+    async def get(self, run: AgentRun) -> PolicyConfig:
         if run.tenant_id and self.by_tenant and run.tenant_id in self.by_tenant:
             return self.by_tenant[run.tenant_id].model_copy(deep=True)
         if run.workspace_id and self.by_workspace and run.workspace_id in self.by_workspace:
@@ -62,8 +62,8 @@ class DatabasePolicyProvider(PolicyProvider):
     policy_repository: PolicyRepository
     default: PolicyConfig
 
-    def get(self, run: AgentRun) -> PolicyConfig:
-        """Resolve policy config for a run, loading from database if available.
+    async def get(self, run: AgentRun) -> PolicyConfig:
+        """Asynchronously resolve policy config for a run from the database.
 
         Args:
             run: The agent run for which to resolve policy.
@@ -73,13 +73,9 @@ class DatabasePolicyProvider(PolicyProvider):
         """
         if run.tenant_id:
             try:
-                import asyncio
-
-                # Get the policy config from the database
-                config_dict = asyncio.run(self.policy_repository.get(run.tenant_id))
+                config_dict = await self.policy_repository.get(run.tenant_id)
                 if config_dict:
                     try:
-                        # Parse the config dict into a PolicyConfig object
                         policy_config = PolicyConfig.model_validate(config_dict)
                         logger.debug(f"Loaded policy config from database for tenant '{run.tenant_id}'")
                         return policy_config

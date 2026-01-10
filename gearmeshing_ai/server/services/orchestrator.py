@@ -163,59 +163,43 @@ class OrchestratorService:
         return self._agent_service_cached
 
     async def create_run(self, run: AgentRun) -> AgentRun:
-        """Create a new agent run in PENDING status."""
+        """
+        Create a new agent run in PENDING status (in-memory only).
+        
+        Note: The run is NOT persisted to the database here. Persistence happens
+        in engine.start_run() when the workflow execution begins. This follows the
+        async-first pattern where the API layer creates the run object in memory,
+        passes it to the background worker, and the engine persists it when ready.
+        """
 
         # Set status to pending initially
         run.status = AgentRunStatus.pending
 
-        # Create the run record in DB
-        await self.repos.runs.create(run)
-
         logger.info(f"Run {run.id} created with status PENDING")
         return run
 
-    async def execute_workflow(self, run_id: str) -> None:
+    async def execute_workflow(self, run: AgentRun) -> None:
         """
         Execute the agent workflow in the background.
-        Transitions status from PENDING to RUNNING.
+        
+        The run object is passed directly from the API layer, avoiding the need to
+        fetch it from the database. The engine.start_run() will persist the run
+        to the database when execution begins.
         """
+        run_id = run.id
         try:
             logger.info(f"Starting execution for run {run_id}")
-            run = await self.repos.runs.get(run_id)
-            if not run:
-                logger.error(f"Run {run_id} not found during execution start")
-                return
 
-            # Update status to running (conceptually, though engine.start_run might do things too)
-            # The engine expects the run object.
-            # We ensure the run object passed has the correct state if needed,
-            # but usually start_run handles the flow.
-            # Important: AgentService.run expects the run object.
+            # Ensure status is PENDING before execution
+            run.status = AgentRunStatus.pending
 
-            # Since we modify status to pending in create_run, we should let the engine or service know
-            # it's starting.
-            # However, engine.start_run creates the run in DB.
-            # We already created it.
-            # We updated engine.py to handle existing runs.
-
-            # We need to update status to running here or ensure engine does it?
-            # engine.start_run calls _deps.runs.create(run).
-            # If we pass a run with status=PENDING, it tries to create it as PENDING (which it is).
-            # Then it logs run_started event.
-            # It doesn't explicitly update status to RUNNING in the DB in start_run logic
-            # except via create() which is skipped if exists.
-
-            # So we should explicitly update status to RUNNING here.
-            await self.repos.runs.update_status(run_id, status=AgentRunStatus.running.value)
-
-            # Update local object too for consistency if passed down
-            run.status = AgentRunStatus.running
-
+            # Execute the workflow - engine.start_run() will persist the run
             await self._get_agent_service().run(run=run)
             logger.info(f"Execution finished for run {run_id}")
 
         except Exception as e:
             logger.error(f"Error executing workflow for run {run_id}: {e}", exc_info=True)
+            # Update status to failed in database
             await self.repos.runs.update_status(run_id, status=AgentRunStatus.failed.value)
             await self.repos.events.append(
                 AgentEvent(run_id=run_id, type=AgentEventType.run_failed, payload={"error": str(e)})
