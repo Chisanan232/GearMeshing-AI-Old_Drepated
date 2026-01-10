@@ -181,7 +181,19 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
-        sa.Index("ix_chat_sessions_tenant_id", "tenant_id"),
+    )
+
+    # Create chat_messages table
+    op.create_table(
+        "chat_messages",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("session_id", sa.Integer(), nullable=False),
+        sa.Column("role", sa.String(), nullable=False),
+        sa.Column("content", sa.String(), nullable=False),
+        sa.Column("message_metadata", sa.String(), nullable=True),
+        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.PrimaryKeyConstraint("id"),
+        sa.ForeignKeyConstraint(["session_id"], ["chat_sessions.id"]),
     )
 
     # Seed default agent configurations
