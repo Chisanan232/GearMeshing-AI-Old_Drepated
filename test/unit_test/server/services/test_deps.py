@@ -57,8 +57,14 @@ class TestOrchestratorDepIntegration:
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
     @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
+    @patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver")
+    @patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool")
+    @patch("gearmeshing_ai.server.services.orchestrator.build_default_registry")
     def test_orchestrator_dep_can_be_used_in_fastapi_endpoint(
         self,
+        mock_registry: MagicMock,
+        mock_pool: MagicMock,
+        mock_saver: MagicMock,
         mock_repos: MagicMock,
         mock_deps: MagicMock,
         mock_planner: MagicMock,
@@ -97,8 +103,14 @@ class TestOrchestratorDepIntegration:
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
     @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
+    @patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver")
+    @patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool")
+    @patch("gearmeshing_ai.server.services.orchestrator.build_default_registry")
     def test_orchestrator_dep_returns_orchestrator_service(
         self,
+        mock_registry: MagicMock,
+        mock_pool: MagicMock,
+        mock_saver: MagicMock,
         mock_repos: MagicMock,
         mock_deps: MagicMock,
         mock_planner: MagicMock,
@@ -127,8 +139,14 @@ class TestOrchestratorDepSingleton:
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
     @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
+    @patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver")
+    @patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool")
+    @patch("gearmeshing_ai.server.services.orchestrator.build_default_registry")
     def test_orchestrator_dep_returns_singleton_across_calls(
         self,
+        mock_registry: MagicMock,
+        mock_pool: MagicMock,
+        mock_saver: MagicMock,
         mock_repos: MagicMock,
         mock_deps: MagicMock,
         mock_planner: MagicMock,
@@ -186,8 +204,14 @@ class TestOrchestratorDepWithMockFastAPI:
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
     @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
+    @patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver")
+    @patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool")
+    @patch("gearmeshing_ai.server.services.orchestrator.build_default_registry")
     def test_orchestrator_dep_in_multiple_endpoints(
         self,
+        mock_registry: MagicMock,
+        mock_pool: MagicMock,
+        mock_saver: MagicMock,
         mock_repos: MagicMock,
         mock_deps: MagicMock,
         mock_planner: MagicMock,
@@ -220,8 +244,14 @@ class TestOrchestratorDepWithMockFastAPI:
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
     @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
+    @patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver")
+    @patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool")
+    @patch("gearmeshing_ai.server.services.orchestrator.build_default_registry")
     def test_orchestrator_dep_with_other_dependencies(
         self,
+        mock_registry: MagicMock,
+        mock_pool: MagicMock,
+        mock_saver: MagicMock,
         mock_repos: MagicMock,
         mock_deps: MagicMock,
         mock_planner: MagicMock,
@@ -282,8 +312,14 @@ class TestOrchestratorDepEdgeCases:
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
     @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
+    @patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver")
+    @patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool")
+    @patch("gearmeshing_ai.server.services.orchestrator.build_default_registry")
     def test_orchestrator_dep_with_none_orchestrator(
         self,
+        mock_registry: MagicMock,
+        mock_pool: MagicMock,
+        mock_saver: MagicMock,
         mock_repos: MagicMock,
         mock_deps: MagicMock,
         mock_planner: MagicMock,
@@ -309,8 +345,14 @@ class TestOrchestratorDepEdgeCases:
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
     @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
+    @patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver")
+    @patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool")
+    @patch("gearmeshing_ai.server.services.orchestrator.build_default_registry")
     def test_orchestrator_dep_preserves_singleton_after_reset(
         self,
+        mock_registry: MagicMock,
+        mock_pool: MagicMock,
+        mock_saver: MagicMock,
         mock_repos: MagicMock,
         mock_deps: MagicMock,
         mock_planner: MagicMock,

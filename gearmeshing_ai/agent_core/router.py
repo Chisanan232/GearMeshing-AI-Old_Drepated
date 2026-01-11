@@ -49,7 +49,7 @@ class Router:
             return "market"
         return self.default_role
 
-    def route(self, *, run: AgentRun) -> AgentService:
+    async def route(self, *, run: AgentRun) -> AgentService:
         """
         Determine and instantiate the appropriate AgentService for a run.
 
@@ -72,4 +72,4 @@ class Router:
         if not self.registry.has(role):
             role = self.default_role
         factory = self.registry.get(role)
-        return factory(run)
+        return await factory(run)

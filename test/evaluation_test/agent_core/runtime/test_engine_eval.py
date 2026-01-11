@@ -4,6 +4,8 @@ import os
 from typing import Any, Dict
 
 import pytest
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from psycopg_pool import AsyncConnectionPool
 from sqlalchemy import select
 from testcontainers.postgres import PostgresContainer
 
@@ -51,7 +53,16 @@ async def test_eval_end_to_end_graph_happy_path_selects_and_runs_tools() -> None
         pytest.skip("set GM_RUN_EVAL_TESTS=1 to enable evaluation tests")
 
     with PostgresContainer("postgres:16") as pg:
-        db_url = pg.get_connection_url().replace("postgresql://", "postgresql+asyncpg://")
+        # testcontainers returns postgresql+psycopg2://user:pass@host:port/db
+        # We need to convert it to postgresql+asyncpg:// for SQLAlchemy
+        base_url = pg.get_connection_url()
+        # Handle both postgresql:// and postgresql+psycopg2:// formats
+        if "postgresql+psycopg2://" in base_url:
+            db_url = base_url.replace("postgresql+psycopg2://", "postgresql+asyncpg://")
+            psycopg_url = base_url.replace("postgresql+psycopg2://", "postgresql://")
+        else:
+            db_url = base_url.replace("postgresql://", "postgresql+asyncpg://")
+            psycopg_url = base_url
 
         engine = create_engine(db_url)
         await create_all(engine)
@@ -63,41 +74,55 @@ async def test_eval_end_to_end_graph_happy_path_selects_and_runs_tools() -> None
 
         cfg = PolicyConfig()
         cfg.tool_policy.allowed_capabilities = {CapabilityName.summarize}
-        runtime = AgentEngine(
-            policy=GlobalPolicy(cfg),
-            deps=EngineDeps(
-                runs=repos.runs,
-                events=repos.events,
-                approvals=repos.approvals,
-                checkpoints=repos.checkpoints,
-                tool_invocations=repos.tool_invocations,
-                usage=repos.usage,
-                capabilities=reg,
-            ),
-        )
 
-        run = AgentRun(role="eval", objective="Summarize: hello world")
-        plan = [
-            {"capability": CapabilityName.summarize.value, "args": {"text": "hello world"}},
-            {"capability": CapabilityName.summarize.value, "args": {"text": "second step"}},
-        ]
-        await runtime.start_run(run=run, plan=plan)
+        # Create connection pool for AsyncPostgresSaver
+        # psycopg_pool expects a plain postgresql:// URL
+        pool = AsyncConnectionPool(conninfo=psycopg_url)
+        await pool.open()
 
-        loaded = await repos.runs.get(run.id)
-        assert loaded is not None
-        assert str(getattr(loaded.status, "value", loaded.status)) == AgentRunStatus.succeeded.value
+        try:
+            # Setup checkpointer with autocommit mode to allow CREATE INDEX CONCURRENTLY
+            async with pool.connection() as conn:
+                await conn.set_autocommit(True)
+                checkpointer = AsyncPostgresSaver(conn)
+                await checkpointer.setup()
 
-        # Path selection: should not pause for approval
-        cp = await repos.checkpoints.latest(run.id)
-        assert cp is not None
-        assert cp.state.get("awaiting_approval_id") is None
+            # Create a new checkpointer instance for the engine that uses the pool
+            checkpointer = AsyncPostgresSaver(pool)
 
-        # Tool selection/execution: should have exactly two persisted invocations
-        # (this is our proxy for "tools selected and run as expected")
-        async with session_factory() as s:
-            res = await s.execute(select(ToolInvocationRow).where(ToolInvocationRow.run_id == run.id))
-            rows = list(res.scalars().all())
-            assert len(rows) == 2
-            assert all(r.ok for r in rows)
+            runtime = AgentEngine(
+                policy=GlobalPolicy(cfg),
+                deps=EngineDeps(
+                    runs=repos.runs,
+                    events=repos.events,
+                    approvals=repos.approvals,
+                    checkpoints=repos.checkpoints,
+                    tool_invocations=repos.tool_invocations,
+                    usage=repos.usage,
+                    capabilities=reg,
+                    checkpointer=checkpointer,
+                ),
+            )
 
-        await engine.dispose()
+            run = AgentRun(role="eval", objective="Summarize: hello world")
+            plan = [
+                {"capability": CapabilityName.summarize.value, "args": {"text": "hello world"}},
+                {"capability": CapabilityName.summarize.value, "args": {"text": "second step"}},
+            ]
+            await runtime.start_run(run=run, plan=plan)
+
+            loaded = await repos.runs.get(run.id)
+            assert loaded is not None
+            assert str(getattr(loaded.status, "value", loaded.status)) == AgentRunStatus.succeeded.value
+
+            # Tool selection/execution: should have exactly two persisted invocations
+            # (this is our proxy for "tools selected and run as expected")
+            async with session_factory() as s:
+                res = await s.execute(select(ToolInvocationRow).where(ToolInvocationRow.run_id == run.id))
+                rows = list(res.scalars().all())
+                assert len(rows) == 2
+                assert all(r.ok for r in rows)
+
+            await engine.dispose()
+        finally:
+            await pool.close()

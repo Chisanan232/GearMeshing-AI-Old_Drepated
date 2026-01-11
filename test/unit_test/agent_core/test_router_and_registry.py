@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import pytest
+from langgraph.checkpoint.memory import MemorySaver
 
 from gearmeshing_ai.agent_core.agent_registry import AgentRegistry
 from gearmeshing_ai.agent_core.factory import build_agent_registry
@@ -58,43 +59,66 @@ def test_registry_register_and_has_and_get() -> None:
     assert dev_svc.name == "dev"
 
 
-def test_router_routes_to_registered_role() -> None:
+@pytest.mark.asyncio
+async def test_router_routes_to_registered_role() -> None:
     reg = AgentRegistry()
-    reg.register("dev", lambda _run: _Svc("dev"))  # type: ignore[arg-type, return-value]
+
+    async def async_factory(_run):
+        return _Svc("dev")
+
+    reg.register("dev", async_factory)
 
     router = Router(registry=reg, default_role="planner")
-    svc = router.route(run=AgentRun(role="dev", objective="x"))
+    svc = await router.route(run=AgentRun(role="dev", objective="x"))
     assert isinstance(svc, _Svc)
     assert svc.name == "dev"
 
 
-def test_router_defaults_when_role_is_blank() -> None:
+@pytest.mark.asyncio
+async def test_router_defaults_when_role_is_blank() -> None:
     reg = AgentRegistry()
-    reg.register("planner", lambda _run: _Svc("planner"))  # type: ignore[arg-type, return-value]
+
+    async def async_factory(_run):
+        return _Svc("planner")
+
+    reg.register("planner", async_factory)
 
     router = Router(registry=reg, default_role="planner")
-    svc = router.route(run=AgentRun(role="", objective="x"))
+    svc = await router.route(run=AgentRun(role="", objective="x"))
     assert isinstance(svc, _Svc)
     assert svc.name == "planner"
 
 
-def test_router_intent_routing_selects_dev_when_enabled() -> None:
+@pytest.mark.asyncio
+async def test_router_intent_routing_selects_dev_when_enabled() -> None:
     reg = AgentRegistry()
-    reg.register("planner", lambda _run: _Svc("planner"))  # type: ignore[arg-type, return-value]
-    reg.register("dev", lambda _run: _Svc("dev"))  # type: ignore[arg-type, return-value]
+
+    async def async_planner(_run):
+        return _Svc("planner")
+
+    async def async_dev(_run):
+        return _Svc("dev")
+
+    reg.register("planner", async_planner)
+    reg.register("dev", async_dev)
 
     router = Router(registry=reg, default_role="planner", enable_intent_routing=True)
-    svc = router.route(run=AgentRun(role="", objective="Fix bug in payment flow"))
+    svc = await router.route(run=AgentRun(role="", objective="Fix bug in payment flow"))
     assert isinstance(svc, _Svc)
     assert svc.name == "dev"
 
 
-def test_router_intent_routing_falls_back_when_inferred_role_missing() -> None:
+@pytest.mark.asyncio
+async def test_router_intent_routing_falls_back_when_inferred_role_missing() -> None:
     reg = AgentRegistry()
-    reg.register("planner", lambda _run: _Svc("planner"))  # type: ignore[arg-type, return-value]
+
+    async def async_factory(_run):
+        return _Svc("planner")
+
+    reg.register("planner", async_factory)
 
     router = Router(registry=reg, default_role="planner", enable_intent_routing=True)
-    svc = router.route(run=AgentRun(role="", objective="Investigate incident and monitor metrics"))
+    svc = await router.route(run=AgentRun(role="", objective="Investigate incident and monitor metrics"))
     assert isinstance(svc, _Svc)
     assert svc.name == "planner"
 
@@ -110,7 +134,8 @@ def test_router_intent_routing_falls_back_when_inferred_role_missing() -> None:
         ("", "Fix bug", True, {"planner"}, "planner"),
     ],
 )
-def test_router_route_branching(
+@pytest.mark.asyncio
+async def test_router_route_branching(
     run_role: str,
     objective: str,
     enable_intent: bool,
@@ -119,32 +144,43 @@ def test_router_route_branching(
 ) -> None:
     reg = AgentRegistry()
     for r in registered:
-        reg.register(r, lambda _run, _r=r: _Svc(_r))  # type: ignore[arg-type, misc]
+
+        async def async_factory(_run, _r=r):
+            return _Svc(_r)
+
+        reg.register(r, async_factory)
 
     router = Router(registry=reg, default_role="planner", enable_intent_routing=enable_intent)
-    svc = router.route(run=AgentRun(role=run_role, objective=objective))
+    svc = await router.route(run=AgentRun(role=run_role, objective=objective))
     assert isinstance(svc, _Svc)
     assert svc.name == expected
 
 
-def test_router_route_raises_when_default_role_not_registered() -> None:
+@pytest.mark.asyncio
+async def test_router_route_raises_when_default_role_not_registered() -> None:
     reg = AgentRegistry()
-    reg.register("dev", lambda _run: _Svc("dev"))  # type: ignore[arg-type, return-value]
+
+    async def async_factory(_run):
+        return _Svc("dev")
+
+    reg.register("dev", async_factory)
     router = Router(registry=reg, default_role="planner", enable_intent_routing=True)
 
     with pytest.raises(KeyError, match="unknown role"):
-        router.route(run=AgentRun(role="", objective="Competitor analysis"))
+        await router.route(run=AgentRun(role="", objective="Competitor analysis"))
 
 
-def test_router_raises_for_unknown_role() -> None:
+@pytest.mark.asyncio
+async def test_router_raises_for_unknown_role() -> None:
     reg = AgentRegistry()
     router = Router(registry=reg, default_role="planner")
 
     with pytest.raises(KeyError, match="unknown role"):
-        router.route(run=AgentRun(role="missing", objective="x"))
+        await router.route(run=AgentRun(role="missing", objective="x"))
 
 
-def test_build_agent_registry_builds_service_with_run_autonomy_profile() -> None:
+@pytest.mark.asyncio
+async def test_build_agent_registry_builds_service_with_run_autonomy_profile() -> None:
     base_cfg = PolicyConfig()
     base_cfg.autonomy_profile = AutonomyProfile.strict
 
@@ -157,6 +193,7 @@ def test_build_agent_registry_builds_service_with_run_autonomy_profile() -> None
             tool_invocations=object(),  # type: ignore[arg-type]
             capabilities=object(),  # type: ignore[arg-type]
             usage=None,
+            checkpointer=MemorySaver(),
         ),
         planner=StructuredPlanner(model=None),
     )
@@ -165,12 +202,13 @@ def test_build_agent_registry_builds_service_with_run_autonomy_profile() -> None
     router = Router(registry=registry)
 
     run = AgentRun(role="planner", objective="x", autonomy_profile=AutonomyProfile.unrestricted)
-    svc = router.route(run=run)
+    svc = await router.route(run=run)
     assert svc._policy_config.autonomy_profile == AutonomyProfile.unrestricted
     assert base_cfg.autonomy_profile == AutonomyProfile.strict
 
 
-def test_build_agent_registry_applies_role_capabilities_and_intersects_with_base() -> None:
+@pytest.mark.asyncio
+async def test_build_agent_registry_applies_role_capabilities_and_intersects_with_base() -> None:
     base_cfg = PolicyConfig()
     base_cfg.tool_policy.allowed_capabilities = {CapabilityName.summarize}
 
@@ -193,6 +231,7 @@ def test_build_agent_registry_applies_role_capabilities_and_intersects_with_base
             tool_invocations=object(),  # type: ignore[arg-type]
             capabilities=object(),  # type: ignore[arg-type]
             usage=None,
+            checkpointer=MemorySaver(),
         ),
         planner=StructuredPlanner(model=None),
     )
@@ -201,11 +240,12 @@ def test_build_agent_registry_applies_role_capabilities_and_intersects_with_base
     router = Router(registry=registry)
 
     run = AgentRun(role="dev", objective="x")
-    svc = router.route(run=run)
+    svc = await router.route(run=run)
     assert svc._policy_config.tool_policy.allowed_capabilities == {CapabilityName.summarize}
 
 
-def test_build_agent_registry_applies_role_tools_and_intersects_with_base() -> None:
+@pytest.mark.asyncio
+async def test_build_agent_registry_applies_role_tools_and_intersects_with_base() -> None:
     base_cfg = PolicyConfig()
     base_cfg.tool_policy.allowed_tools = {"scm.create_pr", "scm.merge_pr"}
 
@@ -231,6 +271,7 @@ def test_build_agent_registry_applies_role_tools_and_intersects_with_base() -> N
             tool_invocations=object(),  # type: ignore[arg-type]
             capabilities=object(),  # type: ignore[arg-type]
             usage=None,
+            checkpointer=MemorySaver(),
         ),
         planner=StructuredPlanner(model=None),
     )
@@ -239,7 +280,7 @@ def test_build_agent_registry_applies_role_tools_and_intersects_with_base() -> N
     router = Router(registry=registry)
 
     run = AgentRun(role="dev", objective="x")
-    svc = router.route(run=run)
+    svc = await router.route(run=run)
     assert svc._policy_config.tool_policy.allowed_tools == {"scm.create_pr"}
 
 
@@ -251,7 +292,8 @@ def test_build_agent_registry_applies_role_tools_and_intersects_with_base() -> N
         ({"scm.create_pr", "scm.merge_pr"}, {"scm.rebase"}, set()),
     ],
 )
-def test_build_agent_registry_allowed_tools_assignment_and_intersection(
+@pytest.mark.asyncio
+async def test_build_agent_registry_allowed_tools_assignment_and_intersection(
     base_allowed_tools: set[str] | None,
     role_allowed_tools: set[str],
     expected: set[str],
@@ -281,10 +323,11 @@ def test_build_agent_registry_allowed_tools_assignment_and_intersection(
             tool_invocations=object(),  # type: ignore[arg-type]
             capabilities=object(),  # type: ignore[arg-type]
             usage=None,
+            checkpointer=MemorySaver(),
         ),
         planner=StructuredPlanner(model=None),
     )
 
     registry = build_agent_registry(base_policy_config=base_cfg, deps=deps, role_provider=provider)
-    svc = Router(registry=registry).route(run=AgentRun(role="dev", objective="x"))
+    svc = await Router(registry=registry).route(run=AgentRun(role="dev", objective="x"))
     assert svc._policy_config.tool_policy.allowed_tools == expected

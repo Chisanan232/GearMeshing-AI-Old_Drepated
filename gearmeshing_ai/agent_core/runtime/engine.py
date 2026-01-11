@@ -34,6 +34,8 @@ continues execution.
 import logging
 from typing import Any, cast
 
+from langchain_core.runnables import RunnableConfig
+from langgraph.errors import NodeInterrupt
 from langgraph.graph import END, StateGraph
 from pydantic_ai import Agent as PydanticAIAgent
 
@@ -51,7 +53,6 @@ from ..schemas.domain import (
     Approval,
     ApprovalDecision,
     CapabilityName,
-    Checkpoint,
     ToolInvocation,
     UsageLedgerEntry,
 )
@@ -78,6 +79,7 @@ class AgentEngine:
         """
         self._policy = policy
         self._deps = deps
+        self._checkpointer = deps.checkpointer
         self._graph = self._build_graph()
 
     def _build_graph(self):
@@ -85,24 +87,24 @@ class AgentEngine:
         g: StateGraph = StateGraph(_GraphState)
         g.add_node("start", self._node_start)
         g.add_node("execute", self._node_execute_next)
-        g.add_node("pause_for_approval", self._node_pause_for_approval)
+        g.add_node("wait_for_approval", self._node_wait_for_approval)
         g.add_node("finish", self._node_finish)
 
         g.set_entry_point("start")
         g.add_edge("start", "execute")
+        g.add_edge("wait_for_approval", "execute")
 
         g.add_conditional_edges(
             "execute",
             self._route_after_execute,
             {
-                "pause": "pause_for_approval",
                 "finish": "finish",
                 "continue": "execute",
+                "wait": "wait_for_approval",
             },
         )
-        g.add_edge("pause_for_approval", END)
         g.add_edge("finish", END)
-        return g.compile()
+        return g.compile(checkpointer=self._checkpointer)
 
     async def start_run(
         self,
@@ -151,23 +153,17 @@ class AgentEngine:
             AgentEvent(run_id=run.id, type=AgentEventType.plan_created, payload={"plan": normalized_plan})
         )
 
-        cp = Checkpoint(
-            run_id=run.id,
-            node="start",
-            state={"run_id": run.id, "plan": normalized_plan, "idx": 0, "awaiting_approval_id": None},
-        )
-        await self._deps.checkpoints.save(cp)
-        await self._deps.events.append(
-            AgentEvent(run_id=run.id, type=AgentEventType.checkpoint_saved, payload={"checkpoint_id": cp.id})
-        )
-
+        # Initialize state for LangGraph
         state: _GraphState = {
             "run_id": run.id,
             "plan": normalized_plan,
             "idx": 0,
             "awaiting_approval_id": None,
         }
-        await self._graph.ainvoke(state)
+
+        # Invoke with thread_id for checkpointing
+        config = {"configurable": {"thread_id": run.id}}
+        await self._graph.ainvoke(state, config=config)
         return run.id
 
     async def resume_run(self, *, run_id: str, approval_id: str) -> None:
@@ -195,18 +191,37 @@ class AgentEngine:
             )
         )
 
-        cp = await self._deps.checkpoints.latest(run_id)
-        if cp is None:
-            raise ValueError("no checkpoint")
+        # Resume execution
+        # 1. Prepare config
+        config = {"configurable": {"thread_id": run_id}}
 
-        state = cast(_GraphState, dict(cp.state))
-        state["plan"] = normalize_plan(list(state.get("plan") or []))
-        state["awaiting_approval_id"] = None
-        state["_resume_skip_approval"] = True
+        # 2. Update state to clear approval
+        # We need to tell the graph that the approval is done.
+        # In our graph, the node 'wait_for_approval' raised NodeInterrupt.
+        # LangGraph resumption works by updating the state or just invoking (if just interruption).
+        # But we need to clear 'awaiting_approval_id' in the state.
+
+        # We use update_state to patch the state.
+        # Current state has 'awaiting_approval_id' set. We set it to None.
+        # We also set a flag to skip the check in next iteration (if needed, but usually clearing ID is enough).
+
+        # Fetch current state to ensure we have a valid checkpoint
+        # state_snapshot = await self._graph.aget_state(config)
+        # if not state_snapshot.values:
+        #    raise ValueError(f"No checkpoint found for run {run_id}")
+
+        await self._graph.aupdate_state(
+            config,
+            {"awaiting_approval_id": None, "_resume_skip_approval": True},
+        )
+
         await self._deps.events.append(
             AgentEvent(run_id=run_id, type=AgentEventType.state_transition, payload={"resume": True})
         )
-        await self._graph.ainvoke(state)
+
+        # 3. Resume execution
+        # Passing None as input resumes from the current state (which we just updated)
+        await self._graph.ainvoke(None, config=config)
 
     async def _execute_capability_traced(
         self, cap: CapabilityName, cap_impl: Any, ctx: CapabilityContext, args: dict
@@ -237,7 +252,19 @@ class AgentEngine:
         """Graph entry node. Currently a no-op."""
         return state
 
-    async def _node_execute_next(self, state: _GraphState) -> _GraphState:
+    async def _node_wait_for_approval(self, state: _GraphState) -> _GraphState:
+        """Wait for approval node.
+
+        This node checks if 'awaiting_approval_id' is set. If so, it raises
+        NodeInterrupt to pause execution. Upon resumption (where the ID is cleared),
+        it proceeds (returning state to continue to execute node).
+        """
+        approval_id = state.get("awaiting_approval_id")
+        if approval_id:
+            raise NodeInterrupt(f"Approval required: {approval_id}")
+        return state
+
+    async def _node_execute_next(self, state: _GraphState, config: RunnableConfig) -> _GraphState:
         """Execute the next plan step.
 
         This node is responsible for:
@@ -401,13 +428,7 @@ class AgentEngine:
                 )
             )
 
-            cp = Checkpoint(
-                run_id=run_id, node="pause_for_approval", state=dict(state, awaiting_approval_id=approval.id)
-            )
-            await self._deps.checkpoints.save(cp)
-            await self._deps.events.append(
-                AgentEvent(run_id=run_id, type=AgentEventType.checkpoint_saved, payload={"checkpoint_id": cp.id})
-            )
+            # Return state update to trigger transition to wait node
             state["awaiting_approval_id"] = approval.id
             return state
 
@@ -479,14 +500,6 @@ class AgentEngine:
         state["idx"] = idx + 1
         return state
 
-    async def _node_pause_for_approval(self, state: _GraphState) -> _GraphState:
-        """Pause node.
-
-        The graph transitions to END after this node; pause/resume coordination
-        is managed outside the graph via persisted checkpoints.
-        """
-        return state
-
     async def _node_finish(self, state: _GraphState) -> _GraphState:
         """Finish node.
 
@@ -499,9 +512,9 @@ class AgentEngine:
         return state
 
     def _route_after_execute(self, state: _GraphState) -> str:
-        """Route to pause/finish/continue after executing a step."""
-        if state.get("awaiting_approval_id"):
-            return "pause"
+        """Route to finish or continue after executing a step."""
         if state.get("_finished"):
             return "finish"
+        if state.get("awaiting_approval_id"):
+            return "wait"
         return "continue"

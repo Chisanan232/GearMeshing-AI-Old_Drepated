@@ -56,6 +56,9 @@ dependencies = [
     "alembic>=1.17.2",
     ## Database driver --- Postgres
     "psycopg2-binary>=2.9.11",
+    ## AI workflow state persistence --- Postgres
+    "langgraph-checkpoint-postgres>=3.0.2",
+    "psycopg[binary,pool]>=3.3.2",
 ]
 
 [project.urls]

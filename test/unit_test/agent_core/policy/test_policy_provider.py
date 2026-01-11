@@ -1,19 +1,24 @@
 from __future__ import annotations
 
+import pytest
+from langgraph.checkpoint.memory import MemorySaver
+
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
 from gearmeshing_ai.agent_core.policy.provider import StaticPolicyProvider
 from gearmeshing_ai.agent_core.schemas.domain import AgentRun, AutonomyProfile
 
 
-def test_static_policy_provider_uses_default_when_no_ids() -> None:
+@pytest.mark.asyncio
+async def test_static_policy_provider_uses_default_when_no_ids() -> None:
     base = PolicyConfig(version="v-default")
     provider = StaticPolicyProvider(default=base)
 
-    cfg = provider.get(AgentRun(role="dev", objective="x"))
+    cfg = await provider.get(AgentRun(role="dev", objective="x"))
     assert cfg.version == "v-default"
 
 
-def test_static_policy_provider_prefers_tenant_then_workspace() -> None:
+@pytest.mark.asyncio
+async def test_static_policy_provider_prefers_tenant_then_workspace() -> None:
     base = PolicyConfig(version="v-default")
     tenant_cfg = PolicyConfig(version="v-tenant")
     workspace_cfg = PolicyConfig(version="v-workspace")
@@ -25,15 +30,16 @@ def test_static_policy_provider_prefers_tenant_then_workspace() -> None:
     )
 
     run_tenant = AgentRun(role="dev", objective="x", tenant_id="t1", workspace_id="w1")
-    cfg = provider.get(run_tenant)
+    cfg = await provider.get(run_tenant)
     assert cfg.version == "v-tenant"
 
     run_ws = AgentRun(role="dev", objective="x", tenant_id=None, workspace_id="w1")
-    cfg2 = provider.get(run_ws)
+    cfg2 = await provider.get(run_ws)
     assert cfg2.version == "v-workspace"
 
 
-def test_agent_service_overrides_autonomy_profile_from_run(monkeypatch) -> None:
+@pytest.mark.asyncio
+async def test_agent_service_overrides_autonomy_profile_from_run(monkeypatch) -> None:
     from gearmeshing_ai.agent_core.factory import build_default_registry
     from gearmeshing_ai.agent_core.planning import StructuredPlanner
     from gearmeshing_ai.agent_core.runtime import EngineDeps
@@ -56,6 +62,7 @@ def test_agent_service_overrides_autonomy_profile_from_run(monkeypatch) -> None:
             tool_invocations=object(),  # type: ignore[arg-type]
             capabilities=build_default_registry(),
             usage=None,
+            checkpointer=MemorySaver(),
         ),
         planner=_FakePlanner(model=None),
     )
@@ -64,5 +71,5 @@ def test_agent_service_overrides_autonomy_profile_from_run(monkeypatch) -> None:
     provider = StaticPolicyProvider(default=base)
 
     svc = AgentService(policy_config=base, deps=fake_deps, policy_provider=provider)
-    cfg = svc._policy_for_run(AgentRun(role="dev", objective="x", autonomy_profile=AutonomyProfile.unrestricted))
+    cfg = await svc._policy_for_run(AgentRun(role="dev", objective="x", autonomy_profile=AutonomyProfile.unrestricted))
     assert cfg.autonomy_profile == AutonomyProfile.unrestricted

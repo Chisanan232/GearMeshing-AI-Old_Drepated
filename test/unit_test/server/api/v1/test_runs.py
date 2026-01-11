@@ -203,7 +203,10 @@ class TestDirectFunctionCalls:
         assert len(background_tasks.tasks) == 1
         task = background_tasks.tasks[0]
         assert task.func == mock_orchestrator.execute_workflow
-        assert task.args == ("run-1",)
+        # execute_workflow now receives the AgentRun object, not just the ID
+        assert len(task.args) == 1
+        assert isinstance(task.args[0], AgentRun)
+        assert task.args[0].id == "run-1"
 
     async def test_list_runs_direct_call(self):
         """Test list runs endpoint directly - covers line 98.

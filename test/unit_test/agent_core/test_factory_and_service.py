@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import pytest
+from langgraph.checkpoint.memory import MemorySaver
 
 from gearmeshing_ai.agent_core.factory import build_default_registry, build_engine
 from gearmeshing_ai.agent_core.planning import StructuredPlanner
@@ -36,6 +37,7 @@ def test_build_engine_wires_policy_config_and_deps() -> None:
         tool_invocations=object(),  # type: ignore[arg-type]
         usage=None,
         capabilities=build_default_registry(),
+        checkpointer=MemorySaver(),
     )
 
     engine = build_engine(policy_config=cfg, deps=deps)
@@ -89,6 +91,7 @@ async def test_agent_service_run_calls_planner_and_engine(monkeypatch: pytest.Mo
             tool_invocations=object(),  # type: ignore[arg-type]
             usage=None,
             capabilities=build_default_registry(),
+            checkpointer=MemorySaver(),
         ),
         planner=planner,
     )
@@ -127,6 +130,7 @@ async def test_agent_service_resume_calls_engine(monkeypatch: pytest.MonkeyPatch
             tool_invocations=object(),  # type: ignore[arg-type]
             usage=None,
             capabilities=build_default_registry(),
+            checkpointer=MemorySaver(),
         ),
         planner=_FakePlanner(plan_result=[]),
     )
@@ -167,6 +171,7 @@ async def test_agent_service_resume_uses_policy_provider_when_run_can_be_loaded(
             tool_invocations=object(),  # type: ignore[arg-type]
             usage=None,
             capabilities=build_default_registry(),
+            checkpointer=MemorySaver(),
         ),
         planner=_FakePlanner(plan_result=[]),
     )
@@ -209,6 +214,7 @@ async def test_agent_service_resume_falls_back_to_base_policy_when_run_is_missin
             tool_invocations=object(),  # type: ignore[arg-type]
             usage=None,
             capabilities=build_default_registry(),
+            checkpointer=MemorySaver(),
         ),
         planner=_FakePlanner(plan_result=[]),
     )

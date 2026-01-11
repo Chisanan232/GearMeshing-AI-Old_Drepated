@@ -7,9 +7,9 @@ It allows listing pending approvals and submitting decisions (approve/reject).
 
 from typing import List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 
-from gearmeshing_ai.agent_core.schemas.domain import Approval
+from gearmeshing_ai.agent_core.schemas.domain import Approval, ApprovalDecision
 from gearmeshing_ai.server.schemas import ApprovalSubmit
 from gearmeshing_ai.server.services.deps import OrchestratorDep
 
@@ -43,16 +43,19 @@ async def list_approvals(run_id: str, orchestrator: OrchestratorDep):
         400: {"description": "Approval already decided"},
     },
 )
-async def submit_approval(run_id: str, approval_id: str, submission: ApprovalSubmit, orchestrator: OrchestratorDep):
+async def submit_approval(
+    run_id: str,
+    approval_id: str,
+    submission: ApprovalSubmit,
+    orchestrator: OrchestratorDep,
+    background_tasks: BackgroundTasks,
+):
     """
     Submit approval decision.
 
     Resolves a pending approval request. Once resolved, the agent run may resume
-    if it was blocked by this approval.
+    if it was blocked by this approval and the decision was 'approved'.
     """
-    # We might need to check if approval exists first to match 404 behavior precisely,
-    # or rely on the orchestrator to throw.
-    # For now, delegate to orchestrator.
     approval = await orchestrator.submit_approval(
         run_id=run_id,
         approval_id=approval_id,
@@ -62,5 +65,9 @@ async def submit_approval(run_id: str, approval_id: str, submission: ApprovalSub
     )
     if not approval:
         raise HTTPException(status_code=404, detail="Approval not found")
+
+    if submission.decision == ApprovalDecision.approved:
+        # Schedule background resumption
+        background_tasks.add_task(orchestrator.execute_resume, run_id, approval_id)
 
     return approval

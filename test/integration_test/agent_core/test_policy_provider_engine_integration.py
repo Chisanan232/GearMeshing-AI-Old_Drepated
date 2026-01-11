@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -49,7 +49,8 @@ class TestPolicyProviderWithGlobalPolicy:
             safety_policy=SafetyPolicy(),
         )
 
-    def test_global_policy_with_static_provider(self, default_policy):
+    @pytest.mark.asyncio
+    async def test_global_policy_with_static_provider(self, default_policy):
         """Test GlobalPolicy works with StaticPolicyProvider."""
         provider = StaticPolicyProvider(default=default_policy)
 
@@ -61,7 +62,7 @@ class TestPolicyProviderWithGlobalPolicy:
             tenant_id="acme-corp",
         )
 
-        policy_config = provider.get(run)
+        policy_config = await provider.get(run)
         global_policy = GlobalPolicy(policy_config)
 
         # Test policy decision
@@ -73,9 +74,11 @@ class TestPolicyProviderWithGlobalPolicy:
         assert decision.block is False
         assert decision.risk == RiskLevel.low
 
-    def test_global_policy_with_database_provider(self, default_policy):
+    @pytest.mark.asyncio
+    async def test_global_policy_with_database_provider(self, default_policy):
         """Test GlobalPolicy works with DatabasePolicyProvider."""
-        mock_repo = MagicMock(spec=PolicyRepository)
+        mock_repo = AsyncMock(spec=PolicyRepository)
+        mock_repo.get.return_value = None
         provider = DatabasePolicyProvider(
             policy_repository=mock_repo,
             default=default_policy,
@@ -89,8 +92,7 @@ class TestPolicyProviderWithGlobalPolicy:
             tenant_id="acme-corp",
         )
 
-        with patch("asyncio.run", return_value=None):
-            policy_config = provider.get(run)
+        policy_config = await provider.get(run)
 
         global_policy = GlobalPolicy(policy_config)
 
@@ -103,7 +105,8 @@ class TestPolicyProviderWithGlobalPolicy:
         assert decision.block is False
         assert decision.risk == RiskLevel.high
 
-    def test_global_policy_blocks_capability(self, default_policy):
+    @pytest.mark.asyncio
+    async def test_global_policy_blocks_capability(self, default_policy):
         """Test GlobalPolicy blocks disallowed capabilities."""
         restricted_policy = default_policy.model_copy(deep=True)
         restricted_policy.tool_policy.allowed_capabilities = {CapabilityName.web_search}
@@ -117,7 +120,7 @@ class TestPolicyProviderWithGlobalPolicy:
             status=AgentRunStatus.running,
         )
 
-        policy_config = provider.get(run)
+        policy_config = await provider.get(run)
         global_policy = GlobalPolicy(policy_config)
 
         # Test policy blocks shell_exec
@@ -129,7 +132,8 @@ class TestPolicyProviderWithGlobalPolicy:
         assert decision.block is True
         assert "not allowed" in decision.block_reason
 
-    def test_global_policy_requires_approval_for_high_risk(self, default_policy):
+    @pytest.mark.asyncio
+    async def test_global_policy_requires_approval_for_high_risk(self, default_policy):
         """Test GlobalPolicy requires approval for high-risk actions."""
         strict_policy = default_policy.model_copy(deep=True)
         strict_policy.autonomy_profile = AutonomyProfile.strict
@@ -143,7 +147,7 @@ class TestPolicyProviderWithGlobalPolicy:
             status=AgentRunStatus.running,
         )
 
-        policy_config = provider.get(run)
+        policy_config = await provider.get(run)
         global_policy = GlobalPolicy(policy_config)
 
         # Test policy requires approval for high-risk action
@@ -180,7 +184,8 @@ class TestPolicyProviderWithAgentService:
         """Create mock planner."""
         return MagicMock()
 
-    def test_agent_service_with_static_policy_provider(self, default_policy, mock_engine_deps, mock_planner):
+    @pytest.mark.asyncio
+    async def test_agent_service_with_static_policy_provider(self, default_policy, mock_engine_deps, mock_planner):
         """Test AgentService with StaticPolicyProvider."""
         provider = StaticPolicyProvider(default=default_policy)
 
@@ -204,14 +209,16 @@ class TestPolicyProviderWithAgentService:
         )
 
         # Test policy resolution
-        resolved_policy = service._policy_for_run(run)
+        resolved_policy = await service._policy_for_run(run)
 
         assert resolved_policy.autonomy_profile == AutonomyProfile.balanced
         assert resolved_policy.version == "policy-v1"
 
-    def test_agent_service_with_database_policy_provider(self, default_policy, mock_engine_deps, mock_planner):
+    @pytest.mark.asyncio
+    async def test_agent_service_with_database_policy_provider(self, default_policy, mock_engine_deps, mock_planner):
         """Test AgentService with DatabasePolicyProvider."""
-        mock_repo = MagicMock(spec=PolicyRepository)
+        mock_repo = AsyncMock(spec=PolicyRepository)
+        mock_repo.get.return_value = default_policy.model_dump(mode="json")
         provider = DatabasePolicyProvider(
             policy_repository=mock_repo,
             default=default_policy,
@@ -236,13 +243,13 @@ class TestPolicyProviderWithAgentService:
             tenant_id="acme-corp",
         )
 
-        with patch("asyncio.run", return_value=None):
-            resolved_policy = service._policy_for_run(run)
+        resolved_policy = await service._policy_for_run(run)
 
         assert resolved_policy is not None
         assert resolved_policy.version == "policy-v1"
 
-    def test_agent_service_policy_for_run_applies_autonomy_profile(
+    @pytest.mark.asyncio
+    async def test_agent_service_policy_for_run_applies_autonomy_profile(
         self, default_policy, mock_engine_deps, mock_planner
     ):
         """Test AgentService applies run-specific autonomy profile."""
@@ -267,12 +274,13 @@ class TestPolicyProviderWithAgentService:
             autonomy_profile=AutonomyProfile.strict,
         )
 
-        resolved_policy = service._policy_for_run(run)
+        resolved_policy = await service._policy_for_run(run)
 
         # Autonomy profile from run should override provider's policy
         assert resolved_policy.autonomy_profile == AutonomyProfile.strict
 
-    def test_agent_service_without_policy_provider(self, default_policy, mock_engine_deps, mock_planner):
+    @pytest.mark.asyncio
+    async def test_agent_service_without_policy_provider(self, default_policy, mock_engine_deps, mock_planner):
         """Test AgentService uses base policy when no provider is given."""
         service_deps = AgentServiceDeps(
             engine_deps=mock_engine_deps,
@@ -292,7 +300,7 @@ class TestPolicyProviderWithAgentService:
             status=AgentRunStatus.running,
         )
 
-        resolved_policy = service._policy_for_run(run)
+        resolved_policy = await service._policy_for_run(run)
 
         assert resolved_policy.version == "policy-v1"
         assert resolved_policy.autonomy_profile == AutonomyProfile.balanced
@@ -312,7 +320,8 @@ class TestPolicyProviderTenantIsolation:
             safety_policy=SafetyPolicy(),
         )
 
-    def test_different_tenants_get_different_policies(self, default_policy):
+    @pytest.mark.asyncio
+    async def test_different_tenants_get_different_policies(self, default_policy):
         """Test different tenants get different policies from provider."""
         acme_policy = default_policy.model_copy(deep=True)
         acme_policy.autonomy_profile = AutonomyProfile.strict
@@ -344,15 +353,16 @@ class TestPolicyProviderTenantIsolation:
             tenant_id="globex-corp",
         )
 
-        acme_config = provider.get(acme_run)
-        globex_config = provider.get(globex_run)
+        acme_config = await provider.get(acme_run)
+        globex_config = await provider.get(globex_run)
 
         assert acme_config.autonomy_profile == AutonomyProfile.strict
         assert globex_config.autonomy_profile == AutonomyProfile.unrestricted
 
-    def test_database_provider_isolates_tenants(self, default_policy):
+    @pytest.mark.asyncio
+    async def test_database_provider_isolates_tenants(self, default_policy):
         """Test DatabasePolicyProvider isolates tenant policies."""
-        mock_repo = MagicMock(spec=PolicyRepository)
+        mock_repo = AsyncMock(spec=PolicyRepository)
 
         acme_policy_dict = {
             "version": "policy-v1",
@@ -402,14 +412,14 @@ class TestPolicyProviderTenantIsolation:
             "budget_policy": {"max_total_tokens": None},
         }
 
-        def mock_get(tenant_id):
+        async def mock_get(tenant_id):
             if tenant_id == "acme-corp":
                 return acme_policy_dict
             elif tenant_id == "globex-corp":
                 return globex_policy_dict
             return None
 
-        mock_repo.get = MagicMock(side_effect=mock_get)
+        mock_repo.get = mock_get
 
         provider = DatabasePolicyProvider(
             policy_repository=mock_repo,
@@ -432,9 +442,8 @@ class TestPolicyProviderTenantIsolation:
             tenant_id="globex-corp",
         )
 
-        with patch("asyncio.run", side_effect=[acme_policy_dict, globex_policy_dict]):
-            acme_config = provider.get(acme_run)
-            globex_config = provider.get(globex_run)
+        acme_config = await provider.get(acme_run)
+        globex_config = await provider.get(globex_run)
 
         assert acme_config.autonomy_profile == AutonomyProfile.strict
         assert globex_config.autonomy_profile == AutonomyProfile.unrestricted
@@ -456,7 +465,8 @@ class TestPolicyProviderWithRiskClassification:
             safety_policy=SafetyPolicy(),
         )
 
-    def test_policy_classifies_tool_risk_correctly(self, default_policy):
+    @pytest.mark.asyncio
+    async def test_policy_classifies_tool_risk_correctly(self, default_policy):
         """Test policy correctly classifies tool risk levels."""
         policy_with_overrides = default_policy.model_copy(deep=True)
         policy_with_overrides.approval_policy.tool_risk_overrides = {
@@ -473,7 +483,7 @@ class TestPolicyProviderWithRiskClassification:
             status=AgentRunStatus.running,
         )
 
-        policy_config = provider.get(run)
+        policy_config = await provider.get(run)
         global_policy = GlobalPolicy(policy_config)
 
         # Test risk classification with overrides
@@ -492,7 +502,8 @@ class TestPolicyProviderWithRiskClassification:
         assert web_search_risk == RiskLevel.low
         assert delete_file_risk == RiskLevel.high
 
-    def test_policy_approval_requirement_based_on_risk(self, default_policy):
+    @pytest.mark.asyncio
+    async def test_policy_approval_requirement_based_on_risk(self, default_policy):
         """Test policy determines approval requirement based on risk."""
         balanced_policy = default_policy.model_copy(deep=True)
         balanced_policy.autonomy_profile = AutonomyProfile.balanced
@@ -507,7 +518,7 @@ class TestPolicyProviderWithRiskClassification:
             status=AgentRunStatus.running,
         )
 
-        policy_config = provider.get(run)
+        policy_config = await provider.get(run)
         global_policy = GlobalPolicy(policy_config)
 
         # Low risk should not require approval
@@ -540,10 +551,11 @@ class TestPolicyProviderErrorHandling:
             safety_policy=SafetyPolicy(),
         )
 
-    def test_policy_provider_handles_missing_tenant_policy(self, default_policy):
+    @pytest.mark.asyncio
+    async def test_policy_provider_handles_missing_tenant_policy(self, default_policy):
         """Test policy provider gracefully handles missing tenant policy."""
-        mock_repo = MagicMock(spec=PolicyRepository)
-        mock_repo.get = MagicMock(return_value=None)
+        mock_repo = AsyncMock(spec=PolicyRepository)
+        mock_repo.get.return_value = None
 
         provider = DatabasePolicyProvider(
             policy_repository=mock_repo,
@@ -558,17 +570,17 @@ class TestPolicyProviderErrorHandling:
             tenant_id="unknown-tenant",
         )
 
-        with patch("asyncio.run", return_value=None):
-            policy_config = provider.get(run)
+        policy_config = await provider.get(run)
 
         # Should fall back to default
         assert policy_config.version == "policy-v1"
         assert policy_config.autonomy_profile == AutonomyProfile.balanced
 
-    def test_policy_provider_handles_invalid_policy_config(self, default_policy):
+    @pytest.mark.asyncio
+    async def test_policy_provider_handles_invalid_policy_config(self, default_policy):
         """Test policy provider handles invalid policy configuration."""
-        mock_repo = MagicMock(spec=PolicyRepository)
-        mock_repo.get = MagicMock(return_value={"invalid": "config"})
+        mock_repo = AsyncMock(spec=PolicyRepository)
+        mock_repo.get.return_value = {"invalid": "config"}
 
         provider = DatabasePolicyProvider(
             policy_repository=mock_repo,
@@ -583,16 +595,16 @@ class TestPolicyProviderErrorHandling:
             tenant_id="acme-corp",
         )
 
-        with patch("asyncio.run", return_value={"invalid": "config"}):
-            policy_config = provider.get(run)
+        policy_config = await provider.get(run)
 
         # Should fall back to default
         assert policy_config.version == "policy-v1"
 
-    def test_policy_provider_handles_repository_error(self, default_policy):
+    @pytest.mark.asyncio
+    async def test_policy_provider_handles_repository_error(self, default_policy):
         """Test policy provider handles repository errors gracefully."""
-        mock_repo = MagicMock(spec=PolicyRepository)
-        mock_repo.get = MagicMock(side_effect=RuntimeError("Database error"))
+        mock_repo = AsyncMock(spec=PolicyRepository)
+        mock_repo.get.side_effect = RuntimeError("Database error")
 
         provider = DatabasePolicyProvider(
             policy_repository=mock_repo,
@@ -607,8 +619,7 @@ class TestPolicyProviderErrorHandling:
             tenant_id="acme-corp",
         )
 
-        with patch("asyncio.run", side_effect=RuntimeError("Database error")):
-            policy_config = provider.get(run)
+        policy_config = await provider.get(run)
 
         # Should fall back to default
         assert policy_config.version == "policy-v1"

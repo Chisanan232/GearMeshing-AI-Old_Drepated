@@ -64,7 +64,7 @@ class AgentService:
         self._policy_provider = policy_provider
         self._deps = deps
 
-    def _policy_for_run(self, run: AgentRun) -> PolicyConfig:
+    async def _policy_for_run(self, run: AgentRun) -> PolicyConfig:
         """
         Resolve the effective policy configuration for a specific run.
 
@@ -77,7 +77,7 @@ class AgentService:
         Returns:
             A PolicyConfig object tailored for this run.
         """
-        cfg = self._policy_provider.get(run) if self._policy_provider is not None else self._policy_config
+        cfg = await self._policy_provider.get(run) if self._policy_provider is not None else self._policy_config
         cfg = cfg.model_copy(deep=True)
         cfg.autonomy_profile = run.autonomy_profile
         return cfg
@@ -105,7 +105,8 @@ class AgentService:
         @traceable(name="agent_run", tags=["agent", "planning", "execution"])
         async def _execute_run():
             plan = await self._deps.planner.plan(objective=run.objective, role=run.role)
-            engine = build_engine(policy_config=self._policy_for_run(run), deps=self._deps.engine_deps)
+            policy_config = await self._policy_for_run(run)
+            engine = build_engine(policy_config=policy_config, deps=self._deps.engine_deps)
             return await engine.start_run(run=run, plan=plan)
 
         return await _execute_run()
@@ -136,7 +137,7 @@ class AgentService:
             get_run = getattr(runs_repo, "get", None)
             if callable(get_run):
                 run = await get_run(run_id)
-            cfg = self._policy_for_run(run) if run is not None else self._policy_config
+            cfg = await self._policy_for_run(run) if run is not None else self._policy_config
             engine = build_engine(policy_config=cfg, deps=self._deps.engine_deps)
             await engine.resume_run(run_id=run_id, approval_id=approval_id)
 

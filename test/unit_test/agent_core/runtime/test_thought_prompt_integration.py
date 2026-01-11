@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 import pytest
+from langgraph.checkpoint.memory import MemorySaver
 
 from gearmeshing_ai.agent_core.capabilities.registry import CapabilityRegistry
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
@@ -106,6 +107,7 @@ async def test_thought_step_uses_prompt_provider_and_model_when_configured(monke
         prompt_provider=_PromptProvider(prompt="ROLE PROMPT"),
         role_provider=DEFAULT_ROLE_PROVIDER,
         thought_model=object(),
+        checkpointer=MemorySaver(),
     )
 
     engine = AgentEngine(policy=GlobalPolicy(PolicyConfig()), deps=deps)
@@ -179,6 +181,7 @@ async def test_thought_step_prompt_keyerror_uses_fallback_prompt(monkeypatch: py
         prompt_provider=_PromptProvider(),
         role_provider=_RoleProvider(),  # type: ignore[arg-type]
         thought_model=object(),
+        checkpointer=MemorySaver(),
     )
 
     engine = AgentEngine(policy=GlobalPolicy(PolicyConfig()), deps=deps)
@@ -232,6 +235,7 @@ async def test_thought_step_prompt_provider_exception_disables_agent_call(monkey
         prompt_provider=_PromptProvider(),
         role_provider=DEFAULT_ROLE_PROVIDER,
         thought_model=object(),
+        checkpointer=MemorySaver(),
     )
 
     engine = AgentEngine(policy=GlobalPolicy(PolicyConfig()), deps=deps)
@@ -278,6 +282,7 @@ async def test_thought_step_non_dict_agent_output_is_wrapped(monkeypatch: pytest
         prompt_provider=_PromptProvider(prompt="ROLE PROMPT"),
         role_provider=DEFAULT_ROLE_PROVIDER,
         thought_model=object(),
+        checkpointer=MemorySaver(),
     )
 
     engine = AgentEngine(policy=GlobalPolicy(PolicyConfig()), deps=deps)

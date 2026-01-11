@@ -32,6 +32,20 @@ async_session_maker:
 """
 async_session_maker = create_sessionmaker(engine)
 
+# Create Connection Pool for LangGraph Checkpointer
+"""
+checkpointer_pool:
+    A global connection pool for the LangGraph AsyncPostgresSaver.
+    We use psycopg_pool directly as required by langgraph-checkpoint-postgres.
+"""
+from psycopg_pool import AsyncConnectionPool
+
+# Convert sqlalchemy URL to psycopg URL (remove +asyncpg if present)
+# sqlalchemy: postgresql+asyncpg://user:pass@host/db
+# psycopg: postgresql://user:pass@host/db
+psycopg_url = settings.database_url.replace("+asyncpg", "")
+checkpointer_pool = AsyncConnectionPool(conninfo=psycopg_url, open=False)
+
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """
@@ -50,8 +64,11 @@ async def init_db():
 
     Creates all tables defined in the authoritative agent_core ORM metadata.
     NOTE: In production, Alembic migrations should be used instead of this function.
+
+    This function is now a no-op since Alembic migrations handle table creation.
+    The db-migrate service runs migrations before the application starts.
     """
-    # In production, we use Alembic.
-    # For dev/testing, this can create tables if they don't exist.
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # In production, Alembic migrations (run by db-migrate service) handle all DDL.
+    # This function is kept for backward compatibility but does nothing.
+    # Attempting to call create_all() here would fail with "CREATE INDEX CONCURRENTLY
+    # cannot run inside a transaction block" since Alembic already created indexes.

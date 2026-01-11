@@ -135,7 +135,7 @@ async def create_run(run_in: RunCreate, orchestrator: OrchestratorDep, backgroun
 
         # Trigger background execution
         logger.info(f"Scheduling background execution for run: {created_run.id}")
-        background_tasks.add_task(orchestrator.execute_workflow, created_run.id)
+        background_tasks.add_task(orchestrator.execute_workflow, created_run)
 
         return created_run
     except Exception as e:

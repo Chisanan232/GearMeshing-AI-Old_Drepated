@@ -6,6 +6,8 @@ from typing import Any, Dict, List, Optional, Protocol
 
 import httpx
 import pytest
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from psycopg_pool import AsyncConnectionPool
 from sqlalchemy import select
 from testcontainers.postgres import PostgresContainer
 
@@ -257,61 +259,67 @@ async def test_e2e_role_prompt_provider_is_used_for_thought_step(monkeypatch: py
 
     with PostgresContainer("postgres:16") as pg:
         db_url = pg.get_connection_url().replace("postgresql://", "postgresql+asyncpg://")
+        pool_url = pg.get_connection_url().replace("postgresql+psycopg2://", "postgresql://")
 
         engine = create_engine(db_url)
         await create_all(engine)
         session_factory = create_sessionmaker(engine)
         repos = build_sql_repos(session_factory=session_factory)
 
-        cfg = PolicyConfig()
-        # nothing to approve here; just ensure engine runs
-        cfg.tool_policy.allowed_capabilities = {
-            CapabilityName.summarize,
-            CapabilityName.mcp_call,
-            CapabilityName.docs_read,
-            CapabilityName.web_search,
-            CapabilityName.web_fetch,
-            CapabilityName.shell_exec,
-            CapabilityName.codegen,
-            CapabilityName.code_execution,
-        }
-        runtime = AgentEngine(
-            policy=GlobalPolicy(cfg),
-            deps=EngineDeps(
-                runs=repos.runs,
-                events=repos.events,
-                approvals=repos.approvals,
-                checkpoints=repos.checkpoints,
-                tool_invocations=repos.tool_invocations,
-                usage=repos.usage,
-                capabilities=build_default_registry(),
-                prompt_provider=builtin,
-                role_provider=DEFAULT_ROLE_PROVIDER,
-                thought_model="test",
-            ),
-        )
+        async with AsyncConnectionPool(conninfo=pool_url, min_size=1, max_size=1, kwargs={"autocommit": True}) as pool:
+            checkpointer = AsyncPostgresSaver(pool)
+            await checkpointer.setup()
 
-        run = AgentRun(role="dev", objective="prove prompt", tenant_id="t1")
-        plan = [{"kind": "thought", "thought": "do something", "args": {"x": 1}}]
-        await runtime.start_run(run=run, plan=plan)
+            cfg = PolicyConfig()
+            # nothing to approve here; just ensure engine runs
+            cfg.tool_policy.allowed_capabilities = {
+                CapabilityName.summarize,
+                CapabilityName.mcp_call,
+                CapabilityName.docs_read,
+                CapabilityName.web_search,
+                CapabilityName.web_fetch,
+                CapabilityName.shell_exec,
+                CapabilityName.codegen,
+                CapabilityName.code_execution,
+            }
+            runtime = AgentEngine(
+                policy=GlobalPolicy(cfg),
+                deps=EngineDeps(
+                    runs=repos.runs,
+                    events=repos.events,
+                    approvals=repos.approvals,
+                    checkpoints=repos.checkpoints,
+                    tool_invocations=repos.tool_invocations,
+                    usage=repos.usage,
+                    capabilities=build_default_registry(),
+                    prompt_provider=builtin,
+                    role_provider=DEFAULT_ROLE_PROVIDER,
+                    thought_model="test",
+                    checkpointer=checkpointer,
+                ),
+            )
 
-        assert "DEV SYSTEM PROMPT" in captured["system_prompt"]
-        assert captured["prompt_provider_tenant"] == "t1"
+            run = AgentRun(role="dev", objective="prove prompt", tenant_id="t1")
+            plan = [{"kind": "thought", "thought": "do something", "args": {"x": 1}}]
+            await runtime.start_run(run=run, plan=plan)
 
-        loaded = await repos.runs.get(run.id)
-        assert loaded is not None
-        assert str(getattr(loaded.status, "value", loaded.status)) == AgentRunStatus.succeeded.value
+            assert "DEV SYSTEM PROMPT" in captured["system_prompt"]
+            assert captured["prompt_provider_tenant"] == "t1"
 
-        async with session_factory() as s:
-            ev = await s.execute(select(EventRow).where(EventRow.run_id == run.id))
-            ev_rows = list(ev.scalars().all())
-            types = [r.type for r in ev_rows]
-            assert AgentEventType.thought_executed.value in types
-            assert AgentEventType.artifact_created.value in types
-            artifact = next(r for r in ev_rows if r.type == AgentEventType.artifact_created.value)
-            assert artifact.payload.get("output") == {"from_agent": True}
+            loaded = await repos.runs.get(run.id)
+            assert loaded is not None
+            assert str(getattr(loaded.status, "value", loaded.status)) == AgentRunStatus.succeeded.value
 
-        await engine.dispose()
+            async with session_factory() as s:
+                ev = await s.execute(select(EventRow).where(EventRow.run_id == run.id))
+                ev_rows = list(ev.scalars().all())
+                types = [r.type for r in ev_rows]
+                assert AgentEventType.thought_executed.value in types
+                assert AgentEventType.artifact_created.value in types
+                artifact = next(r for r in ev_rows if r.type == AgentEventType.artifact_created.value)
+                assert artifact.payload.get("output") == {"from_agent": True}
+
+            await engine.dispose()
 
 
 @pytest.mark.asyncio
@@ -334,107 +342,124 @@ async def test_e2e_mcp_call_uses_real_strategy_metadata_for_risk_and_approval_ga
 
     with PostgresContainer("postgres:16") as pg:
         db_url = pg.get_connection_url().replace("postgresql://", "postgresql+asyncpg://")
+        pool_url = pg.get_connection_url().replace("postgresql+psycopg2://", "postgresql://")
 
         engine = create_engine(db_url)
         await create_all(engine)
         session_factory = create_sessionmaker(engine)
         repos = build_sql_repos(session_factory=session_factory)
 
-        cfg = PolicyConfig()
-        cfg.tool_policy.allowed_capabilities = {CapabilityName.mcp_call}
-        cfg.approval_policy.require_for_risk_at_or_above = RiskLevel.medium
+        async with AsyncConnectionPool(conninfo=pool_url, min_size=1, max_size=1, kwargs={"autocommit": True}) as pool:
+            checkpointer = AsyncPostgresSaver(pool)
+            await checkpointer.setup()
 
-        runtime = AgentEngine(
-            policy=GlobalPolicy(cfg),
-            deps=EngineDeps(
-                runs=repos.runs,
-                events=repos.events,
-                approvals=repos.approvals,
-                checkpoints=repos.checkpoints,
-                tool_invocations=repos.tool_invocations,
-                usage=repos.usage,
-                capabilities=build_default_registry(),
-                mcp_info_provider=info_provider,
-                mcp_call=_mcp_call,
-            ),
-        )
+            cfg = PolicyConfig()
+            cfg.tool_policy.allowed_capabilities = {CapabilityName.mcp_call}
+            cfg.approval_policy.require_for_risk_at_or_above = RiskLevel.medium
 
-        run = AgentRun(role="dev", objective="mcp", tenant_id="t1")
-        plan = [
-            # echo is considered non-mutating by heuristic => low risk => no approval
-            {
-                "kind": "action",
-                "capability": CapabilityName.mcp_call.value,
-                "server_id": server_id,
-                "tool_name": "echo",
-                "args": {"tool_args": {"k": "v"}},
-            },
-            # create_issue is considered mutating by heuristic => medium risk => approval required
-            {
-                "kind": "action",
-                "capability": CapabilityName.mcp_call.value,
-                "server_id": server_id,
-                "tool_name": "create_issue",
-                "args": {"tool_args": {"k": "v2"}},
-            },
-        ]
-
-        await runtime.start_run(run=run, plan=plan)
-
-        # should have paused on tool-b approval
-        cp = await repos.checkpoints.latest(run.id)
-        assert cp is not None
-        approval_id = cp.state.get("awaiting_approval_id")
-        assert approval_id
-
-        async with session_factory() as s:
-            inv = await s.execute(
-                select(ToolInvocationRow)
-                .where(ToolInvocationRow.run_id == run.id)
-                .order_by(ToolInvocationRow.created_at)
+            runtime = AgentEngine(
+                policy=GlobalPolicy(cfg),
+                deps=EngineDeps(
+                    runs=repos.runs,
+                    events=repos.events,
+                    approvals=repos.approvals,
+                    checkpoints=repos.checkpoints,
+                    tool_invocations=repos.tool_invocations,
+                    usage=repos.usage,
+                    capabilities=build_default_registry(),
+                    mcp_info_provider=info_provider,
+                    mcp_call=_mcp_call,
+                    checkpointer=checkpointer,
+                ),
             )
-            inv_rows = list(inv.scalars().all())
-            # first tool executed, second should not yet
-            assert len(inv_rows) == 1
-            assert inv_rows[0].tool_name == "echo"
-            assert inv_rows[0].args.get("_mcp_tool_mutating") is False
 
-            appr = await s.execute(select(ApprovalRow).where(ApprovalRow.id == approval_id))
-            assert appr.first() is not None
+            run = AgentRun(role="dev", objective="mcp", tenant_id="t1")
+            plan = [
+                # echo is considered non-mutating by heuristic => low risk => no approval
+                {
+                    "kind": "action",
+                    "capability": CapabilityName.mcp_call.value,
+                    "server_id": server_id,
+                    "tool_name": "echo",
+                    "args": {"tool_args": {"k": "v"}},
+                },
+                # create_issue is considered mutating by heuristic => medium risk => approval required
+                {
+                    "kind": "action",
+                    "capability": CapabilityName.mcp_call.value,
+                    "server_id": server_id,
+                    "tool_name": "create_issue",
+                    "args": {"tool_args": {"k": "v2"}},
+                },
+            ]
 
-        # approve and resume
-        await repos.approvals.resolve(approval_id, decision=ApprovalDecision.approved.value, decided_by="tester")
-        await runtime.resume_run(run_id=run.id, approval_id=approval_id)
+            await runtime.start_run(run=run, plan=plan)
 
-        updated = await repos.runs.get(run.id)
-        assert updated is not None
-        assert str(getattr(updated.status, "value", updated.status)) == AgentRunStatus.succeeded.value
+            # should have paused on tool-b approval
+            cp = await checkpointer.aget_tuple(config={"configurable": {"thread_id": run.id}})
+            assert cp is not None
 
-        async with session_factory() as s:
-            inv2 = await s.execute(
-                select(ToolInvocationRow)
-                .where(ToolInvocationRow.run_id == run.id)
-                .order_by(ToolInvocationRow.created_at)
-            )
-            inv_rows2 = list(inv2.scalars().all())
-            assert len(inv_rows2) == 2
-            assert inv_rows2[0].tool_name == "echo"
-            assert inv_rows2[0].args.get("_mcp_tool_mutating") is False
-            assert inv_rows2[1].tool_name == "create_issue"
-            assert inv_rows2[1].args.get("_mcp_tool_mutating") is True
+            # AsyncPostgresSaver returns a CheckpointTuple, state is in cp.checkpoint
+            cp_state = cp.checkpoint
 
-        # strategy should have been invoked twice in total (via transport session)
-        assert state.get("call_tool_names") == ["echo", "create_issue"]
+            # LangGraph stores state in channel_values
+            if "channel_values" in cp_state:
+                cp_state = cp_state["channel_values"]
 
-        # close any httpx clients we created for gateway variants
-        close_http = state.get("_close_http_client")
-        close_mgmt = state.get("_close_mgmt_client")
-        if close_http is not None:
-            if hasattr(close_http, "aclose"):
-                await close_http.aclose()
-            else:
-                close_http.close()
-        if close_mgmt is not None:
-            close_mgmt.close()
+            approval_id = cp_state.get("awaiting_approval_id")
+            assert approval_id
 
-        await engine.dispose()
+            async with session_factory() as s:
+                inv = await s.execute(
+                    select(ToolInvocationRow)
+                    .where(ToolInvocationRow.run_id == run.id)
+                    .order_by(ToolInvocationRow.created_at)
+                )
+                inv_rows = list(inv.scalars().all())
+                # first tool executed, second should not yet
+                assert len(inv_rows) == 1
+                assert inv_rows[0].ok is True
+                assert inv_rows[0].tool_name == "echo"
+                assert inv_rows[0].args.get("_mcp_tool_mutating") is False
+
+                appr = await s.execute(select(ApprovalRow).where(ApprovalRow.id == approval_id))
+                assert appr.first() is not None
+
+            # approve and resume
+            await repos.approvals.resolve(approval_id, decision=ApprovalDecision.approved.value, decided_by="tester")
+            await runtime.resume_run(run_id=run.id, approval_id=approval_id)
+
+            updated = await repos.runs.get(run.id)
+            assert updated is not None
+            assert str(getattr(updated.status, "value", updated.status)) == AgentRunStatus.succeeded.value
+
+            async with session_factory() as s:
+                inv2 = await s.execute(
+                    select(ToolInvocationRow)
+                    .where(ToolInvocationRow.run_id == run.id)
+                    .order_by(ToolInvocationRow.created_at)
+                )
+                inv_rows2 = list(inv2.scalars().all())
+                assert len(inv_rows2) == 2
+                assert inv_rows2[0].ok is True
+                assert inv_rows2[1].ok is True
+                assert inv_rows2[0].tool_name == "echo"
+                assert inv_rows2[0].args.get("_mcp_tool_mutating") is False
+                assert inv_rows2[1].tool_name == "create_issue"
+                assert inv_rows2[1].args.get("_mcp_tool_mutating") is True
+
+            # strategy should have been invoked twice in total (via transport session)
+            assert state.get("call_tool_names") == ["echo", "create_issue"]
+
+            # close any httpx clients we created for gateway variants
+            close_http = state.get("_close_http_client")
+            close_mgmt = state.get("_close_mgmt_client")
+            if close_http is not None:
+                if hasattr(close_http, "aclose"):
+                    await close_http.aclose()
+                else:
+                    close_http.close()
+            if close_mgmt is not None:
+                close_mgmt.close()
+
+            await engine.dispose()

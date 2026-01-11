@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -56,7 +56,10 @@ class TestDatabasePolicyProvider:
         assert provider.policy_repository is mock_policy_repository
         assert provider.default is default_policy
 
-    def test_database_policy_provider_returns_default_when_no_tenant(self, mock_policy_repository, default_policy):
+    @pytest.mark.asyncio
+    async def test_database_policy_provider_returns_default_when_no_tenant(
+        self, mock_policy_repository, default_policy
+    ):
         """Test provider returns default policy when run has no tenant_id."""
         provider = DatabasePolicyProvider(
             policy_repository=mock_policy_repository,
@@ -71,12 +74,13 @@ class TestDatabasePolicyProvider:
             tenant_id=None,
         )
 
-        policy = provider.get(run)
+        policy = await provider.get(run)
 
         assert policy == default_policy
         mock_policy_repository.get.assert_not_called()
 
-    def test_database_policy_provider_loads_tenant_policy(self, mock_policy_repository, default_policy):
+    @pytest.mark.asyncio
+    async def test_database_policy_provider_loads_tenant_policy(self, mock_policy_repository, default_policy):
         """Test provider loads tenant-specific policy from database."""
         tenant_policy_dict = {
             "version": "policy-v1",
@@ -102,7 +106,7 @@ class TestDatabasePolicyProvider:
             "budget_policy": {"max_total_tokens": None},
         }
 
-        mock_policy_repository.get = MagicMock(return_value=tenant_policy_dict)
+        mock_policy_repository.get = AsyncMock(return_value=tenant_policy_dict)
 
         provider = DatabasePolicyProvider(
             policy_repository=mock_policy_repository,
@@ -117,15 +121,15 @@ class TestDatabasePolicyProvider:
             tenant_id="acme-corp",
         )
 
-        with patch("asyncio.run", return_value=tenant_policy_dict):
-            policy = provider.get(run)
+        policy = await provider.get(run)
 
         assert policy.autonomy_profile == AutonomyProfile.strict
         assert "mcp_call" in policy.tool_policy.allowed_capabilities
 
-    def test_database_policy_provider_fallback_on_missing_policy(self, mock_policy_repository, default_policy):
+    @pytest.mark.asyncio
+    async def test_database_policy_provider_fallback_on_missing_policy(self, mock_policy_repository, default_policy):
         """Test provider falls back to default when tenant policy not found."""
-        mock_policy_repository.get = MagicMock(return_value=None)
+        mock_policy_repository.get = AsyncMock(return_value=None)
 
         provider = DatabasePolicyProvider(
             policy_repository=mock_policy_repository,
@@ -140,16 +144,16 @@ class TestDatabasePolicyProvider:
             tenant_id="unknown-tenant",
         )
 
-        with patch("asyncio.run", return_value=None):
-            policy = provider.get(run)
+        policy = await provider.get(run)
 
         assert policy == default_policy
 
-    def test_database_policy_provider_fallback_on_invalid_config(self, mock_policy_repository, default_policy):
+    @pytest.mark.asyncio
+    async def test_database_policy_provider_fallback_on_invalid_config(self, mock_policy_repository, default_policy):
         """Test provider falls back to default when policy config is invalid."""
         invalid_config = {"invalid": "config"}
 
-        mock_policy_repository.get = MagicMock(return_value=invalid_config)
+        mock_policy_repository.get = AsyncMock(return_value=invalid_config)
 
         provider = DatabasePolicyProvider(
             policy_repository=mock_policy_repository,
@@ -164,14 +168,14 @@ class TestDatabasePolicyProvider:
             tenant_id="acme-corp",
         )
 
-        with patch("asyncio.run", return_value=invalid_config):
-            policy = provider.get(run)
+        policy = await provider.get(run)
 
         assert policy == default_policy
 
-    def test_database_policy_provider_fallback_on_repository_error(self, mock_policy_repository, default_policy):
+    @pytest.mark.asyncio
+    async def test_database_policy_provider_fallback_on_repository_error(self, mock_policy_repository, default_policy):
         """Test provider falls back to default when repository raises error."""
-        mock_policy_repository.get = MagicMock(side_effect=RuntimeError("Database error"))
+        mock_policy_repository.get = AsyncMock(side_effect=RuntimeError("Database error"))
 
         provider = DatabasePolicyProvider(
             policy_repository=mock_policy_repository,
@@ -186,14 +190,14 @@ class TestDatabasePolicyProvider:
             tenant_id="acme-corp",
         )
 
-        with patch("asyncio.run", side_effect=RuntimeError("Database error")):
-            policy = provider.get(run)
+        policy = await provider.get(run)
 
         assert policy == default_policy
 
-    def test_database_policy_provider_deep_copies_policy(self, mock_policy_repository, default_policy):
+    @pytest.mark.asyncio
+    async def test_database_policy_provider_deep_copies_policy(self, mock_policy_repository, default_policy):
         """Test provider returns deep copy of policy to prevent mutation."""
-        mock_policy_repository.get = MagicMock(return_value=None)
+        mock_policy_repository.get = AsyncMock(return_value=None)
 
         provider = DatabasePolicyProvider(
             policy_repository=mock_policy_repository,
@@ -208,8 +212,8 @@ class TestDatabasePolicyProvider:
             tenant_id=None,
         )
 
-        policy1 = provider.get(run)
-        policy2 = provider.get(run)
+        policy1 = await provider.get(run)
+        policy2 = await provider.get(run)
 
         # Should be equal but not the same object
         assert policy1 == policy2
@@ -410,7 +414,8 @@ class TestStaticPolicyProvider:
             autonomy_profile=AutonomyProfile.strict,
         )
 
-    def test_static_policy_provider_returns_default(self, default_policy):
+    @pytest.mark.asyncio
+    async def test_static_policy_provider_returns_default(self, default_policy):
         """Test StaticPolicyProvider returns default when no overrides."""
         provider = StaticPolicyProvider(default=default_policy)
 
@@ -422,11 +427,12 @@ class TestStaticPolicyProvider:
             tenant_id="acme-corp",
         )
 
-        policy = provider.get(run)
+        policy = await provider.get(run)
 
         assert policy.autonomy_profile == AutonomyProfile.balanced
 
-    def test_static_policy_provider_returns_tenant_override(self, default_policy, tenant_policy):
+    @pytest.mark.asyncio
+    async def test_static_policy_provider_returns_tenant_override(self, default_policy, tenant_policy):
         """Test StaticPolicyProvider returns tenant override when available."""
         provider = StaticPolicyProvider(
             default=default_policy,
@@ -441,11 +447,12 @@ class TestStaticPolicyProvider:
             tenant_id="acme-corp",
         )
 
-        policy = provider.get(run)
+        policy = await provider.get(run)
 
         assert policy.autonomy_profile == AutonomyProfile.strict
 
-    def test_static_policy_provider_returns_workspace_override(self, default_policy, tenant_policy):
+    @pytest.mark.asyncio
+    async def test_static_policy_provider_returns_workspace_override(self, default_policy, tenant_policy):
         """Test StaticPolicyProvider returns workspace override when available."""
         provider = StaticPolicyProvider(
             default=default_policy,
@@ -460,11 +467,12 @@ class TestStaticPolicyProvider:
             workspace_id="workspace-1",
         )
 
-        policy = provider.get(run)
+        policy = await provider.get(run)
 
         assert policy.autonomy_profile == AutonomyProfile.strict
 
-    def test_static_policy_provider_tenant_takes_precedence(self, default_policy, tenant_policy):
+    @pytest.mark.asyncio
+    async def test_static_policy_provider_tenant_takes_precedence(self, default_policy, tenant_policy):
         """Test StaticPolicyProvider prioritizes tenant over workspace override."""
         workspace_policy = PolicyConfig(
             version="policy-v1",
@@ -486,7 +494,7 @@ class TestStaticPolicyProvider:
             workspace_id="workspace-1",
         )
 
-        policy = provider.get(run)
+        policy = await provider.get(run)
 
         # Tenant should take precedence
         assert policy.autonomy_profile == AutonomyProfile.strict

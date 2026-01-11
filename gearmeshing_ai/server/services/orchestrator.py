@@ -4,6 +4,8 @@ import asyncio
 from datetime import datetime, timezone
 from typing import AsyncGenerator, Awaitable, Callable, Dict, List, Optional, Union
 
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+
 from gearmeshing_ai.agent_core.factory import build_default_registry
 from gearmeshing_ai.agent_core.planning.planner import StructuredPlanner
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
@@ -20,7 +22,7 @@ from gearmeshing_ai.agent_core.schemas.domain import (
 )
 from gearmeshing_ai.agent_core.service import AgentService, AgentServiceDeps
 from gearmeshing_ai.core.logging_config import get_logger
-from gearmeshing_ai.server.core.database import async_session_maker
+from gearmeshing_ai.server.core.database import async_session_maker, checkpointer_pool
 from gearmeshing_ai.server.schemas import (
     ApprovalRequestData,
     ApprovalResolutionData,
@@ -77,6 +79,12 @@ class OrchestratorService:
         # Build base repositories
         base_repos = build_sql_repos(session_factory=async_session_maker)
 
+        # Store checkpointer pool for lazy initialization
+        # AsyncPostgresSaver requires an event loop at instantiation, so we defer creation
+        # until it's needed in an async context (in _build_engine_deps)
+        self.checkpointer_pool = checkpointer_pool
+        self._checkpointer: Optional[AsyncPostgresSaver] = None
+
         # Wrap event repository for broadcasting
         self.event_repo_wrapper = BroadcastingEventRepository(base_repos.events, self.event_listeners)
 
@@ -92,11 +100,10 @@ class OrchestratorService:
             policies=base_repos.policies,
         )
 
-        # Build runtime dependencies (shared across services)
-        self.deps = AgentServiceDeps(
-            engine_deps=self._build_engine_deps(),
-            planner=StructuredPlanner(),
-        )
+        # Defer building engine_deps to avoid event loop issues during init
+        self._engine_deps_cached: Optional[AgentServiceDeps] = None
+        self.deps: Optional[AgentServiceDeps] = None  # Will be set lazily
+        self._agent_service_cached: Optional[AgentService] = None
 
         # Create default policy config
         default_policy = PolicyConfig()
@@ -108,13 +115,20 @@ class OrchestratorService:
             default=default_policy,
         )
 
-        # Initialize the core AgentService with policy provider
-        # This enables dynamic, tenant-aware policy resolution per run
-        self.agent_service = AgentService(
-            policy_config=default_policy,
-            deps=self.deps,
-            policy_provider=self.policy_provider,
-        )
+        self._default_policy = default_policy
+
+    @property
+    def checkpointer(self) -> AsyncPostgresSaver:
+        """
+        Lazily create and return the AsyncPostgresSaver.
+
+        This is necessary because AsyncPostgresSaver requires an event loop at instantiation,
+        but OrchestratorService.__init__() is called from a synchronous dependency injection context.
+        The checkpointer is only created when first accessed in an async context.
+        """
+        if self._checkpointer is None:
+            self._checkpointer = AsyncPostgresSaver(self.checkpointer_pool)
+        return self._checkpointer
 
     def _build_engine_deps(self):
         from gearmeshing_ai.agent_core.runtime import EngineDeps
@@ -127,62 +141,68 @@ class OrchestratorService:
             tool_invocations=self.repos.tool_invocations,
             usage=self.repos.usage,
             capabilities=build_default_registry(),
+            checkpointer=self.checkpointer,
         )
 
+    def _get_engine_deps(self) -> AgentServiceDeps:
+        """Lazily build and cache engine dependencies."""
+        if self._engine_deps_cached is None:
+            self._engine_deps_cached = AgentServiceDeps(
+                engine_deps=self._build_engine_deps(),
+                planner=StructuredPlanner(),
+            )
+        assert self._engine_deps_cached is not None
+        return self._engine_deps_cached
+
+    def _get_agent_service(self) -> AgentService:
+        """Lazily build and cache agent service."""
+        if self._agent_service_cached is None:
+            self._agent_service_cached = AgentService(
+                policy_config=self._default_policy,
+                deps=self._get_engine_deps(),
+                policy_provider=self.policy_provider,
+            )
+        assert self._agent_service_cached is not None
+        return self._agent_service_cached
+
     async def create_run(self, run: AgentRun) -> AgentRun:
-        """Create a new agent run in PENDING status."""
+        """
+        Create a new agent run in PENDING status (in-memory only).
+
+        Note: The run is NOT persisted to the database here. Persistence happens
+        in engine.start_run() when the workflow execution begins. This follows the
+        async-first pattern where the API layer creates the run object in memory,
+        passes it to the background worker, and the engine persists it when ready.
+        """
 
         # Set status to pending initially
         run.status = AgentRunStatus.pending
 
-        # Create the run record in DB
-        await self.repos.runs.create(run)
-
         logger.info(f"Run {run.id} created with status PENDING")
         return run
 
-    async def execute_workflow(self, run_id: str) -> None:
+    async def execute_workflow(self, run: AgentRun) -> None:
         """
         Execute the agent workflow in the background.
-        Transitions status from PENDING to RUNNING.
+
+        The run object is passed directly from the API layer, avoiding the need to
+        fetch it from the database. The engine.start_run() will persist the run
+        to the database when execution begins.
         """
+        run_id = run.id
         try:
             logger.info(f"Starting execution for run {run_id}")
-            run = await self.repos.runs.get(run_id)
-            if not run:
-                logger.error(f"Run {run_id} not found during execution start")
-                return
 
-            # Update status to running (conceptually, though engine.start_run might do things too)
-            # The engine expects the run object.
-            # We ensure the run object passed has the correct state if needed,
-            # but usually start_run handles the flow.
-            # Important: AgentService.run expects the run object.
+            # Ensure status is PENDING before execution
+            run.status = AgentRunStatus.pending
 
-            # Since we modify status to pending in create_run, we should let the engine or service know
-            # it's starting.
-            # However, engine.start_run creates the run in DB.
-            # We already created it.
-            # We updated engine.py to handle existing runs.
-
-            # We need to update status to running here or ensure engine does it?
-            # engine.start_run calls _deps.runs.create(run).
-            # If we pass a run with status=PENDING, it tries to create it as PENDING (which it is).
-            # Then it logs run_started event.
-            # It doesn't explicitly update status to RUNNING in the DB in start_run logic
-            # except via create() which is skipped if exists.
-
-            # So we should explicitly update status to RUNNING here.
-            await self.repos.runs.update_status(run_id, status=AgentRunStatus.running.value)
-
-            # Update local object too for consistency if passed down
-            run.status = AgentRunStatus.running
-
-            await self.agent_service.run(run=run)
+            # Execute the workflow - engine.start_run() will persist the run
+            await self._get_agent_service().run(run=run)
             logger.info(f"Execution finished for run {run_id}")
 
         except Exception as e:
             logger.error(f"Error executing workflow for run {run_id}: {e}", exc_info=True)
+            # Update status to failed in database
             await self.repos.runs.update_status(run_id, status=AgentRunStatus.failed.value)
             await self.repos.events.append(
                 AgentEvent(run_id=run_id, type=AgentEventType.run_failed, payload={"error": str(e)})
@@ -194,7 +214,11 @@ class OrchestratorService:
         """
         try:
             logger.info(f"Resuming execution for run {run_id} (approval {approval_id})")
-            await self.agent_service.resume(run_id=run_id, approval_id=approval_id)
+
+            # Update status to running to reflect active processing
+            await self.repos.runs.update_status(run_id, status=AgentRunStatus.running.value)
+
+            await self._get_agent_service().resume(run_id=run_id, approval_id=approval_id)
             logger.info(f"Resume finished for run {run_id}")
         except Exception as e:
             logger.error(f"Error resuming workflow for run {run_id}: {e}", exc_info=True)
@@ -221,36 +245,9 @@ class OrchestratorService:
     ) -> Approval:
         await self.repos.approvals.resolve(approval_id, decision=decision, decided_by=decided_by)
 
-        if decision == "approved":
-            # Resume in background
-            # We can't easily fire-and-forget inside this async method without BackgroundTasks
-            # But Orchestrator isn't a FastAPI dependency directly in that sense (it is, but...)
-            # Ideally this method returns the approval, and the caller (endpoint) schedules the background task.
-            # But to keep API logic clean, maybe we can launch a task here?
-            # For now, I'll return the approval and let the API handler schedule the resume task
-            # if I return enough info or if I update the API to handle it.
-            # The current API implementation calls `submit_approval`.
-            # I will modify `submit_approval` to NOT await resume, but maybe return intent?
-            # Or just use `asyncio.create_task` here?
-            # Using `asyncio.create_task` is risky if not tracked.
-            # Better to let the controller handle background tasks.
-            # I will assume the controller will handle resume triggering if I don't do it here.
-            # BUT, the current controller calls `submit_approval`.
-            # I will change `submit_approval` to just resolve. The controller should call `resume_run` or `execute_resume`.
-            # Wait, `submit_approval` in `runs.py` (not shown in my read) probably calls this.
-            # I haven't seen `submit_approval` endpoint in `runs.py`?
-            # Ah, `runs.py` has `resume_run` which calls `orchestrator.get_run`.
-            # There might be another router for approvals?
-            # I see `gearmeshing_ai/server/api/v1/runs.py` only.
-            # Maybe `submit_approval` is not in `runs.py` or I missed it.
-            # I see `resume_run` endpoint.
-
-            # Let's just launch it here with create_task for now to match previous behavior
-            # (which awaited it). If I await it, it blocks.
-            # I will change it to `asyncio.create_task(self.execute_resume(run_id, approval_id))`
-            task = asyncio.create_task(self.execute_resume(run_id=run_id, approval_id=approval_id))
-            self.background_tasks.add(task)
-            task.add_done_callback(self.background_tasks.discard)
+        # Note: We do NOT trigger resumption here anymore.
+        # The API controller is responsible for scheduling execute_resume via BackgroundTasks
+        # if the decision is 'approved'.
 
         approval = await self.repos.approvals.get(approval_id)
         if not approval:

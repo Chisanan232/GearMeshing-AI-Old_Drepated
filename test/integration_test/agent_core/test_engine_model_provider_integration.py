@@ -6,6 +6,7 @@ import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from langgraph.checkpoint.memory import MemorySaver
 
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
 from gearmeshing_ai.agent_core.runtime.engine import AgentEngine
@@ -29,6 +30,7 @@ class TestEngineModelProviderIntegration:
         deps.events = AsyncMock()
         deps.checkpoints = AsyncMock()
         deps.approvals = AsyncMock()
+        deps.checkpointer = MemorySaver()
         deps.thought_model = None
         deps.role_provider = None
         deps.prompt_provider = None
@@ -123,7 +125,7 @@ class TestEngineModelProviderIntegration:
         }
 
         with pytest.raises(ValueError, match="run not found"):
-            await engine._node_execute_next(state)
+            await engine._node_execute_next(state, config={})
 
     @pytest.mark.asyncio
     async def test_engine_handles_terminal_condition(self, mock_policy, mock_engine_deps):
@@ -145,7 +147,7 @@ class TestEngineModelProviderIntegration:
             "awaiting_approval_id": None,
         }
 
-        result = await engine._node_execute_next(state)
+        result = await engine._node_execute_next(state, config={})
 
         # Should mark as finished
         assert result.get("_finished") is True
@@ -175,7 +177,7 @@ class TestEngineModelProviderIntegration:
         # Should not attempt model creation when role_provider is None
         with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
             try:
-                await engine._node_execute_next(state)
+                await engine._node_execute_next(state, config={})
             except Exception:
                 pass
             # async_create_model_for_role should not be called
@@ -206,7 +208,7 @@ class TestEngineModelProviderIntegration:
         with patch("gearmeshing_ai.agent_core.runtime.engine.async_create_model_for_role") as mock_create:
             mock_create.return_value = MagicMock()
             try:
-                await engine._node_execute_next(state)
+                await engine._node_execute_next(state, config={})
             except Exception:
                 pass
 
@@ -241,7 +243,7 @@ class TestEngineModelProviderIntegration:
 
             # Should not raise, should handle gracefully
             try:
-                result = await engine._node_execute_next(state)
+                result = await engine._node_execute_next(state, config={})
                 # Should continue without thought model
                 assert result is not None
             except RuntimeError as e:
@@ -273,7 +275,7 @@ class TestEngineModelProviderIntegration:
             mock_create.side_effect = RuntimeError("Database connection failed")
 
             try:
-                result = await engine._node_execute_next(state)
+                result = await engine._node_execute_next(state, config={})
                 # Should continue without thought model
                 assert result is not None
             except RuntimeError:
@@ -305,7 +307,7 @@ class TestEngineModelProviderIntegration:
 
         with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
             try:
-                await engine._node_execute_next(state)
+                await engine._node_execute_next(state, config={})
             except Exception:
                 pass
 
@@ -339,7 +341,7 @@ class TestEngineModelProviderIntegration:
             with patch("gearmeshing_ai.agent_core.runtime.engine.async_create_model_for_role") as mock_create:
                 mock_create.return_value = MagicMock()
                 try:
-                    await engine._node_execute_next(state)
+                    await engine._node_execute_next(state, config={})
                 except Exception:
                     pass
 
@@ -373,7 +375,7 @@ class TestEngineModelProviderIntegration:
         with patch("gearmeshing_ai.agent_core.runtime.engine.async_create_model_for_role") as mock_create:
             mock_create.return_value = MagicMock()
             try:
-                await engine._node_execute_next(state)
+                await engine._node_execute_next(state, config={})
             except Exception:
                 pass
 
@@ -407,7 +409,7 @@ class TestEngineModelProviderIntegration:
             mock_create.side_effect = TimeoutError("Model creation timed out")
 
             try:
-                result = await engine._node_execute_next(state)
+                result = await engine._node_execute_next(state, config={})
                 # Should continue without thought model
                 assert result is not None
             except TimeoutError:
@@ -438,7 +440,7 @@ class TestEngineModelProviderIntegration:
             mock_create.side_effect = ValueError("Role not found in configuration")
 
             try:
-                result = await engine._node_execute_next(state)
+                result = await engine._node_execute_next(state, config={})
                 # Should continue without thought model
                 assert result is not None
             except ValueError:

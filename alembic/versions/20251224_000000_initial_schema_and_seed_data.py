@@ -20,7 +20,7 @@ from datetime import datetime
 from typing import Sequence, Union
 
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ENUM, JSONB
 
 from alembic import op
 
@@ -172,14 +172,29 @@ def upgrade() -> None:
     op.create_table(
         "chat_sessions",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("tenant_id", sa.String(), nullable=False),
+        sa.Column("tenant_id", sa.String(), nullable=True, index=True),
         sa.Column("title", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=True),
-        sa.Column("status", sa.String(), nullable=False),
+        sa.Column("agent_role", sa.String(), nullable=False),
+        sa.Column("run_id", sa.String(), nullable=True, index=True),
+        sa.Column("is_active", sa.Boolean(), nullable=False, server_default="true"),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
-        sa.Index("ix_chat_sessions_tenant_id", "tenant_id"),
+    )
+
+    # Create chat_messages table
+    op.create_table(
+        "chat_messages",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("session_id", sa.Integer(), nullable=False),
+        # Create MessageRole enum type for chat_messages
+        sa.Column("role", ENUM("user", "assistant", "system", name="messagerole", create_type=True)),
+        sa.Column("content", sa.String(), nullable=False),
+        sa.Column("message_metadata", sa.String(), nullable=True),
+        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.PrimaryKeyConstraint("id"),
+        sa.ForeignKeyConstraint(["session_id"], ["chat_sessions.id"]),
     )
 
     # Seed default agent configurations
@@ -330,6 +345,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Drop all tables created in upgrade."""
+    op.drop_table("chat_messages")
     op.drop_table("chat_sessions")
     op.drop_table("agent_configs")
     op.drop_table("gm_usage_ledger")
@@ -339,3 +355,6 @@ def downgrade() -> None:
     op.drop_table("gm_tool_invocations")
     op.drop_table("gm_agent_events")
     op.drop_table("gm_agent_runs")
+
+    # Drop the enum type
+    op.execute("DROP TYPE IF EXISTS messagerole")

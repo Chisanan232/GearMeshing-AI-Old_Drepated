@@ -82,13 +82,10 @@ def build_agent_registry(
     reg = AgentRegistry()
 
     def _make_factory(_role: str):
-        def _factory(run: AgentRun) -> AgentService:
+        async def _factory(run: AgentRun) -> AgentService:
             # 1. Resolve base config (dynamic or static)
-            cfg = (
-                policy_provider.get(run).model_copy(deep=True)
-                if policy_provider is not None
-                else base_policy_config.model_copy(deep=True)
-            )
+            cfg = await policy_provider.get(run) if policy_provider is not None else base_policy_config
+            cfg = cfg.model_copy(deep=True)
             cfg.autonomy_profile = run.autonomy_profile
 
             # 2. Apply role-specific permissions (intersection with policy)
