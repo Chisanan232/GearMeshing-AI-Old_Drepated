@@ -109,6 +109,22 @@ class AIAgentBase(ABC):
         """Get the model identifier."""
         return self._config.model
 
+    def build_init_kwargs(self) -> Dict[str, Any]:
+        """Build framework-specific initialization kwargs.
+
+        This method constructs the actual kwargs dictionary that will be passed
+        to the framework's constructor, based on the agent configuration.
+
+        Returns:
+            Dictionary of kwargs for the framework constructor
+
+        Raises:
+            ValueError: If required parameters cannot be built from config
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement build_init_kwargs()"
+        )
+
     @abstractmethod
     async def initialize(self) -> None:
         """Initialize the agent.

@@ -13,6 +13,10 @@ from gearmeshing_ai.agent_core.abstraction.base import (
 class MockAgent(AIAgentBase):
     """Mock agent for testing."""
 
+    def build_init_kwargs(self):
+        """Build initialization kwargs."""
+        return {"model": self._config.model}
+
     async def initialize(self) -> None:
         self._initialized = True
 

@@ -2,18 +2,21 @@
 
 import pytest
 
-from gearmeshing_ai.agent_core.abstraction.base import AIAgentBase, AIAgentConfig
+from gearmeshing_ai.agent_core.abstraction.base import AIAgentBase, AIAgentConfig, AIAgentResponse
 from gearmeshing_ai.agent_core.abstraction.cache import AIAgentCache
 
 
 class MockAgent(AIAgentBase):
     """Mock agent for testing."""
 
+    def build_init_kwargs(self):
+        """Build initialization kwargs."""
+        return {"model": self._config.model}
+
     async def initialize(self) -> None:
         self._initialized = True
 
     async def invoke(self, input_text: str, context=None, **kwargs):
-        from gearmeshing_ai.agent_core.abstraction.base import AIAgentResponse
         return AIAgentResponse(content="mock response", success=True)
 
     async def stream(self, input_text: str, context=None, **kwargs):
