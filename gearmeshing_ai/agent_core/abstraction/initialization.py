@@ -38,7 +38,7 @@ def setup_agent_abstraction(
         ValueError: If configuration is invalid
     """
     if config is None:
-        config = AgentAbstractionConfig.from_env()
+        config = AgentAbstractionConfig()
 
     logger.info(
         f"Setting up AI agent abstraction layer: "
