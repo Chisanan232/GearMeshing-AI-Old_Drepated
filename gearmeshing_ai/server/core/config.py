@@ -180,6 +180,11 @@ class Settings(BaseSettings):
         default="postgresql+asyncpg://ai_dev:changeme@postgres:5432/ai_dev",
         description="Async PostgreSQL connection URL for application database",
     )
+    enable_database: bool = Field(
+        default=True,
+        description="Enable database connectivity and initialization. Set to true to connect to database, false for standalone mode without database.",
+        alias="ENABLE_DATABASE",
+    )
 
     # =====================================================================
     # Redis Configuration

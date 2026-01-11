@@ -26,6 +26,7 @@ from .api.v1 import (
     usage,
 )
 from .core import constant
+from .core.config import settings
 from .core.database import checkpointer_pool, init_db
 
 # Initialize logging
@@ -44,31 +45,38 @@ async def lifespan(app: FastAPI):
     # Startup
     try:
         logger.info("Starting up GearMeshing-AI Server...")
-        await init_db()
-        logger.info("Database initialized successfully")
+        
+        if settings.enable_database:
+            logger.info("Database connectivity enabled. Initializing database...")
+            await init_db()
+            logger.info("Database initialized successfully")
 
-        # Initialize LangGraph Checkpointer Pool
-        await checkpointer_pool.open()
+            # Initialize LangGraph Checkpointer Pool
+            await checkpointer_pool.open()
 
-        # Ensure Checkpointer Tables exist
-        # Note: AsyncPostgresSaver.setup() creates indexes with CREATE INDEX CONCURRENTLY,
-        # which requires autocommit mode. The psycopg_pool connection context manager
-        # handles this automatically when used without explicit transaction control.
-        async with checkpointer_pool.connection() as conn:
-            # Set autocommit mode to allow CREATE INDEX CONCURRENTLY
-            await conn.set_autocommit(True)
-            checkpointer = AsyncPostgresSaver(conn)
-            await checkpointer.setup()
-        logger.info("LangGraph checkpointer initialized successfully")
+            # Ensure Checkpointer Tables exist
+            # Note: AsyncPostgresSaver.setup() creates indexes with CREATE INDEX CONCURRENTLY,
+            # which requires autocommit mode. The psycopg_pool connection context manager
+            # handles this automatically when used without explicit transaction control.
+            async with checkpointer_pool.connection() as conn:
+                # Set autocommit mode to allow CREATE INDEX CONCURRENTLY
+                await conn.set_autocommit(True)
+                checkpointer = AsyncPostgresSaver(conn)
+                await checkpointer.setup()
+            logger.info("LangGraph checkpointer initialized successfully")
+        else:
+            logger.info("Running in standalone mode without database connectivity (ENABLE_DATABASE=false)")
 
     except Exception as e:
         logger.error(f"Initialization failed: {e}", exc_info=True)
+        raise
 
     yield
 
     # Shutdown
     logger.info("Shutting down GearMeshing-AI Server...")
-    await checkpointer_pool.close()
+    if settings.enable_database:
+        await checkpointer_pool.close()
 
 
 app = FastAPI(
