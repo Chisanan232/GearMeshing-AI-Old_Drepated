@@ -13,9 +13,11 @@ Key Components:
 """
 
 from .base import AIAgentBase, AIAgentConfig, AIAgentResponse
+from .cache import AIAgentCache
 
 __all__ = [
     "AIAgentBase",
     "AIAgentConfig",
     "AIAgentResponse",
+    "AIAgentCache",
 ]
