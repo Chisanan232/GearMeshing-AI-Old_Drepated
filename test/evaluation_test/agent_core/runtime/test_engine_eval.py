@@ -4,6 +4,8 @@ import os
 from typing import Any, Dict
 
 import pytest
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from psycopg_pool import AsyncConnectionPool
 from sqlalchemy import select
 from testcontainers.postgres import PostgresContainer
 
@@ -29,8 +31,6 @@ from gearmeshing_ai.agent_core.schemas.domain import (
     AgentRunStatus,
     CapabilityName,
 )
-from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from psycopg_pool import AsyncConnectionPool
 
 
 def _eval_enabled() -> bool:
