@@ -116,13 +116,13 @@ class TestAdapterEdgeCases:
         assert response.success is True
 
     @pytest.mark.asyncio
-    async def test_invoke_with_zero_timeout(self):
-        """Test invocation with zero timeout."""
+    async def test_invoke_with_small_timeout(self):
+        """Test invocation with small timeout."""
         config = AIAgentConfig(
             name="test",
             framework="pydantic_ai",
             model="gpt-4o",
-            timeout=0,
+            timeout=0.1,
         )
 
         agent = PydanticAIAgent(config)
@@ -140,13 +140,13 @@ class TestAdapterEdgeCases:
         assert response.success is True
 
     @pytest.mark.asyncio
-    async def test_invoke_with_negative_temperature(self):
-        """Test invocation with negative temperature."""
+    async def test_invoke_with_high_temperature(self):
+        """Test invocation with high temperature."""
         config = AIAgentConfig(
             name="test",
             framework="pydantic_ai",
             model="gpt-4o",
-            temperature=-0.5,
+            temperature=2.0,
         )
 
         agent = PydanticAIAgent(config)

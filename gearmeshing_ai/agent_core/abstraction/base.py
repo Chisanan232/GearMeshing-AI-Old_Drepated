@@ -5,12 +5,12 @@ must adhere to, enabling framework-agnostic agent usage throughout the project.
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from pydantic import BaseModel, Field, ConfigDict
 
-@dataclass
-class AIAgentConfig:
+
+class AIAgentConfig(BaseModel):
     """Configuration for initializing an AI agent.
 
     Attributes:
@@ -25,33 +25,24 @@ class AIAgentConfig:
         metadata: Additional framework-specific configuration
     """
 
-    name: str
-    framework: str
-    model: str
-    system_prompt: Optional[str] = None
-    tools: List[Dict[str, Any]] = field(default_factory=list)
-    temperature: float = 0.7
-    max_tokens: Optional[int] = None
-    timeout: Optional[float] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    model_config = ConfigDict(frozen=False, validate_assignment=True)
+
+    name: str = Field(..., description="Unique identifier for the agent instance")
+    framework: str = Field(..., description="The AI framework being used")
+    model: str = Field(..., description="The LLM model identifier")
+    system_prompt: Optional[str] = Field(None, description="System prompt/instructions for the agent")
+    tools: List[Dict[str, Any]] = Field(default_factory=list, description="List of tool definitions")
+    temperature: float = Field(default=0.7, description="Model temperature for response generation")
+    max_tokens: Optional[int] = Field(None, ge=1, description="Maximum tokens for response generation")
+    timeout: Optional[float] = Field(None, description="Request timeout in seconds")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional framework-specific configuration")
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary."""
-        return {
-            "name": self.name,
-            "framework": self.framework,
-            "model": self.model,
-            "system_prompt": self.system_prompt,
-            "tools": self.tools,
-            "temperature": self.temperature,
-            "max_tokens": self.max_tokens,
-            "timeout": self.timeout,
-            "metadata": self.metadata,
-        }
+        return self.model_dump()
 
 
-@dataclass
-class AIAgentResponse:
+class AIAgentResponse(BaseModel):
     """Response from an AI agent.
 
     Attributes:
@@ -62,21 +53,17 @@ class AIAgentResponse:
         success: Whether the request was successful
     """
 
-    content: Any
-    tool_calls: List[Dict[str, Any]] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    error: Optional[str] = None
-    success: bool = True
+    model_config = ConfigDict(frozen=False)
+
+    content: Any = Field(None, description="The main response content")
+    tool_calls: List[Dict[str, Any]] = Field(default_factory=list, description="List of tool calls made by the agent")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional response metadata")
+    error: Optional[str] = Field(None, description="Error message if the request failed")
+    success: bool = Field(default=True, description="Whether the request was successful")
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert response to dictionary."""
-        return {
-            "content": self.content,
-            "tool_calls": self.tool_calls,
-            "metadata": self.metadata,
-            "error": self.error,
-            "success": self.success,
-        }
+        return self.model_dump()
 
 
 class AIAgentBase(ABC):
