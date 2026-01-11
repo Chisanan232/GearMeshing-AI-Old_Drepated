@@ -63,6 +63,8 @@ async def test_eval_end_to_end_graph_happy_path_selects_and_runs_tools() -> None
 
         cfg = PolicyConfig()
         cfg.tool_policy.allowed_capabilities = {CapabilityName.summarize}
+        from langgraph.checkpoint.memory import MemorySaver
+        
         runtime = AgentEngine(
             policy=GlobalPolicy(cfg),
             deps=EngineDeps(
@@ -73,6 +75,7 @@ async def test_eval_end_to_end_graph_happy_path_selects_and_runs_tools() -> None
                 tool_invocations=repos.tool_invocations,
                 usage=repos.usage,
                 capabilities=reg,
+                checkpointer=MemorySaver(),
             ),
         )
 

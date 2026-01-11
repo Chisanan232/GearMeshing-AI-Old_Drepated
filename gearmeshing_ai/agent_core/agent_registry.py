@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from typing import Callable, Dict
+from typing import Awaitable, Callable, Dict
 
 from .schemas.domain import AgentRun
 from .service import AgentService
 
-AgentServiceFactory = Callable[[AgentRun], AgentService]
+AgentServiceFactory = Callable[[AgentRun], Awaitable[AgentService]]
 """
 AgentServiceFactory:
-    A callable type that takes an ``AgentRun`` context and returns an initialized
-    ``AgentService`` ready for execution.
+    A callable type that takes an ``AgentRun`` context and returns an awaitable that
+    resolves to an initialized ``AgentService`` ready for execution.
 """
 
 

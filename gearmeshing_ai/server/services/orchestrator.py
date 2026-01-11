@@ -100,9 +100,9 @@ class OrchestratorService:
         )
 
         # Defer building engine_deps to avoid event loop issues during init
-        self._engine_deps_cached = None
-        self.deps = None  # Will be set lazily
-        self._agent_service_cached = None
+        self._engine_deps_cached: Optional[AgentServiceDeps] = None
+        self.deps: Optional[AgentServiceDeps] = None  # Will be set lazily
+        self._agent_service_cached: Optional[AgentService] = None
 
         # Create default policy config
         default_policy = PolicyConfig()
@@ -150,6 +150,7 @@ class OrchestratorService:
                 engine_deps=self._build_engine_deps(),
                 planner=StructuredPlanner(),
             )
+        assert self._engine_deps_cached is not None
         return self._engine_deps_cached
 
     def _get_agent_service(self) -> AgentService:
@@ -160,6 +161,7 @@ class OrchestratorService:
                 deps=self._get_engine_deps(),
                 policy_provider=self.policy_provider,
             )
+        assert self._agent_service_cached is not None
         return self._agent_service_cached
 
     async def create_run(self, run: AgentRun) -> AgentRun:

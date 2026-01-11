@@ -596,6 +596,7 @@ async def test_resume_run_happy_path_restores_checkpoint_and_invokes_graph(repos
     
     # Resume calls ainvoke(None, config=...)
     assert state_arg is None
+    assert config_arg is not None
     assert config_arg["configurable"]["thread_id"] == run.id
     
     # Verify state update was called on the graph

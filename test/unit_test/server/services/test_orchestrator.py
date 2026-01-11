@@ -125,10 +125,8 @@ class TestOrchestratorRunManagement:
             # Ensure resume is an AsyncMock (it should be by default with AsyncMock, but be explicit)
             mock_agent_service.resume = AsyncMock()
             mock_agent_service.run = AsyncMock()
-            orchestrator._get_agent_service = MagicMock(return_value=mock_agent_service)
-            # Also set agent_service property for backward compatibility with tests
-            orchestrator.agent_service = mock_agent_service
-            yield orchestrator
+            with patch.object(orchestrator, '_get_agent_service', return_value=mock_agent_service):
+                yield orchestrator
 
     @pytest.mark.asyncio
     async def test_create_run(self, mock_orchestrator: OrchestratorService) -> None:
@@ -145,8 +143,6 @@ class TestOrchestratorRunManagement:
 
         assert result.id == "test-run-1"
         assert result.status == AgentRunStatus.pending
-        # create_run does NOT persist to database - that happens in engine.start_run()
-        # This follows the async-first pattern where API creates run in memory,
         # then passes it to background worker which persists it via engine.start_run()
 
     @pytest.mark.asyncio
@@ -221,7 +217,8 @@ class TestOrchestratorRunManagement:
         await mock_orchestrator.execute_workflow(run)
 
         # Verify service run called with the run object
-        srv_agent_service_run_mock: MagicMock = cast(MagicMock, mock_orchestrator.agent_service.run)
+        agent_service = mock_orchestrator._get_agent_service()
+        srv_agent_service_run_mock: MagicMock = cast(MagicMock, agent_service.run)
         srv_agent_service_run_mock.assert_called_once()
         assert srv_agent_service_run_mock.call_args[1]["run"].id == "run-1"
 
@@ -233,7 +230,8 @@ class TestOrchestratorRunManagement:
         )
 
         # Simulate failure in agent service
-        srv_agent_service_run_mock: MagicMock = cast(MagicMock, mock_orchestrator.agent_service.run)
+        agent_service = mock_orchestrator._get_agent_service()
+        srv_agent_service_run_mock: MagicMock = cast(MagicMock, agent_service.run)
         srv_agent_service_run_mock.side_effect = Exception("Workflow failed")
 
         await mock_orchestrator.execute_workflow(run)
@@ -258,7 +256,8 @@ class TestOrchestratorRunManagement:
         approval_id = "app-1"
         error_msg = "Resume failed"
 
-        srv_agent_service_resume_mock: MagicMock = cast(MagicMock, mock_orchestrator.agent_service.resume)
+        agent_service = mock_orchestrator._get_agent_service()
+        srv_agent_service_resume_mock: MagicMock = cast(MagicMock, agent_service.resume)
         srv_agent_service_resume_mock.side_effect = Exception(error_msg)
 
         # Action
@@ -365,9 +364,8 @@ class TestOrchestratorApprovalManagement:
             mock_agent_service = AsyncMock()
             mock_agent_service.resume = AsyncMock()
             mock_agent_service.run = AsyncMock()
-            orchestrator._get_agent_service = MagicMock(return_value=mock_agent_service)
-            orchestrator.agent_service = mock_agent_service
-            yield orchestrator
+            with patch.object(orchestrator, '_get_agent_service', return_value=mock_agent_service):
+                yield orchestrator
 
     @pytest.mark.asyncio
     async def test_get_pending_approvals(self, mock_orchestrator: OrchestratorService) -> None:
@@ -448,7 +446,8 @@ class TestOrchestratorApprovalManagement:
         mock_get_agent_service.assert_called()
         
         # Verify resume was called on the returned mock agent service
-        srv_agent_service_resume_mock: MagicMock = cast(MagicMock, mock_orchestrator.agent_service.resume)
+        agent_service = mock_orchestrator._get_agent_service()
+        srv_agent_service_resume_mock: MagicMock = cast(MagicMock, agent_service.resume)
         srv_agent_service_resume_mock.assert_called_once_with(run_id="run-1", approval_id="approval-1")
 
     @pytest.mark.asyncio

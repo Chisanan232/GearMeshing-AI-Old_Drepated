@@ -64,7 +64,7 @@ async def test_router_routes_to_registered_role() -> None:
     reg = AgentRegistry()
     async def async_factory(_run):
         return _Svc("dev")
-    reg.register("dev", async_factory)  # type: ignore[arg-type, return-value]
+    reg.register("dev", async_factory)
 
     router = Router(registry=reg, default_role="planner")
     svc = await router.route(run=AgentRun(role="dev", objective="x"))
@@ -77,7 +77,7 @@ async def test_router_defaults_when_role_is_blank() -> None:
     reg = AgentRegistry()
     async def async_factory(_run):
         return _Svc("planner")
-    reg.register("planner", async_factory)  # type: ignore[arg-type, return-value]
+    reg.register("planner", async_factory)
 
     router = Router(registry=reg, default_role="planner")
     svc = await router.route(run=AgentRun(role="", objective="x"))
@@ -92,8 +92,8 @@ async def test_router_intent_routing_selects_dev_when_enabled() -> None:
         return _Svc("planner")
     async def async_dev(_run):
         return _Svc("dev")
-    reg.register("planner", async_planner)  # type: ignore[arg-type, return-value]
-    reg.register("dev", async_dev)  # type: ignore[arg-type, return-value]
+    reg.register("planner", async_planner)
+    reg.register("dev", async_dev)
 
     router = Router(registry=reg, default_role="planner", enable_intent_routing=True)
     svc = await router.route(run=AgentRun(role="", objective="Fix bug in payment flow"))
@@ -106,7 +106,7 @@ async def test_router_intent_routing_falls_back_when_inferred_role_missing() -> 
     reg = AgentRegistry()
     async def async_factory(_run):
         return _Svc("planner")
-    reg.register("planner", async_factory)  # type: ignore[arg-type, return-value]
+    reg.register("planner", async_factory)
 
     router = Router(registry=reg, default_role="planner", enable_intent_routing=True)
     svc = await router.route(run=AgentRun(role="", objective="Investigate incident and monitor metrics"))
@@ -137,7 +137,7 @@ async def test_router_route_branching(
     for r in registered:
         async def async_factory(_run, _r=r):
             return _Svc(_r)
-        reg.register(r, async_factory)  # type: ignore[arg-type, misc]
+        reg.register(r, async_factory)
 
     router = Router(registry=reg, default_role="planner", enable_intent_routing=enable_intent)
     svc = await router.route(run=AgentRun(role=run_role, objective=objective))
@@ -150,7 +150,7 @@ async def test_router_route_raises_when_default_role_not_registered() -> None:
     reg = AgentRegistry()
     async def async_factory(_run):
         return _Svc("dev")
-    reg.register("dev", async_factory)  # type: ignore[arg-type, return-value]
+    reg.register("dev", async_factory)
     router = Router(registry=reg, default_role="planner", enable_intent_routing=True)
 
     with pytest.raises(KeyError, match="unknown role"):
