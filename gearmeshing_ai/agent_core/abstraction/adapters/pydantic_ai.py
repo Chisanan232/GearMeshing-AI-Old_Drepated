@@ -35,11 +35,53 @@ class PydanticAIAgent(AIAgentBase):
         self._agent = None
         self._model = None
 
+    def build_init_kwargs(self) -> Dict[str, Any]:
+        """Build Pydantic AI-specific initialization kwargs.
+
+        Constructs the kwargs dictionary for the Pydantic AI Agent constructor
+        based on the agent configuration.
+
+        Returns:
+            Dictionary of kwargs for Agent constructor
+
+        Raises:
+            ValueError: If required parameters are missing
+        """
+        kwargs: Dict[str, Any] = {
+            "model": self._config.model,
+        }
+
+        # Add system prompt if provided
+        if self._config.system_prompt:
+            kwargs["system_prompt"] = self._config.system_prompt
+
+        # Build model settings from config
+        model_settings: Dict[str, Any] = {}
+
+        if self._config.temperature is not None:
+            model_settings["temperature"] = self._config.temperature
+
+        if self._config.max_tokens is not None:
+            model_settings["max_tokens"] = self._config.max_tokens
+
+        # Add framework-specific settings from metadata
+        if self._config.metadata:
+            model_settings.update(self._config.metadata)
+
+        if model_settings:
+            kwargs["model_settings"] = model_settings
+
+        logger.debug(
+            f"Built initialization kwargs for {self._config.name}: {list(kwargs.keys())}"
+        )
+
+        return kwargs
+
     async def initialize(self) -> None:
         """Initialize the Pydantic AI agent.
 
-        This method sets up the Pydantic AI agent with the configured model
-        and system prompt.
+        This method sets up the Pydantic AI agent using the initialization kwargs
+        built from the agent configuration.
 
         Raises:
             RuntimeError: If initialization fails
@@ -52,22 +94,15 @@ class PydanticAIAgent(AIAgentBase):
                 f"with model {self._config.model}"
             )
 
-            # Create the agent with system prompt
-            self._agent = Agent(
-                model=self._config.model,
-                system_prompt=self._config.system_prompt or "",
+            # Build initialization kwargs from config
+            init_kwargs = self.build_init_kwargs()
+
+            logger.debug(
+                f"Using initialization kwargs for {self._config.name}: {init_kwargs}"
             )
 
-            # Configure agent parameters
-            if self._config.temperature is not None:
-                self._agent.model_settings = {
-                    "temperature": self._config.temperature
-                }
-
-            if self._config.max_tokens is not None:
-                if self._agent.model_settings is None:
-                    self._agent.model_settings = {}
-                self._agent.model_settings["max_tokens"] = self._config.max_tokens
+            # Create the agent with built kwargs
+            self._agent = Agent(**init_kwargs)
 
             self._initialized = True
             logger.debug(f"Pydantic AI agent initialized: {self._config.name}")
