@@ -39,6 +39,7 @@ checkpointer_pool:
     We use psycopg_pool directly as required by langgraph-checkpoint-postgres.
 """
 from psycopg_pool import AsyncConnectionPool
+
 # Convert sqlalchemy URL to psycopg URL (remove +asyncpg if present)
 # sqlalchemy: postgresql+asyncpg://user:pass@host/db
 # psycopg: postgresql://user:pass@host/db
@@ -63,7 +64,7 @@ async def init_db():
 
     Creates all tables defined in the authoritative agent_core ORM metadata.
     NOTE: In production, Alembic migrations should be used instead of this function.
-    
+
     This function is now a no-op since Alembic migrations handle table creation.
     The db-migrate service runs migrations before the application starts.
     """
@@ -71,4 +72,3 @@ async def init_db():
     # This function is kept for backward compatibility but does nothing.
     # Attempting to call create_all() here would fail with "CREATE INDEX CONCURRENTLY
     # cannot run inside a transaction block" since Alembic already created indexes.
-    pass

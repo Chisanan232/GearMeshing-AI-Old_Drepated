@@ -58,10 +58,12 @@ class TestLifespanStartup:
 
         app = FastAPI()
 
-        with patch("gearmeshing_ai.server.main.init_db", new_callable=AsyncMock) as mock_init_db, \
-             patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool, \
-             patch("gearmeshing_ai.server.main.AsyncPostgresSaver") as mock_saver:
-            
+        with (
+            patch("gearmeshing_ai.server.main.init_db", new_callable=AsyncMock) as mock_init_db,
+            patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool,
+            patch("gearmeshing_ai.server.main.AsyncPostgresSaver") as mock_saver,
+        ):
+
             # Setup pool.connection() async context manager
             mock_conn = AsyncMock()
             mock_conn.set_autocommit = AsyncMock()
@@ -69,11 +71,11 @@ class TestLifespanStartup:
             mock_pool.connection.return_value = mock_conn_ctx
             mock_conn_ctx.__aenter__ = AsyncMock(return_value=mock_conn)
             mock_conn_ctx.__aexit__ = AsyncMock(return_value=None)
-            
+
             # Setup pool.open()
             mock_pool.open = AsyncMock()
             mock_pool.close = AsyncMock()
-            
+
             # Setup saver.setup()
             mock_saver.return_value.setup = AsyncMock()
 
@@ -91,11 +93,13 @@ class TestLifespanStartup:
 
         app = FastAPI()
 
-        with patch("gearmeshing_ai.server.main.init_db", new_callable=AsyncMock) as mock_init_db, \
-             patch("gearmeshing_ai.server.main.logger") as mock_logger, \
-             patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool, \
-             patch("gearmeshing_ai.server.main.AsyncPostgresSaver") as mock_saver:
-            
+        with (
+            patch("gearmeshing_ai.server.main.init_db", new_callable=AsyncMock) as mock_init_db,
+            patch("gearmeshing_ai.server.main.logger") as mock_logger,
+            patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool,
+            patch("gearmeshing_ai.server.main.AsyncPostgresSaver") as mock_saver,
+        ):
+
             # Setup pool.connection() async context manager
             mock_conn = AsyncMock()
             mock_conn.set_autocommit = AsyncMock()
@@ -103,7 +107,7 @@ class TestLifespanStartup:
             mock_pool.connection.return_value = mock_conn_ctx
             mock_conn_ctx.__aenter__ = AsyncMock(return_value=mock_conn)
             mock_conn_ctx.__aexit__ = AsyncMock(return_value=None)
-            
+
             mock_pool.open = AsyncMock()
             mock_pool.close = AsyncMock()
             mock_saver.return_value.setup = AsyncMock()
@@ -125,10 +129,12 @@ class TestLifespanStartup:
 
         app = FastAPI()
 
-        with patch("gearmeshing_ai.server.main.init_db", new_callable=AsyncMock) as mock_init_db, \
-             patch("gearmeshing_ai.server.main.logger") as mock_logger, \
-             patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool:
-            
+        with (
+            patch("gearmeshing_ai.server.main.init_db", new_callable=AsyncMock) as mock_init_db,
+            patch("gearmeshing_ai.server.main.logger") as mock_logger,
+            patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool,
+        ):
+
             mock_init_db.side_effect = Exception("Database connection failed")
             mock_pool.open = AsyncMock()
             mock_pool.close = AsyncMock()
@@ -149,11 +155,13 @@ class TestLifespanStartup:
 
         app = FastAPI()
 
-        with patch("gearmeshing_ai.server.main.init_db", new_callable=AsyncMock) as mock_init_db, \
-             patch("gearmeshing_ai.server.main.logger") as mock_logger, \
-             patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool, \
-             patch("gearmeshing_ai.server.main.AsyncPostgresSaver") as mock_saver:
-            
+        with (
+            patch("gearmeshing_ai.server.main.init_db", new_callable=AsyncMock) as mock_init_db,
+            patch("gearmeshing_ai.server.main.logger") as mock_logger,
+            patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool,
+            patch("gearmeshing_ai.server.main.AsyncPostgresSaver") as mock_saver,
+        ):
+
             # Setup pool.connection() async context manager
             mock_conn = AsyncMock()
             mock_conn.set_autocommit = AsyncMock()
@@ -161,7 +169,7 @@ class TestLifespanStartup:
             mock_pool.connection.return_value = mock_conn_ctx
             mock_conn_ctx.__aenter__ = AsyncMock(return_value=mock_conn)
             mock_conn_ctx.__aexit__ = AsyncMock(return_value=None)
-            
+
             mock_pool.open = AsyncMock()
             mock_pool.close = AsyncMock()
             mock_saver.return_value.setup = AsyncMock()
@@ -170,9 +178,7 @@ class TestLifespanStartup:
                 pass
 
             # Verify shutdown log was called (after yield)
-            shutdown_logs = [
-                call[0][0] for call in mock_logger.info.call_args_list if "Shutting down" in call[0][0]
-            ]
+            shutdown_logs = [call[0][0] for call in mock_logger.info.call_args_list if "Shutting down" in call[0][0]]
             assert len(shutdown_logs) > 0
             mock_pool.close.assert_called_once()
 
@@ -184,10 +190,12 @@ class TestLifespanStartup:
 
         app = FastAPI()
 
-        with patch("gearmeshing_ai.server.main.init_db", new_callable=AsyncMock) as mock_init_db, \
-             patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool, \
-             patch("gearmeshing_ai.server.main.AsyncPostgresSaver") as mock_saver:
-            
+        with (
+            patch("gearmeshing_ai.server.main.init_db", new_callable=AsyncMock) as mock_init_db,
+            patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool,
+            patch("gearmeshing_ai.server.main.AsyncPostgresSaver") as mock_saver,
+        ):
+
             # Setup pool.connection() async context manager
             mock_conn = AsyncMock()
             mock_conn.set_autocommit = AsyncMock()
@@ -195,7 +203,7 @@ class TestLifespanStartup:
             mock_pool.connection.return_value = mock_conn_ctx
             mock_conn_ctx.__aenter__ = AsyncMock(return_value=mock_conn)
             mock_conn_ctx.__aexit__ = AsyncMock(return_value=None)
-            
+
             mock_pool.open = AsyncMock()
             mock_pool.close = AsyncMock()
             mock_saver.return_value.setup = AsyncMock()

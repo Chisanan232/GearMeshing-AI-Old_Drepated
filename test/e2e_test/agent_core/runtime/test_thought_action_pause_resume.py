@@ -39,7 +39,7 @@ async def test_mixed_thought_then_action_pause_and_resume_round_trip() -> None:
         session_factory = create_sessionmaker(engine)
 
         repos = build_sql_repos(session_factory=session_factory)
-        
+
         async with AsyncConnectionPool(conninfo=pool_url, min_size=1, max_size=1, kwargs={"autocommit": True}) as pool:
             checkpointer = AsyncPostgresSaver(pool)
             await checkpointer.setup()
@@ -71,14 +71,14 @@ async def test_mixed_thought_then_action_pause_and_resume_round_trip() -> None:
             # Retrieve checkpoint from the actual saver, not the old repo
             cp = await checkpointer.aget_tuple(config={"configurable": {"thread_id": run.id}})
             assert cp is not None
-            
+
             # AsyncPostgresSaver returns a CheckpointTuple, state is in cp.checkpoint
             state = cp.checkpoint
-                
+
             # LangGraph stores state in channel_values
             if "channel_values" in state:
                 state = state["channel_values"]
-                
+
             approval_id = state.get("awaiting_approval_id")
             assert approval_id
 

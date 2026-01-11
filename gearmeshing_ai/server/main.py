@@ -6,11 +6,9 @@ and includes all API routers. It serves as the root of the web server.
 """
 
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.staticfiles import StaticFiles
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from gearmeshing_ai.core.logging_config import get_logger, setup_logging
@@ -48,10 +46,10 @@ async def lifespan(app: FastAPI):
         logger.info("Starting up GearMeshing-AI Server...")
         await init_db()
         logger.info("Database initialized successfully")
-        
+
         # Initialize LangGraph Checkpointer Pool
         await checkpointer_pool.open()
-        
+
         # Ensure Checkpointer Tables exist
         # Note: AsyncPostgresSaver.setup() creates indexes with CREATE INDEX CONCURRENTLY,
         # which requires autocommit mode. The psycopg_pool connection context manager
@@ -62,7 +60,7 @@ async def lifespan(app: FastAPI):
             checkpointer = AsyncPostgresSaver(conn)
             await checkpointer.setup()
         logger.info("LangGraph checkpointer initialized successfully")
-        
+
     except Exception as e:
         logger.error(f"Initialization failed: {e}", exc_info=True)
 

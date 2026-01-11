@@ -4,6 +4,8 @@ import asyncio
 from datetime import datetime, timezone
 from typing import AsyncGenerator, Awaitable, Callable, Dict, List, Optional, Union
 
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+
 from gearmeshing_ai.agent_core.factory import build_default_registry
 from gearmeshing_ai.agent_core.planning.planner import StructuredPlanner
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
@@ -36,7 +38,6 @@ from gearmeshing_ai.server.schemas import (
     ThinkingOutputData,
     ToolExecutionData,
 )
-from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 logger = get_logger(__name__)
 
@@ -113,14 +114,14 @@ class OrchestratorService:
             policy_repository=self.repos.policies,
             default=default_policy,
         )
-        
+
         self._default_policy = default_policy
 
     @property
     def checkpointer(self) -> AsyncPostgresSaver:
         """
         Lazily create and return the AsyncPostgresSaver.
-        
+
         This is necessary because AsyncPostgresSaver requires an event loop at instantiation,
         but OrchestratorService.__init__() is called from a synchronous dependency injection context.
         The checkpointer is only created when first accessed in an async context.
@@ -167,7 +168,7 @@ class OrchestratorService:
     async def create_run(self, run: AgentRun) -> AgentRun:
         """
         Create a new agent run in PENDING status (in-memory only).
-        
+
         Note: The run is NOT persisted to the database here. Persistence happens
         in engine.start_run() when the workflow execution begins. This follows the
         async-first pattern where the API layer creates the run object in memory,
@@ -183,7 +184,7 @@ class OrchestratorService:
     async def execute_workflow(self, run: AgentRun) -> None:
         """
         Execute the agent workflow in the background.
-        
+
         The run object is passed directly from the API layer, avoiding the need to
         fetch it from the database. The engine.start_run() will persist the run
         to the database when execution begins.
@@ -213,10 +214,10 @@ class OrchestratorService:
         """
         try:
             logger.info(f"Resuming execution for run {run_id} (approval {approval_id})")
-            
+
             # Update status to running to reflect active processing
             await self.repos.runs.update_status(run_id, status=AgentRunStatus.running.value)
-            
+
             await self._get_agent_service().resume(run_id=run_id, approval_id=approval_id)
             logger.info(f"Resume finished for run {run_id}")
         except Exception as e:

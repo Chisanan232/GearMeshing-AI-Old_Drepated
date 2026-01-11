@@ -163,13 +163,16 @@ class TestOrchestratorEventFormatting:
     def orchestrator(self):
         """Create a mock orchestrator with mocked dependencies."""
         from unittest.mock import patch
+
         from gearmeshing_ai.server.services.orchestrator import OrchestratorService
 
-        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"), \
-             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"), \
-             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"), \
-             patch("gearmeshing_ai.server.services.orchestrator.AgentService"), \
-             patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"):
+        with (
+            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"),
+            patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"),
+            patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"),
+            patch("gearmeshing_ai.server.services.orchestrator.AgentService"),
+            patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"),
+        ):
             return OrchestratorService()
 
     def test_format_event_for_chat_operation_success(self, orchestrator):
@@ -379,13 +382,16 @@ class TestStreamEventsWithChatPersistence:
     async def test_stream_events_calls_callback(self):
         """Test that stream_events calls the persistence callback."""
         from unittest.mock import patch
+
         from gearmeshing_ai.server.services.orchestrator import OrchestratorService
 
-        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"), \
-             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"), \
-             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"), \
-             patch("gearmeshing_ai.server.services.orchestrator.AgentService"), \
-             patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"):
+        with (
+            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"),
+            patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"),
+            patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"),
+            patch("gearmeshing_ai.server.services.orchestrator.AgentService"),
+            patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"),
+        ):
             orchestrator = OrchestratorService()
 
         # Mock the repos
@@ -431,13 +437,16 @@ class TestStreamEventsWithChatPersistence:
     async def test_stream_events_without_callback(self):
         """Test that stream_events works without persistence callback."""
         from unittest.mock import patch
+
         from gearmeshing_ai.server.services.orchestrator import OrchestratorService
 
-        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"), \
-             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"), \
-             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"), \
-             patch("gearmeshing_ai.server.services.orchestrator.AgentService"), \
-             patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"):
+        with (
+            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"),
+            patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"),
+            patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"),
+            patch("gearmeshing_ai.server.services.orchestrator.AgentService"),
+            patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"),
+        ):
             orchestrator = OrchestratorService()
 
         # Mock the repos
@@ -477,13 +486,16 @@ class TestStreamEventsWithChatPersistence:
     async def test_stream_events_callback_error_handling(self):
         """Test that callback errors don't break the stream."""
         from unittest.mock import patch
+
         from gearmeshing_ai.server.services.orchestrator import OrchestratorService
 
-        with patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"), \
-             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"), \
-             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"), \
-             patch("gearmeshing_ai.server.services.orchestrator.AgentService"), \
-             patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"):
+        with (
+            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"),
+            patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"),
+            patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"),
+            patch("gearmeshing_ai.server.services.orchestrator.AgentService"),
+            patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool"),
+        ):
             orchestrator = OrchestratorService()
 
         # Mock the repos

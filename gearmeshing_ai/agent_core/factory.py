@@ -84,11 +84,7 @@ def build_agent_registry(
     def _make_factory(_role: str):
         async def _factory(run: AgentRun) -> AgentService:
             # 1. Resolve base config (dynamic or static)
-            cfg = (
-                await policy_provider.get(run)
-                if policy_provider is not None
-                else base_policy_config
-            )
+            cfg = await policy_provider.get(run) if policy_provider is not None else base_policy_config
             cfg = cfg.model_copy(deep=True)
             cfg.autonomy_profile = run.autonomy_profile
 

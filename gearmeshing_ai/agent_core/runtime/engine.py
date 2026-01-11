@@ -34,9 +34,9 @@ continues execution.
 import logging
 from typing import Any, cast
 
+from langchain_core.runnables import RunnableConfig
 from langgraph.errors import NodeInterrupt
 from langgraph.graph import END, StateGraph
-from langchain_core.runnables import RunnableConfig
 from pydantic_ai import Agent as PydanticAIAgent
 
 from ..capabilities.base import CapabilityContext
@@ -160,7 +160,7 @@ class AgentEngine:
             "idx": 0,
             "awaiting_approval_id": None,
         }
-        
+
         # Invoke with thread_id for checkpointing
         config = {"configurable": {"thread_id": run.id}}
         await self._graph.ainvoke(state, config=config)
@@ -194,17 +194,17 @@ class AgentEngine:
         # Resume execution
         # 1. Prepare config
         config = {"configurable": {"thread_id": run_id}}
-        
+
         # 2. Update state to clear approval
         # We need to tell the graph that the approval is done.
         # In our graph, the node 'wait_for_approval' raised NodeInterrupt.
         # LangGraph resumption works by updating the state or just invoking (if just interruption).
         # But we need to clear 'awaiting_approval_id' in the state.
-        
+
         # We use update_state to patch the state.
         # Current state has 'awaiting_approval_id' set. We set it to None.
         # We also set a flag to skip the check in next iteration (if needed, but usually clearing ID is enough).
-        
+
         # Fetch current state to ensure we have a valid checkpoint
         # state_snapshot = await self._graph.aget_state(config)
         # if not state_snapshot.values:
@@ -214,11 +214,11 @@ class AgentEngine:
             config,
             {"awaiting_approval_id": None, "_resume_skip_approval": True},
         )
-        
+
         await self._deps.events.append(
             AgentEvent(run_id=run_id, type=AgentEventType.state_transition, payload={"resume": True})
         )
-        
+
         # 3. Resume execution
         # Passing None as input resumes from the current state (which we just updated)
         await self._graph.ainvoke(None, config=config)
@@ -254,14 +254,14 @@ class AgentEngine:
 
     async def _node_wait_for_approval(self, state: _GraphState) -> _GraphState:
         """Wait for approval node.
-        
+
         This node checks if 'awaiting_approval_id' is set. If so, it raises
         NodeInterrupt to pause execution. Upon resumption (where the ID is cleared),
         it proceeds (returning state to continue to execute node).
         """
         approval_id = state.get("awaiting_approval_id")
         if approval_id:
-             raise NodeInterrupt(f"Approval required: {approval_id}")
+            raise NodeInterrupt(f"Approval required: {approval_id}")
         return state
 
     async def _node_execute_next(self, state: _GraphState, config: RunnableConfig) -> _GraphState:

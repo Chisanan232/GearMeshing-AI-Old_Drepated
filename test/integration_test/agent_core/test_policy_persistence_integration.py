@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -57,7 +57,9 @@ class TestDatabasePolicyProvider:
         assert provider.default is default_policy
 
     @pytest.mark.asyncio
-    async def test_database_policy_provider_returns_default_when_no_tenant(self, mock_policy_repository, default_policy):
+    async def test_database_policy_provider_returns_default_when_no_tenant(
+        self, mock_policy_repository, default_policy
+    ):
         """Test provider returns default policy when run has no tenant_id."""
         provider = DatabasePolicyProvider(
             policy_repository=mock_policy_repository,

@@ -85,8 +85,10 @@ class ChatMessage(ChatMessageBase, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     role: MessageRole = Field(
-        sa_column=Column(sa.Enum(MessageRole, native_enum=False, values_callable=lambda x: [e.value for e in x]), nullable=False),
-        description="Message sender role (user/assistant/system)"
+        sa_column=Column(
+            sa.Enum(MessageRole, native_enum=False, values_callable=lambda x: [e.value for e in x]), nullable=False
+        ),
+        description="Message sender role (user/assistant/system)",
     )
     created_at: datetime = Field(
         default_factory=datetime.utcnow, sa_column=Column(DateTime, nullable=False), description="Message timestamp"

@@ -20,7 +20,7 @@ from datetime import datetime
 from typing import Sequence, Union
 
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import JSONB, ENUM
+from sqlalchemy.dialects.postgresql import ENUM, JSONB
 
 from alembic import op
 
@@ -189,7 +189,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("session_id", sa.Integer(), nullable=False),
         # Create MessageRole enum type for chat_messages
-        sa.Column("role", ENUM('user', 'assistant', 'system', name='messagerole', create_type=True)),
+        sa.Column("role", ENUM("user", "assistant", "system", name="messagerole", create_type=True)),
         sa.Column("content", sa.String(), nullable=False),
         sa.Column("message_metadata", sa.String(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False),

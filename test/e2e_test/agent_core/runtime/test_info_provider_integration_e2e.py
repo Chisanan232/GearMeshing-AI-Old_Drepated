@@ -398,14 +398,14 @@ async def test_e2e_mcp_call_uses_real_strategy_metadata_for_risk_and_approval_ga
             # should have paused on tool-b approval
             cp = await checkpointer.aget_tuple(config={"configurable": {"thread_id": run.id}})
             assert cp is not None
-            
+
             # AsyncPostgresSaver returns a CheckpointTuple, state is in cp.checkpoint
             cp_state = cp.checkpoint
-                
+
             # LangGraph stores state in channel_values
             if "channel_values" in cp_state:
                 cp_state = cp_state["channel_values"]
-                
+
             approval_id = cp_state.get("awaiting_approval_id")
             assert approval_id
 

@@ -62,8 +62,10 @@ def test_registry_register_and_has_and_get() -> None:
 @pytest.mark.asyncio
 async def test_router_routes_to_registered_role() -> None:
     reg = AgentRegistry()
+
     async def async_factory(_run):
         return _Svc("dev")
+
     reg.register("dev", async_factory)
 
     router = Router(registry=reg, default_role="planner")
@@ -75,8 +77,10 @@ async def test_router_routes_to_registered_role() -> None:
 @pytest.mark.asyncio
 async def test_router_defaults_when_role_is_blank() -> None:
     reg = AgentRegistry()
+
     async def async_factory(_run):
         return _Svc("planner")
+
     reg.register("planner", async_factory)
 
     router = Router(registry=reg, default_role="planner")
@@ -88,10 +92,13 @@ async def test_router_defaults_when_role_is_blank() -> None:
 @pytest.mark.asyncio
 async def test_router_intent_routing_selects_dev_when_enabled() -> None:
     reg = AgentRegistry()
+
     async def async_planner(_run):
         return _Svc("planner")
+
     async def async_dev(_run):
         return _Svc("dev")
+
     reg.register("planner", async_planner)
     reg.register("dev", async_dev)
 
@@ -104,8 +111,10 @@ async def test_router_intent_routing_selects_dev_when_enabled() -> None:
 @pytest.mark.asyncio
 async def test_router_intent_routing_falls_back_when_inferred_role_missing() -> None:
     reg = AgentRegistry()
+
     async def async_factory(_run):
         return _Svc("planner")
+
     reg.register("planner", async_factory)
 
     router = Router(registry=reg, default_role="planner", enable_intent_routing=True)
@@ -135,8 +144,10 @@ async def test_router_route_branching(
 ) -> None:
     reg = AgentRegistry()
     for r in registered:
+
         async def async_factory(_run, _r=r):
             return _Svc(_r)
+
         reg.register(r, async_factory)
 
     router = Router(registry=reg, default_role="planner", enable_intent_routing=enable_intent)
@@ -148,8 +159,10 @@ async def test_router_route_branching(
 @pytest.mark.asyncio
 async def test_router_route_raises_when_default_role_not_registered() -> None:
     reg = AgentRegistry()
+
     async def async_factory(_run):
         return _Svc("dev")
+
     reg.register("dev", async_factory)
     router = Router(registry=reg, default_role="planner", enable_intent_routing=True)
 

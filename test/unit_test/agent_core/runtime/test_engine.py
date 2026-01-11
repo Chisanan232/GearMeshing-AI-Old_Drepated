@@ -379,6 +379,7 @@ from langgraph.errors import NodeInterrupt
 
 # ...
 
+
 @pytest.mark.asyncio
 async def test_node_execute_next_requires_approval_creates_checkpoint_and_pauses(repos, registry) -> None:
     reg, _cap = registry
@@ -402,18 +403,18 @@ async def test_node_execute_next_requires_approval_creates_checkpoint_and_pauses
 
     plan = [{"kind": "action", "capability": CapabilityName.summarize.value, "args": {"text": "hello"}}]
     state: _GraphState = {"run_id": run.id, "plan": plan, "idx": 0, "awaiting_approval_id": None}
-    
+
     # Execute next step - should detect approval needed and return state update
     out = await engine_runtime._node_execute_next(state, config={})
-    
+
     # Verify state updated with approval ID
     assert out.get("awaiting_approval_id") is not None
-    
+
     # Verify approval created
     assert repos["runs"].status_updates[-1] == (run.id, AgentRunStatus.paused_for_approval.value)
     assert repos["approvals"].created
     assert any(e.type == AgentEventType.approval_requested for e in repos["events"].events)
-    
+
     # Note: Checkpoint is saved by LangGraph runtime (checkpointer) via the graph execution loop.
 
 
@@ -429,7 +430,6 @@ async def test_node_wait_for_approval_does_nothing_if_no_id(engine_runtime: Agen
     state: _GraphState = {"run_id": "r", "plan": [], "idx": 0, "awaiting_approval_id": None}
     out = await engine_runtime._node_wait_for_approval(state)
     assert out == state
-
 
 
 @pytest.mark.asyncio
@@ -525,16 +525,17 @@ async def test_resume_run_validation_errors(repos, registry) -> None:
         await engine_runtime.resume_run(run_id="r", approval_id=approval.id)
 
     await repos["approvals"].resolve(approval.id, decision=ApprovalDecision.approved.value, decided_by="t")
-    
+
     # Mock graph to raise error during update_state (simulating no checkpoint found)
     class _MockGraph:
         async def aupdate_state(self, *args, **kwargs):
             raise ValueError("no checkpoint")
+
         async def ainvoke(self, *args, **kwargs):
             pass
-            
+
     engine_runtime._graph = _MockGraph()
-    
+
     with pytest.raises(ValueError, match="no checkpoint"):
         await engine_runtime.resume_run(run_id="r", approval_id=approval.id)
 
@@ -593,19 +594,19 @@ async def test_resume_run_happy_path_restores_checkpoint_and_invokes_graph(repos
 
     assert len(graph_spy.invocations) == 1
     state_arg, config_arg = graph_spy.invocations[0]
-    
+
     # Resume calls ainvoke(None, config=...)
     assert state_arg is None
     assert config_arg is not None
     assert config_arg["configurable"]["thread_id"] == run.id
-    
+
     # Verify state update was called on the graph
     assert len(graph_spy.state_updates) == 1
     config_update, values_update = graph_spy.state_updates[0]
     assert config_update["configurable"]["thread_id"] == run.id
     assert values_update["awaiting_approval_id"] is None
     assert values_update["_resume_skip_approval"] is True
-    
+
     assert any(e.type == AgentEventType.state_transition for e in repos["events"].events)
     assert any(e.type == AgentEventType.approval_resolved for e in repos["events"].events)
     resolved = [e for e in repos["events"].events if e.type == AgentEventType.approval_resolved][0]
