@@ -24,6 +24,15 @@ def mock_settings():
     """Mock settings with test database URL."""
     with patch("gearmeshing_ai.server.core.database.settings") as mock:
         mock.database_url = TEST_DATABASE_URL
+        mock.enable_database = True
+        yield mock
+
+
+@pytest.fixture(scope="function")
+def mock_settings_no_db():
+    """Mock settings with database disabled."""
+    with patch("gearmeshing_ai.server.main.settings") as mock:
+        mock.enable_database = False
         yield mock
 
 
@@ -50,7 +59,7 @@ async def test_engine_fixture():
 class TestLifespanStartup:
     """Test application startup lifespan events."""
 
-    async def test_lifespan_startup_initializes_database(self):
+    async def test_lifespan_startup_initializes_database(self, mock_settings):
         """Test that lifespan startup calls init_db and checkpointer setup."""
         from fastapi import FastAPI
 
@@ -59,6 +68,7 @@ class TestLifespanStartup:
         app = FastAPI()
 
         with (
+            patch("gearmeshing_ai.server.main.settings", mock_settings),
             patch("gearmeshing_ai.server.main.init_db", new_callable=AsyncMock) as mock_init_db,
             patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool,
             patch("gearmeshing_ai.server.main.AsyncPostgresSaver") as mock_saver,
@@ -85,7 +95,7 @@ class TestLifespanStartup:
                 mock_conn.set_autocommit.assert_called_once_with(True)
                 mock_saver.return_value.setup.assert_called_once()
 
-    async def test_lifespan_startup_logs_success(self):
+    async def test_lifespan_startup_logs_success(self, mock_settings):
         """Test that lifespan startup logs success message."""
         from fastapi import FastAPI
 
@@ -94,6 +104,7 @@ class TestLifespanStartup:
         app = FastAPI()
 
         with (
+            patch("gearmeshing_ai.server.main.settings", mock_settings),
             patch("gearmeshing_ai.server.main.init_db", new_callable=AsyncMock) as mock_init_db,
             patch("gearmeshing_ai.server.main.logger") as mock_logger,
             patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool,
@@ -121,7 +132,7 @@ class TestLifespanStartup:
             assert any("Starting up" in call for call in calls)
             assert any("Database initialized successfully" in call for call in calls)
 
-    async def test_lifespan_startup_handles_init_db_exception(self):
+    async def test_lifespan_startup_handles_init_db_exception(self, mock_settings):
         """Test that lifespan startup handles init_db exceptions gracefully."""
         from fastapi import FastAPI
 
@@ -130,6 +141,7 @@ class TestLifespanStartup:
         app = FastAPI()
 
         with (
+            patch("gearmeshing_ai.server.main.settings", mock_settings),
             patch("gearmeshing_ai.server.main.init_db", new_callable=AsyncMock) as mock_init_db,
             patch("gearmeshing_ai.server.main.logger") as mock_logger,
             patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool,
@@ -139,15 +151,17 @@ class TestLifespanStartup:
             mock_pool.open = AsyncMock()
             mock_pool.close = AsyncMock()
 
-            async with lifespan(app):
-                pass
+            # Verify exception is re-raised after logging
+            with pytest.raises(Exception, match="Database connection failed"):
+                async with lifespan(app):
+                    pass
 
             # Verify error was logged
             mock_logger.error.assert_called_once()
             error_call = mock_logger.error.call_args[0][0]
             assert "Initialization failed" in error_call
 
-    async def test_lifespan_shutdown_logs_message(self):
+    async def test_lifespan_shutdown_logs_message(self, mock_settings):
         """Test that lifespan shutdown logs shutdown message."""
         from fastapi import FastAPI
 
@@ -156,6 +170,7 @@ class TestLifespanStartup:
         app = FastAPI()
 
         with (
+            patch("gearmeshing_ai.server.main.settings", mock_settings),
             patch("gearmeshing_ai.server.main.init_db", new_callable=AsyncMock) as mock_init_db,
             patch("gearmeshing_ai.server.main.logger") as mock_logger,
             patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool,
@@ -182,7 +197,7 @@ class TestLifespanStartup:
             assert len(shutdown_logs) > 0
             mock_pool.close.assert_called_once()
 
-    async def test_lifespan_context_manager_protocol(self):
+    async def test_lifespan_context_manager_protocol(self, mock_settings):
         """Test that lifespan properly implements async context manager protocol."""
         from fastapi import FastAPI
 
@@ -191,6 +206,7 @@ class TestLifespanStartup:
         app = FastAPI()
 
         with (
+            patch("gearmeshing_ai.server.main.settings", mock_settings),
             patch("gearmeshing_ai.server.main.init_db", new_callable=AsyncMock) as mock_init_db,
             patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool,
             patch("gearmeshing_ai.server.main.AsyncPostgresSaver") as mock_saver,
@@ -306,6 +322,59 @@ class TestDatabaseInitialization:
         session = async_session_maker()
         assert hasattr(session, "__aenter__")
         assert hasattr(session, "__aexit__")
+
+
+class TestLifespanStandaloneMode:
+    """Test lifespan in standalone mode without database."""
+
+    async def test_lifespan_standalone_mode_skips_database(self, mock_settings_no_db):
+        """Test that lifespan skips database initialization in standalone mode."""
+        from fastapi import FastAPI
+
+        from gearmeshing_ai.server.main import lifespan
+
+        app = FastAPI()
+
+        with (
+            patch("gearmeshing_ai.server.main.settings", mock_settings_no_db),
+            patch("gearmeshing_ai.server.main.init_db", new_callable=AsyncMock) as mock_init_db,
+            patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool,
+            patch("gearmeshing_ai.server.main.logger") as mock_logger,
+        ):
+            mock_pool.close = AsyncMock()
+
+            async with lifespan(app):
+                pass
+
+            # Verify database initialization was NOT called
+            mock_init_db.assert_not_called()
+            mock_pool.close.assert_not_called()
+
+            # Verify standalone mode log message
+            calls = [call[0][0] for call in mock_logger.info.call_args_list]
+            assert any("standalone mode" in call.lower() for call in calls)
+
+    async def test_lifespan_standalone_mode_logs_message(self, mock_settings_no_db):
+        """Test that lifespan logs standalone mode message."""
+        from fastapi import FastAPI
+
+        from gearmeshing_ai.server.main import lifespan
+
+        app = FastAPI()
+
+        with (
+            patch("gearmeshing_ai.server.main.settings", mock_settings_no_db),
+            patch("gearmeshing_ai.server.main.logger") as mock_logger,
+            patch("gearmeshing_ai.server.main.checkpointer_pool") as mock_pool,
+        ):
+            mock_pool.close = AsyncMock()
+
+            async with lifespan(app):
+                pass
+
+            # Verify standalone mode log message
+            calls = [call[0][0] for call in mock_logger.info.call_args_list]
+            assert any("Running in standalone mode" in call for call in calls)
 
 
 class TestApplicationStartup:
