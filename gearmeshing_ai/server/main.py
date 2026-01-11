@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
     # Startup
     try:
         logger.info("Starting up GearMeshing-AI Server...")
-        
+
         if settings.enable_database:
             logger.info("Database connectivity enabled. Initializing database...")
             await init_db()
