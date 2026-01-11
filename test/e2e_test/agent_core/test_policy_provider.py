@@ -78,7 +78,8 @@ class TestPolicyProviderEndToEndFlow:
         deps.mcp_call = None
         return deps
 
-    def test_build_engine_with_policy_from_provider(self, default_policy, mock_engine_deps):
+    @pytest.mark.asyncio
+    async def test_build_engine_with_policy_from_provider(self, default_policy, mock_engine_deps):
         """Test building engine with policy loaded from provider."""
         provider = StaticPolicyProvider(default=default_policy)
 
@@ -90,7 +91,7 @@ class TestPolicyProviderEndToEndFlow:
         )
 
         # Load policy from provider
-        policy_config = provider.get(run)
+        policy_config = await provider.get(run)
 
         # Build engine with loaded policy
         engine = build_engine(policy_config=policy_config, deps=mock_engine_deps)
@@ -99,7 +100,8 @@ class TestPolicyProviderEndToEndFlow:
         assert isinstance(engine._policy, GlobalPolicy)
         assert engine._policy.config.version == "policy-v1"
 
-    def test_engine_policy_decision_flow(self, default_policy, mock_engine_deps):
+    @pytest.mark.asyncio
+    async def test_engine_policy_decision_flow(self, default_policy, mock_engine_deps):
         """Test engine uses policy provider for decision making."""
         restricted_policy = default_policy.model_copy(deep=True)
         restricted_policy.tool_policy.allowed_capabilities = {CapabilityName.web_search}
@@ -113,7 +115,7 @@ class TestPolicyProviderEndToEndFlow:
             status=AgentRunStatus.running,
         )
 
-        policy_config = provider.get(run)
+        policy_config = await provider.get(run)
         engine = build_engine(policy_config=policy_config, deps=mock_engine_deps)
 
         # Test that engine's policy blocks shell_exec
@@ -124,7 +126,8 @@ class TestPolicyProviderEndToEndFlow:
 
         assert decision.block is True
 
-    def test_agent_service_full_flow_with_policy_provider(self, default_policy, mock_engine_deps):
+    @pytest.mark.asyncio
+    async def test_agent_service_full_flow_with_policy_provider(self, default_policy, mock_engine_deps):
         """Test AgentService full flow with policy provider."""
         acme_policy = default_policy.model_copy(deep=True)
         acme_policy.autonomy_profile = AutonomyProfile.strict
@@ -157,7 +160,7 @@ class TestPolicyProviderEndToEndFlow:
             tenant_id="acme-corp",
         )
 
-        policy_config = service._policy_for_run(acme_run)
+        policy_config = await service._policy_for_run(acme_run)
 
         # The run's autonomy_profile (balanced) overrides the tenant policy's (strict)
         # This is by design - the run-specific autonomy profile takes precedence
@@ -165,7 +168,8 @@ class TestPolicyProviderEndToEndFlow:
         # But the tenant-specific tool policy should be applied
         assert policy_config.tool_policy.allowed_capabilities == {CapabilityName.web_search}
 
-    def test_policy_provider_with_multiple_tenants_isolation(self, default_policy):
+    @pytest.mark.asyncio
+    async def test_policy_provider_with_multiple_tenants_isolation(self, default_policy):
         """Test policy provider maintains isolation between tenants."""
         acme_policy = default_policy.model_copy(deep=True)
         acme_policy.autonomy_profile = AutonomyProfile.strict
@@ -202,8 +206,8 @@ class TestPolicyProviderEndToEndFlow:
             tenant_id="globex-corp",
         )
 
-        acme_config = provider.get(acme_run)
-        globex_config = provider.get(globex_run)
+        acme_config = await provider.get(acme_run)
+        globex_config = await provider.get(globex_run)
 
         # Verify isolation
         assert acme_config.autonomy_profile == AutonomyProfile.strict
@@ -211,7 +215,8 @@ class TestPolicyProviderEndToEndFlow:
         assert CapabilityName.shell_exec not in (acme_config.tool_policy.allowed_capabilities or set())
         assert CapabilityName.shell_exec in (globex_config.tool_policy.allowed_capabilities or set())
 
-    def test_policy_provider_fallback_chain(self, default_policy):
+    @pytest.mark.asyncio
+    async def test_policy_provider_fallback_chain(self, default_policy):
         """Test policy provider fallback chain works correctly."""
         workspace_policy = default_policy.model_copy(deep=True)
         workspace_policy.autonomy_profile = AutonomyProfile.balanced
@@ -232,7 +237,7 @@ class TestPolicyProviderEndToEndFlow:
             objective="Test",
             status=AgentRunStatus.running,
         )
-        config1 = provider.get(run1)
+        config1 = await provider.get(run1)
         assert config1.autonomy_profile == AutonomyProfile.balanced
 
         # Test 2: Workspace but no tenant -> workspace
@@ -243,7 +248,7 @@ class TestPolicyProviderEndToEndFlow:
             status=AgentRunStatus.running,
             workspace_id="workspace-1",
         )
-        config2 = provider.get(run2)
+        config2 = await provider.get(run2)
         assert config2.autonomy_profile == AutonomyProfile.balanced
 
         # Test 3: Both tenant and workspace -> tenant takes precedence
@@ -255,7 +260,7 @@ class TestPolicyProviderEndToEndFlow:
             tenant_id="acme-corp",
             workspace_id="workspace-1",
         )
-        config3 = provider.get(run3)
+        config3 = await provider.get(run3)
         assert config3.autonomy_profile == AutonomyProfile.strict
 
 
@@ -320,7 +325,8 @@ class TestDatabasePolicyProviderIntegration:
         assert policy_config.autonomy_profile == AutonomyProfile.strict
         mock_policy_repository.get.assert_called_once_with("acme-corp")
 
-    def test_database_policy_provider_with_engine(self, default_policy, mock_policy_repository):
+    @pytest.mark.asyncio
+    async def test_database_policy_provider_with_engine(self, default_policy, mock_policy_repository):
         """Test DatabasePolicyProvider works with engine building."""
         tenant_policy_dict = {
             "version": "policy-v1",
@@ -346,7 +352,7 @@ class TestDatabasePolicyProviderIntegration:
             "budget_policy": {"max_total_tokens": None},
         }
 
-        mock_policy_repository.get = MagicMock(return_value=tenant_policy_dict)
+        mock_policy_repository.get = AsyncMock(return_value=tenant_policy_dict)
 
         provider = DatabasePolicyProvider(
             policy_repository=mock_policy_repository,
@@ -361,8 +367,7 @@ class TestDatabasePolicyProviderIntegration:
             tenant_id="acme-corp",
         )
 
-        with patch("asyncio.run", return_value=tenant_policy_dict):
-            policy_config = provider.get(run)
+        policy_config = await provider.get(run)
 
         mock_engine_deps = MagicMock(spec=EngineDeps)
         mock_engine_deps.checkpoints = MagicMock()
@@ -391,7 +396,8 @@ class TestPolicyProviderSafetyFeatures:
             ),
         )
 
-    def test_policy_redaction_feature(self, default_policy):
+    @pytest.mark.asyncio
+    async def test_policy_redaction_feature(self, default_policy):
         """Test policy redaction feature works correctly."""
         provider = StaticPolicyProvider(default=default_policy)
 
@@ -402,7 +408,7 @@ class TestPolicyProviderSafetyFeatures:
             status=AgentRunStatus.running,
         )
 
-        policy_config = provider.get(run)
+        policy_config = await provider.get(run)
         global_policy = GlobalPolicy(policy_config)
 
         # Test redaction
@@ -412,7 +418,8 @@ class TestPolicyProviderSafetyFeatures:
         assert "<redacted>" in redacted
         assert "sk-1234567890abcdef" not in redacted
 
-    def test_policy_prompt_injection_detection(self, default_policy):
+    @pytest.mark.asyncio
+    async def test_policy_prompt_injection_detection(self, default_policy):
         """Test policy prompt injection detection works correctly."""
         provider = StaticPolicyProvider(default=default_policy)
 
@@ -423,7 +430,7 @@ class TestPolicyProviderSafetyFeatures:
             status=AgentRunStatus.running,
         )
 
-        policy_config = provider.get(run)
+        policy_config = await provider.get(run)
         global_policy = GlobalPolicy(policy_config)
 
         # Test injection detection
@@ -432,7 +439,8 @@ class TestPolicyProviderSafetyFeatures:
 
         assert is_injection is True
 
-    def test_policy_tool_args_validation(self, default_policy):
+    @pytest.mark.asyncio
+    async def test_policy_tool_args_validation(self, default_policy):
         """Test policy validates tool arguments."""
         provider = StaticPolicyProvider(default=default_policy)
 
@@ -443,7 +451,7 @@ class TestPolicyProviderSafetyFeatures:
             status=AgentRunStatus.running,
         )
 
-        policy_config = provider.get(run)
+        policy_config = await provider.get(run)
         global_policy = GlobalPolicy(policy_config)
 
         # Test validation with valid args
@@ -473,7 +481,8 @@ class TestPolicyProviderApprovalFlow:
             safety_policy=SafetyPolicy(),
         )
 
-    def test_policy_approval_requirement_for_high_risk(self, default_policy):
+    @pytest.mark.asyncio
+    async def test_policy_approval_requirement_for_high_risk(self, default_policy):
         """Test policy correctly identifies approval requirements."""
         provider = StaticPolicyProvider(default=default_policy)
 
@@ -484,7 +493,7 @@ class TestPolicyProviderApprovalFlow:
             status=AgentRunStatus.running,
         )
 
-        policy_config = provider.get(run)
+        policy_config = await provider.get(run)
         global_policy = GlobalPolicy(policy_config)
 
         # High-risk action should require approval
@@ -496,7 +505,8 @@ class TestPolicyProviderApprovalFlow:
         assert decision.require_approval is True
         assert decision.risk == RiskLevel.high
 
-    def test_policy_no_approval_for_low_risk(self, default_policy):
+    @pytest.mark.asyncio
+    async def test_policy_no_approval_for_low_risk(self, default_policy):
         """Test policy doesn't require approval for low-risk actions."""
         provider = StaticPolicyProvider(default=default_policy)
 
@@ -507,7 +517,7 @@ class TestPolicyProviderApprovalFlow:
             status=AgentRunStatus.running,
         )
 
-        policy_config = provider.get(run)
+        policy_config = await provider.get(run)
         global_policy = GlobalPolicy(policy_config)
 
         # Low-risk action should not require approval
@@ -519,7 +529,8 @@ class TestPolicyProviderApprovalFlow:
         assert decision.require_approval is False
         assert decision.risk == RiskLevel.low
 
-    def test_policy_approval_with_tool_risk_overrides(self, default_policy):
+    @pytest.mark.asyncio
+    async def test_policy_approval_with_tool_risk_overrides(self, default_policy):
         """Test policy respects tool risk overrides for approval."""
         policy_with_overrides = default_policy.model_copy(deep=True)
         policy_with_overrides.approval_policy.tool_risk_overrides = {
@@ -535,7 +546,7 @@ class TestPolicyProviderApprovalFlow:
             status=AgentRunStatus.running,
         )
 
-        policy_config = provider.get(run)
+        policy_config = await provider.get(run)
         global_policy = GlobalPolicy(policy_config)
 
         # web_search with override should be high-risk and require approval

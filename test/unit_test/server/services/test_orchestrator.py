@@ -141,17 +141,13 @@ class TestOrchestratorRunManagement:
             status=AgentRunStatus.running,
         )
 
-        srv_repo_run_get_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.get)
-        srv_repo_run_get_mock.return_value = run
-
         result: AgentRun = await mock_orchestrator.create_run(run)
 
         assert result.id == "test-run-1"
-        # AgentService.run is NOT called in create_run anymore (it's async background)
-        # srv_run = cast(MagicMock, mock_orchestrator.agent_service.run)
-        # srv_run.assert_called_once_with(run=run)
-        # It calls repos.runs.create
-        cast(MagicMock, mock_orchestrator.repos.runs.create).assert_called_once_with(run)
+        assert result.status == AgentRunStatus.pending
+        # create_run does NOT persist to database - that happens in engine.start_run()
+        # This follows the async-first pattern where API creates run in memory,
+        # then passes it to background worker which persists it via engine.start_run()
 
     @pytest.mark.asyncio
     async def test_list_runs(self, mock_orchestrator: OrchestratorService) -> None:
@@ -221,17 +217,10 @@ class TestOrchestratorRunManagement:
         run: AgentRun = AgentRun(
             id="run-1", tenant_id="tenant-1", role="analyst", objective="Task", status=AgentRunStatus.pending
         )
-        srv_repo_run_get_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.get)
-        srv_repo_run_get_mock.return_value = run
 
-        await mock_orchestrator.execute_workflow("run-1")
+        await mock_orchestrator.execute_workflow(run)
 
-        # Verify status update to running
-        srv_repo_run_update_status_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.update_status)
-        # update_status is called with positional run_id and keyword status
-        srv_repo_run_update_status_mock.assert_called_once_with("run-1", status=AgentRunStatus.running.value)
-
-        # Verify service run called
+        # Verify service run called with the run object
         srv_agent_service_run_mock: MagicMock = cast(MagicMock, mock_orchestrator.agent_service.run)
         srv_agent_service_run_mock.assert_called_once()
         assert srv_agent_service_run_mock.call_args[1]["run"].id == "run-1"
@@ -242,23 +231,16 @@ class TestOrchestratorRunManagement:
         run: AgentRun = AgentRun(
             id="run-1", tenant_id="tenant-1", role="analyst", objective="Task", status=AgentRunStatus.pending
         )
-        srv_repo_run_get_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.get)
-        srv_repo_run_get_mock.return_value = run
 
         # Simulate failure in agent service
         srv_agent_service_run_mock: MagicMock = cast(MagicMock, mock_orchestrator.agent_service.run)
         srv_agent_service_run_mock.side_effect = Exception("Workflow failed")
 
-        await mock_orchestrator.execute_workflow("run-1")
+        await mock_orchestrator.execute_workflow(run)
 
-        # Verify status update to running (start) then failed
+        # Verify status update to failed
         srv_repo_run_update_status_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.runs.update_status)
-        assert srv_repo_run_update_status_mock.call_count == 2
-
-        # First call: running
-        assert srv_repo_run_update_status_mock.call_args_list[0][1]["status"] == AgentRunStatus.running.value
-        # Second call: failed
-        assert srv_repo_run_update_status_mock.call_args_list[1][1]["status"] == AgentRunStatus.failed.value
+        srv_repo_run_update_status_mock.assert_called_once_with("run-1", status=AgentRunStatus.failed.value)
 
         # Verify event log
         srv_repo_events_append_mock: MagicMock = cast(MagicMock, mock_orchestrator.repos.events.append)
