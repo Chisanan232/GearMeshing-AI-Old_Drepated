@@ -46,7 +46,7 @@ class AIAgentProvider:
 
         if not self._factory.is_registered(framework):
             raise ValueError(
-                f"Framework '{framework}' is not registered. " f"Available: {self._factory.get_registered_frameworks()}"
+                f"Framework '{framework}' is not registered. Available: {self._factory.get_registered_frameworks()}"
             )
 
         self._framework = framework
@@ -127,7 +127,7 @@ class AIAgentProvider:
 
     def __repr__(self) -> str:
         """String representation."""
-        return f"AIAgentProvider(framework={self._framework}, " f"registered={self.get_registered_frameworks()})"
+        return f"AIAgentProvider(framework={self._framework}, registered={self.get_registered_frameworks()})"
 
 
 # Global provider instance

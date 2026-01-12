@@ -87,7 +87,7 @@ class PydanticAIAgent(AIAgentBase):
         try:
             from pydantic_ai import Agent
 
-            logger.debug(f"Initializing Pydantic AI agent: {self._config.name} " f"with model {self._config.model}")
+            logger.debug(f"Initializing Pydantic AI agent: {self._config.name} with model {self._config.model}")
 
             # Build initialization kwargs from config
             init_kwargs = self.build_init_kwargs()
@@ -130,7 +130,7 @@ class PydanticAIAgent(AIAgentBase):
         try:
             timeout = kwargs.get("timeout") or self._config.timeout
 
-            logger.debug(f"Invoking Pydantic AI agent: {self._config.name} " f"with input length {len(input_text)}")
+            logger.debug(f"Invoking Pydantic AI agent: {self._config.name} with input length {len(input_text)}")
 
             # Prepare the full prompt with context if provided
             full_prompt = input_text

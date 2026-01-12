@@ -61,7 +61,7 @@ def setup_agent_abstraction(
             max_size=config.cache_max_size,
             ttl=config.cache_ttl,
         )
-        logger.debug(f"Agent cache initialized: max_size={config.cache_max_size}, " f"ttl={config.cache_ttl}")
+        logger.debug(f"Agent cache initialized: max_size={config.cache_max_size}, ttl={config.cache_ttl}")
 
     # Create factory
     factory = AIAgentFactory(cache=cache)
@@ -76,7 +76,7 @@ def setup_agent_abstraction(
     )
 
     logger.info(
-        f"AI agent abstraction layer initialized. " f"Registered frameworks: {provider.get_registered_frameworks()}"
+        f"AI agent abstraction layer initialized. Registered frameworks: {provider.get_registered_frameworks()}"
     )
 
     if config.framework:
