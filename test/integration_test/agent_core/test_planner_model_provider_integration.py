@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -57,7 +57,10 @@ class TestPlannerModelProviderIntegration:
     @pytest.mark.asyncio
     async def test_planner_plan_with_model(self):
         """Test planner with model generates plan."""
+        from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
+
         mock_model = MagicMock()
+        mock_model.model_name = "test-model"
         planner = StructuredPlanner(model=mock_model)
 
         # Mock the agent result with a valid capability
@@ -67,14 +70,27 @@ class TestPlannerModelProviderIntegration:
             args={"query": "test query"},
         )
 
-        with patch("gearmeshing_ai.agent_core.planning.planner.Agent") as mock_agent_class:
-            mock_agent = AsyncMock()
-            mock_agent_class.return_value = mock_agent
+        class _FakeAgent:
+            def __init__(self, config):
+                self.config = config
+                self._initialized = False
 
-            mock_result = MagicMock()
-            mock_result.output = [mock_action_step]
-            mock_agent.run = AsyncMock(return_value=mock_result)
+            async def initialize(self):
+                self._initialized = True
 
+            async def invoke(self, input_text: str, **kwargs):
+                return AIAgentResponse(content=[mock_action_step], success=True)
+
+            async def cleanup(self):
+                pass
+
+        class _FakeProvider:
+            async def create_agent(self, config, use_cache: bool = False):
+                agent = _FakeAgent(config)
+                await agent.initialize()
+                return agent
+
+        with patch("gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()):
             plan = await planner.plan(objective="Test objective", role="dev")
 
             # Should return the action steps as dictionaries
@@ -119,69 +135,118 @@ class TestPlannerModelProviderIntegration:
     @pytest.mark.asyncio
     async def test_planner_agent_system_prompt(self):
         """Test planner creates agent with correct system prompt."""
+        from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
+
         mock_model = MagicMock()
+        mock_model.model_name = "test-model"
         planner = StructuredPlanner(model=mock_model)
+        called_config = {}
 
-        with patch("gearmeshing_ai.agent_core.planning.planner.Agent") as mock_agent_class:
-            mock_agent = AsyncMock()
-            mock_agent_class.return_value = mock_agent
+        class _FakeAgent:
+            def __init__(self, config):
+                called_config["config"] = config
+                self._initialized = False
 
-            mock_result = MagicMock()
-            mock_result.output = []
-            mock_agent.run = AsyncMock(return_value=mock_result)
+            async def initialize(self):
+                self._initialized = True
 
+            async def invoke(self, input_text: str, **kwargs):
+                return AIAgentResponse(content=[], success=True)
+
+            async def cleanup(self):
+                pass
+
+        class _FakeProvider:
+            async def create_agent(self, config, use_cache: bool = False):
+                agent = _FakeAgent(config)
+                await agent.initialize()
+                return agent
+
+        with patch("gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()):
             await planner.plan(objective="Test", role="dev")
 
-            # Verify Agent was created with correct parameters
-            mock_agent_class.assert_called_once()
-            call_kwargs = mock_agent_class.call_args[1]
-            assert "system_prompt" in call_kwargs
-            assert "planner" in call_kwargs["system_prompt"].lower()
+            # Verify config has correct system prompt
+            config = called_config["config"]
+            assert config.system_prompt is not None
+            assert "planner" in config.system_prompt.lower()
 
     @pytest.mark.asyncio
     async def test_planner_agent_output_type(self):
         """Test planner creates agent with correct output type."""
+        from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
+
         mock_model = MagicMock()
+        mock_model.model_name = "test-model"
         planner = StructuredPlanner(model=mock_model)
+        called_config = {}
 
-        with patch("gearmeshing_ai.agent_core.planning.planner.Agent") as mock_agent_class:
-            mock_agent = AsyncMock()
-            mock_agent_class.return_value = mock_agent
+        class _FakeAgent:
+            def __init__(self, config):
+                called_config["config"] = config
+                self._initialized = False
 
-            mock_result = MagicMock()
-            mock_result.output = []
-            mock_agent.run = AsyncMock(return_value=mock_result)
+            async def initialize(self):
+                self._initialized = True
 
+            async def invoke(self, input_text: str, **kwargs):
+                return AIAgentResponse(content=[], success=True)
+
+            async def cleanup(self):
+                pass
+
+        class _FakeProvider:
+            async def create_agent(self, config, use_cache: bool = False):
+                agent = _FakeAgent(config)
+                await agent.initialize()
+                return agent
+
+        with patch("gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()):
             await planner.plan(objective="Test", role="dev")
 
-            # Verify output_type is set
-            call_kwargs = mock_agent_class.call_args[1]
-            assert "output_type" in call_kwargs
+            # Verify output_type is set in metadata
+            config = called_config["config"]
+            assert "output_type" in config.metadata
 
     @pytest.mark.asyncio
     async def test_planner_passes_objective_to_agent(self):
-        """Test planner passes objective to agent.run."""
+        """Test planner passes objective to agent.invoke."""
+        from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
+
         mock_model = MagicMock()
+        mock_model.model_name = "test-model"
         planner = StructuredPlanner(model=mock_model)
+        called_input = {}
 
-        with patch("gearmeshing_ai.agent_core.planning.planner.Agent") as mock_agent_class:
-            mock_agent = AsyncMock()
-            mock_agent_class.return_value = mock_agent
+        class _FakeAgent:
+            def __init__(self, config):
+                self._initialized = False
 
-            mock_result = MagicMock()
-            mock_result.output = []
-            mock_agent.run = AsyncMock(return_value=mock_result)
+            async def initialize(self):
+                self._initialized = True
 
+            async def invoke(self, input_text: str, **kwargs):
+                called_input["input_text"] = input_text
+                return AIAgentResponse(content=[], success=True)
+
+            async def cleanup(self):
+                pass
+
+        class _FakeProvider:
+            async def create_agent(self, config, use_cache: bool = False):
+                agent = _FakeAgent(config)
+                await agent.initialize()
+                return agent
+
+        with patch("gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()):
             objective = "Implement new feature"
             role = "dev"
 
             await planner.plan(objective=objective, role=role)
 
-            # Verify agent.run was called with objective and role
-            mock_agent.run.assert_called_once()
-            call_args = mock_agent.run.call_args[0][0]
-            assert objective in call_args
-            assert role in call_args
+            # Verify agent.invoke was called with objective and role
+            input_text = called_input["input_text"]
+            assert objective in input_text
+            assert role in input_text
 
     def test_planner_model_creation_failure_graceful_fallback(self):
         """Test planner gracefully falls back when model creation fails."""
@@ -257,19 +322,35 @@ class TestPlannerModelProviderIntegration:
     @patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
     async def test_planner_model_creation_with_tenant_id(self):
         """Test planner passes tenant_id to model creation."""
+        from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
+
         planner = StructuredPlanner(role="dev", tenant_id="acme-corp")
 
         with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
-            mock_create.return_value = MagicMock()
+            mock_model = MagicMock()
+            mock_model.model_name = "test-model"
+            mock_create.return_value = mock_model
 
-            with patch("gearmeshing_ai.agent_core.planning.planner.Agent") as mock_agent_class:
-                mock_agent = AsyncMock()
-                mock_agent_class.return_value = mock_agent
+            class _FakeAgent:
+                def __init__(self, config):
+                    self._initialized = False
 
-                mock_result = MagicMock()
-                mock_result.output = []
-                mock_agent.run = AsyncMock(return_value=mock_result)
+                async def initialize(self):
+                    self._initialized = True
 
+                async def invoke(self, input_text: str, **kwargs):
+                    return AIAgentResponse(content=[], success=True)
+
+                async def cleanup(self):
+                    pass
+
+            class _FakeProvider:
+                async def create_agent(self, config, use_cache: bool = False):
+                    agent = _FakeAgent(config)
+                    await agent.initialize()
+                    return agent
+
+            with patch("gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()):
                 await planner.plan(objective="Test", role="dev")
 
                 # Verify tenant_id was passed
@@ -281,19 +362,35 @@ class TestPlannerModelProviderIntegration:
     @patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
     async def test_planner_model_creation_none_tenant_id(self):
         """Test planner handles None tenant_id correctly."""
+        from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
+
         planner = StructuredPlanner(role="dev", tenant_id=None)
 
         with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
-            mock_create.return_value = MagicMock()
+            mock_model = MagicMock()
+            mock_model.model_name = "test-model"
+            mock_create.return_value = mock_model
 
-            with patch("gearmeshing_ai.agent_core.planning.planner.Agent") as mock_agent_class:
-                mock_agent = AsyncMock()
-                mock_agent_class.return_value = mock_agent
+            class _FakeAgent:
+                def __init__(self, config):
+                    self._initialized = False
 
-                mock_result = MagicMock()
-                mock_result.output = []
-                mock_agent.run = AsyncMock(return_value=mock_result)
+                async def initialize(self):
+                    self._initialized = True
 
+                async def invoke(self, input_text: str, **kwargs):
+                    return AIAgentResponse(content=[], success=True)
+
+                async def cleanup(self):
+                    pass
+
+            class _FakeProvider:
+                async def create_agent(self, config, use_cache: bool = False):
+                    agent = _FakeAgent(config)
+                    await agent.initialize()
+                    return agent
+
+            with patch("gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()):
                 await planner.plan(objective="Test", role="dev")
 
                 # Verify None tenant_id was passed
@@ -361,7 +458,10 @@ class TestPlannerModelProviderIntegration:
     @pytest.mark.asyncio
     async def test_planner_uses_provided_model_over_creation(self):
         """Test planner uses provided model instead of creating one."""
+        from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
+
         mock_model = MagicMock()
+        mock_model.model_name = "test-model"
         planner = StructuredPlanner(model=mock_model, role="dev")
 
         with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
@@ -371,14 +471,26 @@ class TestPlannerModelProviderIntegration:
                 args={"query": "test"},
             )
 
-            with patch("gearmeshing_ai.agent_core.planning.planner.Agent") as mock_agent_class:
-                mock_agent = AsyncMock()
-                mock_agent_class.return_value = mock_agent
+            class _FakeAgent:
+                def __init__(self, config):
+                    self._initialized = False
 
-                mock_result = MagicMock()
-                mock_result.output = [mock_action_step]
-                mock_agent.run = AsyncMock(return_value=mock_result)
+                async def initialize(self):
+                    self._initialized = True
 
+                async def invoke(self, input_text: str, **kwargs):
+                    return AIAgentResponse(content=[mock_action_step], success=True)
+
+                async def cleanup(self):
+                    pass
+
+            class _FakeProvider:
+                async def create_agent(self, config, use_cache: bool = False):
+                    agent = _FakeAgent(config)
+                    await agent.initialize()
+                    return agent
+
+            with patch("gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()):
                 await planner.plan(objective="Test", role="dev")
 
                 # Should not attempt to create model since one is provided
@@ -388,22 +500,40 @@ class TestPlannerModelProviderIntegration:
     @patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
     async def test_planner_model_creation_with_different_roles(self):
         """Test planner creates models for different roles."""
+        from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
+
         roles = ["dev", "qa", "planner", "reviewer"]
 
         for role in roles:
             planner = StructuredPlanner(role=role)
 
             with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
-                mock_create.return_value = MagicMock()
+                mock_model = MagicMock()
+                mock_model.model_name = "test-model"
+                mock_create.return_value = mock_model
 
-                with patch("gearmeshing_ai.agent_core.planning.planner.Agent") as mock_agent_class:
-                    mock_agent = AsyncMock()
-                    mock_agent_class.return_value = mock_agent
+                class _FakeAgent:
+                    def __init__(self, config):
+                        self._initialized = False
 
-                    mock_result = MagicMock()
-                    mock_result.output = []
-                    mock_agent.run = AsyncMock(return_value=mock_result)
+                    async def initialize(self):
+                        self._initialized = True
 
+                    async def invoke(self, input_text: str, **kwargs):
+                        return AIAgentResponse(content=[], success=True)
+
+                    async def cleanup(self):
+                        pass
+
+                class _FakeProvider:
+                    async def create_agent(self, config, use_cache: bool = False):
+                        agent = _FakeAgent(config)
+                        await agent.initialize()
+                        return agent
+
+                with patch(
+                    "gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()
+                ):
                     await planner.plan(objective="Test", role=role)
 
                     # Verify role was passed correctly
@@ -414,20 +544,35 @@ class TestPlannerModelProviderIntegration:
     @pytest.mark.asyncio
     async def test_planner_model_creation_success_stores_model(self):
         """Test planner stores created model for reuse."""
+        from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
+
         planner = StructuredPlanner(role="dev")
 
         with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
             mock_model = MagicMock()
+            mock_model.model_name = "test-model"
             mock_create.return_value = mock_model
 
-            with patch("gearmeshing_ai.agent_core.planning.planner.Agent") as mock_agent_class:
-                mock_agent = AsyncMock()
-                mock_agent_class.return_value = mock_agent
+            class _FakeAgent:
+                def __init__(self, config):
+                    self._initialized = False
 
-                mock_result = MagicMock()
-                mock_result.output = []
-                mock_agent.run = AsyncMock(return_value=mock_result)
+                async def initialize(self):
+                    self._initialized = True
 
+                async def invoke(self, input_text: str, **kwargs):
+                    return AIAgentResponse(content=[], success=True)
+
+                async def cleanup(self):
+                    pass
+
+            class _FakeProvider:
+                async def create_agent(self, config, use_cache: bool = False):
+                    agent = _FakeAgent(config)
+                    await agent.initialize()
+                    return agent
+
+            with patch("gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()):
                 # First call creates model
                 await planner.plan(objective="Test 1", role="dev")
 
@@ -447,19 +592,35 @@ class TestPlannerModelProviderIntegration:
     @patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
     async def test_planner_model_creation_with_empty_objective(self):
         """Test planner handles empty objective correctly."""
+        from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
+
         planner = StructuredPlanner(role="dev")
 
         with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
-            mock_create.return_value = MagicMock()
+            mock_model = MagicMock()
+            mock_model.model_name = "test-model"
+            mock_create.return_value = mock_model
 
-            with patch("gearmeshing_ai.agent_core.planning.planner.Agent") as mock_agent_class:
-                mock_agent = AsyncMock()
-                mock_agent_class.return_value = mock_agent
+            class _FakeAgent:
+                def __init__(self, config):
+                    self._initialized = False
 
-                mock_result = MagicMock()
-                mock_result.output = []
-                mock_agent.run = AsyncMock(return_value=mock_result)
+                async def initialize(self):
+                    self._initialized = True
 
+                async def invoke(self, input_text: str, **kwargs):
+                    return AIAgentResponse(content=[], success=True)
+
+                async def cleanup(self):
+                    pass
+
+            class _FakeProvider:
+                async def create_agent(self, config, use_cache: bool = False):
+                    agent = _FakeAgent(config)
+                    await agent.initialize()
+                    return agent
+
+            with patch("gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()):
                 plan = await planner.plan(objective="", role="dev")
 
                 # Should still return a plan
@@ -469,21 +630,37 @@ class TestPlannerModelProviderIntegration:
     @patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
     async def test_planner_model_creation_with_long_objective(self):
         """Test planner handles very long objective correctly."""
+        from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
+
         planner = StructuredPlanner(role="dev")
 
         long_objective = "Test " * 1000  # Very long objective
 
         with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
-            mock_create.return_value = MagicMock()
+            mock_model = MagicMock()
+            mock_model.model_name = "test-model"
+            mock_create.return_value = mock_model
 
-            with patch("gearmeshing_ai.agent_core.planning.planner.Agent") as mock_agent_class:
-                mock_agent = AsyncMock()
-                mock_agent_class.return_value = mock_agent
+            class _FakeAgent:
+                def __init__(self, config):
+                    self._initialized = False
 
-                mock_result = MagicMock()
-                mock_result.output = []
-                mock_agent.run = AsyncMock(return_value=mock_result)
+                async def initialize(self):
+                    self._initialized = True
 
+                async def invoke(self, input_text: str, **kwargs):
+                    return AIAgentResponse(content=[], success=True)
+
+                async def cleanup(self):
+                    pass
+
+            class _FakeProvider:
+                async def create_agent(self, config, use_cache: bool = False):
+                    agent = _FakeAgent(config)
+                    await agent.initialize()
+                    return agent
+
+            with patch("gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()):
                 plan = await planner.plan(objective=long_objective, role="dev")
 
                 # Should still return a plan
@@ -492,20 +669,35 @@ class TestPlannerModelProviderIntegration:
     @pytest.mark.asyncio
     async def test_planner_model_creation_concurrent_calls(self):
         """Test planner handles concurrent plan calls correctly."""
+        from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
+
         planner = StructuredPlanner(role="dev")
 
         with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
             mock_model = MagicMock()
+            mock_model.model_name = "test-model"
             mock_create.return_value = mock_model
 
-            with patch("gearmeshing_ai.agent_core.planning.planner.Agent") as mock_agent_class:
-                mock_agent = AsyncMock()
-                mock_agent_class.return_value = mock_agent
+            class _FakeAgent:
+                def __init__(self, config):
+                    self._initialized = False
 
-                mock_result = MagicMock()
-                mock_result.output = []
-                mock_agent.run = AsyncMock(return_value=mock_result)
+                async def initialize(self):
+                    self._initialized = True
 
+                async def invoke(self, input_text: str, **kwargs):
+                    return AIAgentResponse(content=[], success=True)
+
+                async def cleanup(self):
+                    pass
+
+            class _FakeProvider:
+                async def create_agent(self, config, use_cache: bool = False):
+                    agent = _FakeAgent(config)
+                    await agent.initialize()
+                    return agent
+
+            with patch("gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()):
                 # Simulate concurrent calls
                 import asyncio
 

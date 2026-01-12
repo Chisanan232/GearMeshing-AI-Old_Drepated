@@ -221,23 +221,34 @@ def _build_mcp_strategy(variant: str) -> tuple[_AsyncMcpLike, dict]:
 async def test_e2e_role_prompt_provider_is_used_for_thought_step(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: Dict[str, Any] = {}
 
-    class _FakeResult:
-        def __init__(self, output: Any) -> None:
-            self.output = output
+    from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
 
     class _FakeAgent:
-        def __init__(self, model: Any, *, output_type: Any, system_prompt: str):
-            captured["system_prompt"] = system_prompt
-            captured["output_type"] = output_type
-            captured["model"] = model
+        def __init__(self, config: Any) -> None:
+            captured["system_prompt"] = config.system_prompt
+            captured["output_type"] = config.metadata.get("output_type")
+            captured["model"] = config.model
+            self._initialized = False
 
-        async def run(self, prompt: str) -> _FakeResult:
-            captured["prompt"] = prompt
-            return _FakeResult({"from_agent": True})
+        async def initialize(self) -> None:
+            self._initialized = True
+
+        async def invoke(self, input_text: str, **kwargs: Any) -> AIAgentResponse:
+            captured["prompt"] = input_text
+            return AIAgentResponse(content={"from_agent": True}, success=True)
+
+        async def cleanup(self) -> None:
+            pass
+
+    class _FakeProvider:
+        async def create_agent(self, config: Any, use_cache: bool = False) -> _FakeAgent:
+            agent = _FakeAgent(config)
+            await agent.initialize()
+            return agent
 
     import gearmeshing_ai.agent_core.runtime.engine as engine_mod
 
-    monkeypatch.setattr(engine_mod, "PydanticAIAgent", _FakeAgent, raising=True)
+    monkeypatch.setattr(engine_mod, "get_agent_provider", lambda: _FakeProvider())
 
     builtin = BuiltinPromptProvider(
         prompts={

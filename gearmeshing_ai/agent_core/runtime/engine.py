@@ -37,8 +37,8 @@ from typing import Any, cast
 from langchain_core.runnables import RunnableConfig
 from langgraph.errors import NodeInterrupt
 from langgraph.graph import END, StateGraph
-from pydantic_ai import Agent as PydanticAIAgent
 
+from ..abstraction import AIAgentConfig, get_agent_provider
 from ..capabilities.base import CapabilityContext
 from ..model_provider import async_create_model_for_role
 from ..monitoring_integration import trace_capability_execution
@@ -272,7 +272,16 @@ class AgentEngine:
         - detecting terminal conditions (idx >= len(plan)),
         - executing thought steps (event/artifact emission only),
         - executing action steps (policy/approval/capability).
+
+        Args:
+            state: Current graph state containing plan, idx, run_id, etc.
+            config: LangGraph runtime configuration with thread_id, checkpoint_id, etc.
         """
+        # Extract configuration for tracing and checkpoint management
+        configurable = config.get("configurable", {}) if config else {}
+        thread_id = configurable.get("thread_id", "unknown")
+        checkpoint_id = configurable.get("checkpoint_id")
+
         run_id = str(state["run_id"])
         run = await self._deps.runs.get(run_id)
         if run is None:
@@ -280,7 +289,14 @@ class AgentEngine:
 
         plan = list(state.get("plan") or [])
         idx = int(state.get("idx") or 0)
+
+        logger.debug(
+            f"[thread={thread_id}] Executing step {idx}/{len(plan)} "
+            f"for run {run_id}" + (f" (resuming from checkpoint {checkpoint_id})" if checkpoint_id else "")
+        )
+
         if idx >= len(plan):
+            logger.info(f"[thread={thread_id}] Plan execution completed for run {run_id}")
             state["_finished"] = True
             state["_terminal_status"] = AgentRunStatus.succeeded.value
             return state
@@ -290,6 +306,8 @@ class AgentEngine:
         if kind == "thought":
             thought = str(step.get("thought") or "")
             args = dict(step.get("args") or {})
+
+            logger.debug(f"[thread={thread_id}] Executing thought step: {thought} (idx={idx}, role={run.role})")
 
             output: dict[str, Any] = {}
             prompt_text: str | None = None
@@ -320,13 +338,25 @@ class AgentEngine:
                 except Exception:
                     prompt_text = None
 
-                if prompt_text is not None and PydanticAIAgent is not None:
-                    agent = PydanticAIAgent(thought_model, output_type=dict, system_prompt=prompt_text)
-                    res = await agent.run(f"thought={thought}\nrole={run.role}\nobjective={run.objective}\nargs={args}")
-                    if isinstance(res.output, dict):
-                        output = dict(res.output)
+                if prompt_text is not None:
+                    # Use abstraction layer for thought execution
+                    provider = get_agent_provider()
+                    config = AIAgentConfig(
+                        name=f"thought-{run.role}-{idx}",
+                        framework="pydantic_ai",
+                        model=thought_model.model_name if hasattr(thought_model, "model_name") else str(thought_model),
+                        system_prompt=prompt_text,
+                        metadata={"output_type": dict},
+                    )
+                    agent = await provider.create_agent(config, use_cache=True)
+                    res = await agent.invoke(
+                        input_text=f"thought={thought}\nrole={run.role}\nobjective={run.objective}\nargs={args}"
+                    )
+                    if isinstance(res.content, dict):
+                        output = dict(res.content)
                     else:
-                        output = {"result": res.output}
+                        output = {"result": res.content}
+                    await agent.cleanup()
 
             await self._deps.events.append(
                 AgentEvent(
@@ -356,6 +386,10 @@ class AgentEngine:
         cap = CapabilityName(step["capability"])
         args = dict(step.get("args") or {})
         logical_tool = cast(str | None, step.get("logical_tool"))
+
+        logger.debug(
+            f"[thread={thread_id}] Executing action step: {cap.value} (idx={idx}, logical_tool={logical_tool})"
+        )
 
         if cap == CapabilityName.mcp_call:
             server_id = step.get("server_id") or args.get("server_id")

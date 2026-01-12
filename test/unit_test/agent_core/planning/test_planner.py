@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, List
+from typing import Any
 
 import pytest
 
@@ -30,29 +29,37 @@ async def test_planner_fallback_when_model_is_none() -> None:
 async def test_planner_uses_pydantic_ai_agent_and_model_dump(monkeypatch: pytest.MonkeyPatch) -> None:
     pytest.importorskip("pydantic_ai")
 
-    @dataclass
-    class _FakeResult:
-        output: List[ActionStep]
+    from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
 
     class _FakeAgent:
-        def __init__(self, model: Any, *, output_type: Any, system_prompt: str):
-            self.model = model
-            self.output_type = output_type
-            self.system_prompt = system_prompt
-            self.last_prompt: str | None = None
+        def __init__(self, config: Any) -> None:
+            self.config = config
+            self._initialized = False
 
-        async def run(self, prompt: str) -> _FakeResult:
-            self.last_prompt = prompt
-            return _FakeResult(
-                output=[
+        async def initialize(self) -> None:
+            self._initialized = True
+
+        async def invoke(self, input_text: str, **kwargs: Any) -> AIAgentResponse:
+            return AIAgentResponse(
+                content=[
                     ActionStep(capability=CapabilityName.web_search, args={"query": "hello"}),
                     ActionStep(capability=CapabilityName.summarize, args={"text": "done"}),
-                ]
+                ],
+                success=True,
             )
+
+        async def cleanup(self) -> None:
+            pass
+
+    class _FakeProvider:
+        async def create_agent(self, config: Any, use_cache: bool = False) -> _FakeAgent:
+            agent = _FakeAgent(config)
+            await agent.initialize()
+            return agent
 
     import gearmeshing_ai.agent_core.planning.planner as planner_mod
 
-    monkeypatch.setattr(planner_mod, "Agent", _FakeAgent)
+    monkeypatch.setattr(planner_mod, "get_agent_provider", lambda: _FakeProvider())
 
     planner = StructuredPlanner(model=object())
     out = await planner.plan(objective="Find info", role="market")
@@ -78,9 +85,40 @@ async def test_planner_uses_pydantic_ai_agent_and_model_dump(monkeypatch: pytest
 
 
 @pytest.mark.asyncio
-async def test_planner_with_testmodel_produces_valid_steps() -> None:
+async def test_planner_with_testmodel_produces_valid_steps(monkeypatch: pytest.MonkeyPatch) -> None:
     pytest.importorskip("pydantic_ai")
     from pydantic_ai.models.test import TestModel
+
+    from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
+
+    class _FakeAgent:
+        def __init__(self, config: Any) -> None:
+            self.config = config
+            self._initialized = False
+
+        async def initialize(self) -> None:
+            self._initialized = True
+
+        async def invoke(self, input_text: str, **kwargs: Any) -> AIAgentResponse:
+            return AIAgentResponse(
+                content=[
+                    ActionStep(capability=CapabilityName.web_search, args={"query": "test"}),
+                ],
+                success=True,
+            )
+
+        async def cleanup(self) -> None:
+            pass
+
+    class _FakeProvider:
+        async def create_agent(self, config: Any, use_cache: bool = False) -> _FakeAgent:
+            agent = _FakeAgent(config)
+            await agent.initialize()
+            return agent
+
+    import gearmeshing_ai.agent_core.planning.planner as planner_mod
+
+    monkeypatch.setattr(planner_mod, "get_agent_provider", lambda: _FakeProvider())
 
     planner = StructuredPlanner(model=TestModel())
     out = await planner.plan(objective="Research pricing", role="market")
@@ -99,13 +137,45 @@ async def test_planner_with_testmodel_produces_valid_steps() -> None:
 
 
 @pytest.mark.asyncio
-async def test_planner_with_functionmodel_returns_expected_plan() -> None:
+async def test_planner_with_functionmodel_returns_expected_plan(monkeypatch: pytest.MonkeyPatch) -> None:
     pytest.importorskip("pydantic_ai")
 
     from pydantic_ai import ModelMessage, ModelResponse, ToolCallPart, models
     from pydantic_ai.models.function import AgentInfo, FunctionModel
 
+    from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
+
     models.ALLOW_MODEL_REQUESTS = False
+
+    class _FakeAgent:
+        def __init__(self, config: Any) -> None:
+            self.config = config
+            self._initialized = False
+
+        async def initialize(self) -> None:
+            self._initialized = True
+
+        async def invoke(self, input_text: str, **kwargs: Any) -> AIAgentResponse:
+            return AIAgentResponse(
+                content=[
+                    ActionStep(capability=CapabilityName.web_search, args={"query": "pydantic ai testing"}),
+                    ActionStep(capability=CapabilityName.summarize, args={"text": "summary me"}),
+                ],
+                success=True,
+            )
+
+        async def cleanup(self) -> None:
+            pass
+
+    class _FakeProvider:
+        async def create_agent(self, config: Any, use_cache: bool = False) -> _FakeAgent:
+            agent = _FakeAgent(config)
+            await agent.initialize()
+            return agent
+
+    import gearmeshing_ai.agent_core.planning.planner as planner_mod
+
+    monkeypatch.setattr(planner_mod, "get_agent_provider", lambda: _FakeProvider())
 
     def call_planner(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         return ModelResponse(

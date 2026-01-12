@@ -615,3 +615,183 @@ class TestModelProviderFallback:
                 assert calls[0][0] == ("openai", "gpt-4o", None, None, None)
                 assert calls[1][0] == ("openai", "gpt-4-turbo", None, None, None)
                 assert result is not None
+
+
+class TestGetProviderFromModelName:
+    """Tests for get_provider_from_model_name method."""
+
+    def test_get_provider_from_model_name_gpt_models(self) -> None:
+        """Test provider detection for GPT models."""
+        mock_session = MagicMock()
+        provider = ModelProvider(db_session=mock_session)
+
+        gpt_models = ["gpt-4o", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"]
+        for model in gpt_models:
+            result = provider.get_provider_from_model_name(model)
+            assert result == "openai", f"Expected 'openai' for model {model}, got {result}"
+
+    def test_get_provider_from_model_name_claude_models(self) -> None:
+        """Test provider detection for Claude models."""
+        mock_session = MagicMock()
+        provider = ModelProvider(db_session=mock_session)
+
+        claude_models = ["claude-3-5-sonnet", "claude-3-opus", "claude-3-haiku", "claude-2.1"]
+        for model in claude_models:
+            result = provider.get_provider_from_model_name(model)
+            assert result == "anthropic", f"Expected 'anthropic' for model {model}, got {result}"
+
+    def test_get_provider_from_model_name_gemini_models(self) -> None:
+        """Test provider detection for Gemini models."""
+        mock_session = MagicMock()
+        provider = ModelProvider(db_session=mock_session)
+
+        gemini_models = ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash", "gemini-pro"]
+        for model in gemini_models:
+            result = provider.get_provider_from_model_name(model)
+            assert result == "google", f"Expected 'google' for model {model}, got {result}"
+
+    def test_get_provider_from_model_name_grok_models(self) -> None:
+        """Test provider detection for Grok models."""
+        mock_session = MagicMock()
+        provider = ModelProvider(db_session=mock_session)
+
+        grok_models = ["grok-1", "grok-2", "grok-beta"]
+        for model in grok_models:
+            result = provider.get_provider_from_model_name(model)
+            assert result == "grok", f"Expected 'grok' for model {model}, got {result}"
+
+    def test_get_provider_from_model_name_case_insensitive(self) -> None:
+        """Test that provider detection is case-insensitive."""
+        mock_session = MagicMock()
+        provider = ModelProvider(db_session=mock_session)
+
+        # Test uppercase
+        result = provider.get_provider_from_model_name("GPT-4O")
+        assert result == "openai"
+
+        # Test mixed case
+        result = provider.get_provider_from_model_name("Claude-3-Opus")
+        assert result == "anthropic"
+
+    def test_get_provider_from_model_name_invalid_model(self) -> None:
+        """Test that invalid model names raise ValueError."""
+        mock_session = MagicMock()
+        provider = ModelProvider(db_session=mock_session)
+
+        invalid_models = ["unknown-model", "mistral-7b", "llama-2", "custom-model"]
+        for model in invalid_models:
+            with pytest.raises(ValueError, match="Could not determine provider"):
+                provider.get_provider_from_model_name(model)
+
+    def test_get_provider_from_model_name_empty_string(self) -> None:
+        """Test that empty model name raises ValueError."""
+        mock_session = MagicMock()
+        provider = ModelProvider(db_session=mock_session)
+
+        with pytest.raises(ValueError, match="Could not determine provider"):
+            provider.get_provider_from_model_name("")
+
+    def test_get_provider_from_model_name_none_value(self) -> None:
+        """Test that None model name raises appropriate error."""
+        mock_session = MagicMock()
+        provider = ModelProvider(db_session=mock_session)
+
+        with pytest.raises((ValueError, AttributeError)):
+            provider.get_provider_from_model_name(None)  # type: ignore[arg-type]
+
+    def test_get_provider_from_model_name_with_version_numbers(self) -> None:
+        """Test provider detection with various version number formats."""
+        mock_session = MagicMock()
+        provider = ModelProvider(db_session=mock_session)
+
+        # GPT with version
+        result = provider.get_provider_from_model_name("gpt-4o-2024-11-20")
+        assert result == "openai"
+
+        # Claude with version
+        result = provider.get_provider_from_model_name("claude-3-5-sonnet-20241022")
+        assert result == "anthropic"
+
+        # Gemini with version
+        result = provider.get_provider_from_model_name("gemini-2.0-flash-001")
+        assert result == "google"
+
+    def test_get_provider_from_model_name_gpt_4_variants(self) -> None:
+        """Test provider detection for various GPT-4 variants."""
+        mock_session = MagicMock()
+        provider = ModelProvider(db_session=mock_session)
+
+        gpt4_variants = [
+            "gpt-4",
+            "gpt-4-32k",
+            "gpt-4-turbo",
+            "gpt-4-turbo-preview",
+            "gpt-4o",
+            "gpt-4o-mini",
+        ]
+        for model in gpt4_variants:
+            result = provider.get_provider_from_model_name(model)
+            assert result == "openai", f"Expected 'openai' for {model}"
+
+    def test_get_provider_from_model_name_claude_variants(self) -> None:
+        """Test provider detection for various Claude variants."""
+        mock_session = MagicMock()
+        provider = ModelProvider(db_session=mock_session)
+
+        claude_variants = [
+            "claude-3-opus-20240229",
+            "claude-3-sonnet-20240229",
+            "claude-3-haiku-20240307",
+            "claude-3-5-sonnet-20241022",
+        ]
+        for model in claude_variants:
+            result = provider.get_provider_from_model_name(model)
+            assert result == "anthropic", f"Expected 'anthropic' for {model}"
+
+    def test_get_provider_from_model_name_gemini_variants(self) -> None:
+        """Test provider detection for various Gemini variants."""
+        mock_session = MagicMock()
+        provider = ModelProvider(db_session=mock_session)
+
+        gemini_variants = [
+            "gemini-pro",
+            "gemini-pro-vision",
+            "gemini-1.5-pro",
+            "gemini-1.5-flash",
+            "gemini-2.0-flash",
+        ]
+        for model in gemini_variants:
+            result = provider.get_provider_from_model_name(model)
+            assert result == "google", f"Expected 'google' for {model}"
+
+    def test_get_provider_from_model_name_returns_string(self) -> None:
+        """Test that get_provider_from_model_name returns a string."""
+        mock_session = MagicMock()
+        provider = ModelProvider(db_session=mock_session)
+
+        result = provider.get_provider_from_model_name("gpt-4o")
+        assert isinstance(result, str)
+        assert result in ["openai", "anthropic", "google", "grok"]
+
+    def test_get_provider_from_model_name_consistency(self) -> None:
+        """Test that same model always returns same provider."""
+        mock_session = MagicMock()
+        provider = ModelProvider(db_session=mock_session)
+
+        model = "gpt-4o"
+        result1 = provider.get_provider_from_model_name(model)
+        result2 = provider.get_provider_from_model_name(model)
+        assert result1 == result2
+
+    def test_get_provider_from_model_name_special_characters(self) -> None:
+        """Test provider detection with special characters in model name."""
+        mock_session = MagicMock()
+        provider = ModelProvider(db_session=mock_session)
+
+        # Valid model with special characters
+        result = provider.get_provider_from_model_name("gpt-4o-2024-11-20")
+        assert result == "openai"
+
+        # Invalid model with special characters
+        with pytest.raises(ValueError):
+            provider.get_provider_from_model_name("invalid@model#name")
