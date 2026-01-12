@@ -64,9 +64,16 @@ class PydanticAIAgent(AIAgentBase):
         if self._config.max_tokens is not None:
             model_settings["max_tokens"] = self._config.max_tokens
 
-        # Add framework-specific settings from metadata
+        # Extract framework-specific settings from metadata
+        # Separate output_type and other model settings
         if self._config.metadata:
-            model_settings.update(self._config.metadata)
+            for key, value in self._config.metadata.items():
+                if key == "output_type":
+                    # output_type is a direct Agent parameter, not a model setting
+                    kwargs["output_type"] = value
+                else:
+                    # Other metadata items go into model_settings
+                    model_settings[key] = value
 
         if model_settings:
             kwargs["model_settings"] = model_settings
