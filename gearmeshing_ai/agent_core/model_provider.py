@@ -4,6 +4,17 @@ Model provider for creating LLM instances with database-driven configuration.
 This module provides utilities to create language model instances from Pydantic AI framework,
 supporting multiple providers (OpenAI, Anthropic, Google) with configurable parameters
 like temperature, max_tokens, and top_p. All configuration is stored in the database.
+
+Integration with Abstraction Layer
+-----------------------------------
+This module works seamlessly with the AI agent abstraction layer defined in
+gearmeshing_ai.agent_core.abstraction. The abstraction layer provides:
+- AIAgentFactory: Factory for creating and managing agent instances
+- AIAgentProvider: Provider for selecting and configuring agents
+- AIAgentConfig: Configuration for agent initialization
+
+The model_provider creates the underlying Pydantic AI models that are wrapped
+by the abstraction layer's adapters (e.g., PydanticAIAdapter).
 """
 
 from __future__ import annotations
@@ -230,6 +241,31 @@ class ModelProvider:
 
         return GoogleModel(model, settings=settings)
 
+    def get_provider_from_model_name(self, model_name: str) -> str:
+        """Determine the provider from a model name using regex patterns.
+
+        This method integrates with the abstraction layer's model-to-provider
+        identification system to determine which provider a model belongs to.
+
+        Args:
+            model_name: The model name (e.g., 'gpt-4o', 'claude-3-opus', 'gemini-2.0-flash').
+
+        Returns:
+            str: The provider name ('openai', 'anthropic', 'google', 'grok').
+
+        Raises:
+            ValueError: If the model name doesn't match any known provider pattern.
+        """
+        from gearmeshing_ai.agent_core.abstraction.api_key_validator import APIKeyValidator
+
+        provider = APIKeyValidator.get_provider_for_model(model_name)
+        if provider is None:
+            raise ValueError(
+                f"Could not determine provider for model '{model_name}'. "
+                f"Supported prefixes: gpt-*, claude-*, gemini-*, grok-*"
+            )
+        return provider.value
+
     def create_fallback_model(
         self,
         primary_provider: str,
@@ -393,10 +429,15 @@ async def async_get_model_provider(
     role: str,
     tenant_id: Optional[str] = None,
 ) -> Model:
-    """
-    Get a model for a specific role (async convenience function).
+    """Get a model for a specific role (async convenience function).
 
     Alias for async_create_model_for_role for consistency with sync version.
+
+    Integration with Abstraction Layer
+    -----------------------------------
+    This function works with the abstraction layer to provide models that can be
+    wrapped by AIAgentFactory and managed by AIAgentProvider. The returned model
+    can be used to create AIAgentConfig instances for agent creation.
 
     Args:
         role: Role name (e.g., 'dev', 'qa', 'planner').
