@@ -22,7 +22,7 @@ class AIAgentConfig(BaseModel):
         temperature: Model temperature for response generation
         max_tokens: Maximum tokens for response generation
         timeout: Request timeout in seconds
-        metadata: Additional framework-specific configuration
+        metadata: Additional framework-specific configuration (e.g., output_type for Pydantic AI)
     """
 
     model_config = ConfigDict(frozen=False, validate_assignment=True)
