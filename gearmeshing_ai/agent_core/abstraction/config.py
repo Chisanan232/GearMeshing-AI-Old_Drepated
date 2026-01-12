@@ -62,7 +62,3 @@ class AgentAbstractionConfig(BaseSettings):
         default=True,
         description="Whether to auto-initialize on import",
     )
-
-    def to_dict(self) -> dict:
-        """Convert configuration to dictionary."""
-        return self.model_dump()
