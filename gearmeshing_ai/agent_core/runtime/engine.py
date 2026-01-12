@@ -37,8 +37,8 @@ from typing import Any, cast
 from langchain_core.runnables import RunnableConfig
 from langgraph.errors import NodeInterrupt
 from langgraph.graph import END, StateGraph
-from pydantic_ai import Agent as PydanticAIAgent
 
+from ..abstraction import AIAgentConfig, get_agent_provider
 from ..capabilities.base import CapabilityContext
 from ..model_provider import async_create_model_for_role
 from ..monitoring_integration import trace_capability_execution
@@ -320,13 +320,25 @@ class AgentEngine:
                 except Exception:
                     prompt_text = None
 
-                if prompt_text is not None and PydanticAIAgent is not None:
-                    agent = PydanticAIAgent(thought_model, output_type=dict, system_prompt=prompt_text)
-                    res = await agent.run(f"thought={thought}\nrole={run.role}\nobjective={run.objective}\nargs={args}")
-                    if isinstance(res.output, dict):
-                        output = dict(res.output)
+                if prompt_text is not None:
+                    # Use abstraction layer for thought execution
+                    provider = get_agent_provider()
+                    config = AIAgentConfig(
+                        name=f"thought-{run.role}-{idx}",
+                        framework="pydantic_ai",
+                        model=thought_model.model_name if hasattr(thought_model, "model_name") else str(thought_model),
+                        system_prompt=prompt_text,
+                        metadata={"output_type": dict},
+                    )
+                    agent = await provider.create_agent(config, use_cache=True)
+                    res = await agent.invoke(
+                        input_text=f"thought={thought}\nrole={run.role}\nobjective={run.objective}\nargs={args}"
+                    )
+                    if isinstance(res.content, dict):
+                        output = dict(res.content)
                     else:
-                        output = {"result": res.output}
+                        output = {"result": res.content}
+                    await agent.cleanup()
 
             await self._deps.events.append(
                 AgentEvent(
