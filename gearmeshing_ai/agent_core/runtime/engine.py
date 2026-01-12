@@ -307,7 +307,7 @@ class AgentEngine:
             thought = str(step.get("thought") or "")
             args = dict(step.get("args") or {})
 
-            logger.debug(f"[thread={thread_id}] Executing thought step: {thought} " f"(idx={idx}, role={run.role})")
+            logger.debug(f"[thread={thread_id}] Executing thought step: {thought} (idx={idx}, role={run.role})")
 
             output: dict[str, Any] = {}
             prompt_text: str | None = None
@@ -388,7 +388,7 @@ class AgentEngine:
         logical_tool = cast(str | None, step.get("logical_tool"))
 
         logger.debug(
-            f"[thread={thread_id}] Executing action step: {cap.value} " f"(idx={idx}, logical_tool={logical_tool})"
+            f"[thread={thread_id}] Executing action step: {cap.value} (idx={idx}, logical_tool={logical_tool})"
         )
 
         if cap == CapabilityName.mcp_call:
