@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
 from gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai import PydanticAIAgent
 
