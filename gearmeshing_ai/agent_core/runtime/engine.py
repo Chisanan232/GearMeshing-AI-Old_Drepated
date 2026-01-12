@@ -272,7 +272,7 @@ class AgentEngine:
         - detecting terminal conditions (idx >= len(plan)),
         - executing thought steps (event/artifact emission only),
         - executing action steps (policy/approval/capability).
-        
+
         Args:
             state: Current graph state containing plan, idx, run_id, etc.
             config: LangGraph runtime configuration with thread_id, checkpoint_id, etc.
@@ -281,7 +281,7 @@ class AgentEngine:
         configurable = config.get("configurable", {}) if config else {}
         thread_id = configurable.get("thread_id", "unknown")
         checkpoint_id = configurable.get("checkpoint_id")
-        
+
         run_id = str(state["run_id"])
         run = await self._deps.runs.get(run_id)
         if run is None:
@@ -289,13 +289,12 @@ class AgentEngine:
 
         plan = list(state.get("plan") or [])
         idx = int(state.get("idx") or 0)
-        
+
         logger.debug(
             f"[thread={thread_id}] Executing step {idx}/{len(plan)} "
-            f"for run {run_id}"
-            + (f" (resuming from checkpoint {checkpoint_id})" if checkpoint_id else "")
+            f"for run {run_id}" + (f" (resuming from checkpoint {checkpoint_id})" if checkpoint_id else "")
         )
-        
+
         if idx >= len(plan):
             logger.info(f"[thread={thread_id}] Plan execution completed for run {run_id}")
             state["_finished"] = True
@@ -307,11 +306,8 @@ class AgentEngine:
         if kind == "thought":
             thought = str(step.get("thought") or "")
             args = dict(step.get("args") or {})
-            
-            logger.debug(
-                f"[thread={thread_id}] Executing thought step: {thought} "
-                f"(idx={idx}, role={run.role})"
-            )
+
+            logger.debug(f"[thread={thread_id}] Executing thought step: {thought} " f"(idx={idx}, role={run.role})")
 
             output: dict[str, Any] = {}
             prompt_text: str | None = None
@@ -390,10 +386,9 @@ class AgentEngine:
         cap = CapabilityName(step["capability"])
         args = dict(step.get("args") or {})
         logical_tool = cast(str | None, step.get("logical_tool"))
-        
+
         logger.debug(
-            f"[thread={thread_id}] Executing action step: {cap.value} "
-            f"(idx={idx}, logical_tool={logical_tool})"
+            f"[thread={thread_id}] Executing action step: {cap.value} " f"(idx={idx}, logical_tool={logical_tool})"
         )
 
         if cap == CapabilityName.mcp_call:

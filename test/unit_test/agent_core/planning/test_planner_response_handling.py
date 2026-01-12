@@ -8,7 +8,6 @@ from unittest.mock import MagicMock
 import pytest
 
 from gearmeshing_ai.agent_core.planning import StructuredPlanner
-from gearmeshing_ai.agent_core.planning.steps import ThoughtStep
 
 
 @pytest.mark.asyncio
