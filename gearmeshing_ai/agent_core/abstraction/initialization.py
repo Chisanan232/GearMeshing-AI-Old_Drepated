@@ -105,12 +105,12 @@ def _validate_api_keys_for_setup() -> None:
     if len(missing_providers) == len(providers):
         # All providers are missing API keys
         raise ValueError(
-            f"No API keys found for any supported AI provider. "
-            f"Please set at least one of the following environment variables:\n"
-            f"  - OpenAI: OPENAI_API_KEY\n"
-            f"  - Anthropic: ANTHROPIC_API_KEY\n"
-            f"  - Google: GOOGLE_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY\n"
-            f"  - Grok: GROK_API_KEY or XAI_API_KEY"
+            "No API keys found for any supported AI provider. "
+            "Please set at least one of the following environment variables:\n"
+            "  - OpenAI: OPENAI_API_KEY\n"
+            "  - Anthropic: ANTHROPIC_API_KEY\n"
+            "  - Google: GOOGLE_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY\n"
+            "  - Grok: GROK_API_KEY or XAI_API_KEY"
         )
 
     # Log which providers have API keys
