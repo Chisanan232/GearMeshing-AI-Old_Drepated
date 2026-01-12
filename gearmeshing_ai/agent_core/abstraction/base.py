@@ -22,7 +22,8 @@ class AIAgentConfig(BaseModel):
         temperature: Model temperature for response generation
         max_tokens: Maximum tokens for response generation
         timeout: Request timeout in seconds
-        metadata: Additional framework-specific configuration (e.g., output_type for Pydantic AI)
+        model_settings: Framework-specific model configuration (e.g., temperature, max_tokens for model initialization)
+        metadata: AI agent object parameters (e.g., output_type for Pydantic AI Agent constructor)
     """
 
     model_config = ConfigDict(frozen=False, validate_assignment=True)
@@ -35,7 +36,8 @@ class AIAgentConfig(BaseModel):
     temperature: float = Field(default=0.7, description="Model temperature for response generation")
     max_tokens: Optional[int] = Field(None, ge=1, description="Maximum tokens for response generation")
     timeout: Optional[float] = Field(None, description="Request timeout in seconds")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional framework-specific configuration")
+    model_settings: Dict[str, Any] = Field(default_factory=dict, description="Framework-specific model configuration")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="AI agent object parameters")
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary."""
