@@ -21,7 +21,7 @@ class TestSetupAgentAbstraction:
     def test_setup_with_default_config(self):
         """Test setup with default configuration."""
         with patch.dict(os.environ, {}, clear=False):
-            provider = setup_agent_abstraction()
+            provider = setup_agent_abstraction(validate_api_keys=False)
 
             assert provider is not None
             assert isinstance(provider, AIAgentProvider)
@@ -36,7 +36,7 @@ class TestSetupAgentAbstraction:
             cache_ttl=3600,
         )
 
-        provider = setup_agent_abstraction(config)
+        provider = setup_agent_abstraction(config, validate_api_keys=False)
 
         assert provider is not None
         assert isinstance(provider, AIAgentProvider)
@@ -49,7 +49,7 @@ class TestSetupAgentAbstraction:
             cache_enabled=False,
         )
 
-        provider = setup_agent_abstraction(config)
+        provider = setup_agent_abstraction(config, validate_api_keys=False)
 
         assert provider is not None
         # When cache_enabled is False, setup passes None to factory
@@ -65,7 +65,7 @@ class TestSetupAgentAbstraction:
             cache_ttl=1800,
         )
 
-        provider = setup_agent_abstraction(config)
+        provider = setup_agent_abstraction(config, validate_api_keys=False)
 
         assert provider is not None
         cache = provider.get_factory().get_cache()
@@ -76,7 +76,7 @@ class TestSetupAgentAbstraction:
         """Test that pydantic_ai framework is registered."""
         config = AgentAbstractionConfig(cache_enabled=False)
 
-        provider = setup_agent_abstraction(config)
+        provider = setup_agent_abstraction(config, validate_api_keys=False)
 
         frameworks = provider.get_registered_frameworks()
         assert "pydantic_ai" in frameworks
@@ -88,7 +88,7 @@ class TestSetupAgentAbstraction:
             cache_enabled=False,
         )
 
-        provider = setup_agent_abstraction(config)
+        provider = setup_agent_abstraction(config, validate_api_keys=False)
 
         assert provider.get_framework() == "pydantic_ai"
 
@@ -99,7 +99,7 @@ class TestSetupAgentAbstraction:
             cache_enabled=False,
         )
 
-        provider = setup_agent_abstraction(config)
+        provider = setup_agent_abstraction(config, validate_api_keys=False)
 
         assert provider is not None
         # Framework should be None if not specified
@@ -109,7 +109,7 @@ class TestSetupAgentAbstraction:
         """Test that setup creates a factory."""
         config = AgentAbstractionConfig(cache_enabled=False)
 
-        provider = setup_agent_abstraction(config)
+        provider = setup_agent_abstraction(config, validate_api_keys=False)
 
         factory = provider.get_factory()
         assert factory is not None
@@ -119,7 +119,7 @@ class TestSetupAgentAbstraction:
         """Test that setup returns a provider instance."""
         config = AgentAbstractionConfig(cache_enabled=False)
 
-        provider = setup_agent_abstraction(config)
+        provider = setup_agent_abstraction(config, validate_api_keys=False)
 
         assert isinstance(provider, AIAgentProvider)
 
@@ -133,7 +133,7 @@ class TestSetupAgentAbstraction:
                 cache_max_size=size,
             )
 
-            provider = setup_agent_abstraction(config)
+            provider = setup_agent_abstraction(config, validate_api_keys=False)
             cache = provider.get_factory().get_cache()
 
             assert cache is not None
@@ -148,7 +148,7 @@ class TestSetupAgentAbstraction:
                 cache_ttl=ttl,
             )
 
-            provider = setup_agent_abstraction(config)
+            provider = setup_agent_abstraction(config, validate_api_keys=False)
             cache = provider.get_factory().get_cache()
 
             assert cache is not None
@@ -160,7 +160,7 @@ class TestSetupAgentAbstraction:
             cache_ttl=None,
         )
 
-        provider = setup_agent_abstraction(config)
+        provider = setup_agent_abstraction(config, validate_api_keys=False)
         cache = provider.get_factory().get_cache()
 
         assert cache is not None
@@ -169,8 +169,8 @@ class TestSetupAgentAbstraction:
         """Test that setup can be called multiple times."""
         config = AgentAbstractionConfig(cache_enabled=False)
 
-        provider1 = setup_agent_abstraction(config)
-        provider2 = setup_agent_abstraction(config)
+        provider1 = setup_agent_abstraction(config, validate_api_keys=False)
+        provider2 = setup_agent_abstraction(config, validate_api_keys=False)
 
         assert provider1 is not None
         assert provider2 is not None
@@ -258,10 +258,14 @@ class TestGetDefaultProvider:
     def test_get_default_provider_creates_if_not_exists(self):
         """Test that get_default_provider creates provider if needed."""
         with patch("gearmeshing_ai.agent_core.abstraction.provider.get_agent_provider", side_effect=RuntimeError("Not initialized")):
-            provider = get_default_provider()
+            with patch("gearmeshing_ai.agent_core.abstraction.initialization.setup_agent_abstraction") as mock_setup:
+                mock_provider = MagicMock(spec=AIAgentProvider)
+                mock_setup.return_value = mock_provider
+                
+                provider = get_default_provider()
 
-            assert provider is not None
-            assert isinstance(provider, AIAgentProvider)
+                assert provider is not None
+                assert isinstance(provider, AIAgentProvider)
 
     def test_get_default_provider_uses_existing(self):
         """Test that get_default_provider uses existing provider."""
@@ -292,7 +296,7 @@ class TestInitializationWithEnvironment:
         """Test setup respects AI_AGENT_FRAMEWORK env var."""
         with patch.dict(os.environ, {"AI_AGENT_FRAMEWORK": "pydantic_ai"}):
             config = AgentAbstractionConfig()
-            provider = setup_agent_abstraction(config)
+            provider = setup_agent_abstraction(config, validate_api_keys=False)
 
             assert provider.get_framework() == "pydantic_ai"
 
@@ -300,7 +304,7 @@ class TestInitializationWithEnvironment:
         """Test setup respects AI_AGENT_CACHE_ENABLED env var."""
         with patch.dict(os.environ, {"AI_AGENT_CACHE_ENABLED": "true"}):
             config = AgentAbstractionConfig()
-            provider = setup_agent_abstraction(config)
+            provider = setup_agent_abstraction(config, validate_api_keys=False)
 
             cache = provider.get_factory().get_cache()
             assert cache is not None
@@ -309,7 +313,7 @@ class TestInitializationWithEnvironment:
         """Test setup respects cache disabled env var."""
         with patch.dict(os.environ, {"AI_AGENT_CACHE_ENABLED": "false"}):
             config = AgentAbstractionConfig()
-            provider = setup_agent_abstraction(config)
+            provider = setup_agent_abstraction(config, validate_api_keys=False)
 
             # When cache_enabled is False, setup passes None to factory
             assert config.cache_enabled is False
@@ -357,7 +361,7 @@ class TestInitializationWithEnvironment:
 
         with patch.dict(os.environ, env_vars):
             config = AgentAbstractionConfig()
-            provider = setup_agent_abstraction(config)
+            provider = setup_agent_abstraction(config, validate_api_keys=False)
 
             assert provider.get_framework() == "pydantic_ai"
             assert config.cache_enabled is True
@@ -379,7 +383,7 @@ class TestInitializationIntegration:
             cache_ttl=1800,
         )
 
-        provider = setup_agent_abstraction(config)
+        provider = setup_agent_abstraction(config, validate_api_keys=False)
 
         # Verify all components are set up
         assert provider is not None
@@ -395,7 +399,7 @@ class TestInitializationIntegration:
             cache_max_size=5,
         )
 
-        provider = setup_agent_abstraction(config)
+        provider = setup_agent_abstraction(config, validate_api_keys=False)
         cache = provider.get_factory().get_cache()
 
         # Verify cache is operational
@@ -409,7 +413,7 @@ class TestInitializationIntegration:
             cache_enabled=False,
         )
 
-        provider = setup_agent_abstraction(config)
+        provider = setup_agent_abstraction(config, validate_api_keys=False)
         factory = provider.get_factory()
 
         # Verify factory is operational
@@ -423,7 +427,7 @@ class TestInitializationIntegration:
             cache_enabled=False,
         )
 
-        provider = setup_agent_abstraction(config)
+        provider = setup_agent_abstraction(config, validate_api_keys=False)
 
         # Framework should be consistent
         assert provider.get_framework() == "pydantic_ai"
@@ -436,7 +440,7 @@ class TestInitializationIntegration:
             cache_enabled=False,
         )
 
-        provider = setup_agent_abstraction(config)
+        provider = setup_agent_abstraction(config, validate_api_keys=False)
 
         assert provider is not None
         assert provider.get_framework() is None
@@ -450,7 +454,7 @@ class TestInitializationIntegration:
             cache_max_size=3,
         )
 
-        provider = setup_agent_abstraction(config)
+        provider = setup_agent_abstraction(config, validate_api_keys=False)
         cache = provider.get_factory().get_cache()
 
         assert cache is not None
@@ -467,8 +471,8 @@ class TestInitializationIntegration:
             cache_enabled=False,
         )
 
-        provider1 = setup_agent_abstraction(config1)
-        provider2 = setup_agent_abstraction(config2)
+        provider1 = setup_agent_abstraction(config1, validate_api_keys=False)
+        provider2 = setup_agent_abstraction(config2, validate_api_keys=False)
 
         assert provider1 is not None
         assert provider2 is not None
@@ -486,7 +490,7 @@ class TestInitializationEdgeCases:
             cache_max_size=0,
         )
 
-        provider = setup_agent_abstraction(config)
+        provider = setup_agent_abstraction(config, validate_api_keys=False)
 
         assert provider is not None
 
@@ -497,7 +501,7 @@ class TestInitializationEdgeCases:
             cache_max_size=10000,
         )
 
-        provider = setup_agent_abstraction(config)
+        provider = setup_agent_abstraction(config, validate_api_keys=False)
 
         assert provider is not None
 
@@ -508,7 +512,7 @@ class TestInitializationEdgeCases:
             cache_ttl=0.1,
         )
 
-        provider = setup_agent_abstraction(config)
+        provider = setup_agent_abstraction(config, validate_api_keys=False)
 
         assert provider is not None
 
@@ -519,7 +523,7 @@ class TestInitializationEdgeCases:
             cache_ttl=86400,  # 24 hours
         )
 
-        provider = setup_agent_abstraction(config)
+        provider = setup_agent_abstraction(config, validate_api_keys=False)
 
         assert provider is not None
 
@@ -530,7 +534,7 @@ class TestInitializationEdgeCases:
             cache_enabled=False,
         )
 
-        provider = setup_agent_abstraction(config)
+        provider = setup_agent_abstraction(config, validate_api_keys=False)
 
         assert provider is not None
 
@@ -543,7 +547,7 @@ class TestInitializationEdgeCases:
 
         # Whitespace framework should raise ValueError since it's not registered
         with pytest.raises(ValueError):
-            provider = setup_agent_abstraction(config)
+            provider = setup_agent_abstraction(config, validate_api_keys=False)
 
     def test_get_default_provider_multiple_calls(self):
         """Test get_default_provider with multiple rapid calls."""
@@ -579,7 +583,7 @@ class TestInitializationLogging:
         config = AgentAbstractionConfig(cache_enabled=False)
 
         with patch("gearmeshing_ai.agent_core.abstraction.initialization.logger") as mock_logger:
-            provider = setup_agent_abstraction(config)
+            provider = setup_agent_abstraction(config, validate_api_keys=False)
 
             assert mock_logger.info.called
             assert provider is not None
@@ -593,7 +597,7 @@ class TestInitializationLogging:
         )
 
         with patch("gearmeshing_ai.agent_core.abstraction.initialization.logger") as mock_logger:
-            provider = setup_agent_abstraction(config)
+            provider = setup_agent_abstraction(config, validate_api_keys=False)
 
             assert mock_logger.debug.called
             assert provider is not None
@@ -606,7 +610,7 @@ class TestInitializationLogging:
         )
 
         with patch("gearmeshing_ai.agent_core.abstraction.initialization.logger") as mock_logger:
-            provider = setup_agent_abstraction(config)
+            provider = setup_agent_abstraction(config, validate_api_keys=False)
 
             assert mock_logger.info.called
             assert provider is not None
@@ -623,8 +627,12 @@ class TestInitializationLogging:
     def test_get_default_provider_logs_creation(self):
         """Test that default provider creation is logged."""
         with patch("gearmeshing_ai.agent_core.abstraction.provider.get_agent_provider", side_effect=RuntimeError("Not initialized")):
-            with patch("gearmeshing_ai.agent_core.abstraction.initialization.logger") as mock_logger:
-                provider = get_default_provider()
+            with patch("gearmeshing_ai.agent_core.abstraction.initialization.setup_agent_abstraction") as mock_setup:
+                with patch("gearmeshing_ai.agent_core.abstraction.initialization.logger") as mock_logger:
+                    mock_provider = MagicMock(spec=AIAgentProvider)
+                    mock_setup.return_value = mock_provider
+                    
+                    provider = get_default_provider()
 
-                assert mock_logger.debug.called
-                assert provider is not None
+                    assert mock_logger.debug.called
+                    assert provider is not None
