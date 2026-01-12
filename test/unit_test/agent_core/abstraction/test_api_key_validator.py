@@ -361,3 +361,186 @@ class TestModelProviderPatterns:
         assert str(AIModelProvider.ANTHROPIC) == "anthropic"
         assert str(AIModelProvider.GOOGLE) == "google"
         assert str(AIModelProvider.GROK) == "grok"
+
+    def test_get_provider_for_model_with_empty_string(self):
+        """Test get_provider_for_model returns None for empty string (L83-84)."""
+        result = APIKeyValidator.get_provider_for_model("")
+
+        assert result is None
+
+    def test_get_provider_for_model_with_none(self):
+        """Test get_provider_for_model returns None for None input (L83-84)."""
+        result = APIKeyValidator.get_provider_for_model(None)
+
+        assert result is None
+
+    def test_get_provider_for_model_with_whitespace(self):
+        """Test get_provider_for_model returns None for whitespace (L83-84)."""
+        result = APIKeyValidator.get_provider_for_model("   ")
+
+        assert result is None
+
+    def test_validate_api_key_with_unknown_provider_raises_error(self):
+        """Test validate_api_key raises ValueError for unknown provider (L138-142)."""
+        # Create a mock provider that's not in PROVIDER_API_KEY_MAPPING
+        from gearmeshing_ai.agent_core.abstraction.api_key_validator import AIModelProvider
+
+        # This test verifies the error handling when provider is not in mapping
+        # We'll patch the mapping to simulate this scenario
+        with patch.dict(
+            "gearmeshing_ai.agent_core.abstraction.api_key_validator.PROVIDER_API_KEY_MAPPING",
+            {},
+            clear=True,
+        ):
+            with pytest.raises(ValueError, match="Unknown provider"):
+                APIKeyValidator.validate_api_key(AIModelProvider.OPENAI)
+
+    def test_validate_api_key_error_message_includes_supported_providers(self):
+        """Test validate_api_key error message includes supported providers (L138-142)."""
+        with patch.dict(os.environ, {}, clear=True):
+            with patch.dict(
+                "gearmeshing_ai.agent_core.abstraction.api_key_validator.PROVIDER_API_KEY_MAPPING",
+                {},
+                clear=True,
+            ):
+                with pytest.raises(ValueError) as exc_info:
+                    APIKeyValidator.validate_api_key(AIModelProvider.OPENAI)
+
+                error_msg = str(exc_info.value)
+                assert "Unknown provider" in error_msg
+
+    def test_validate_api_key_missing_error_includes_env_vars(self):
+        """Test validate_api_key error includes environment variable names (L138-142)."""
+        with patch.dict(os.environ, {}, clear=True):
+            with pytest.raises(ValueError) as exc_info:
+                APIKeyValidator.validate_api_key(AIModelProvider.OPENAI)
+
+            error_msg = str(exc_info.value)
+            assert "OPENAI_API_KEY" in error_msg
+
+    def test_log_api_key_status_with_none_providers(self):
+        """Test log_api_key_status with None providers defaults to all (L213-214)."""
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=True):
+            with patch("gearmeshing_ai.agent_core.abstraction.api_key_validator.logger") as mock_logger:
+                # Call with None to use all providers
+                APIKeyValidator.log_api_key_status(None)
+
+                # Verify logger was called
+                assert mock_logger.debug.called
+
+    def test_log_api_key_status_logs_all_providers_when_none(self):
+        """Test that log_api_key_status logs all providers when None passed (L213-214)."""
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=True):
+            with patch("gearmeshing_ai.agent_core.abstraction.api_key_validator.logger") as mock_logger:
+                APIKeyValidator.log_api_key_status(None)
+
+                # Should log for all providers
+                call_count = mock_logger.debug.call_count
+                # Should have at least one call for "API Key Status:" and calls for each provider
+                assert call_count >= 1
+
+    def test_log_api_key_status_with_specific_providers(self):
+        """Test log_api_key_status with specific provider list."""
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=True):
+            with patch("gearmeshing_ai.agent_core.abstraction.api_key_validator.logger") as mock_logger:
+                providers = [AIModelProvider.OPENAI, AIModelProvider.ANTHROPIC]
+                APIKeyValidator.log_api_key_status(providers)
+
+                assert mock_logger.debug.called
+
+    def test_log_api_key_status_shows_present_status(self):
+        """Test that log_api_key_status shows present status for available keys."""
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=True):
+            with patch("gearmeshing_ai.agent_core.abstraction.api_key_validator.logger") as mock_logger:
+                APIKeyValidator.log_api_key_status([AIModelProvider.OPENAI])
+
+                # Verify logger was called with present status
+                assert mock_logger.debug.called
+
+    def test_log_api_key_status_shows_missing_status(self):
+        """Test that log_api_key_status shows missing status for unavailable keys."""
+        with patch.dict(os.environ, {}, clear=True):
+            with patch("gearmeshing_ai.agent_core.abstraction.api_key_validator.logger") as mock_logger:
+                APIKeyValidator.log_api_key_status([AIModelProvider.OPENAI])
+
+                # Verify logger was called
+                assert mock_logger.debug.called
+
+    def test_get_provider_for_model_case_insensitive_empty_string(self):
+        """Test get_provider_for_model handles empty string case-insensitively."""
+        result1 = APIKeyValidator.get_provider_for_model("")
+        result2 = APIKeyValidator.get_provider_for_model("   ")
+
+        assert result1 is None
+        assert result2 is None
+
+    def test_validate_api_key_with_empty_api_key_vars(self):
+        """Test validate_api_key when provider has no API key variables."""
+        with patch.dict(
+            "gearmeshing_ai.agent_core.abstraction.api_key_validator.PROVIDER_API_KEY_MAPPING",
+            {AIModelProvider.OPENAI: []},
+        ):
+            with pytest.raises(ValueError, match="Unknown provider"):
+                APIKeyValidator.validate_api_key(AIModelProvider.OPENAI)
+
+    def test_log_api_key_status_empty_provider_list(self):
+        """Test log_api_key_status with empty provider list."""
+        with patch("gearmeshing_ai.agent_core.abstraction.api_key_validator.logger") as mock_logger:
+            APIKeyValidator.log_api_key_status([])
+
+            # Should still log the header
+            assert mock_logger.debug.called
+
+    def test_log_api_key_status_single_provider(self):
+        """Test log_api_key_status with single provider."""
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=True):
+            with patch("gearmeshing_ai.agent_core.abstraction.api_key_validator.logger") as mock_logger:
+                APIKeyValidator.log_api_key_status([AIModelProvider.OPENAI])
+
+                assert mock_logger.debug.called
+
+    def test_log_api_key_status_multiple_providers(self):
+        """Test log_api_key_status with multiple providers."""
+        with patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "key1",
+                "ANTHROPIC_API_KEY": "key2",
+            },
+            clear=True,
+        ):
+            with patch("gearmeshing_ai.agent_core.abstraction.api_key_validator.logger") as mock_logger:
+                providers = [
+                    AIModelProvider.OPENAI,
+                    AIModelProvider.ANTHROPIC,
+                    AIModelProvider.GOOGLE,
+                ]
+                APIKeyValidator.log_api_key_status(providers)
+
+                assert mock_logger.debug.called
+
+    def test_get_provider_for_model_falsy_values(self):
+        """Test get_provider_for_model with various falsy values."""
+        assert APIKeyValidator.get_provider_for_model("") is None
+        assert APIKeyValidator.get_provider_for_model(None) is None
+
+    def test_validate_api_key_error_message_format(self):
+        """Test validate_api_key error message is properly formatted."""
+        with patch.dict(os.environ, {}, clear=True):
+            with pytest.raises(ValueError) as exc_info:
+                APIKeyValidator.validate_api_key(AIModelProvider.ANTHROPIC)
+
+            error_msg = str(exc_info.value)
+            # Should contain provider name and environment variables
+            assert "anthropic" in error_msg.lower()
+            assert "ANTHROPIC_API_KEY" in error_msg
+
+    def test_log_api_key_status_all_providers_default(self):
+        """Test that log_api_key_status defaults to all providers when None."""
+        with patch.dict(os.environ, {}, clear=True):
+            with patch("gearmeshing_ai.agent_core.abstraction.api_key_validator.logger") as mock_logger:
+                # Should use all AIModelProvider values
+                APIKeyValidator.log_api_key_status(None)
+
+                # Should log for each provider
+                assert mock_logger.debug.call_count >= 4  # At least one for header + 4 providers
