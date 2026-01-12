@@ -219,3 +219,108 @@ class TestGlobalProvider:
 
         with pytest.raises(RuntimeError):
             get_agent_provider()
+
+    def test_create_agent_without_factory_raises_error(self):
+        """Test that create_agent raises RuntimeError when factory is None (L93-94)."""
+        provider = AIAgentProvider()
+        # Factory is not set, so _factory is None
+
+        config = AIAgentConfig(
+            name="test",
+            framework="mock",
+            model="test",
+        )
+
+        with pytest.raises(RuntimeError, match="Factory not initialized"):
+            import asyncio
+            asyncio.run(provider.create_agent(config))
+
+    def test_get_registered_frameworks_without_factory_returns_empty_list(self):
+        """Test that get_registered_frameworks returns empty list when factory is None (L120-121)."""
+        provider = AIAgentProvider()
+        # Factory is not set, so _factory is None
+
+        frameworks = provider.get_registered_frameworks()
+
+        assert frameworks == []
+        assert isinstance(frameworks, list)
+
+    def test_initialize_agent_provider_creates_factory_if_none(self):
+        """Test that initialize_agent_provider creates factory if not provided (L184-185)."""
+        reset_agent_provider()
+
+        # Call without providing factory
+        provider = initialize_agent_provider(factory=None, framework=None)
+
+        assert provider is not None
+        assert provider.get_factory() is not None
+        # Verify factory was created
+        assert isinstance(provider.get_factory(), AIAgentFactory)
+
+    def test_initialize_agent_provider_with_explicit_factory(self):
+        """Test initialize_agent_provider with explicitly provided factory."""
+        reset_agent_provider()
+
+        factory = AIAgentFactory()
+        factory.register("mock", MockAgent)
+
+        provider = initialize_agent_provider(factory=factory, framework="mock")
+
+        assert provider.get_factory() is factory
+        assert provider.get_framework() == "mock"
+
+    def test_provider_create_agent_without_framework_raises_error(self):
+        """Test that create_agent raises RuntimeError when framework is not set."""
+        factory = AIAgentFactory()
+        factory.register("mock", MockAgent)
+
+        provider = AIAgentProvider()
+        provider.set_factory(factory)
+        # Framework is not set
+
+        config = AIAgentConfig(
+            name="test",
+            framework="mock",
+            model="test",
+        )
+
+        with pytest.raises(RuntimeError, match="Framework not set"):
+            import asyncio
+            asyncio.run(provider.create_agent(config))
+
+    def test_provider_get_registered_frameworks_with_factory(self):
+        """Test get_registered_frameworks returns frameworks when factory is set."""
+        factory = AIAgentFactory()
+        factory.register("mock1", MockAgent)
+        factory.register("mock2", MockAgent)
+
+        provider = AIAgentProvider()
+        provider.set_factory(factory)
+
+        frameworks = provider.get_registered_frameworks()
+
+        assert len(frameworks) == 2
+        assert "mock1" in frameworks
+        assert "mock2" in frameworks
+
+    @pytest.mark.asyncio
+    async def test_provider_create_agent_overrides_framework_in_config(self):
+        """Test that create_agent overrides framework in config with active framework."""
+        factory = AIAgentFactory()
+        factory.register("mock", MockAgent)
+
+        provider = AIAgentProvider()
+        provider.set_factory(factory)
+        provider.set_framework("mock")
+
+        config = AIAgentConfig(
+            name="test",
+            framework="different_framework",  # This should be overridden
+            model="test",
+        )
+
+        agent = await provider.create_agent(config, use_cache=False)
+
+        # Verify framework was overridden
+        assert agent.framework == "mock"
+        assert agent.config.framework == "mock"
