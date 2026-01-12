@@ -74,23 +74,34 @@ class _PromptProvider:
 async def test_thought_step_uses_prompt_provider_and_model_when_configured(monkeypatch: pytest.MonkeyPatch) -> None:
     called: Dict[str, Any] = {}
 
-    class _FakeResult:
-        def __init__(self, output: Any) -> None:
-            self.output = output
+    from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
 
     class _FakeAgent:
-        def __init__(self, model: Any, *, output_type: Any, system_prompt: str):
-            called["system_prompt"] = system_prompt
-            called["output_type"] = output_type
-            called["model"] = model
+        def __init__(self, config: Any) -> None:
+            called["system_prompt"] = config.system_prompt
+            called["output_type"] = config.metadata.get("output_type")
+            called["model"] = config.model
+            self._initialized = False
 
-        async def run(self, prompt: str) -> _FakeResult:
-            called["prompt"] = prompt
-            return _FakeResult({"ok": True})
+        async def initialize(self) -> None:
+            self._initialized = True
+
+        async def invoke(self, input_text: str, **kwargs: Any) -> AIAgentResponse:
+            called["prompt"] = input_text
+            return AIAgentResponse(content={"ok": True}, success=True)
+
+        async def cleanup(self) -> None:
+            pass
+
+    class _FakeProvider:
+        async def create_agent(self, config: Any, use_cache: bool = False) -> _FakeAgent:
+            agent = _FakeAgent(config)
+            await agent.initialize()
+            return agent
 
     import gearmeshing_ai.agent_core.runtime.engine as engine_mod
 
-    monkeypatch.setattr(engine_mod, "PydanticAIAgent", _FakeAgent, raising=True)
+    monkeypatch.setattr(engine_mod, "get_agent_provider", lambda: _FakeProvider())
 
     runs = _Runs()
     events = _Events()
@@ -125,23 +136,34 @@ async def test_thought_step_uses_prompt_provider_and_model_when_configured(monke
 async def test_thought_step_prompt_keyerror_uses_fallback_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
     called: Dict[str, Any] = {}
 
-    class _FakeResult:
-        def __init__(self, output: Any) -> None:
-            self.output = output
+    from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
 
     class _FakeAgent:
-        def __init__(self, model: Any, *, output_type: Any, system_prompt: str):
-            called["system_prompt"] = system_prompt
-            called["output_type"] = output_type
-            called["model"] = model
+        def __init__(self, config: Any) -> None:
+            called["system_prompt"] = config.system_prompt
+            called["output_type"] = config.metadata.get("output_type")
+            called["model"] = config.model
+            self._initialized = False
 
-        async def run(self, prompt: str) -> _FakeResult:
-            called["prompt"] = prompt
-            return _FakeResult({"ok": True})
+        async def initialize(self) -> None:
+            self._initialized = True
+
+        async def invoke(self, input_text: str, **kwargs: Any) -> AIAgentResponse:
+            called["prompt"] = input_text
+            return AIAgentResponse(content={"ok": True}, success=True)
+
+        async def cleanup(self) -> None:
+            pass
+
+    class _FakeProvider:
+        async def create_agent(self, config: Any, use_cache: bool = False) -> _FakeAgent:
+            agent = _FakeAgent(config)
+            await agent.initialize()
+            return agent
 
     import gearmeshing_ai.agent_core.runtime.engine as engine_mod
 
-    monkeypatch.setattr(engine_mod, "PydanticAIAgent", _FakeAgent, raising=True)
+    monkeypatch.setattr(engine_mod, "get_agent_provider", lambda: _FakeProvider())
 
     runs = _Runs()
     events = _Events()
@@ -199,16 +221,32 @@ async def test_thought_step_prompt_keyerror_uses_fallback_prompt(monkeypatch: py
 async def test_thought_step_prompt_provider_exception_disables_agent_call(monkeypatch: pytest.MonkeyPatch) -> None:
     called: Dict[str, Any] = {}
 
-    class _FakeAgent:
-        def __init__(self, *_a, **_k):
-            called["constructed"] = True
+    from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
 
-        async def run(self, *_a, **_k):
+    class _FakeAgent:
+        def __init__(self, config: Any) -> None:
+            called["constructed"] = True
+            self._initialized = False
+
+        async def initialize(self) -> None:
+            self._initialized = True
+
+        async def invoke(self, input_text: str, **kwargs: Any) -> AIAgentResponse:
             called["ran"] = True
+            return AIAgentResponse(content={}, success=True)
+
+        async def cleanup(self) -> None:
+            pass
+
+    class _FakeProvider:
+        async def create_agent(self, config: Any, use_cache: bool = False) -> _FakeAgent:
+            agent = _FakeAgent(config)
+            await agent.initialize()
+            return agent
 
     import gearmeshing_ai.agent_core.runtime.engine as engine_mod
 
-    monkeypatch.setattr(engine_mod, "PydanticAIAgent", _FakeAgent, raising=True)
+    monkeypatch.setattr(engine_mod, "get_agent_provider", lambda: _FakeProvider())
 
     runs = _Runs()
     events = _Events()
@@ -252,20 +290,30 @@ async def test_thought_step_prompt_provider_exception_disables_agent_call(monkey
 
 @pytest.mark.asyncio
 async def test_thought_step_non_dict_agent_output_is_wrapped(monkeypatch: pytest.MonkeyPatch) -> None:
-    class _FakeResult:
-        def __init__(self, output: Any) -> None:
-            self.output = output
+    from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
 
     class _FakeAgent:
-        def __init__(self, *_a, **_k):
-            return None
+        def __init__(self, config: Any) -> None:
+            self._initialized = False
 
-        async def run(self, *_a, **_k) -> _FakeResult:
-            return _FakeResult("hello")
+        async def initialize(self) -> None:
+            self._initialized = True
+
+        async def invoke(self, input_text: str, **kwargs: Any) -> AIAgentResponse:
+            return AIAgentResponse(content="hello", success=True)
+
+        async def cleanup(self) -> None:
+            pass
+
+    class _FakeProvider:
+        async def create_agent(self, config: Any, use_cache: bool = False) -> _FakeAgent:
+            agent = _FakeAgent(config)
+            await agent.initialize()
+            return agent
 
     import gearmeshing_ai.agent_core.runtime.engine as engine_mod
 
-    monkeypatch.setattr(engine_mod, "PydanticAIAgent", _FakeAgent, raising=True)
+    monkeypatch.setattr(engine_mod, "get_agent_provider", lambda: _FakeProvider())
 
     runs = _Runs()
     events = _Events()
