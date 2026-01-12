@@ -26,8 +26,7 @@ The runtime enforces the thought/action split:
 import logging
 from typing import Any, Dict, List, Optional
 
-from pydantic_ai import Agent
-
+from ..abstraction import AIAgentConfig, get_agent_provider
 from ..monitoring_integration import trace_planning
 from .steps import ActionStep, ThoughtStep
 
@@ -92,37 +91,51 @@ class StructuredPlanner:
         # Try to create model from role if not already provided
         model = self._model
         if model is None and self._role is not None and not self._model_creation_deferred:
-            try:
-                from ..model_provider import async_create_model_for_role
+            from ..model_provider import async_create_model_for_role
 
+            try:
                 model = await async_create_model_for_role(self._role, tenant_id=self._tenant_id)
                 logger.debug(f"Created planner model for role '{self._role}' from configuration")
                 self._model = model
             except Exception as e:
                 logger.debug(f"Could not create model for role '{self._role}': {e}")
                 self._model_creation_deferred = True
-                # Fall back to deterministic mode
                 model = None
 
         if model is None:
             return [ThoughtStep(thought="summarize", args={"text": objective, "role": role}).model_dump()]
 
-        agent: Agent = Agent(
-            model,
-            output_type=List[ActionStep],
+        # Use abstraction layer for agent creation and execution
+        provider = get_agent_provider()
+
+        config = AIAgentConfig(
+            name=f"planner-{role}",
+            framework="pydantic_ai",
+            model=model.model_name if hasattr(model, "model_name") else str(model),
             system_prompt=(
                 "You are an expert planner for an autonomous software engineering agent. "
                 "Return a minimal, safe sequence of action steps as JSON."
             ),
+            metadata={"output_type": List[ActionStep]},
         )
 
-        result = await agent.run(
-            (
+        agent = await provider.create_agent(config, use_cache=True)
+
+        response = await agent.invoke(
+            input_text=(
                 "Create a short plan for this objective. "
                 "Use only the supported capabilities.\n\n"
                 f"role={role}\n"
                 f"objective={objective}\n"
             )
         )
-        steps = result.output
-        return [s.model_dump() for s in steps]
+
+        # Parse response content as ActionStep objects
+        if isinstance(response.content, list):
+            steps = response.content
+        else:
+            # Return a single thought step
+            return [ThoughtStep(thought="summarize", args={"text": objective, "role": role}).model_dump()]
+
+        await agent.cleanup()
+        return [s.model_dump() if hasattr(s, "model_dump") else s for s in steps]
