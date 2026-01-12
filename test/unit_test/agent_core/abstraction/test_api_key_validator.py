@@ -383,7 +383,9 @@ class TestModelProviderPatterns:
     def test_validate_api_key_with_unknown_provider_raises_error(self):
         """Test validate_api_key raises ValueError for unknown provider (L138-142)."""
         # Create a mock provider that's not in PROVIDER_API_KEY_MAPPING
-        from gearmeshing_ai.agent_core.abstraction.api_key_validator import AIModelProvider
+        from gearmeshing_ai.agent_core.abstraction.api_key_validator import (
+            AIModelProvider,
+        )
 
         # This test verifies the error handling when provider is not in mapping
         # We'll patch the mapping to simulate this scenario

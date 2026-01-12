@@ -233,6 +233,7 @@ class TestGlobalProvider:
 
         with pytest.raises(RuntimeError, match="Factory not initialized"):
             import asyncio
+
             asyncio.run(provider.create_agent(config))
 
     def test_get_registered_frameworks_without_factory_returns_empty_list(self):
@@ -286,6 +287,7 @@ class TestGlobalProvider:
 
         with pytest.raises(RuntimeError, match="Framework not set"):
             import asyncio
+
             asyncio.run(provider.create_agent(config))
 
     def test_provider_get_registered_frameworks_with_factory(self):

@@ -648,7 +648,9 @@ class TestInitializationLogging:
         """Test that setup_agent_abstraction calls _validate_api_keys_for_setup (L55-56)."""
         config = AgentAbstractionConfig(cache_enabled=False)
 
-        with patch("gearmeshing_ai.agent_core.abstraction.initialization._validate_api_keys_for_setup") as mock_validate:
+        with patch(
+            "gearmeshing_ai.agent_core.abstraction.initialization._validate_api_keys_for_setup"
+        ) as mock_validate:
             provider = setup_agent_abstraction(config, validate_api_keys=True)
 
             assert mock_validate.called
@@ -658,7 +660,9 @@ class TestInitializationLogging:
         """Test that setup_agent_abstraction skips validation when disabled."""
         config = AgentAbstractionConfig(cache_enabled=False)
 
-        with patch("gearmeshing_ai.agent_core.abstraction.initialization._validate_api_keys_for_setup") as mock_validate:
+        with patch(
+            "gearmeshing_ai.agent_core.abstraction.initialization._validate_api_keys_for_setup"
+        ) as mock_validate:
             provider = setup_agent_abstraction(config, validate_api_keys=False)
 
             assert not mock_validate.called
@@ -666,7 +670,9 @@ class TestInitializationLogging:
 
     def test_validate_api_keys_logs_status_for_all_providers(self):
         """Test that _validate_api_keys_for_setup logs status (L97-119)."""
-        from gearmeshing_ai.agent_core.abstraction.initialization import _validate_api_keys_for_setup
+        from gearmeshing_ai.agent_core.abstraction.initialization import (
+            _validate_api_keys_for_setup,
+        )
 
         with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=True):
             with patch("gearmeshing_ai.agent_core.abstraction.initialization.APIKeyValidator") as mock_validator:
@@ -682,7 +688,9 @@ class TestInitializationLogging:
 
     def test_validate_api_keys_raises_error_when_all_missing(self):
         """Test that _validate_api_keys_for_setup raises error when all API keys missing (L97-119)."""
-        from gearmeshing_ai.agent_core.abstraction.initialization import _validate_api_keys_for_setup
+        from gearmeshing_ai.agent_core.abstraction.initialization import (
+            _validate_api_keys_for_setup,
+        )
 
         with patch.dict(os.environ, {}, clear=True):
             with pytest.raises(ValueError, match="No API keys found"):
@@ -690,7 +698,9 @@ class TestInitializationLogging:
 
     def test_validate_api_keys_logs_available_providers(self):
         """Test that _validate_api_keys_for_setup logs available providers (L97-119)."""
-        from gearmeshing_ai.agent_core.abstraction.initialization import _validate_api_keys_for_setup
+        from gearmeshing_ai.agent_core.abstraction.initialization import (
+            _validate_api_keys_for_setup,
+        )
 
         with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=True):
             with patch("gearmeshing_ai.agent_core.abstraction.initialization.logger") as mock_logger:
@@ -704,7 +714,9 @@ class TestInitializationLogging:
 
     def test_validate_api_keys_checks_all_providers(self):
         """Test that _validate_api_keys_for_setup checks all providers."""
-        from gearmeshing_ai.agent_core.abstraction.initialization import _validate_api_keys_for_setup
+        from gearmeshing_ai.agent_core.abstraction.initialization import (
+            _validate_api_keys_for_setup,
+        )
 
         with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=True):
             with patch("gearmeshing_ai.agent_core.abstraction.initialization.APIKeyValidator") as mock_validator:
@@ -721,7 +733,9 @@ class TestInitializationLogging:
 
     def test_validate_api_keys_with_multiple_providers_present(self):
         """Test validation with multiple providers having API keys."""
-        from gearmeshing_ai.agent_core.abstraction.initialization import _validate_api_keys_for_setup
+        from gearmeshing_ai.agent_core.abstraction.initialization import (
+            _validate_api_keys_for_setup,
+        )
 
         with patch.dict(
             os.environ,
@@ -740,7 +754,9 @@ class TestInitializationLogging:
 
     def test_validate_api_keys_error_message_includes_all_providers(self):
         """Test that error message includes all provider options."""
-        from gearmeshing_ai.agent_core.abstraction.initialization import _validate_api_keys_for_setup
+        from gearmeshing_ai.agent_core.abstraction.initialization import (
+            _validate_api_keys_for_setup,
+        )
 
         with patch.dict(os.environ, {}, clear=True):
             with pytest.raises(ValueError) as exc_info:
@@ -772,7 +788,9 @@ class TestInitializationLogging:
 
     def test_validate_api_keys_logs_each_provider_status(self):
         """Test that validation logs status for each provider."""
-        from gearmeshing_ai.agent_core.abstraction.initialization import _validate_api_keys_for_setup
+        from gearmeshing_ai.agent_core.abstraction.initialization import (
+            _validate_api_keys_for_setup,
+        )
 
         with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=True):
             with patch("gearmeshing_ai.agent_core.abstraction.initialization.APIKeyValidator") as mock_validator:
