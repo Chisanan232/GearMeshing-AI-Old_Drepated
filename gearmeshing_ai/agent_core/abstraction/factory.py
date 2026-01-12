@@ -181,7 +181,7 @@ class AIAgentFactory:
     def get_registered_frameworks(self) -> list[str]:
         """Get list of registered frameworks."""
         frameworks = set(self._implementations.keys()) | set(self._factories.keys())
-        return sorted(list(frameworks))
+        return sorted(frameworks)
 
     async def __aenter__(self):
         """Async context manager entry."""
