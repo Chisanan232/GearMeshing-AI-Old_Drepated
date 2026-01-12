@@ -5,14 +5,15 @@ are present in the runtime environment before initializing AI agents.
 """
 
 import os
-import pytest
 from unittest.mock import patch
 
+import pytest
+
 from gearmeshing_ai.agent_core.abstraction.api_key_validator import (
-    APIKeyValidator,
-    AIModelProvider,
-    PROVIDER_API_KEY_MAPPING,
     MODEL_PROVIDER_PATTERNS,
+    PROVIDER_API_KEY_MAPPING,
+    AIModelProvider,
+    APIKeyValidator,
 )
 
 
@@ -102,7 +103,7 @@ class TestAPIKeyValidator:
         with patch.dict(os.environ, {}, clear=True):
             with pytest.raises(ValueError) as exc_info:
                 APIKeyValidator.validate_api_key(AIModelProvider.OPENAI)
-            
+
             assert "API key not found" in str(exc_info.value)
             assert "OPENAI_API_KEY" in str(exc_info.value)
 
@@ -117,14 +118,14 @@ class TestAPIKeyValidator:
         with patch.dict(os.environ, {}, clear=True):
             with pytest.raises(ValueError) as exc_info:
                 APIKeyValidator.validate_model_api_key("gpt-4o")
-            
+
             assert "API key not found" in str(exc_info.value)
 
     def test_validate_model_api_key_unknown_model(self):
         """Test validating API key for unknown model."""
         with pytest.raises(ValueError) as exc_info:
             APIKeyValidator.validate_model_api_key("unknown-model-xyz")
-        
+
         assert "Unknown model" in str(exc_info.value)
 
     def test_validate_providers_all_present(self):
@@ -141,7 +142,7 @@ class TestAPIKeyValidator:
             results = APIKeyValidator.validate_providers(
                 [AIModelProvider.OPENAI, AIModelProvider.ANTHROPIC, AIModelProvider.GOOGLE, AIModelProvider.GROK]
             )
-            
+
             assert all(results.values())
 
     def test_validate_providers_some_missing(self):
@@ -157,7 +158,7 @@ class TestAPIKeyValidator:
             results = APIKeyValidator.validate_providers(
                 [AIModelProvider.OPENAI, AIModelProvider.ANTHROPIC, AIModelProvider.GOOGLE, AIModelProvider.GROK]
             )
-            
+
             assert results[AIModelProvider.OPENAI] is True
             assert results[AIModelProvider.ANTHROPIC] is True
             assert results[AIModelProvider.GOOGLE] is False
@@ -173,7 +174,7 @@ class TestAPIKeyValidator:
             missing = APIKeyValidator.get_missing_api_keys(
                 [AIModelProvider.OPENAI, AIModelProvider.ANTHROPIC, AIModelProvider.GOOGLE, AIModelProvider.GROK]
             )
-            
+
             assert AIModelProvider.OPENAI not in missing
             assert AIModelProvider.ANTHROPIC in missing
             assert AIModelProvider.GOOGLE in missing
@@ -196,7 +197,7 @@ class TestProviderAPIKeyMapping:
     def test_all_providers_have_mappings(self):
         """Test that all known providers have API key mappings."""
         expected_providers = list(AIModelProvider)
-        
+
         for provider in expected_providers:
             assert provider in PROVIDER_API_KEY_MAPPING
             assert len(PROVIDER_API_KEY_MAPPING[provider]) > 0
@@ -204,7 +205,7 @@ class TestProviderAPIKeyMapping:
     def test_all_providers_have_regex_patterns(self):
         """Test that all known providers have regex patterns."""
         expected_providers = list(AIModelProvider)
-        
+
         for provider in expected_providers:
             assert provider in MODEL_PROVIDER_PATTERNS
             assert MODEL_PROVIDER_PATTERNS[provider] is not None
@@ -222,7 +223,7 @@ class TestModelProviderPatterns:
             "gpt-3.5-turbo",
             "gpt-4o-mini",
         ]
-        
+
         for model in openai_models:
             assert APIKeyValidator.get_provider_for_model(model) == AIModelProvider.OPENAI
 
@@ -234,7 +235,7 @@ class TestModelProviderPatterns:
             "claude-3-haiku",
             "claude-3-5-sonnet-20241022",
         ]
-        
+
         for model in anthropic_models:
             assert APIKeyValidator.get_provider_for_model(model) == AIModelProvider.ANTHROPIC
 
@@ -246,14 +247,14 @@ class TestModelProviderPatterns:
             "gemini-1.5-flash",
             "gemini-1.0-pro",
         ]
-        
+
         for model in google_models:
             assert APIKeyValidator.get_provider_for_model(model) == AIModelProvider.GOOGLE
 
     def test_grok_models(self):
         """Test Grok model pattern matching."""
         grok_models = ["grok-1", "grok-2", "grok-3"]
-        
+
         for model in grok_models:
             assert APIKeyValidator.get_provider_for_model(model) == AIModelProvider.GROK
 
@@ -261,13 +262,13 @@ class TestModelProviderPatterns:
         """Test that latest model versions match regex patterns."""
         # OpenAI latest
         assert APIKeyValidator.get_provider_for_model("gpt-4o-2024-11-20") == AIModelProvider.OPENAI
-        
+
         # Anthropic latest
         assert APIKeyValidator.get_provider_for_model("claude-3-5-sonnet-20241022") == AIModelProvider.ANTHROPIC
-        
+
         # Google latest
         assert APIKeyValidator.get_provider_for_model("gemini-2.0-flash") == AIModelProvider.GOOGLE
-        
+
         # Grok latest
         assert APIKeyValidator.get_provider_for_model("grok-3") == AIModelProvider.GROK
 
@@ -279,13 +280,13 @@ class TestModelProviderPatterns:
         assert APIKeyValidator.get_provider_for_model("gpt-4") == AIModelProvider.OPENAI
         assert APIKeyValidator.get_provider_for_model("gpt-4-turbo") == AIModelProvider.OPENAI
         assert APIKeyValidator.get_provider_for_model("gpt-3.5-turbo") == AIModelProvider.OPENAI
-        
+
         # With date suffixes
         assert APIKeyValidator.get_provider_for_model("gpt-4o-2024-11-20") == AIModelProvider.OPENAI
         assert APIKeyValidator.get_provider_for_model("gpt-4o-mini-2024-07-18") == AIModelProvider.OPENAI
         assert APIKeyValidator.get_provider_for_model("gpt-4-turbo-2024-04-09") == AIModelProvider.OPENAI
         assert APIKeyValidator.get_provider_for_model("gpt-3.5-turbo-0125") == AIModelProvider.OPENAI
-        
+
         # Case insensitive
         assert APIKeyValidator.get_provider_for_model("GPT-4O") == AIModelProvider.OPENAI
         assert APIKeyValidator.get_provider_for_model("Gpt-4o-2024-11-20") == AIModelProvider.OPENAI
@@ -298,16 +299,16 @@ class TestModelProviderPatterns:
         assert APIKeyValidator.get_provider_for_model("claude-3-haiku") == AIModelProvider.ANTHROPIC
         assert APIKeyValidator.get_provider_for_model("claude-3-5-sonnet") == AIModelProvider.ANTHROPIC
         assert APIKeyValidator.get_provider_for_model("claude-3-5-haiku") == AIModelProvider.ANTHROPIC
-        
+
         # With date suffixes
         assert APIKeyValidator.get_provider_for_model("claude-3-opus-20250219") == AIModelProvider.ANTHROPIC
         assert APIKeyValidator.get_provider_for_model("claude-3-sonnet-20250229") == AIModelProvider.ANTHROPIC
         assert APIKeyValidator.get_provider_for_model("claude-3-5-sonnet-20241022") == AIModelProvider.ANTHROPIC
-        
+
         # Legacy models
         assert APIKeyValidator.get_provider_for_model("claude-2") == AIModelProvider.ANTHROPIC
         assert APIKeyValidator.get_provider_for_model("claude-2.1") == AIModelProvider.ANTHROPIC
-        
+
         # Case insensitive
         assert APIKeyValidator.get_provider_for_model("CLAUDE-3-OPUS") == AIModelProvider.ANTHROPIC
 
@@ -317,16 +318,16 @@ class TestModelProviderPatterns:
         assert APIKeyValidator.get_provider_for_model("gemini-2.0-flash") == AIModelProvider.GOOGLE
         assert APIKeyValidator.get_provider_for_model("gemini-2.0-pro") == AIModelProvider.GOOGLE
         assert APIKeyValidator.get_provider_for_model("gemini-2.0-flash-exp") == AIModelProvider.GOOGLE
-        
+
         # Gemini 1.5 models
         assert APIKeyValidator.get_provider_for_model("gemini-1.5-pro") == AIModelProvider.GOOGLE
         assert APIKeyValidator.get_provider_for_model("gemini-1.5-flash") == AIModelProvider.GOOGLE
         assert APIKeyValidator.get_provider_for_model("gemini-1.5-pro-002") == AIModelProvider.GOOGLE
-        
+
         # Gemini 1.0 models
         assert APIKeyValidator.get_provider_for_model("gemini-1.0-pro") == AIModelProvider.GOOGLE
         assert APIKeyValidator.get_provider_for_model("gemini-pro") == AIModelProvider.GOOGLE
-        
+
         # Legacy models
         assert APIKeyValidator.get_provider_for_model("palm-2") == AIModelProvider.GOOGLE
         assert APIKeyValidator.get_provider_for_model("text-bison") == AIModelProvider.GOOGLE
@@ -337,12 +338,12 @@ class TestModelProviderPatterns:
         assert APIKeyValidator.get_provider_for_model("grok-1") == AIModelProvider.GROK
         assert APIKeyValidator.get_provider_for_model("grok-2") == AIModelProvider.GROK
         assert APIKeyValidator.get_provider_for_model("grok-3") == AIModelProvider.GROK
-        
+
         # With vision suffix
         assert APIKeyValidator.get_provider_for_model("grok-1-vision") == AIModelProvider.GROK
         assert APIKeyValidator.get_provider_for_model("grok-2-vision") == AIModelProvider.GROK
         assert APIKeyValidator.get_provider_for_model("grok-3-vision") == AIModelProvider.GROK
-        
+
         # With date suffixes
         assert APIKeyValidator.get_provider_for_model("grok-2-1212") == AIModelProvider.GROK
         assert APIKeyValidator.get_provider_for_model("grok-1-vision-20240912") == AIModelProvider.GROK

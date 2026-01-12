@@ -1,7 +1,8 @@
 """Tests for adapter edge cases and error scenarios."""
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
 
 from gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai import PydanticAIAgent
 from gearmeshing_ai.agent_core.abstraction.base import AIAgentConfig

@@ -125,8 +125,7 @@ class AIAgentFactory:
             agent = self._implementations[config.framework](config)
         else:
             raise ValueError(
-                f"Framework '{config.framework}' is not registered. "
-                f"Available: {list(self._implementations.keys())}"
+                f"Framework '{config.framework}' is not registered. " f"Available: {list(self._implementations.keys())}"
             )
 
         # Initialize agent

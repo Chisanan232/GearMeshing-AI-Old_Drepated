@@ -1,8 +1,8 @@
 """Tests for adapter logging and monitoring."""
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch, call
-import logging
 
 from gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai import PydanticAIAgent
 from gearmeshing_ai.agent_core.abstraction.base import AIAgentConfig

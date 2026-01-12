@@ -1,11 +1,12 @@
 """Integration tests for adapters with factory."""
 
-import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import patch
 
+import pytest
+
+from gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai import PydanticAIAgent
 from gearmeshing_ai.agent_core.abstraction.base import AIAgentConfig
 from gearmeshing_ai.agent_core.abstraction.factory import AIAgentFactory
-from gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai import PydanticAIAgent
 
 
 class TestAdapterFactoryIntegration:

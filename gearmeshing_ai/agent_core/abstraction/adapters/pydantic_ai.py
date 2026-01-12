@@ -71,9 +71,7 @@ class PydanticAIAgent(AIAgentBase):
         if model_settings:
             kwargs["model_settings"] = model_settings
 
-        logger.debug(
-            f"Built initialization kwargs for {self._config.name}: {list(kwargs.keys())}"
-        )
+        logger.debug(f"Built initialization kwargs for {self._config.name}: {list(kwargs.keys())}")
 
         return kwargs
 
@@ -89,17 +87,12 @@ class PydanticAIAgent(AIAgentBase):
         try:
             from pydantic_ai import Agent
 
-            logger.debug(
-                f"Initializing Pydantic AI agent: {self._config.name} "
-                f"with model {self._config.model}"
-            )
+            logger.debug(f"Initializing Pydantic AI agent: {self._config.name} " f"with model {self._config.model}")
 
             # Build initialization kwargs from config
             init_kwargs = self.build_init_kwargs()
 
-            logger.debug(
-                f"Using initialization kwargs for {self._config.name}: {init_kwargs}"
-            )
+            logger.debug(f"Using initialization kwargs for {self._config.name}: {init_kwargs}")
 
             # Create the agent with built kwargs
             self._agent = Agent(**init_kwargs)
@@ -108,9 +101,7 @@ class PydanticAIAgent(AIAgentBase):
             logger.debug(f"Pydantic AI agent initialized: {self._config.name}")
 
         except ImportError as e:
-            raise RuntimeError(
-                "Pydantic AI is not installed. Install it with: pip install pydantic-ai"
-            ) from e
+            raise RuntimeError("Pydantic AI is not installed. Install it with: pip install pydantic-ai") from e
         except Exception as e:
             raise RuntimeError(f"Failed to initialize Pydantic AI agent: {e}") from e
 
@@ -139,17 +130,12 @@ class PydanticAIAgent(AIAgentBase):
         try:
             timeout = kwargs.get("timeout") or self._config.timeout
 
-            logger.debug(
-                f"Invoking Pydantic AI agent: {self._config.name} "
-                f"with input length {len(input_text)}"
-            )
+            logger.debug(f"Invoking Pydantic AI agent: {self._config.name} " f"with input length {len(input_text)}")
 
             # Prepare the full prompt with context if provided
             full_prompt = input_text
             if context:
-                context_str = "\n".join(
-                    f"{k}: {v}" for k, v in context.items()
-                )
+                context_str = "\n".join(f"{k}: {v}" for k, v in context.items())
                 full_prompt = f"{context_str}\n\n{input_text}"
 
             # Invoke the agent
@@ -178,9 +164,7 @@ class PydanticAIAgent(AIAgentBase):
                     "output_tokens": getattr(result.usage, "output_tokens", None),
                 }
 
-            logger.debug(
-                f"Pydantic AI agent invocation completed: {self._config.name}"
-            )
+            logger.debug(f"Pydantic AI agent invocation completed: {self._config.name}")
 
             return AIAgentResponse(
                 content=content,
@@ -222,16 +206,12 @@ class PydanticAIAgent(AIAgentBase):
         try:
             timeout = kwargs.get("timeout") or self._config.timeout
 
-            logger.debug(
-                f"Streaming from Pydantic AI agent: {self._config.name}"
-            )
+            logger.debug(f"Streaming from Pydantic AI agent: {self._config.name}")
 
             # Prepare the full prompt with context if provided
             full_prompt = input_text
             if context:
-                context_str = "\n".join(
-                    f"{k}: {v}" for k, v in context.items()
-                )
+                context_str = "\n".join(f"{k}: {v}" for k, v in context.items())
                 full_prompt = f"{context_str}\n\n{input_text}"
 
             # Stream from the agent

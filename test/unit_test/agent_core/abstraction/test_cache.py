@@ -2,7 +2,11 @@
 
 import pytest
 
-from gearmeshing_ai.agent_core.abstraction.base import AIAgentBase, AIAgentConfig, AIAgentResponse
+from gearmeshing_ai.agent_core.abstraction.base import (
+    AIAgentBase,
+    AIAgentConfig,
+    AIAgentResponse,
+)
 from gearmeshing_ai.agent_core.abstraction.cache import AIAgentCache
 
 

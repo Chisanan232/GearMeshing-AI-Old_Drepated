@@ -7,7 +7,7 @@ enabling efficient reuse and resource management.
 import asyncio
 from typing import Dict, Optional
 
-from .base import AIAgentBase, AIAgentConfig
+from .base import AIAgentBase
 
 
 class AIAgentCache:

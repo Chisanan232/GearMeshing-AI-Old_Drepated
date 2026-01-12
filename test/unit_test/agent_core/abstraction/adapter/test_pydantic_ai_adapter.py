@@ -1,10 +1,11 @@
 """Unit tests for Pydantic AI adapter."""
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch, call
 
 from gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai import PydanticAIAgent
-from gearmeshing_ai.agent_core.abstraction.base import AIAgentConfig, AIAgentResponse
+from gearmeshing_ai.agent_core.abstraction.base import AIAgentConfig
 
 
 class TestPydanticAIAgentInitialization:

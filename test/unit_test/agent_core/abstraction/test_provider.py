@@ -1,16 +1,21 @@
 """Unit tests for AI agent provider."""
 
-import pytest
 from unittest.mock import patch
 
-from gearmeshing_ai.agent_core.abstraction.base import AIAgentBase, AIAgentConfig, AIAgentResponse
+import pytest
+
+from gearmeshing_ai.agent_core.abstraction.base import (
+    AIAgentBase,
+    AIAgentConfig,
+    AIAgentResponse,
+)
 from gearmeshing_ai.agent_core.abstraction.factory import AIAgentFactory
 from gearmeshing_ai.agent_core.abstraction.provider import (
     AIAgentProvider,
     get_agent_provider,
-    set_agent_provider,
     initialize_agent_provider,
     reset_agent_provider,
+    set_agent_provider,
 )
 
 

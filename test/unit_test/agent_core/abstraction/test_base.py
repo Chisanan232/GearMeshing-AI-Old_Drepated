@@ -1,7 +1,6 @@
 """Unit tests for AI agent abstraction base classes."""
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 
 from gearmeshing_ai.agent_core.abstraction.base import (
     AIAgentBase,

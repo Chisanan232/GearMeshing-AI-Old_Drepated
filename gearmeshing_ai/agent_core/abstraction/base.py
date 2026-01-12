@@ -7,7 +7,7 @@ must adhere to, enabling framework-agnostic agent usage throughout the project.
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AIAgentConfig(BaseModel):
@@ -121,9 +121,7 @@ class AIAgentBase(ABC):
         Raises:
             ValueError: If required parameters cannot be built from config
         """
-        raise NotImplementedError(
-            f"{self.__class__.__name__} must implement build_init_kwargs()"
-        )
+        raise NotImplementedError(f"{self.__class__.__name__} must implement build_init_kwargs()")
 
     @abstractmethod
     async def initialize(self) -> None:
@@ -135,7 +133,6 @@ class AIAgentBase(ABC):
         Raises:
             RuntimeError: If initialization fails
         """
-        pass
 
     @abstractmethod
     async def invoke(
@@ -157,7 +154,6 @@ class AIAgentBase(ABC):
         Raises:
             RuntimeError: If invocation fails
         """
-        pass
 
     @abstractmethod
     async def stream(
@@ -178,7 +174,6 @@ class AIAgentBase(ABC):
         Yields:
             Response chunks as they become available
         """
-        pass
 
     @abstractmethod
     async def cleanup(self) -> None:
@@ -186,7 +181,6 @@ class AIAgentBase(ABC):
 
         This method should release any held resources, close connections, etc.
         """
-        pass
 
     async def __aenter__(self):
         """Async context manager entry."""

@@ -9,11 +9,11 @@ from typing import Optional
 from gearmeshing_ai.core.logging_config import get_logger
 
 from .adapters import PydanticAIAgent
-from .api_key_validator import APIKeyValidator, AIModelProvider
+from .api_key_validator import AIModelProvider, APIKeyValidator
 from .cache import AIAgentCache
 from .config import AgentAbstractionConfig
 from .factory import AIAgentFactory
-from .provider import AIAgentProvider, initialize_agent_provider, set_agent_provider
+from .provider import AIAgentProvider, initialize_agent_provider
 
 logger = get_logger(__name__)
 
@@ -61,10 +61,7 @@ def setup_agent_abstraction(
             max_size=config.cache_max_size,
             ttl=config.cache_ttl,
         )
-        logger.debug(
-            f"Agent cache initialized: max_size={config.cache_max_size}, "
-            f"ttl={config.cache_ttl}"
-        )
+        logger.debug(f"Agent cache initialized: max_size={config.cache_max_size}, " f"ttl={config.cache_ttl}")
 
     # Create factory
     factory = AIAgentFactory(cache=cache)
@@ -79,8 +76,7 @@ def setup_agent_abstraction(
     )
 
     logger.info(
-        f"AI agent abstraction layer initialized. "
-        f"Registered frameworks: {provider.get_registered_frameworks()}"
+        f"AI agent abstraction layer initialized. " f"Registered frameworks: {provider.get_registered_frameworks()}"
     )
 
     if config.framework:
@@ -99,13 +95,13 @@ def _validate_api_keys_for_setup() -> None:
         ValueError: If no API keys are found for any known provider
     """
     providers = list(AIModelProvider)
-    
+
     # Log API key status for all providers
     APIKeyValidator.log_api_key_status(providers)
-    
+
     # Check if at least one provider has an API key
     missing_providers = APIKeyValidator.get_missing_api_keys(providers)
-    
+
     if len(missing_providers) == len(providers):
         # All providers are missing API keys
         raise ValueError(
@@ -116,7 +112,7 @@ def _validate_api_keys_for_setup() -> None:
             f"  - Google: GOOGLE_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY\n"
             f"  - Grok: GROK_API_KEY or XAI_API_KEY"
         )
-    
+
     # Log which providers have API keys
     available_providers = [p.value for p in providers if p not in missing_providers]
     logger.info(f"Available AI providers: {', '.join(available_providers)}")
@@ -150,6 +146,7 @@ def get_default_provider() -> AIAgentProvider:
     """
     try:
         from .provider import get_agent_provider
+
         return get_agent_provider()
     except RuntimeError:
         logger.debug("Creating default agent provider")

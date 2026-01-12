@@ -1,11 +1,14 @@
 """Unit tests for AI agent factory."""
 
 import pytest
-from unittest.mock import AsyncMock
 
-from gearmeshing_ai.agent_core.abstraction.base import AIAgentBase, AIAgentConfig, AIAgentResponse
-from gearmeshing_ai.agent_core.abstraction.factory import AIAgentFactory
+from gearmeshing_ai.agent_core.abstraction.base import (
+    AIAgentBase,
+    AIAgentConfig,
+    AIAgentResponse,
+)
 from gearmeshing_ai.agent_core.abstraction.cache import AIAgentCache
+from gearmeshing_ai.agent_core.abstraction.factory import AIAgentFactory
 
 
 class MockAgent(AIAgentBase):
@@ -122,10 +125,7 @@ class TestAIAgentFactory:
         factory = AIAgentFactory()
         factory.register("mock", MockAgent)
 
-        configs = [
-            AIAgentConfig(name=f"agent{i}", framework="mock", model="test")
-            for i in range(3)
-        ]
+        configs = [AIAgentConfig(name=f"agent{i}", framework="mock", model="test") for i in range(3)]
 
         agents = await factory.create_batch(configs, use_cache=False)
         assert len(agents) == 3

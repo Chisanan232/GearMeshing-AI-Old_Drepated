@@ -1,18 +1,19 @@
 """Unit tests for AI agent abstraction initialization module."""
 
 import os
-import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import MagicMock, patch
 
-from gearmeshing_ai.agent_core.abstraction.initialization import (
-    setup_agent_abstraction,
-    _register_frameworks,
-    get_default_provider,
-)
+import pytest
+
+from gearmeshing_ai.agent_core.abstraction.cache import AIAgentCache
 from gearmeshing_ai.agent_core.abstraction.config import AgentAbstractionConfig
 from gearmeshing_ai.agent_core.abstraction.factory import AIAgentFactory
+from gearmeshing_ai.agent_core.abstraction.initialization import (
+    _register_frameworks,
+    get_default_provider,
+    setup_agent_abstraction,
+)
 from gearmeshing_ai.agent_core.abstraction.provider import AIAgentProvider
-from gearmeshing_ai.agent_core.abstraction.cache import AIAgentCache
 
 
 class TestSetupAgentAbstraction:
@@ -257,11 +258,14 @@ class TestGetDefaultProvider:
 
     def test_get_default_provider_creates_if_not_exists(self):
         """Test that get_default_provider creates provider if needed."""
-        with patch("gearmeshing_ai.agent_core.abstraction.provider.get_agent_provider", side_effect=RuntimeError("Not initialized")):
+        with patch(
+            "gearmeshing_ai.agent_core.abstraction.provider.get_agent_provider",
+            side_effect=RuntimeError("Not initialized"),
+        ):
             with patch("gearmeshing_ai.agent_core.abstraction.initialization.setup_agent_abstraction") as mock_setup:
                 mock_provider = MagicMock(spec=AIAgentProvider)
                 mock_setup.return_value = mock_provider
-                
+
                 provider = get_default_provider()
 
                 assert provider is not None
@@ -559,7 +563,7 @@ class TestInitializationEdgeCases:
     def test_initialization_with_invalid_env_values(self):
         """Test initialization with invalid environment values."""
         from pydantic import ValidationError
-        
+
         with patch.dict(os.environ, {"AI_AGENT_CACHE_MAX_SIZE": "invalid"}):
             # Pydantic Settings raises ValidationError for invalid values
             with pytest.raises(ValidationError):
@@ -568,7 +572,7 @@ class TestInitializationEdgeCases:
     def test_initialization_with_invalid_ttl_env(self):
         """Test initialization with invalid TTL environment value."""
         from pydantic import ValidationError
-        
+
         with patch.dict(os.environ, {"AI_AGENT_CACHE_TTL": "not_a_number"}):
             # Pydantic Settings raises ValidationError for invalid values
             with pytest.raises(ValidationError):
@@ -626,12 +630,15 @@ class TestInitializationLogging:
 
     def test_get_default_provider_logs_creation(self):
         """Test that default provider creation is logged."""
-        with patch("gearmeshing_ai.agent_core.abstraction.provider.get_agent_provider", side_effect=RuntimeError("Not initialized")):
+        with patch(
+            "gearmeshing_ai.agent_core.abstraction.provider.get_agent_provider",
+            side_effect=RuntimeError("Not initialized"),
+        ):
             with patch("gearmeshing_ai.agent_core.abstraction.initialization.setup_agent_abstraction") as mock_setup:
                 with patch("gearmeshing_ai.agent_core.abstraction.initialization.logger") as mock_logger:
                     mock_provider = MagicMock(spec=AIAgentProvider)
                     mock_setup.return_value = mock_provider
-                    
+
                     provider = get_default_provider()
 
                     assert mock_logger.debug.called
