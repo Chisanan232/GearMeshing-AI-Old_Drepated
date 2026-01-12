@@ -256,7 +256,9 @@ class ModelProvider:
         Raises:
             ValueError: If the model name doesn't match any known provider pattern.
         """
-        from gearmeshing_ai.agent_core.abstraction.api_key_validator import APIKeyValidator
+        from gearmeshing_ai.agent_core.abstraction.api_key_validator import (
+            APIKeyValidator,
+        )
 
         provider = APIKeyValidator.get_provider_for_model(model_name)
         if provider is None:

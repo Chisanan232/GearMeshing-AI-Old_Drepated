@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -531,7 +531,9 @@ class TestPlannerModelProviderIntegration:
                         await agent.initialize()
                         return agent
 
-                with patch("gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()):
+                with patch(
+                    "gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()
+                ):
                     await planner.plan(objective="Test", role=role)
 
                     # Verify role was passed correctly

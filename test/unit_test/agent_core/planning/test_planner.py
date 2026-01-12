@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, List
+from typing import Any
 
 import pytest
 
@@ -89,6 +88,7 @@ async def test_planner_uses_pydantic_ai_agent_and_model_dump(monkeypatch: pytest
 async def test_planner_with_testmodel_produces_valid_steps(monkeypatch: pytest.MonkeyPatch) -> None:
     pytest.importorskip("pydantic_ai")
     from pydantic_ai.models.test import TestModel
+
     from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
 
     class _FakeAgent:
@@ -142,6 +142,7 @@ async def test_planner_with_functionmodel_returns_expected_plan(monkeypatch: pyt
 
     from pydantic_ai import ModelMessage, ModelResponse, ToolCallPart, models
     from pydantic_ai.models.function import AgentInfo, FunctionModel
+
     from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
 
     models.ALLOW_MODEL_REQUESTS = False
