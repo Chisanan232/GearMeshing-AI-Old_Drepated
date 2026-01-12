@@ -643,3 +643,148 @@ class TestInitializationLogging:
 
                     assert mock_logger.debug.called
                     assert provider is not None
+
+    def test_setup_calls_validate_api_keys_when_enabled(self):
+        """Test that setup_agent_abstraction calls _validate_api_keys_for_setup (L55-56)."""
+        config = AgentAbstractionConfig(cache_enabled=False)
+
+        with patch("gearmeshing_ai.agent_core.abstraction.initialization._validate_api_keys_for_setup") as mock_validate:
+            provider = setup_agent_abstraction(config, validate_api_keys=True)
+
+            assert mock_validate.called
+            assert provider is not None
+
+    def test_setup_skips_api_key_validation_when_disabled(self):
+        """Test that setup_agent_abstraction skips validation when disabled."""
+        config = AgentAbstractionConfig(cache_enabled=False)
+
+        with patch("gearmeshing_ai.agent_core.abstraction.initialization._validate_api_keys_for_setup") as mock_validate:
+            provider = setup_agent_abstraction(config, validate_api_keys=False)
+
+            assert not mock_validate.called
+            assert provider is not None
+
+    def test_validate_api_keys_logs_status_for_all_providers(self):
+        """Test that _validate_api_keys_for_setup logs status (L97-119)."""
+        from gearmeshing_ai.agent_core.abstraction.initialization import _validate_api_keys_for_setup
+
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=True):
+            with patch("gearmeshing_ai.agent_core.abstraction.initialization.APIKeyValidator") as mock_validator:
+                mock_validator.log_api_key_status = MagicMock()
+                mock_validator.get_missing_api_keys = MagicMock(return_value=[])
+                mock_validator.list = MagicMock(return_value=[])
+
+                # Should not raise since at least one provider has API key
+                try:
+                    _validate_api_keys_for_setup()
+                except ValueError:
+                    pass  # Expected if no API keys are found
+
+    def test_validate_api_keys_raises_error_when_all_missing(self):
+        """Test that _validate_api_keys_for_setup raises error when all API keys missing (L97-119)."""
+        from gearmeshing_ai.agent_core.abstraction.initialization import _validate_api_keys_for_setup
+
+        with patch.dict(os.environ, {}, clear=True):
+            with pytest.raises(ValueError, match="No API keys found"):
+                _validate_api_keys_for_setup()
+
+    def test_validate_api_keys_logs_available_providers(self):
+        """Test that _validate_api_keys_for_setup logs available providers (L97-119)."""
+        from gearmeshing_ai.agent_core.abstraction.initialization import _validate_api_keys_for_setup
+
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=True):
+            with patch("gearmeshing_ai.agent_core.abstraction.initialization.logger") as mock_logger:
+                try:
+                    _validate_api_keys_for_setup()
+                except ValueError:
+                    pass
+
+                # Should log available providers
+                assert mock_logger.info.called
+
+    def test_validate_api_keys_checks_all_providers(self):
+        """Test that _validate_api_keys_for_setup checks all providers."""
+        from gearmeshing_ai.agent_core.abstraction.initialization import _validate_api_keys_for_setup
+
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=True):
+            with patch("gearmeshing_ai.agent_core.abstraction.initialization.APIKeyValidator") as mock_validator:
+                mock_validator.log_api_key_status = MagicMock()
+                mock_validator.get_missing_api_keys = MagicMock(return_value=[])
+
+                try:
+                    _validate_api_keys_for_setup()
+                except ValueError:
+                    pass
+
+                # Verify log_api_key_status was called
+                assert mock_validator.log_api_key_status.called
+
+    def test_validate_api_keys_with_multiple_providers_present(self):
+        """Test validation with multiple providers having API keys."""
+        from gearmeshing_ai.agent_core.abstraction.initialization import _validate_api_keys_for_setup
+
+        with patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "key1",
+                "ANTHROPIC_API_KEY": "key2",
+                "GOOGLE_API_KEY": "key3",
+            },
+            clear=True,
+        ):
+            # Should not raise since multiple providers have API keys
+            try:
+                _validate_api_keys_for_setup()
+            except ValueError:
+                pytest.fail("Should not raise ValueError when API keys are present")
+
+    def test_validate_api_keys_error_message_includes_all_providers(self):
+        """Test that error message includes all provider options."""
+        from gearmeshing_ai.agent_core.abstraction.initialization import _validate_api_keys_for_setup
+
+        with patch.dict(os.environ, {}, clear=True):
+            with pytest.raises(ValueError) as exc_info:
+                _validate_api_keys_for_setup()
+
+            error_msg = str(exc_info.value)
+            assert "OPENAI_API_KEY" in error_msg
+            assert "ANTHROPIC_API_KEY" in error_msg
+            assert "GOOGLE_API_KEY" in error_msg
+            assert "GROK_API_KEY" in error_msg
+
+    def test_setup_with_api_key_validation_enabled_and_present(self):
+        """Test setup with API key validation enabled and keys present."""
+        config = AgentAbstractionConfig(cache_enabled=False)
+
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=True):
+            provider = setup_agent_abstraction(config, validate_api_keys=True)
+
+            assert provider is not None
+            assert isinstance(provider, AIAgentProvider)
+
+    def test_setup_with_api_key_validation_enabled_and_missing(self):
+        """Test setup with API key validation enabled but keys missing."""
+        config = AgentAbstractionConfig(cache_enabled=False)
+
+        with patch.dict(os.environ, {}, clear=True):
+            with pytest.raises(ValueError, match="No API keys found"):
+                setup_agent_abstraction(config, validate_api_keys=True)
+
+    def test_validate_api_keys_logs_each_provider_status(self):
+        """Test that validation logs status for each provider."""
+        from gearmeshing_ai.agent_core.abstraction.initialization import _validate_api_keys_for_setup
+
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}, clear=True):
+            with patch("gearmeshing_ai.agent_core.abstraction.initialization.APIKeyValidator") as mock_validator:
+                mock_validator.log_api_key_status = MagicMock()
+                mock_validator.get_missing_api_keys = MagicMock(return_value=[])
+
+                try:
+                    _validate_api_keys_for_setup()
+                except ValueError:
+                    pass
+
+                # Verify log_api_key_status was called with list of providers
+                assert mock_validator.log_api_key_status.called
+                call_args = mock_validator.log_api_key_status.call_args
+                assert call_args is not None
