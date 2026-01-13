@@ -9,7 +9,9 @@ import os
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Optional, TypeVar
+
+from pydantic import BaseModel
 
 from gearmeshing_ai.core.logging_config import get_logger
 
@@ -24,12 +26,8 @@ from .definitions import (
 
 logger = get_logger(__name__)
 
-# Type variables for generic handler
-InputType = TypeVar("InputType")
-OutputType = TypeVar("OutputType")
 
-
-class ToolHandler(ABC, Generic[InputType, OutputType]):
+class ToolHandler[InputType: BaseModel, OutputType: BaseModel](ABC):
     """Abstract base class for tool handlers.
 
     Provides a common interface for all tool handlers with logging and error handling.
@@ -39,6 +37,7 @@ class ToolHandler(ABC, Generic[InputType, OutputType]):
     @abstractmethod
     def name(self) -> str:
         """Get the tool handler name."""
+        ...
 
     @abstractmethod
     async def execute(self, input_data: InputType) -> OutputType:
@@ -50,6 +49,7 @@ class ToolHandler(ABC, Generic[InputType, OutputType]):
         Returns:
             Output data from the tool execution
         """
+        ...
 
     async def __call__(self, input_data: InputType) -> OutputType:
         """Make handler callable.
