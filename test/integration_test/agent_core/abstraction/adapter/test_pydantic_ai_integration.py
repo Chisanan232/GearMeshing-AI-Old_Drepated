@@ -118,13 +118,16 @@ class TestPydanticAIAgentToolCalling:
                     for part in msg.parts:
                         if isinstance(part, ToolCallPart) and part.tool_name == "read_file":
                             tool_call_found = True
+                            # TestModel passes required parameters
                             assert "file_path" in part.args
-                            assert "encoding" in part.args
+                            # assert "encoding" in part.args
 
-            # If tool was called, verify handler received correct parameters
-            if len(tool_calls) > 0:
-                assert tool_calls[0]["tool"] == "read_file"
-                assert tool_calls[0]["encoding"] == "utf-8"
+            # Must verify that tool was actually called - fail if not
+            assert tool_call_found, "read_file tool should have been called by TestModel"
+            assert len(tool_calls) > 0, "read_file handler should have been invoked"
+            assert tool_calls[0]["tool"] == "read_file"
+            # Verify default parameter was used
+            assert tool_calls[0]["encoding"] == "utf-8"
 
     @pytest.mark.asyncio
     async def test_write_file_tool_with_testmodel(self, temp_dir: str) -> None:
@@ -180,16 +183,19 @@ class TestPydanticAIAgentToolCalling:
                     for part in msg.parts:
                         if isinstance(part, ToolCallPart) and part.tool_name == "write_file":
                             tool_call_found = True
+                            # TestModel passes required parameters
                             assert "file_path" in part.args
                             assert "content" in part.args
-                            assert "encoding" in part.args
-                            assert "create_dirs" in part.args
+                            # assert "encoding" in part.args
+                            # assert "create_dirs" in part.args
 
-            # If tool was called, verify handler received correct parameters
-            if len(tool_calls) > 0:
-                assert tool_calls[0]["tool"] == "write_file"
-                assert tool_calls[0]["encoding"] == "utf-8"
-                assert tool_calls[0]["create_dirs"] is True
+            # Must verify that tool was actually called - fail if not
+            assert tool_call_found, "write_file tool should have been called by TestModel"
+            assert len(tool_calls) > 0, "write_file handler should have been invoked"
+            assert tool_calls[0]["tool"] == "write_file"
+            # Verify default parameters were used
+            assert tool_calls[0]["encoding"] == "utf-8"
+            assert tool_calls[0]["create_dirs"] is True
 
     @pytest.mark.asyncio
     async def test_run_command_tool_with_testmodel(self) -> None:
@@ -247,15 +253,18 @@ class TestPydanticAIAgentToolCalling:
                     for part in msg.parts:
                         if isinstance(part, ToolCallPart) and part.tool_name == "run_command":
                             tool_call_found = True
+                            # TestModel passes required parameters
                             assert "command" in part.args
-                            assert "timeout" in part.args
-                            assert "shell" in part.args
+                            # assert "timeout" in part.args
+                            # assert "shell" in part.args
 
-            # If tool was called, verify handler received correct parameters
-            if len(tool_calls) > 0:
-                assert tool_calls[0]["tool"] == "run_command"
-                assert tool_calls[0]["timeout"] == 30.0
-                assert tool_calls[0]["shell"] is True
+            # Must verify that tool was actually called - fail if not
+            assert tool_call_found, "run_command tool should have been called by TestModel"
+            assert len(tool_calls) > 0, "run_command handler should have been invoked"
+            assert tool_calls[0]["tool"] == "run_command"
+            # Verify default parameters were used
+            assert tool_calls[0]["timeout"] == 30.0
+            assert tool_calls[0]["shell"] is True
 
     def test_read_file_handler_called_with_correct_parameters(self, temp_dir: str) -> None:
         """Test that read_file handler receives correct FileReadInput parameters."""
