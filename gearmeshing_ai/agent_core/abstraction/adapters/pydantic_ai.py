@@ -2,11 +2,23 @@
 
 This module provides an adapter that implements the AIAgentBase abstraction
 for the Pydantic AI framework, enabling seamless integration with the unified
-agent system.
+agent system. Includes support for file operations and command execution tools.
 """
 
 from typing import Any, Dict, Optional
 
+from pydantic_ai import RunContext
+
+from gearmeshing_ai.agent_core.abstraction.tools import (
+    read_file_handler,
+    run_command_handler,
+    write_file_handler,
+)
+from gearmeshing_ai.agent_core.abstraction.tools.definitions import (
+    CommandRunInput,
+    FileReadInput,
+    FileWriteInput,
+)
 from gearmeshing_ai.core.logging_config import get_logger
 
 from ..base import AIAgentBase, AIAgentConfig, AIAgentResponse
@@ -34,6 +46,8 @@ class PydanticAIAgent(AIAgentBase):
         super().__init__(config)
         self._agent = None
         self._model = None
+        self._enable_tools = True
+        self._capability_event_repo = None
 
     def build_init_kwargs(self) -> Dict[str, Any]:
         """Build Pydantic AI-specific initialization kwargs.
@@ -102,6 +116,9 @@ class PydanticAIAgent(AIAgentBase):
             # Create the agent with built kwargs
             self._agent = Agent(**init_kwargs)
 
+            # Register tools with the agent
+            self._register_tools(self._agent)
+
             self._initialized = True
             logger.debug(f"Pydantic AI agent initialized: {self._config.name}")
 
@@ -109,6 +126,144 @@ class PydanticAIAgent(AIAgentBase):
             raise RuntimeError("Pydantic AI is not installed. Install it with: pip install pydantic-ai") from e
         except Exception as e:
             raise RuntimeError(f"Failed to initialize Pydantic AI agent: {e}") from e
+
+    def _register_tools(self, agent: Any) -> None:
+        """Register file and command execution tools with the agent.
+
+        Args:
+            agent: The Pydantic AI Agent instance
+        """
+        if not self._enable_tools:
+            logger.debug(f"Tools disabled for {self._config.name}")
+            return
+
+        try:
+            # Define tools as nested functions with decorators
+            # First parameter must be RunContext as per Pydantic AI documentation
+            @agent.tool
+            async def read_file(ctx: RunContext, file_path: str, encoding: str = "utf-8") -> str:
+                """Read a file from the filesystem.
+
+                This tool reads the contents of a file at the specified path and returns
+                the file contents as a string. It supports various text encodings and is
+                useful for retrieving configuration files, logs, or other text-based data.
+
+                Args:
+                    file_path: The absolute or relative path to the file to read.
+                    encoding: The character encoding to use when reading the file.
+                             Defaults to 'utf-8'. Common alternatives include 'ascii',
+                             'latin-1', 'utf-16', etc.
+
+                Returns:
+                    A JSON string containing:
+                    - success: Boolean indicating if the read was successful
+                    - content: The file contents as a string
+                    - file_path: The path that was read
+                    - size_bytes: The size of the file in bytes
+
+                Raises:
+                    FileNotFoundError: If the specified file does not exist
+                    PermissionError: If the file cannot be read due to permissions
+                    UnicodeDecodeError: If the file cannot be decoded with the specified encoding
+                """
+                input_data = FileReadInput(file_path=file_path, encoding=encoding)
+                result = await read_file_handler(input_data)
+                return result.model_dump_json()
+
+            @agent.tool
+            async def write_file(
+                ctx: RunContext,
+                file_path: str,
+                content: str,
+                encoding: str = "utf-8",
+                create_dirs: bool = True,
+            ) -> str:
+                """Write content to a file on the filesystem.
+
+                This tool writes the provided content to a file at the specified path.
+                It can create parent directories if they don't exist and supports various
+                text encodings. Useful for creating configuration files, logs, or saving
+                generated content.
+
+                Args:
+                    file_path: The absolute or relative path where the file should be written.
+                    content: The text content to write to the file.
+                    encoding: The character encoding to use when writing the file.
+                             Defaults to 'utf-8'. Common alternatives include 'ascii',
+                             'latin-1', 'utf-16', etc.
+                    create_dirs: If True (default), creates parent directories if they don't exist.
+                                If False, raises an error if parent directories are missing.
+
+                Returns:
+                    A JSON string containing:
+                    - success: Boolean indicating if the write was successful
+                    - file_path: The path where the file was written
+                    - bytes_written: The number of bytes written to the file
+
+                Raises:
+                    PermissionError: If the file cannot be written due to permissions
+                    OSError: If parent directories cannot be created (when create_dirs=True)
+                """
+                input_data = FileWriteInput(
+                    file_path=file_path,
+                    content=content,
+                    encoding=encoding,
+                    create_dirs=create_dirs,
+                )
+                result = await write_file_handler(input_data)
+                return result.model_dump_json()
+
+            @agent.tool
+            async def run_command(
+                ctx: RunContext,
+                command: str,
+                cwd: Optional[str] = None,
+                timeout: float = 30.0,
+                shell: bool = True,
+            ) -> str:
+                """Execute a shell command and capture output.
+
+                This tool executes a shell command in the system and captures both
+                stdout and stderr output. It's useful for running scripts, checking
+                system status, building projects, running tests, or any other
+                command-line operations.
+
+                Args:
+                    command: The shell command to execute. Can be a simple command like
+                            'ls' or a complex pipeline like 'cat file.txt | grep pattern'.
+                    cwd: The working directory in which to execute the command.
+                         If None (default), uses the current working directory.
+                    timeout: Maximum time in seconds to wait for the command to complete.
+                            Defaults to 30 seconds. Raises TimeoutError if exceeded.
+                    shell: If True (default), executes the command through a shell.
+                           If False, executes the command directly without shell interpretation.
+
+                Returns:
+                    A JSON string containing:
+                    - success: Boolean indicating if the command executed successfully
+                    - exit_code: The exit code returned by the command (0 = success)
+                    - command: The command that was executed
+                    - stdout: Standard output from the command
+                    - stderr: Standard error output from the command (if any)
+                    - duration_seconds: How long the command took to execute
+
+                Raises:
+                    TimeoutError: If the command takes longer than the specified timeout
+                    OSError: If the command cannot be executed
+                """
+                input_data = CommandRunInput(
+                    command=command,
+                    cwd=cwd,
+                    timeout=timeout,
+                    shell=shell,
+                )
+                result = await run_command_handler(input_data)
+                return result.model_dump_json()
+
+            logger.debug(f"Registered tools for {self._config.name}: read_file, write_file, run_command")
+
+        except Exception as e:
+            logger.error(f"Error registering tools for {self._config.name}: {e}")
 
     async def invoke(
         self,
