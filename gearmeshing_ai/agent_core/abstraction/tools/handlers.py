@@ -9,7 +9,7 @@ import os
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Optional, TypeVar
+from typing import Any, Optional
 
 from pydantic import BaseModel
 
