@@ -87,6 +87,7 @@ class TestReadFileHandler:
             result = await read_file_handler(input_data)
 
             assert result.success is True
+            assert result.content is not None
             assert "é" in result.content
         finally:
             os.unlink(temp_path)
@@ -104,6 +105,7 @@ class TestReadFileHandler:
             result = await read_file_handler(input_data)
 
             assert result.success is True
+            assert result.content is not None
             assert len(result.content) == 10000
             assert result.size_bytes == 10000
         finally:
@@ -203,6 +205,7 @@ class TestReadFileHandler:
             with mock.patch.object(Path, 'read_text', side_effect=IOError("IO error occurred")):
                 result = await handler.execute(FileReadInput(file_path=temp_path))
                 assert result.success is False
+                assert result.error is not None
                 assert "Error reading file" in result.error
                 assert "IO error occurred" in result.error
             
@@ -210,6 +213,7 @@ class TestReadFileHandler:
             with mock.patch.object(Path, 'read_text', side_effect=OSError("OS error occurred")):
                 result = await handler.execute(FileReadInput(file_path=temp_path))
                 assert result.success is False
+                assert result.error is not None
                 assert "Error reading file" in result.error
                 assert "OS error occurred" in result.error
             
@@ -217,6 +221,7 @@ class TestReadFileHandler:
             with mock.patch.object(Path, 'read_text', side_effect=ValueError("Value error occurred")):
                 result = await handler.execute(FileReadInput(file_path=temp_path))
                 assert result.success is False
+                assert result.error is not None
                 assert "Error reading file" in result.error
                 assert "Value error occurred" in result.error
         finally:
@@ -394,6 +399,7 @@ class TestRunCommandHandler:
 
         assert result.success is True
         assert result.exit_code == 0
+        assert result.stdout is not None
         assert "hello world" in result.stdout
         assert result.error is None
 
@@ -419,6 +425,7 @@ class TestRunCommandHandler:
 
             assert result.success is True
             assert result.exit_code == 0
+            assert result.stdout is not None
             assert temp_dir in result.stdout
 
     @pytest.mark.asyncio
@@ -431,6 +438,7 @@ class TestRunCommandHandler:
         result = await run_command_handler(input_data)
 
         assert result.success is False
+        assert result.error is not None
         assert "timeout" in result.error.lower()
 
     @pytest.mark.asyncio
@@ -497,6 +505,7 @@ class TestRunCommandHandler:
         result = await run_command_handler(input_data)
 
         assert result.success is True
+        assert result.stdout is not None
         assert "callable command" in result.stdout
 
     @pytest.mark.asyncio
@@ -520,6 +529,7 @@ class TestRunCommandHandler:
         result = await run_command_handler(input_data)
 
         assert result.success is False
+        assert result.error is not None
         assert "timeout" in result.error.lower()
         assert result.duration_seconds is not None
         assert result.duration_seconds >= 0.05
@@ -555,6 +565,7 @@ class TestRunCommandHandler:
         with mock.patch('asyncio.create_subprocess_shell', side_effect=ValueError("Value error in command")):
             result = await handler.execute(CommandRunInput(command="cmd1"))
             assert result.success is False
+            assert result.error is not None
             assert "Error executing command" in result.error
             assert "Value error in command" in result.error
             assert result.duration_seconds is not None
@@ -563,6 +574,7 @@ class TestRunCommandHandler:
         with mock.patch('asyncio.create_subprocess_shell', side_effect=TypeError("Type error in command")):
             result = await handler.execute(CommandRunInput(command="cmd2"))
             assert result.success is False
+            assert result.error is not None
             assert "Error executing command" in result.error
             assert "Type error in command" in result.error
             assert result.duration_seconds is not None
@@ -571,6 +583,7 @@ class TestRunCommandHandler:
         with mock.patch('asyncio.create_subprocess_shell', side_effect=RuntimeError("Runtime error in command")):
             result = await handler.execute(CommandRunInput(command="cmd3"))
             assert result.success is False
+            assert result.error is not None
             assert "Error executing command" in result.error
             assert "Runtime error in command" in result.error
             assert result.duration_seconds is not None

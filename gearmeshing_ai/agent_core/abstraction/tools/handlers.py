@@ -232,7 +232,7 @@ class CommandRunHandler(ToolHandler[CommandRunInput, CommandRunOutput]):
                         stdout=asyncio.subprocess.PIPE,
                         stderr=asyncio.subprocess.PIPE,
                         cwd=cwd,
-                        shell=input_data.shell,
+                        shell=True,
                     ),
                     timeout=input_data.timeout,
                 )

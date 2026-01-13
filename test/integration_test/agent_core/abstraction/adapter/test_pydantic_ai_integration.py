@@ -106,6 +106,7 @@ class TestPydanticAIAgentToolCalling:
             # Capture messages to verify tool calls
             with capture_run_messages() as messages:
                 # Use override context manager to replace model with TestModel
+                assert agent._agent is not None, "Agent should be initialized"
                 with agent._agent.override(model=TestModel()):
                     result = await agent._agent.run(
                         f"Read the file at {test_file} and tell me its content"
@@ -171,6 +172,7 @@ class TestPydanticAIAgentToolCalling:
 
             with capture_run_messages() as messages:
                 # Use override context manager to replace model with TestModel
+                assert agent._agent is not None, "Agent should be initialized"
                 with agent._agent.override(model=TestModel()):
                     result = await agent._agent.run(
                         f"Write 'Hello World' to {temp_dir}/output.txt"
@@ -241,6 +243,7 @@ class TestPydanticAIAgentToolCalling:
 
             with capture_run_messages() as messages:
                 # Use override context manager to replace model with TestModel
+                assert agent._agent is not None, "Agent should be initialized"
                 with agent._agent.override(model=TestModel()):
                     result = await agent._agent.run(
                         "Execute the command 'echo hello'"
@@ -455,7 +458,7 @@ class TestPydanticAIAgentToolCalling:
 
         agent = PydanticAIAgent(config)
         agent._initialized = True
-        agent._agent = mock.MagicMock()
+        agent._agent = mock.MagicMock()  # type: ignore[assignment]
         
         await agent.cleanup()
         

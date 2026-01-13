@@ -74,7 +74,7 @@ class TestToolDefinitionCreation:
     def test_tool_definition_validation_missing_required_field(self) -> None:
         """Test that ToolDefinition validates required fields."""
         with pytest.raises(ValidationError) as exc_info:
-            ToolDefinition(
+            ToolDefinition(  # type: ignore[call-arg]
                 name="test",
                 # Missing description
                 input_schema=FileReadInput,
@@ -402,8 +402,11 @@ class TestToolDefinitionFieldDescriptions:
         fields = ToolDefinition.model_fields
 
         assert fields["name"].description == "Unique identifier for the tool"
+        assert fields["description"].description is not None
         assert "Human-readable description" in fields["description"].description
+        assert fields["input_schema"].description is not None
         assert "Pydantic model class for input validation" in fields["input_schema"].description
+        assert fields["output_schema"].description is not None
         assert "Pydantic model class for output" in fields["output_schema"].description
 
     def test_handler_field_is_optional_via_model_fields(self) -> None:
