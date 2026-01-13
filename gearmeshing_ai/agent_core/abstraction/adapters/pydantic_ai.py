@@ -7,6 +7,8 @@ agent system. Includes support for file operations and command execution tools.
 
 from typing import Any, Dict, Optional
 
+from pydantic_ai import RunContext
+
 from gearmeshing_ai.core.logging_config import get_logger
 from gearmeshing_ai.agent_core.abstraction.tools import (
     read_file_handler,
@@ -140,8 +142,9 @@ class PydanticAIAgent(AIAgentBase):
 
         try:
             # Define tools as nested functions with decorators
+            # First parameter must be RunContext as per Pydantic AI documentation
             @agent.tool
-            async def read_file(file_path: str, encoding: str = "utf-8") -> str:
+            async def read_file(ctx: RunContext, file_path: str, encoding: str = "utf-8") -> str:
                 """Read a file from the filesystem.
                 
                 This tool reads the contents of a file at the specified path and returns
@@ -172,6 +175,7 @@ class PydanticAIAgent(AIAgentBase):
 
             @agent.tool
             async def write_file(
+                ctx: RunContext,
                 file_path: str,
                 content: str,
                 encoding: str = "utf-8",
@@ -214,6 +218,7 @@ class PydanticAIAgent(AIAgentBase):
 
             @agent.tool
             async def run_command(
+                ctx: RunContext,
                 command: str,
                 cwd: Optional[str] = None,
                 timeout: float = 30.0,
