@@ -8,12 +8,12 @@ without making real API calls.
 
 import tempfile
 from pathlib import Path
-from typing import Any
 from unittest import mock
 
 import pytest
 
 from gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai import PydanticAIAgent
+from gearmeshing_ai.agent_core.abstraction.base import AIAgentConfig
 from gearmeshing_ai.agent_core.abstraction.tools.definitions import (
     CommandRunInput,
     CommandRunOutput,
@@ -22,7 +22,6 @@ from gearmeshing_ai.agent_core.abstraction.tools.definitions import (
     FileWriteInput,
     FileWriteOutput,
 )
-from gearmeshing_ai.agent_core.abstraction.base import AIAgentConfig
 
 
 @pytest.fixture
@@ -34,7 +33,7 @@ def temp_dir():
 
 class TestPydanticAIAgentToolCalling:
     """Integration tests for tool calling with Pydantic AI using TestModel.
-    
+
     Tests use the initialize() method to properly set up the agent with tools,
     then override _agent with TestModel for testing without real API calls.
     """
@@ -62,8 +61,8 @@ class TestPydanticAIAgentToolCalling:
     async def test_read_file_tool_with_testmodel(self, temp_dir: str) -> None:
         """Test that read_file tool can be invoked with TestModel."""
         pytest.importorskip("pydantic_ai")
+        from pydantic_ai import ToolCallPart, capture_run_messages, models
         from pydantic_ai.models.test import TestModel
-        from pydantic_ai import capture_run_messages, ToolCallPart, models
 
         # Safety measure: prevent accidental real API calls
         models.ALLOW_MODEL_REQUESTS = False
@@ -76,11 +75,13 @@ class TestPydanticAIAgentToolCalling:
         tool_calls = []
 
         async def mock_read_file_handler(input_data: FileReadInput) -> FileReadOutput:
-            tool_calls.append({
-                "tool": "read_file",
-                "file_path": input_data.file_path,
-                "encoding": input_data.encoding,
-            })
+            tool_calls.append(
+                {
+                    "tool": "read_file",
+                    "file_path": input_data.file_path,
+                    "encoding": input_data.encoding,
+                }
+            )
             return FileReadOutput(
                 success=True,
                 content="test content",
@@ -108,14 +109,12 @@ class TestPydanticAIAgentToolCalling:
                 # Use override context manager to replace model with TestModel
                 assert agent._agent is not None, "Agent should be initialized"
                 with agent._agent.override(model=TestModel()):
-                    result = await agent._agent.run(
-                        f"Read the file at {test_file} and tell me its content"
-                    )
+                    result = await agent._agent.run(f"Read the file at {test_file} and tell me its content")
 
             # Verify through message capture that tool was called
             tool_call_found = False
             for msg in messages:
-                if hasattr(msg, 'parts'):
+                if hasattr(msg, "parts"):
                     for part in msg.parts:
                         if isinstance(part, ToolCallPart) and part.tool_name == "read_file":
                             tool_call_found = True
@@ -134,8 +133,8 @@ class TestPydanticAIAgentToolCalling:
     async def test_write_file_tool_with_testmodel(self, temp_dir: str) -> None:
         """Test that write_file tool can be invoked with TestModel."""
         pytest.importorskip("pydantic_ai")
+        from pydantic_ai import ToolCallPart, capture_run_messages, models
         from pydantic_ai.models.test import TestModel
-        from pydantic_ai import capture_run_messages, ToolCallPart, models
 
         models.ALLOW_MODEL_REQUESTS = False
 
@@ -143,13 +142,15 @@ class TestPydanticAIAgentToolCalling:
         tool_calls = []
 
         async def mock_write_file_handler(input_data: FileWriteInput) -> FileWriteOutput:
-            tool_calls.append({
-                "tool": "write_file",
-                "file_path": input_data.file_path,
-                "content": input_data.content,
-                "encoding": input_data.encoding,
-                "create_dirs": input_data.create_dirs,
-            })
+            tool_calls.append(
+                {
+                    "tool": "write_file",
+                    "file_path": input_data.file_path,
+                    "content": input_data.content,
+                    "encoding": input_data.encoding,
+                    "create_dirs": input_data.create_dirs,
+                }
+            )
             return FileWriteOutput(
                 success=True,
                 file_path=input_data.file_path,
@@ -174,14 +175,12 @@ class TestPydanticAIAgentToolCalling:
                 # Use override context manager to replace model with TestModel
                 assert agent._agent is not None, "Agent should be initialized"
                 with agent._agent.override(model=TestModel()):
-                    result = await agent._agent.run(
-                        f"Write 'Hello World' to {temp_dir}/output.txt"
-                    )
+                    result = await agent._agent.run(f"Write 'Hello World' to {temp_dir}/output.txt")
 
             # Verify through message capture that tool was called
             tool_call_found = False
             for msg in messages:
-                if hasattr(msg, 'parts'):
+                if hasattr(msg, "parts"):
                     for part in msg.parts:
                         if isinstance(part, ToolCallPart) and part.tool_name == "write_file":
                             tool_call_found = True
@@ -203,8 +202,8 @@ class TestPydanticAIAgentToolCalling:
     async def test_run_command_tool_with_testmodel(self) -> None:
         """Test that run_command tool can be invoked with TestModel."""
         pytest.importorskip("pydantic_ai")
+        from pydantic_ai import ToolCallPart, capture_run_messages, models
         from pydantic_ai.models.test import TestModel
-        from pydantic_ai import capture_run_messages, ToolCallPart, models
 
         models.ALLOW_MODEL_REQUESTS = False
 
@@ -212,13 +211,15 @@ class TestPydanticAIAgentToolCalling:
         tool_calls = []
 
         async def mock_run_command_handler(input_data: CommandRunInput) -> CommandRunOutput:
-            tool_calls.append({
-                "tool": "run_command",
-                "command": input_data.command,
-                "cwd": input_data.cwd,
-                "timeout": input_data.timeout,
-                "shell": input_data.shell,
-            })
+            tool_calls.append(
+                {
+                    "tool": "run_command",
+                    "command": input_data.command,
+                    "cwd": input_data.cwd,
+                    "timeout": input_data.timeout,
+                    "shell": input_data.shell,
+                }
+            )
             return CommandRunOutput(
                 success=True,
                 exit_code=0,
@@ -245,14 +246,12 @@ class TestPydanticAIAgentToolCalling:
                 # Use override context manager to replace model with TestModel
                 assert agent._agent is not None, "Agent should be initialized"
                 with agent._agent.override(model=TestModel()):
-                    result = await agent._agent.run(
-                        "Execute the command 'echo hello'"
-                    )
+                    result = await agent._agent.run("Execute the command 'echo hello'")
 
             # Verify through message capture that tool was called
             tool_call_found = False
             for msg in messages:
-                if hasattr(msg, 'parts'):
+                if hasattr(msg, "parts"):
                     for part in msg.parts:
                         if isinstance(part, ToolCallPart) and part.tool_name == "run_command":
                             tool_call_found = True
@@ -277,12 +276,14 @@ class TestPydanticAIAgentToolCalling:
 
         # Track parameters
         captured_params = []
-        
+
         async def mock_handler(input_data: FileReadInput) -> FileReadOutput:
-            captured_params.append({
-                "file_path": input_data.file_path,
-                "encoding": input_data.encoding,
-            })
+            captured_params.append(
+                {
+                    "file_path": input_data.file_path,
+                    "encoding": input_data.encoding,
+                }
+            )
             return FileReadOutput(
                 success=True,
                 content="test",
@@ -291,7 +292,7 @@ class TestPydanticAIAgentToolCalling:
 
         # Test handler directly
         import asyncio
-        
+
         async def run_test():
             input_data = FileReadInput(file_path=str(test_file), encoding="utf-8")
             result = await mock_handler(input_data)
@@ -305,14 +306,16 @@ class TestPydanticAIAgentToolCalling:
     def test_write_file_handler_called_with_correct_parameters(self, temp_dir: str) -> None:
         """Test that write_file handler receives correct FileWriteInput parameters."""
         captured_params = []
-        
+
         async def mock_handler(input_data: FileWriteInput) -> FileWriteOutput:
-            captured_params.append({
-                "file_path": input_data.file_path,
-                "content": input_data.content,
-                "encoding": input_data.encoding,
-                "create_dirs": input_data.create_dirs,
-            })
+            captured_params.append(
+                {
+                    "file_path": input_data.file_path,
+                    "content": input_data.content,
+                    "encoding": input_data.encoding,
+                    "create_dirs": input_data.create_dirs,
+                }
+            )
             return FileWriteOutput(
                 success=True,
                 file_path=input_data.file_path,
@@ -320,7 +323,7 @@ class TestPydanticAIAgentToolCalling:
             )
 
         import asyncio
-        
+
         async def run_test():
             input_data = FileWriteInput(
                 file_path=f"{temp_dir}/output.txt",
@@ -339,13 +342,15 @@ class TestPydanticAIAgentToolCalling:
     def test_run_command_handler_called_with_correct_parameters(self) -> None:
         """Test that run_command handler receives correct CommandRunInput parameters."""
         captured_params = []
-        
+
         async def mock_handler(input_data: CommandRunInput) -> CommandRunOutput:
-            captured_params.append({
-                "command": input_data.command,
-                "timeout": input_data.timeout,
-                "shell": input_data.shell,
-            })
+            captured_params.append(
+                {
+                    "command": input_data.command,
+                    "timeout": input_data.timeout,
+                    "shell": input_data.shell,
+                }
+            )
             return CommandRunOutput(
                 success=True,
                 exit_code=0,
@@ -355,7 +360,7 @@ class TestPydanticAIAgentToolCalling:
             )
 
         import asyncio
-        
+
         async def run_test():
             input_data = CommandRunInput(
                 command="echo test",
@@ -373,13 +378,13 @@ class TestPydanticAIAgentToolCalling:
     def test_tool_default_parameters(self, temp_dir: str) -> None:
         """Test that tool default parameters are applied correctly."""
         captured_params = []
-        
+
         async def mock_read_handler(input_data: FileReadInput) -> FileReadOutput:
             captured_params.append(input_data.encoding)
             return FileReadOutput(success=True, content="test", file_path=input_data.file_path)
 
         import asyncio
-        
+
         async def run_test():
             # Test with default encoding
             input_data = FileReadInput(file_path=f"{temp_dir}/test.txt")
@@ -390,6 +395,7 @@ class TestPydanticAIAgentToolCalling:
 
     def test_tool_error_handling(self) -> None:
         """Test that tool error handling returns proper error output."""
+
         async def mock_handler(input_data: FileReadInput) -> FileReadOutput:
             return FileReadOutput(
                 success=False,
@@ -399,7 +405,7 @@ class TestPydanticAIAgentToolCalling:
             )
 
         import asyncio
-        
+
         async def run_test():
             input_data = FileReadInput(file_path="/nonexistent/file.txt")
             result = await mock_handler(input_data)
@@ -421,10 +427,10 @@ class TestPydanticAIAgentToolCalling:
         )
 
         agent = PydanticAIAgent(config)
-        
+
         # Build init kwargs
         kwargs = agent.build_init_kwargs()
-        
+
         # Verify all options are included
         assert kwargs["model"] == "test"
         assert kwargs["system_prompt"] == "You are a helpful assistant."
@@ -441,7 +447,7 @@ class TestPydanticAIAgentToolCalling:
         )
 
         agent = PydanticAIAgent(config)
-        
+
         assert agent.config.name == "test_agent"
         assert agent.framework == "pydantic_ai"
         assert agent.model == "gpt-4"
@@ -459,9 +465,9 @@ class TestPydanticAIAgentToolCalling:
         agent = PydanticAIAgent(config)
         agent._initialized = True
         agent._agent = mock.MagicMock()  # type: ignore[assignment]
-        
+
         await agent.cleanup()
-        
+
         assert agent._initialized is False
         assert agent._agent is None
 
@@ -576,7 +582,7 @@ class TestPydanticAIAgentToolCalling:
 
 class TestPydanticAIAgentErrorHandling:
     """Unit tests for error handling paths in PydanticAIAgent.
-    
+
     Tests cover:
     - Tools disabled scenario (L140-L142)
     - Tool registration error handling (L268-L270)
@@ -691,9 +697,7 @@ class TestPydanticAIAgentErrorHandling:
         agent._enable_tools = False
 
         # Mock the logger to verify debug message
-        with mock.patch(
-            "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai.logger"
-        ) as mock_logger:
+        with mock.patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai.logger") as mock_logger:
             await agent.initialize()
 
             # Verify debug message was logged
@@ -720,9 +724,7 @@ class TestPydanticAIAgentErrorHandling:
         mock_agent.tool = mock.MagicMock(side_effect=ValueError("Invalid tool"))
 
         # Mock the logger to verify error message
-        with mock.patch(
-            "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai.logger"
-        ) as mock_logger:
+        with mock.patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai.logger") as mock_logger:
             agent._register_tools(mock_agent)
 
             # Verify error message was logged
@@ -747,9 +749,7 @@ class TestPydanticAIAgentErrorHandling:
         await agent.initialize()
 
         # Mock the logger to verify debug logging
-        with mock.patch(
-            "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai.logger"
-        ) as mock_logger:
+        with mock.patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai.logger") as mock_logger:
             await agent.cleanup()
 
             # Verify debug message was logged
@@ -775,9 +775,7 @@ class TestPydanticAIAgentErrorHandling:
 
         # Mock the logger.debug to raise an exception during cleanup
         # This will trigger the except block in cleanup (L412-L416)
-        with mock.patch(
-            "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai.logger"
-        ) as mock_logger:
+        with mock.patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai.logger") as mock_logger:
             # Make debug raise an exception to trigger the except block
             mock_logger.debug.side_effect = RuntimeError("Logger debug failed")
 
@@ -813,9 +811,7 @@ class TestPydanticAIAgentErrorHandling:
         assert agent._initialized is True
 
         # Mock the logger.debug to raise an exception
-        with mock.patch(
-            "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai.logger"
-        ) as mock_logger:
+        with mock.patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai.logger") as mock_logger:
             mock_logger.debug.side_effect = RuntimeError("Unexpected error")
 
             # Cleanup should not raise, even if an exception occurs internally

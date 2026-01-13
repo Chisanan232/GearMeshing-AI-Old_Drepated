@@ -4,12 +4,8 @@ Tests for the ToolDefinition class including validation, serialization,
 and utility methods.
 """
 
-import json
-from typing import Any, Dict, Optional
-from unittest import mock
-
 import pytest
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import ValidationError
 
 from gearmeshing_ai.agent_core.abstraction.tools.definitions import (
     CommandRunInput,
@@ -27,6 +23,7 @@ class TestToolDefinitionCreation:
 
     def test_create_tool_definition_with_all_fields(self) -> None:
         """Test creating a ToolDefinition with all fields."""
+
         def dummy_handler(input_data: FileReadInput) -> FileReadOutput:
             return FileReadOutput(success=True, file_path="", content="")
 
@@ -181,6 +178,7 @@ class TestToolDefinitionSerialization:
 
     def test_model_dump_returns_dictionary(self) -> None:
         """Test that model_dump returns a dictionary representation."""
+
         def dummy_handler(input_data: FileReadInput) -> FileReadOutput:
             return FileReadOutput(success=True, file_path="", content="")
 
@@ -299,6 +297,7 @@ class TestToolDefinitionHandlerManagement:
 
     def test_set_handler_assigns_handler(self) -> None:
         """Test set_handler assigns a handler function."""
+
         def dummy_handler(input_data: FileReadInput) -> FileReadOutput:
             return FileReadOutput(success=True, file_path="", content="")
 
@@ -317,6 +316,7 @@ class TestToolDefinitionHandlerManagement:
 
     def test_set_handler_overwrites_existing_handler(self) -> None:
         """Test set_handler overwrites an existing handler."""
+
         def handler1(input_data: FileReadInput) -> FileReadOutput:
             return FileReadOutput(success=True, file_path="", content="")
 
@@ -339,6 +339,7 @@ class TestToolDefinitionHandlerManagement:
 
     def test_has_handler_returns_true_when_handler_set(self) -> None:
         """Test has_handler returns True when handler is set."""
+
         def dummy_handler(input_data: FileReadInput) -> FileReadOutput:
             return FileReadOutput(success=True, file_path="", content="")
 
@@ -377,6 +378,7 @@ class TestToolDefinitionHandlerManagement:
 
     def test_has_handler_after_setting_handler(self) -> None:
         """Test has_handler returns True after setting handler."""
+
         def dummy_handler(input_data: FileReadInput) -> FileReadOutput:
             return FileReadOutput(success=True, file_path="", content="")
 
@@ -467,6 +469,7 @@ class TestToolDefinitionEquality:
 
     def test_tools_with_different_handlers_are_not_equal(self) -> None:
         """Test that tools with different handlers are not equal."""
+
         def handler1(input_data: FileReadInput) -> FileReadOutput:
             return FileReadOutput(success=True, file_path="", content="")
 
@@ -497,6 +500,7 @@ class TestToolDefinitionIntegration:
 
     def test_tool_definition_with_all_utility_methods(self) -> None:
         """Test using all utility methods together."""
+
         def dummy_handler(input_data: FileReadInput) -> FileReadOutput:
             return FileReadOutput(success=True, file_path="test.txt", content="data")
 

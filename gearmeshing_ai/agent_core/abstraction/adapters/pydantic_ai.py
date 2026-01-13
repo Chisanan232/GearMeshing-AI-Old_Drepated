@@ -9,20 +9,17 @@ from typing import Any, Dict, Optional
 
 from pydantic_ai import RunContext
 
-from gearmeshing_ai.core.logging_config import get_logger
 from gearmeshing_ai.agent_core.abstraction.tools import (
     read_file_handler,
-    write_file_handler,
     run_command_handler,
-    read_file_tool,
-    write_file_tool,
-    run_command_tool,
+    write_file_handler,
 )
 from gearmeshing_ai.agent_core.abstraction.tools.definitions import (
+    CommandRunInput,
     FileReadInput,
     FileWriteInput,
-    CommandRunInput,
 )
+from gearmeshing_ai.core.logging_config import get_logger
 
 from ..base import AIAgentBase, AIAgentConfig, AIAgentResponse
 
@@ -146,24 +143,24 @@ class PydanticAIAgent(AIAgentBase):
             @agent.tool
             async def read_file(ctx: RunContext, file_path: str, encoding: str = "utf-8") -> str:
                 """Read a file from the filesystem.
-                
+
                 This tool reads the contents of a file at the specified path and returns
                 the file contents as a string. It supports various text encodings and is
                 useful for retrieving configuration files, logs, or other text-based data.
-                
+
                 Args:
                     file_path: The absolute or relative path to the file to read.
                     encoding: The character encoding to use when reading the file.
                              Defaults to 'utf-8'. Common alternatives include 'ascii',
                              'latin-1', 'utf-16', etc.
-                
+
                 Returns:
                     A JSON string containing:
                     - success: Boolean indicating if the read was successful
                     - content: The file contents as a string
                     - file_path: The path that was read
                     - size_bytes: The size of the file in bytes
-                
+
                 Raises:
                     FileNotFoundError: If the specified file does not exist
                     PermissionError: If the file cannot be read due to permissions
@@ -182,12 +179,12 @@ class PydanticAIAgent(AIAgentBase):
                 create_dirs: bool = True,
             ) -> str:
                 """Write content to a file on the filesystem.
-                
+
                 This tool writes the provided content to a file at the specified path.
                 It can create parent directories if they don't exist and supports various
                 text encodings. Useful for creating configuration files, logs, or saving
                 generated content.
-                
+
                 Args:
                     file_path: The absolute or relative path where the file should be written.
                     content: The text content to write to the file.
@@ -196,13 +193,13 @@ class PydanticAIAgent(AIAgentBase):
                              'latin-1', 'utf-16', etc.
                     create_dirs: If True (default), creates parent directories if they don't exist.
                                 If False, raises an error if parent directories are missing.
-                
+
                 Returns:
                     A JSON string containing:
                     - success: Boolean indicating if the write was successful
                     - file_path: The path where the file was written
                     - bytes_written: The number of bytes written to the file
-                
+
                 Raises:
                     PermissionError: If the file cannot be written due to permissions
                     OSError: If parent directories cannot be created (when create_dirs=True)
@@ -225,12 +222,12 @@ class PydanticAIAgent(AIAgentBase):
                 shell: bool = True,
             ) -> str:
                 """Execute a shell command and capture output.
-                
+
                 This tool executes a shell command in the system and captures both
                 stdout and stderr output. It's useful for running scripts, checking
                 system status, building projects, running tests, or any other
                 command-line operations.
-                
+
                 Args:
                     command: The shell command to execute. Can be a simple command like
                             'ls' or a complex pipeline like 'cat file.txt | grep pattern'.
@@ -240,7 +237,7 @@ class PydanticAIAgent(AIAgentBase):
                             Defaults to 30 seconds. Raises TimeoutError if exceeded.
                     shell: If True (default), executes the command through a shell.
                            If False, executes the command directly without shell interpretation.
-                
+
                 Returns:
                     A JSON string containing:
                     - success: Boolean indicating if the command executed successfully
@@ -249,7 +246,7 @@ class PydanticAIAgent(AIAgentBase):
                     - stdout: Standard output from the command
                     - stderr: Standard error output from the command (if any)
                     - duration_seconds: How long the command took to execute
-                
+
                 Raises:
                     TimeoutError: If the command takes longer than the specified timeout
                     OSError: If the command cannot be executed

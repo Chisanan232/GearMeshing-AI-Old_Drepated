@@ -6,7 +6,7 @@ command execution, and other software development tasks.
 
 from typing import Any, Callable, Dict, Optional, Type
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class FileReadInput(BaseModel):
@@ -73,7 +73,7 @@ class CommandRunOutput(BaseModel):
 
 class ToolDefinition(BaseModel):
     """Pydantic model for tool definitions.
-    
+
     Provides a structured, validated, and flexible way to define AI agent tools
     with clear input/output schemas and handler functions.
     """
@@ -83,8 +83,7 @@ class ToolDefinition(BaseModel):
     input_schema: Type[BaseModel] = Field(..., description="Pydantic model class for input validation")
     output_schema: Type[BaseModel] = Field(..., description="Pydantic model class for output")
     handler: Optional[Callable] = Field(
-        default=None,
-        description="Async handler function that executes the tool (can be set later)"
+        default=None, description="Async handler function that executes the tool (can be set later)"
     )
 
     model_config = ConfigDict(arbitrary_types_allowed=True)

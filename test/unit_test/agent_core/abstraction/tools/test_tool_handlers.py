@@ -6,28 +6,24 @@ Tests for file read, file write, and command execution handlers.
 import os
 import tempfile
 from pathlib import Path
-from typing import Any
 from unittest import mock
 
 import pytest
 
 from gearmeshing_ai.agent_core.abstraction.tools.definitions import (
     CommandRunInput,
-    CommandRunOutput,
     FileReadInput,
-    FileReadOutput,
     FileWriteInput,
-    FileWriteOutput,
 )
 from gearmeshing_ai.agent_core.abstraction.tools.handlers import (
-    read_file_handler,
-    write_file_handler,
-    run_command_handler,
+    CommandRunHandler,
     FileReadHandler,
     FileWriteHandler,
-    CommandRunHandler,
     ToolHandlerRegistry,
     get_handler_registry,
+    read_file_handler,
+    run_command_handler,
+    write_file_handler,
 )
 
 
@@ -141,7 +137,9 @@ class TestReadFileHandler:
         assert result.content is None
         assert result.error is not None
         # Error could be "file not found" or "error reading file"
-        assert "file" in result.error.lower() and ("not found" in result.error.lower() or "error" in result.error.lower())
+        assert "file" in result.error.lower() and (
+            "not found" in result.error.lower() or "error" in result.error.lower()
+        )
 
     @pytest.mark.asyncio
     async def test_read_file_callable_interface(self) -> None:
@@ -163,23 +161,23 @@ class TestReadFileHandler:
     @pytest.mark.asyncio
     async def test_read_file_exception_handler_coverage(self) -> None:
         """Test exception handler coverage for L125-L132.
-        
+
         This test specifically covers the general Exception handler
         that logs and returns error output.
         """
         handler = FileReadHandler()
-        
+
         # Create a temporary file, then mock its read_text to raise exception
         with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as f:
             f.write("test")
             temp_path = f.name
-        
+
         try:
             # Mock Path.read_text to raise exception after existence checks pass
-            with mock.patch.object(Path, 'read_text', side_effect=RuntimeError("Simulated read error")):
+            with mock.patch.object(Path, "read_text", side_effect=RuntimeError("Simulated read error")):
                 input_data = FileReadInput(file_path=temp_path)
                 result = await handler.execute(input_data)
-            
+
             # Verify the exception handler was triggered (L125-L132)
             assert result.success is False
             assert result.content is None
@@ -194,31 +192,31 @@ class TestReadFileHandler:
     async def test_read_file_exception_with_different_error_types(self) -> None:
         """Test exception handler with various exception types (L125-L132)."""
         handler = FileReadHandler()
-        
+
         # Create a temporary file for testing
         with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as f:
             f.write("test")
             temp_path = f.name
-        
+
         try:
             # Test with IOError
-            with mock.patch.object(Path, 'read_text', side_effect=IOError("IO error occurred")):
+            with mock.patch.object(Path, "read_text", side_effect=IOError("IO error occurred")):
                 result = await handler.execute(FileReadInput(file_path=temp_path))
                 assert result.success is False
                 assert result.error is not None
                 assert "Error reading file" in result.error
                 assert "IO error occurred" in result.error
-            
+
             # Test with OSError
-            with mock.patch.object(Path, 'read_text', side_effect=OSError("OS error occurred")):
+            with mock.patch.object(Path, "read_text", side_effect=OSError("OS error occurred")):
                 result = await handler.execute(FileReadInput(file_path=temp_path))
                 assert result.success is False
                 assert result.error is not None
                 assert "Error reading file" in result.error
                 assert "OS error occurred" in result.error
-            
+
             # Test with ValueError
-            with mock.patch.object(Path, 'read_text', side_effect=ValueError("Value error occurred")):
+            with mock.patch.object(Path, "read_text", side_effect=ValueError("Value error occurred")):
                 result = await handler.execute(FileReadInput(file_path=temp_path))
                 assert result.success is False
                 assert result.error is not None
@@ -537,17 +535,17 @@ class TestRunCommandHandler:
     @pytest.mark.asyncio
     async def test_run_command_exception_handler_coverage(self) -> None:
         """Test exception handler coverage for L280-L285.
-        
+
         This test specifically covers the general Exception handler
         that logs and returns error output.
         """
         handler = CommandRunHandler()
-        
+
         # Mock asyncio.create_subprocess_shell to raise a generic exception
-        with mock.patch('asyncio.create_subprocess_shell', side_effect=RuntimeError("Simulated command error")):
+        with mock.patch("asyncio.create_subprocess_shell", side_effect=RuntimeError("Simulated command error")):
             input_data = CommandRunInput(command="some_command")
             result = await handler.execute(input_data)
-        
+
         # Verify the exception handler was triggered (L280-L285)
         assert result.success is False
         assert result.error is not None
@@ -560,27 +558,27 @@ class TestRunCommandHandler:
     async def test_run_command_exception_with_different_error_types(self) -> None:
         """Test exception handler with various exception types (L280-L285)."""
         handler = CommandRunHandler()
-        
+
         # Test with ValueError
-        with mock.patch('asyncio.create_subprocess_shell', side_effect=ValueError("Value error in command")):
+        with mock.patch("asyncio.create_subprocess_shell", side_effect=ValueError("Value error in command")):
             result = await handler.execute(CommandRunInput(command="cmd1"))
             assert result.success is False
             assert result.error is not None
             assert "Error executing command" in result.error
             assert "Value error in command" in result.error
             assert result.duration_seconds is not None
-        
+
         # Test with TypeError
-        with mock.patch('asyncio.create_subprocess_shell', side_effect=TypeError("Type error in command")):
+        with mock.patch("asyncio.create_subprocess_shell", side_effect=TypeError("Type error in command")):
             result = await handler.execute(CommandRunInput(command="cmd2"))
             assert result.success is False
             assert result.error is not None
             assert "Error executing command" in result.error
             assert "Type error in command" in result.error
             assert result.duration_seconds is not None
-        
+
         # Test with RuntimeError
-        with mock.patch('asyncio.create_subprocess_shell', side_effect=RuntimeError("Runtime error in command")):
+        with mock.patch("asyncio.create_subprocess_shell", side_effect=RuntimeError("Runtime error in command")):
             result = await handler.execute(CommandRunInput(command="cmd3"))
             assert result.success is False
             assert result.error is not None
@@ -592,11 +590,11 @@ class TestRunCommandHandler:
     async def test_run_command_exception_preserves_command_info(self) -> None:
         """Test that exception handler preserves command information (L280-L285)."""
         handler = CommandRunHandler()
-        
+
         test_command = "test_command_xyz"
-        with mock.patch('asyncio.create_subprocess_shell', side_effect=Exception("Test exception")):
+        with mock.patch("asyncio.create_subprocess_shell", side_effect=Exception("Test exception")):
             result = await handler.execute(CommandRunInput(command=test_command))
-        
+
         # Verify command info is preserved even on exception
         assert result.command == test_command
         assert result.success is False
@@ -810,9 +808,7 @@ class TestHandlerAbstraction:
 
             with tempfile.TemporaryDirectory() as temp_dir:
                 file_path = os.path.join(temp_dir, "test.txt")
-                result2 = await write_file_handler(
-                    FileWriteInput(file_path=file_path, content="test")
-                )
+                result2 = await write_file_handler(FileWriteInput(file_path=file_path, content="test"))
                 assert result2.success is True
 
             result3 = await run_command_handler(CommandRunInput(command="echo test"))

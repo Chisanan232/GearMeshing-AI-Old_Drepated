@@ -9,7 +9,7 @@ import os
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Generic, Optional, Type, TypeVar
+from typing import Any, Generic, Optional, TypeVar
 
 from gearmeshing_ai.core.logging_config import get_logger
 
@@ -39,7 +39,6 @@ class ToolHandler(ABC, Generic[InputType, OutputType]):
     @abstractmethod
     def name(self) -> str:
         """Get the tool handler name."""
-        pass
 
     @abstractmethod
     async def execute(self, input_data: InputType) -> OutputType:
@@ -51,7 +50,6 @@ class ToolHandler(ABC, Generic[InputType, OutputType]):
         Returns:
             Output data from the tool execution
         """
-        pass
 
     async def __call__(self, input_data: InputType) -> OutputType:
         """Make handler callable.
@@ -158,9 +156,7 @@ class FileWriteHandler(ToolHandler[FileWriteInput, FileWriteOutput]):
                 logger.debug(f"Created parent directories for {file_path}")
 
             # Write file content
-            bytes_written = file_path.write_text(
-                input_data.content, encoding=input_data.encoding
-            )
+            bytes_written = file_path.write_text(input_data.content, encoding=input_data.encoding)
 
             logger.info(f"Successfully wrote file: {file_path} ({bytes_written} bytes)")
 
@@ -242,12 +238,8 @@ class CommandRunHandler(ToolHandler[CommandRunInput, CommandRunOutput]):
                     timeout=input_data.timeout,
                 )
 
-                stdout = (
-                    stdout_bytes.decode("utf-8", errors="replace") if stdout_bytes else ""
-                )
-                stderr = (
-                    stderr_bytes.decode("utf-8", errors="replace") if stderr_bytes else ""
-                )
+                stdout = stdout_bytes.decode("utf-8", errors="replace") if stdout_bytes else ""
+                stderr = stderr_bytes.decode("utf-8", errors="replace") if stderr_bytes else ""
                 exit_code = process.returncode
 
                 duration = time.time() - start_time
