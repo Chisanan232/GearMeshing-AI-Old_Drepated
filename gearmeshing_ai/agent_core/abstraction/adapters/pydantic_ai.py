@@ -27,49 +27,6 @@ from ..base import AIAgentBase, AIAgentConfig, AIAgentResponse
 logger = get_logger(__name__)
 
 
-# Module-level tool functions for Pydantic AI
-# These must be defined at module level for proper schema generation
-async def read_file(file_path: str, encoding: str = "utf-8") -> str:
-    """Read a file from the filesystem."""
-    input_data = FileReadInput(file_path=file_path, encoding=encoding)
-    result = await read_file_handler(input_data)
-    return result.model_dump_json()
-
-
-async def write_file(
-    file_path: str,
-    content: str,
-    encoding: str = "utf-8",
-    create_dirs: bool = True,
-) -> str:
-    """Write content to a file on the filesystem."""
-    input_data = FileWriteInput(
-        file_path=file_path,
-        content=content,
-        encoding=encoding,
-        create_dirs=create_dirs,
-    )
-    result = await write_file_handler(input_data)
-    return result.model_dump_json()
-
-
-async def run_command(
-    command: str,
-    cwd: Optional[str] = None,
-    timeout: float = 30.0,
-    shell: bool = True,
-) -> str:
-    """Execute a shell command and capture output."""
-    input_data = CommandRunInput(
-        command=command,
-        cwd=cwd,
-        timeout=timeout,
-        shell=shell,
-    )
-    result = await run_command_handler(input_data)
-    return result.model_dump_json()
-
-
 class PydanticAIAgent(AIAgentBase):
     """Adapter for Pydantic AI framework.
 
@@ -182,11 +139,47 @@ class PydanticAIAgent(AIAgentBase):
             return
 
         try:
-            # Register module-level tools using Pydantic AI's decorator style
-            # Using the decorator syntax to properly register tools
-            agent.tool(read_file, name="read_file")
-            agent.tool(write_file, name="write_file")
-            agent.tool(run_command, name="run_command")
+            # Define tools as nested functions with decorators
+            @agent.tool
+            async def read_file(file_path: str, encoding: str = "utf-8") -> str:
+                """Read a file from the filesystem."""
+                input_data = FileReadInput(file_path=file_path, encoding=encoding)
+                result = await read_file_handler(input_data)
+                return result.model_dump_json()
+
+            @agent.tool
+            async def write_file(
+                file_path: str,
+                content: str,
+                encoding: str = "utf-8",
+                create_dirs: bool = True,
+            ) -> str:
+                """Write content to a file on the filesystem."""
+                input_data = FileWriteInput(
+                    file_path=file_path,
+                    content=content,
+                    encoding=encoding,
+                    create_dirs=create_dirs,
+                )
+                result = await write_file_handler(input_data)
+                return result.model_dump_json()
+
+            @agent.tool
+            async def run_command(
+                command: str,
+                cwd: Optional[str] = None,
+                timeout: float = 30.0,
+                shell: bool = True,
+            ) -> str:
+                """Execute a shell command and capture output."""
+                input_data = CommandRunInput(
+                    command=command,
+                    cwd=cwd,
+                    timeout=timeout,
+                    shell=shell,
+                )
+                result = await run_command_handler(input_data)
+                return result.model_dump_json()
 
             logger.debug(f"Registered tools for {self._config.name}: read_file, write_file, run_command")
 
