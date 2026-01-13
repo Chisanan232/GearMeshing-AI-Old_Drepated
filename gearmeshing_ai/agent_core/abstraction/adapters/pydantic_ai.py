@@ -142,7 +142,30 @@ class PydanticAIAgent(AIAgentBase):
             # Define tools as nested functions with decorators
             @agent.tool
             async def read_file(file_path: str, encoding: str = "utf-8") -> str:
-                """Read a file from the filesystem."""
+                """Read a file from the filesystem.
+                
+                This tool reads the contents of a file at the specified path and returns
+                the file contents as a string. It supports various text encodings and is
+                useful for retrieving configuration files, logs, or other text-based data.
+                
+                Args:
+                    file_path: The absolute or relative path to the file to read.
+                    encoding: The character encoding to use when reading the file.
+                             Defaults to 'utf-8'. Common alternatives include 'ascii',
+                             'latin-1', 'utf-16', etc.
+                
+                Returns:
+                    A JSON string containing:
+                    - success: Boolean indicating if the read was successful
+                    - content: The file contents as a string
+                    - file_path: The path that was read
+                    - size_bytes: The size of the file in bytes
+                
+                Raises:
+                    FileNotFoundError: If the specified file does not exist
+                    PermissionError: If the file cannot be read due to permissions
+                    UnicodeDecodeError: If the file cannot be decoded with the specified encoding
+                """
                 input_data = FileReadInput(file_path=file_path, encoding=encoding)
                 result = await read_file_handler(input_data)
                 return result.model_dump_json()
@@ -154,7 +177,32 @@ class PydanticAIAgent(AIAgentBase):
                 encoding: str = "utf-8",
                 create_dirs: bool = True,
             ) -> str:
-                """Write content to a file on the filesystem."""
+                """Write content to a file on the filesystem.
+                
+                This tool writes the provided content to a file at the specified path.
+                It can create parent directories if they don't exist and supports various
+                text encodings. Useful for creating configuration files, logs, or saving
+                generated content.
+                
+                Args:
+                    file_path: The absolute or relative path where the file should be written.
+                    content: The text content to write to the file.
+                    encoding: The character encoding to use when writing the file.
+                             Defaults to 'utf-8'. Common alternatives include 'ascii',
+                             'latin-1', 'utf-16', etc.
+                    create_dirs: If True (default), creates parent directories if they don't exist.
+                                If False, raises an error if parent directories are missing.
+                
+                Returns:
+                    A JSON string containing:
+                    - success: Boolean indicating if the write was successful
+                    - file_path: The path where the file was written
+                    - bytes_written: The number of bytes written to the file
+                
+                Raises:
+                    PermissionError: If the file cannot be written due to permissions
+                    OSError: If parent directories cannot be created (when create_dirs=True)
+                """
                 input_data = FileWriteInput(
                     file_path=file_path,
                     content=content,
@@ -171,7 +219,36 @@ class PydanticAIAgent(AIAgentBase):
                 timeout: float = 30.0,
                 shell: bool = True,
             ) -> str:
-                """Execute a shell command and capture output."""
+                """Execute a shell command and capture output.
+                
+                This tool executes a shell command in the system and captures both
+                stdout and stderr output. It's useful for running scripts, checking
+                system status, building projects, running tests, or any other
+                command-line operations.
+                
+                Args:
+                    command: The shell command to execute. Can be a simple command like
+                            'ls' or a complex pipeline like 'cat file.txt | grep pattern'.
+                    cwd: The working directory in which to execute the command.
+                         If None (default), uses the current working directory.
+                    timeout: Maximum time in seconds to wait for the command to complete.
+                            Defaults to 30 seconds. Raises TimeoutError if exceeded.
+                    shell: If True (default), executes the command through a shell.
+                           If False, executes the command directly without shell interpretation.
+                
+                Returns:
+                    A JSON string containing:
+                    - success: Boolean indicating if the command executed successfully
+                    - exit_code: The exit code returned by the command (0 = success)
+                    - command: The command that was executed
+                    - stdout: Standard output from the command
+                    - stderr: Standard error output from the command (if any)
+                    - duration_seconds: How long the command took to execute
+                
+                Raises:
+                    TimeoutError: If the command takes longer than the specified timeout
+                    OSError: If the command cannot be executed
+                """
                 input_data = CommandRunInput(
                     command=command,
                     cwd=cwd,
