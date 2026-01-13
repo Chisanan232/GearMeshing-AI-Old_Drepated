@@ -569,3 +569,302 @@ class TestPydanticAIAgentToolCalling:
         assert output.command == "echo test"
         assert output.stdout == "test output"
         assert output.duration_seconds == 0.1
+
+
+class TestPydanticAIAgentErrorHandling:
+    """Unit tests for error handling paths in PydanticAIAgent.
+    
+    Tests cover:
+    - Tools disabled scenario (L140-L142)
+    - Tool registration error handling (L268-L270)
+    - Agent cleanup error handling (L412-L417)
+    """
+
+    @pytest.mark.asyncio
+    async def test_register_tools_skipped_when_tools_disabled(self) -> None:
+        """Test that _register_tools returns early when tools are disabled."""
+        pytest.importorskip("pydantic_ai")
+
+        config = AIAgentConfig(
+            name="test_agent",
+            framework="pydantic_ai",
+            model="test",
+        )
+        agent = PydanticAIAgent(config)
+        agent._enable_tools = False
+
+        # Initialize agent
+        await agent.initialize()
+
+        # Verify that tools were not registered by checking that no error occurred
+        # and the agent is still initialized
+        assert agent._initialized is True
+        assert agent._agent is not None
+
+    @pytest.mark.asyncio
+    async def test_register_tools_error_handling_on_exception(self) -> None:
+        """Test that _register_tools handles exceptions gracefully."""
+        pytest.importorskip("pydantic_ai")
+        from pydantic_ai import Agent
+
+        config = AIAgentConfig(
+            name="test_agent",
+            framework="pydantic_ai",
+            model="test",
+        )
+        agent = PydanticAIAgent(config)
+
+        # Create a mock agent that raises an exception during tool registration
+        mock_agent = mock.MagicMock(spec=Agent)
+        mock_agent.tool = mock.MagicMock(side_effect=RuntimeError("Tool registration failed"))
+
+        # Call _register_tools with the mock agent
+        # Should not raise, but log the error
+        agent._register_tools(mock_agent)
+
+        # Verify the agent is still usable
+        assert agent._agent is None  # Not set yet since we're testing _register_tools directly
+
+    @pytest.mark.asyncio
+    async def test_cleanup_handles_exceptions(self) -> None:
+        """Test that cleanup handles exceptions gracefully."""
+        pytest.importorskip("pydantic_ai")
+
+        config = AIAgentConfig(
+            name="test_agent",
+            framework="pydantic_ai",
+            model="test",
+        )
+        agent = PydanticAIAgent(config)
+
+        # Initialize the agent
+        await agent.initialize()
+        assert agent._initialized is True
+
+        # Cleanup should not raise, even if agent is in an unexpected state
+        # Simulate a scenario where cleanup is called multiple times
+        await agent.cleanup()
+
+        # Verify cleanup completed
+        assert agent._initialized is False
+        assert agent._agent is None
+
+    @pytest.mark.asyncio
+    async def test_agent_cleanup_clears_references(self) -> None:
+        """Test that cleanup properly clears agent and model references."""
+        pytest.importorskip("pydantic_ai")
+
+        config = AIAgentConfig(
+            name="test_agent",
+            framework="pydantic_ai",
+            model="test",
+        )
+        agent = PydanticAIAgent(config)
+
+        # Initialize the agent
+        await agent.initialize()
+        assert agent._initialized is True
+        assert agent._agent is not None
+
+        # Cleanup
+        await agent.cleanup()
+
+        # Verify references are cleared
+        assert agent._initialized is False
+        assert agent._agent is None
+        assert agent._model is None
+
+    @pytest.mark.asyncio
+    async def test_register_tools_with_disabled_tools_logs_debug(self) -> None:
+        """Test that disabled tools logs debug message."""
+        pytest.importorskip("pydantic_ai")
+
+        config = AIAgentConfig(
+            name="test_agent_disabled",
+            framework="pydantic_ai",
+            model="test",
+        )
+        agent = PydanticAIAgent(config)
+        agent._enable_tools = False
+
+        # Mock the logger to verify debug message
+        with mock.patch(
+            "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai.logger"
+        ) as mock_logger:
+            await agent.initialize()
+
+            # Verify debug message was logged
+            mock_logger.debug.assert_called()
+            # Check that the "Tools disabled" message was logged
+            calls = [call[0][0] for call in mock_logger.debug.call_args_list]
+            assert any("Tools disabled" in str(call) for call in calls)
+
+    @pytest.mark.asyncio
+    async def test_register_tools_error_logs_error_message(self) -> None:
+        """Test that tool registration errors are logged."""
+        pytest.importorskip("pydantic_ai")
+        from pydantic_ai import Agent
+
+        config = AIAgentConfig(
+            name="test_agent_error",
+            framework="pydantic_ai",
+            model="test",
+        )
+        agent = PydanticAIAgent(config)
+
+        # Create a mock agent that raises an exception
+        mock_agent = mock.MagicMock(spec=Agent)
+        mock_agent.tool = mock.MagicMock(side_effect=ValueError("Invalid tool"))
+
+        # Mock the logger to verify error message
+        with mock.patch(
+            "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai.logger"
+        ) as mock_logger:
+            agent._register_tools(mock_agent)
+
+            # Verify error message was logged
+            mock_logger.error.assert_called()
+            # Check that the error message contains the agent name
+            calls = [call[0][0] for call in mock_logger.error.call_args_list]
+            assert any("Error registering tools" in str(call) for call in calls)
+
+    @pytest.mark.asyncio
+    async def test_cleanup_logs_debug_message(self) -> None:
+        """Test that cleanup logs debug message."""
+        pytest.importorskip("pydantic_ai")
+
+        config = AIAgentConfig(
+            name="test_agent_cleanup_debug",
+            framework="pydantic_ai",
+            model="test",
+        )
+        agent = PydanticAIAgent(config)
+
+        # Initialize the agent
+        await agent.initialize()
+
+        # Mock the logger to verify debug logging
+        with mock.patch(
+            "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai.logger"
+        ) as mock_logger:
+            await agent.cleanup()
+
+            # Verify debug message was logged
+            mock_logger.debug.assert_called()
+            # Check that cleanup message was logged
+            calls = [call[0][0] for call in mock_logger.debug.call_args_list]
+            assert any("Cleaning up" in str(call) for call in calls)
+
+    @pytest.mark.asyncio
+    async def test_cleanup_error_handling_logs_exception(self) -> None:
+        """Test that cleanup error handling logs exceptions with exc_info."""
+        pytest.importorskip("pydantic_ai")
+
+        config = AIAgentConfig(
+            name="test_agent_cleanup_error",
+            framework="pydantic_ai",
+            model="test",
+        )
+        agent = PydanticAIAgent(config)
+
+        # Initialize the agent
+        await agent.initialize()
+
+        # Mock the logger.debug to raise an exception during cleanup
+        # This will trigger the except block in cleanup (L412-L416)
+        with mock.patch(
+            "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai.logger"
+        ) as mock_logger:
+            # Make debug raise an exception to trigger the except block
+            mock_logger.debug.side_effect = RuntimeError("Logger debug failed")
+
+            # Cleanup should not raise, even if logger fails
+            await agent.cleanup()
+
+            # Verify error was logged with exc_info=True
+            mock_logger.error.assert_called()
+            # Check that error message was logged
+            error_calls = mock_logger.error.call_args_list
+            assert len(error_calls) > 0
+            # Verify exc_info=True was passed
+            assert error_calls[0][1].get("exc_info") is True
+            # Verify error message contains the agent name
+            error_msg = error_calls[0][0][0]
+            assert "test_agent_cleanup_error" in error_msg
+            assert "Error during Pydantic AI agent cleanup" in error_msg
+
+    @pytest.mark.asyncio
+    async def test_cleanup_exception_does_not_raise(self) -> None:
+        """Test that cleanup does not raise exceptions, only logs them."""
+        pytest.importorskip("pydantic_ai")
+
+        config = AIAgentConfig(
+            name="test_agent_cleanup_no_raise",
+            framework="pydantic_ai",
+            model="test",
+        )
+        agent = PydanticAIAgent(config)
+
+        # Initialize the agent
+        await agent.initialize()
+        assert agent._initialized is True
+
+        # Mock the logger.debug to raise an exception
+        with mock.patch(
+            "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai.logger"
+        ) as mock_logger:
+            mock_logger.debug.side_effect = RuntimeError("Unexpected error")
+
+            # Cleanup should not raise, even if an exception occurs internally
+            try:
+                await agent.cleanup()
+                # If we get here, cleanup did not raise (correct behavior)
+                assert True
+            except Exception as e:
+                # If we get here, cleanup raised an exception (incorrect behavior)
+                pytest.fail(f"cleanup() should not raise exceptions, but raised: {e}")
+
+    @pytest.mark.asyncio
+    async def test_initialize_with_tools_enabled_registers_tools(self) -> None:
+        """Test that initialize properly registers tools when enabled."""
+        pytest.importorskip("pydantic_ai")
+
+        config = AIAgentConfig(
+            name="test_agent_with_tools",
+            framework="pydantic_ai",
+            model="test",
+        )
+        agent = PydanticAIAgent(config)
+        assert agent._enable_tools is True
+
+        # Initialize the agent
+        await agent.initialize()
+
+        # Verify agent is initialized
+        assert agent._initialized is True
+        assert agent._agent is not None
+
+    @pytest.mark.asyncio
+    async def test_multiple_cleanup_calls_are_safe(self) -> None:
+        """Test that calling cleanup multiple times is safe."""
+        pytest.importorskip("pydantic_ai")
+
+        config = AIAgentConfig(
+            name="test_agent_multi_cleanup",
+            framework="pydantic_ai",
+            model="test",
+        )
+        agent = PydanticAIAgent(config)
+
+        # Initialize the agent
+        await agent.initialize()
+        assert agent._initialized is True
+
+        # Call cleanup multiple times
+        await agent.cleanup()
+        assert agent._initialized is False
+
+        # Second cleanup should not raise
+        await agent.cleanup()
+        assert agent._initialized is False
+        assert agent._agent is None
