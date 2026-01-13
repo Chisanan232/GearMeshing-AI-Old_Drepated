@@ -2,16 +2,72 @@
 
 This module provides an adapter that implements the AIAgentBase abstraction
 for the Pydantic AI framework, enabling seamless integration with the unified
-agent system.
+agent system. Includes support for file operations and command execution tools.
 """
 
 from typing import Any, Dict, Optional
 
 from gearmeshing_ai.core.logging_config import get_logger
+from gearmeshing_ai.agent_core.abstraction.tools import (
+    read_file_handler,
+    write_file_handler,
+    run_command_handler,
+    read_file_tool,
+    write_file_tool,
+    run_command_tool,
+)
+from gearmeshing_ai.agent_core.abstraction.tools.definitions import (
+    FileReadInput,
+    FileWriteInput,
+    CommandRunInput,
+)
 
 from ..base import AIAgentBase, AIAgentConfig, AIAgentResponse
 
 logger = get_logger(__name__)
+
+
+# Module-level tool functions for Pydantic AI
+# These must be defined at module level for proper schema generation
+async def read_file(file_path: str, encoding: str = "utf-8") -> str:
+    """Read a file from the filesystem."""
+    input_data = FileReadInput(file_path=file_path, encoding=encoding)
+    result = await read_file_handler(input_data)
+    return result.model_dump_json()
+
+
+async def write_file(
+    file_path: str,
+    content: str,
+    encoding: str = "utf-8",
+    create_dirs: bool = True,
+) -> str:
+    """Write content to a file on the filesystem."""
+    input_data = FileWriteInput(
+        file_path=file_path,
+        content=content,
+        encoding=encoding,
+        create_dirs=create_dirs,
+    )
+    result = await write_file_handler(input_data)
+    return result.model_dump_json()
+
+
+async def run_command(
+    command: str,
+    cwd: Optional[str] = None,
+    timeout: float = 30.0,
+    shell: bool = True,
+) -> str:
+    """Execute a shell command and capture output."""
+    input_data = CommandRunInput(
+        command=command,
+        cwd=cwd,
+        timeout=timeout,
+        shell=shell,
+    )
+    result = await run_command_handler(input_data)
+    return result.model_dump_json()
 
 
 class PydanticAIAgent(AIAgentBase):
@@ -34,6 +90,8 @@ class PydanticAIAgent(AIAgentBase):
         super().__init__(config)
         self._agent = None
         self._model = None
+        self._enable_tools = True
+        self._capability_event_repo = None
 
     def build_init_kwargs(self) -> Dict[str, Any]:
         """Build Pydantic AI-specific initialization kwargs.
@@ -102,6 +160,9 @@ class PydanticAIAgent(AIAgentBase):
             # Create the agent with built kwargs
             self._agent = Agent(**init_kwargs)
 
+            # Register tools with the agent
+            self._register_tools(self._agent)
+
             self._initialized = True
             logger.debug(f"Pydantic AI agent initialized: {self._config.name}")
 
@@ -109,6 +170,28 @@ class PydanticAIAgent(AIAgentBase):
             raise RuntimeError("Pydantic AI is not installed. Install it with: pip install pydantic-ai") from e
         except Exception as e:
             raise RuntimeError(f"Failed to initialize Pydantic AI agent: {e}") from e
+
+    def _register_tools(self, agent: Any) -> None:
+        """Register file and command execution tools with the agent.
+
+        Args:
+            agent: The Pydantic AI Agent instance
+        """
+        if not self._enable_tools:
+            logger.debug(f"Tools disabled for {self._config.name}")
+            return
+
+        try:
+            # Register module-level tools using Pydantic AI's decorator style
+            # Using the decorator syntax to properly register tools
+            agent.tool(read_file, name="read_file")
+            agent.tool(write_file, name="write_file")
+            agent.tool(run_command, name="run_command")
+
+            logger.debug(f"Registered tools for {self._config.name}: read_file, write_file, run_command")
+
+        except Exception as e:
+            logger.error(f"Error registering tools for {self._config.name}: {e}")
 
     async def invoke(
         self,
