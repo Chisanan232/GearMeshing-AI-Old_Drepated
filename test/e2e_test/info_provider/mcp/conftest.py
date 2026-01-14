@@ -166,8 +166,8 @@ def _wait_gateway_ready(base_url: str, timeout: float = 30.0) -> None:
     last: Exception | None = None
     while time.time() - start < timeout:
         try:
-            user: str = "admin@example.com"
-            secret: str = "my-test-key"
+            user: str = settings.mcp_gateway.admin_email
+            secret: str = settings.mcp_gateway.admin_password
             token = GatewayApiClient.generate_bearer_token(jwt_secret_key=secret, username=user)
             r = httpx.get(f"{base_url}/health", headers={"Authorization": token}, timeout=3.0)
             if r.status_code == 200:
@@ -184,8 +184,8 @@ def _wait_gateway_ready(base_url: str, timeout: float = 30.0) -> None:
 def gateway_client(compose_stack: DockerCompose):
     base = f"http://127.0.0.1:{gateway_port()}"
     # Generate token once
-    secret: str = "my-test-key"
-    user: str = "admin@example.com"
+    user: str = settings.mcp_gateway.admin_email
+    secret: str = settings.mcp_gateway.admin_password
     token = GatewayApiClient.generate_bearer_token(jwt_secret_key=secret, username=user)
 
     mgmt_client = httpx.Client(base_url=base)
