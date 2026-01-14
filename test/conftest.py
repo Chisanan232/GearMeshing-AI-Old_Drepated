@@ -17,6 +17,19 @@ try:  # pragma: no cover
 except Exception:
     pass
 
+# Import test settings after dotenv is loaded
+from test.settings import test_settings
+
+
+@pytest.fixture(scope="session")
+def test_config():
+    """Fixture providing test configuration from Pydantic settings model.
+    
+    Returns:
+        TestSettings: Test configuration with all environment variables loaded
+    """
+    return test_settings
+
 
 @pytest.fixture(autouse=True)
 def _global_offline_http_guard(monkeypatch: pytest.MonkeyPatch):
