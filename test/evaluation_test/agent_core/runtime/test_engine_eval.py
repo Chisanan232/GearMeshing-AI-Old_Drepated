@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from typing import Any, Dict
 
 import pytest
@@ -31,11 +30,12 @@ from gearmeshing_ai.agent_core.schemas.domain import (
     AgentRunStatus,
     CapabilityName,
 )
+from test.settings import test_settings
 
 
 def _eval_enabled() -> bool:
-    v = str(os.getenv("GM_RUN_EVAL_TESTS", "")).strip().lower()
-    return v in {"1", "true", "yes", "on"}
+    """Check if evaluation tests are enabled via GM_RUN_EVAL_TESTS setting."""
+    return test_settings.run_eval_tests
 
 
 class _DeterministicSummarize(Capability):

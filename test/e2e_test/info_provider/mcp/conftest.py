@@ -13,10 +13,13 @@ from gearmeshing_ai.info_provider.mcp.gateway_api import GatewayApiClient
 from gearmeshing_ai.info_provider.mcp.schemas.config import ServerConfig
 from gearmeshing_ai.info_provider.mcp.strategy import DirectMcpStrategy
 from gearmeshing_ai.info_provider.mcp.transport import SseMCPTransport
+from gearmeshing_ai.server.core.config import settings
+from test.settings import test_settings
 
 
 def clickup_port() -> int:
-    return int(os.getenv("CLICKUP_SERVER_PORT", os.getenv("GM_CLICKUP_MCP_PORT", "9000")))
+    """Get ClickUp MCP server port from server settings."""
+    return settings.clickup.server_port
 
 
 def endpoint_candidates(host: str, port: int) -> List[str]:
@@ -70,34 +73,34 @@ def _compose_env() -> Iterable[None]:
             prev[k] = os.environ[k]
         os.environ[k] = v
 
-    # PostgreSQL
-    _set("POSTGRES_DB", os.getenv("POSTGRES_DB", "mcp"))
-    _set("POSTGRES_USER", os.getenv("POSTGRES_USER", "mcp"))
-    _set("POSTGRES_PASSWORD", os.getenv("POSTGRES_PASSWORD", "mcp"))
+    # PostgreSQL - use server settings defaults
+    postgres_config = settings.postgres
+    _set("POSTGRES_DB", postgres_config.db)
+    _set("POSTGRES_USER", postgres_config.user)
+    _set("POSTGRES_PASSWORD", postgres_config.password)
 
-    # MCP Gateway *IBM/mcp-context-forge*
-    _set("MCPGATEWAY_JWT_SECRET", os.getenv("MCPGATEWAY_JWT_SECRET", "my-test-key"))
-    _set("MCPGATEWAY_ADMIN_PASSWORD", os.getenv("MCPGATEWAY_ADMIN_PASSWORD", "adminpass"))
-    _set("MCPGATEWAY_ADMIN_EMAIL", os.getenv("MCPGATEWAY_ADMIN_EMAIL", "admin@example.com"))
-    _set("MCPGATEWAY_ADMIN_FULL_NAME", os.getenv("MCPGATEWAY_ADMIN_FULL_NAME", "Admin User"))
-    _set(
-        "MCPGATEWAY_DB_URL",
-        os.getenv("MCPGATEWAY_DB_URL", "postgresql+psycopg://mcp:mcp@postgres:5432/mcp"),
-    )
-    _set("MCPGATEWAY_REDIS_URL", os.getenv("MCPGATEWAY_REDIS_URL", "redis://redis:6379/0"))
+    # MCP Gateway *IBM/mcp-context-forge* - use server settings defaults
+    mcp_gateway_config = settings.mcp_gateway
+    _set("MCPGATEWAY_JWT_SECRET", mcp_gateway_config.jwt_secret)
+    _set("MCPGATEWAY_ADMIN_PASSWORD", mcp_gateway_config.admin_password)
+    _set("MCPGATEWAY_ADMIN_EMAIL", mcp_gateway_config.admin_email)
+    _set("MCPGATEWAY_ADMIN_FULL_NAME", mcp_gateway_config.admin_full_name)
+    _set("MCPGATEWAY_DB_URL", mcp_gateway_config.db_url)
+    _set("MCPGATEWAY_REDIS_URL", mcp_gateway_config.redis_url)
 
-    # ClickUp MCP
-    _set("CLICKUP_SERVER_HOST", os.getenv("CLICKUP_SERVER_HOST", "0.0.0.0"))
-    _set("CLICKUP_SERVER_PORT", os.getenv("CLICKUP_SERVER_PORT", "8082"))
-    _set("CLICKUP_MCP_TRANSPORT", os.getenv("CLICKUP_MCP_TRANSPORT", "sse"))
+    # ClickUp MCP - use server settings defaults
+    clickup_config = settings.clickup
+    _set("CLICKUP_SERVER_HOST", clickup_config.server_host)
+    _set("CLICKUP_SERVER_PORT", str(clickup_config.server_port))
+    _set("CLICKUP_MCP_TRANSPORT", clickup_config.mcp_transport)
     # Token must be provided by env for real runs; default for CI/e2e
-    _set("CLICKUP_API_TOKEN", os.getenv("CLICKUP_API_TOKEN", os.getenv("GM_CLICKUP_API_TOKEN", "e2e-test-token")))
-    _set("MQ_BACKEND", os.getenv("MQ_BACKEND", "redis"))
+    _set("CLICKUP_API_TOKEN", clickup_config.api_token or "e2e-test-token")
+    _set("MQ_BACKEND", "redis")
 
-    # GearMeshing AI Server
-    _set("GEARMESHING_AI_SERVER_HOST", os.getenv("GEARMESHING_AI_SERVER_HOST", "0.0.0.0"))
-    _set("GEARMESHING_AI_SERVER_PORT", os.getenv("GEARMESHING_AI_SERVER_PORT", "8000"))
-    _set("GEARMESHING_AI_LOG_LEVEL", os.getenv("GEARMESHING_AI_LOG_LEVEL", "debug"))
+    # GearMeshing AI Server - use server settings defaults
+    _set("GEARMESHING_AI_SERVER_HOST", settings.server_host)
+    _set("GEARMESHING_AI_SERVER_PORT", str(settings.server_port))
+    _set("GEARMESHING_AI_LOG_LEVEL", settings.log_level)
 
     try:
         yield
@@ -164,8 +167,8 @@ def _wait_gateway_ready(base_url: str, timeout: float = 30.0) -> None:
     last: Exception | None = None
     while time.time() - start < timeout:
         try:
-            user = os.getenv("MCPGATEWAY_ADMIN_EMAIL", "admin@example.com")
-            secret = os.getenv("MCPGATEWAY_JWT_SECRET", "my-test-key")
+            user: str = "admin@example.com"
+            secret: str = "my-test-key"
             token = GatewayApiClient.generate_bearer_token(jwt_secret_key=secret, username=user)
             r = httpx.get(f"{base_url}/health", headers={"Authorization": token}, timeout=3.0)
             if r.status_code == 200:
@@ -182,8 +185,8 @@ def _wait_gateway_ready(base_url: str, timeout: float = 30.0) -> None:
 def gateway_client(compose_stack: DockerCompose):
     base = f"http://127.0.0.1:{gateway_port()}"
     # Generate token once
-    secret = os.getenv("MCPGATEWAY_JWT_SECRET", "my-test-key")
-    user = os.getenv("MCPGATEWAY_ADMIN_EMAIL", "admin@example.com")
+    secret: str = "my-test-key"
+    user: str = "admin@example.com"
     token = GatewayApiClient.generate_bearer_token(jwt_secret_key=secret, username=user)
 
     mgmt_client = httpx.Client(base_url=base)
