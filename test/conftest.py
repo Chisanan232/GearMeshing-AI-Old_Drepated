@@ -1,23 +1,11 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Iterable
 
 import httpx
 import pytest
 
-# Load dotenv files early so test fixtures can read secrets via os.getenv
-try:  # pragma: no cover
-    from dotenv import load_dotenv
-
-    TEST_ROOT = Path(__file__).resolve().parent
-    # Load test/.env first, then fallback to test/.env.example for defaults
-    load_dotenv(TEST_ROOT / ".env", override=False)
-    load_dotenv(TEST_ROOT / ".env.example", override=False)
-except Exception:
-    pass
-
-# Import test settings after dotenv is loaded
+# Import test settings (Pydantic BaseSettings automatically loads from .env)
 from test.settings import test_settings
 
 
