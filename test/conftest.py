@@ -1,18 +1,17 @@
 from __future__ import annotations
 
+# Import test settings (Pydantic BaseSettings automatically loads from .env)
+from test.settings import test_settings
 from typing import Iterable
 
 import httpx
 import pytest
 
-# Import test settings (Pydantic BaseSettings automatically loads from .env)
-from test.settings import test_settings
-
 
 @pytest.fixture(scope="session")
 def test_config():
     """Fixture providing test configuration from Pydantic settings model.
-    
+
     Returns:
         TestSettings: Test configuration with all environment variables loaded
     """

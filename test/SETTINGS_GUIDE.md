@@ -96,7 +96,7 @@ def test_database_integration(test_config: TestSettings) -> None:
     """Integration test using database configuration."""
     # Use test database URL
     db_url: str = test_config.test_database_url
-    
+
     # For PostgreSQL tests, check if enabled
     if test_config.enable_postgres_tests:
         postgres_config = test_config.postgres
@@ -241,7 +241,7 @@ def test_evaluation_workflow(test_config: TestSettings) -> None:
     """Evaluation test that runs only when GM_RUN_EVAL_TESTS is enabled."""
     if not test_config.run_eval_tests:
         pytest.skip("Evaluation tests disabled (set GM_RUN_EVAL_TESTS=1 to enable)")
-    
+
     # Run evaluation test logic
     assert True
 ```
@@ -255,7 +255,7 @@ def test_requires_openai(test_config: TestSettings) -> None:
     """Test that requires OpenAI API key."""
     if not test_config.openai.api_key:
         pytest.skip("OpenAI API key not configured")
-    
+
     # Use OpenAI
     api_key: str = test_config.openai.api_key
 ```
@@ -269,10 +269,10 @@ from test.settings import TestSettings
 def test_with_provider(test_config: TestSettings, provider_name: str) -> None:
     """Test with multiple providers."""
     provider_config = getattr(test_config, provider_name)
-    
+
     if not provider_config.api_key:
         pytest.skip(f"{provider_name} API key not configured")
-    
+
     # Test with provider
     assert provider_config.model is not None
 ```
@@ -286,7 +286,7 @@ def test_with_postgres(test_config: TestSettings) -> None:
     """Test using PostgreSQL."""
     if not test_config.enable_postgres_tests:
         pytest.skip("PostgreSQL tests disabled")
-    
+
     postgres_config = test_config.postgres
     db_url: str = f"postgresql://{postgres_config.user}:{postgres_config.password}@{postgres_config.host}:{postgres_config.port}/{postgres_config.db}"
     # Connect and test

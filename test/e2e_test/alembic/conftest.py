@@ -3,6 +3,7 @@
 import os
 import time
 from pathlib import Path
+from test.settings import test_settings
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -10,7 +11,6 @@ from sqlalchemy.orm import sessionmaker
 from testcontainers.compose import DockerCompose
 
 from gearmeshing_ai.server.core.config import settings
-from test.settings import test_settings
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 

@@ -11,7 +11,6 @@ from typing import Optional
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 # =====================================================================
 # LLM Provider Configuration Models (for tests)
 # =====================================================================
@@ -58,9 +57,7 @@ class TestGoogleConfig(BaseModel):
 class TestXAIConfig(BaseModel):
     """xAI (Grok) API configuration for tests."""
 
-    api_key: Optional[str] = Field(
-        default=None, alias="XAI_API_KEY", description="xAI API key for authentication"
-    )
+    api_key: Optional[str] = Field(default=None, alias="XAI_API_KEY", description="xAI API key for authentication")
     model: str = Field(default="grok-2", alias="XAI_MODEL", description="Default xAI model to use")
 
     model_config = {"populate_by_name": True}

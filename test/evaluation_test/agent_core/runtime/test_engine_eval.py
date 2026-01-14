@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from test.settings import test_settings
 from typing import Any, Dict
 
 import pytest
@@ -30,7 +31,6 @@ from gearmeshing_ai.agent_core.schemas.domain import (
     AgentRunStatus,
     CapabilityName,
 )
-from test.settings import test_settings
 
 
 def _eval_enabled() -> bool:

@@ -14,7 +14,6 @@ from gearmeshing_ai.info_provider.mcp.schemas.config import ServerConfig
 from gearmeshing_ai.info_provider.mcp.strategy import DirectMcpStrategy
 from gearmeshing_ai.info_provider.mcp.transport import SseMCPTransport
 from gearmeshing_ai.server.core.config import settings
-from test.settings import test_settings
 
 
 def clickup_port() -> int:
