@@ -89,14 +89,16 @@ def compose_stack(_compose_env):
 
 @pytest.fixture(scope="session")
 def database_url(compose_stack) -> str:
-    """Get test database URL."""
-    return "postgresql+asyncpg://ai_dev:changeme@127.0.0.1:5432/ai_dev_test"
+    """Get async test database URL from test settings."""
+    postgres_config = test_settings.postgres
+    return f"postgresql+asyncpg://{postgres_config.user}:{postgres_config.password}@127.0.0.1:{postgres_config.port}/{postgres_config.db}"
 
 
 @pytest.fixture(scope="session")
 def sync_database_url(compose_stack) -> str:
-    """Get sync database URL."""
-    return "postgresql://ai_dev:changeme@127.0.0.1:5432/ai_dev_test"
+    """Get sync test database URL from test settings."""
+    postgres_config = test_settings.postgres
+    return f"postgresql://{postgres_config.user}:{postgres_config.password}@127.0.0.1:{postgres_config.port}/{postgres_config.db}"
 
 
 @pytest.fixture
