@@ -103,6 +103,15 @@ class TestSettings(BaseSettings):
     )
 
     # =====================================================================
+    # Test Execution Flags
+    # =====================================================================
+    run_eval_tests: bool = Field(
+        default=False,
+        description="Enable evaluation tests",
+        alias="GM_RUN_EVAL_TESTS",
+    )
+
+    # =====================================================================
     # Database Configuration for Tests
     # =====================================================================
     test_database_url: str = Field(

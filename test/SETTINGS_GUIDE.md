@@ -162,6 +162,16 @@ def test_contract_with_framework(test_config: TestSettings) -> None:
 
 ## Configuration Reference
 
+### Test Execution Flags
+
+#### Evaluation Tests
+
+```python
+# Enable evaluation tests
+run_eval_tests = test_config.run_eval_tests
+# Type: bool (default: False)
+# Environment variable: GM_RUN_EVAL_TESTS
+```
 
 ### LLM Provider Configuration
 
@@ -221,7 +231,22 @@ postgres_config = test_config.postgres
 
 ## Common Usage Examples
 
-### Example 1: Skip Test if API Key Missing
+### Example 1: Conditional Evaluation Tests
+
+```python
+from test.settings import TestSettings
+import pytest
+
+def test_evaluation_workflow(test_config: TestSettings) -> None:
+    """Evaluation test that runs only when GM_RUN_EVAL_TESTS is enabled."""
+    if not test_config.run_eval_tests:
+        pytest.skip("Evaluation tests disabled (set GM_RUN_EVAL_TESTS=1 to enable)")
+    
+    # Run evaluation test logic
+    assert True
+```
+
+### Example 2: Skip Test if API Key Missing
 
 ```python
 from test.settings import TestSettings
@@ -276,6 +301,9 @@ def test_with_postgres(test_config: TestSettings) -> None:
 Create or edit `test/.env`:
 
 ```bash
+# Test Execution Flags
+GM_RUN_EVAL_TESTS=0
+
 # LLM API Keys
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-4o
