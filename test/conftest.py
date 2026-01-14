@@ -1,21 +1,21 @@
 from __future__ import annotations
 
-from pathlib import Path
+# Import test settings (Pydantic BaseSettings automatically loads from .env)
+from test.settings import test_settings
 from typing import Iterable
 
 import httpx
 import pytest
 
-# Load dotenv files early so test fixtures can read secrets via os.getenv
-try:  # pragma: no cover
-    from dotenv import load_dotenv
 
-    TEST_ROOT = Path(__file__).resolve().parent
-    # Load test/.env first, then fallback to test/.env.example for defaults
-    load_dotenv(TEST_ROOT / ".env", override=False)
-    load_dotenv(TEST_ROOT / ".env.example", override=False)
-except Exception:
-    pass
+@pytest.fixture(scope="session")
+def test_config():
+    """Fixture providing test configuration from Pydantic settings model.
+
+    Returns:
+        TestSettings: Test configuration with all environment variables loaded
+    """
+    return test_settings
 
 
 @pytest.fixture(autouse=True)

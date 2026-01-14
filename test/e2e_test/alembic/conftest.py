@@ -3,11 +3,14 @@
 import os
 import time
 from pathlib import Path
+from test.settings import test_settings
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from testcontainers.compose import DockerCompose
+
+from gearmeshing_ai.server.core.config import settings
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
@@ -22,29 +25,29 @@ def _compose_env():
             prev[k] = os.environ[k]
         os.environ[k] = v
 
-    # PostgreSQL
-    _set("POSTGRES_DB", os.getenv("POSTGRES_DB", "ai_dev_test"))
-    _set("POSTGRES_USER", os.getenv("POSTGRES_USER", "ai_dev"))
-    _set("POSTGRES_PASSWORD", os.getenv("POSTGRES_PASSWORD", "changeme"))
+    # PostgreSQL - use server settings defaults
+    postgres_config = settings.postgres
+    _set("POSTGRES_DB", postgres_config.db)
+    _set("POSTGRES_USER", postgres_config.user)
+    _set("POSTGRES_PASSWORD", postgres_config.password)
 
-    # MCP Gateway
-    _set("MCPGATEWAY_JWT_SECRET", os.getenv("MCPGATEWAY_JWT_SECRET", "my-test-key"))
-    _set("MCPGATEWAY_ADMIN_PASSWORD", os.getenv("MCPGATEWAY_ADMIN_PASSWORD", "adminpass"))
-    _set("MCPGATEWAY_ADMIN_EMAIL", os.getenv("MCPGATEWAY_ADMIN_EMAIL", "admin@example.com"))
-    _set("MCPGATEWAY_ADMIN_FULL_NAME", os.getenv("MCPGATEWAY_ADMIN_FULL_NAME", "Admin User"))
-    _set(
-        "MCPGATEWAY_DB_URL",
-        os.getenv("MCPGATEWAY_DB_URL", "postgresql+psycopg://ai_dev:changeme@postgres:5432/ai_dev_test"),
-    )
-    _set("MCPGATEWAY_REDIS_URL", os.getenv("MCPGATEWAY_REDIS_URL", "redis://redis:6379/0"))
+    # MCP Gateway - use server settings defaults
+    mcp_gateway_config = settings.mcp_gateway
+    _set("MCPGATEWAY_JWT_SECRET", mcp_gateway_config.jwt_secret)
+    _set("MCPGATEWAY_ADMIN_PASSWORD", mcp_gateway_config.admin_password)
+    _set("MCPGATEWAY_ADMIN_EMAIL", mcp_gateway_config.admin_email)
+    _set("MCPGATEWAY_ADMIN_FULL_NAME", mcp_gateway_config.admin_full_name)
+    _set("MCPGATEWAY_DB_URL", mcp_gateway_config.db_url)
+    _set("MCPGATEWAY_REDIS_URL", mcp_gateway_config.redis_url)
 
-    # ClickUp MCP
-    _set("CLICKUP_SERVER_HOST", os.getenv("CLICKUP_SERVER_HOST", "0.0.0.0"))
-    _set("CLICKUP_SERVER_PORT", os.getenv("CLICKUP_SERVER_PORT", "8082"))
-    _set("CLICKUP_MCP_TRANSPORT", os.getenv("CLICKUP_MCP_TRANSPORT", "sse"))
+    # ClickUp MCP - use server settings defaults
+    clickup_config = settings.clickup
+    _set("CLICKUP_SERVER_HOST", clickup_config.server_host)
+    _set("CLICKUP_SERVER_PORT", str(clickup_config.server_port))
+    _set("CLICKUP_MCP_TRANSPORT", clickup_config.mcp_transport)
     # Token must be provided by env for real runs; default for CI/e2e
-    _set("CLICKUP_API_TOKEN", os.getenv("CLICKUP_API_TOKEN", os.getenv("GM_CLICKUP_API_TOKEN", "e2e-test-token")))
-    _set("MQ_BACKEND", os.getenv("MQ_BACKEND", "redis"))
+    _set("CLICKUP_API_TOKEN", clickup_config.api_token or "e2e-test-token")
+    _set("MQ_BACKEND", "redis")
 
     try:
         yield
@@ -86,14 +89,16 @@ def compose_stack(_compose_env):
 
 @pytest.fixture(scope="session")
 def database_url(compose_stack) -> str:
-    """Get test database URL."""
-    return "postgresql+asyncpg://ai_dev:changeme@127.0.0.1:5432/ai_dev_test"
+    """Get async test database URL from test settings."""
+    postgres_config = test_settings.postgres
+    return f"postgresql+asyncpg://{postgres_config.user}:{postgres_config.password}@127.0.0.1:{postgres_config.port}/{postgres_config.db}"
 
 
 @pytest.fixture(scope="session")
 def sync_database_url(compose_stack) -> str:
-    """Get sync database URL."""
-    return "postgresql://ai_dev:changeme@127.0.0.1:5432/ai_dev_test"
+    """Get sync test database URL from test settings."""
+    postgres_config = test_settings.postgres
+    return f"postgresql://{postgres_config.user}:{postgres_config.password}@127.0.0.1:{postgres_config.port}/{postgres_config.db}"
 
 
 @pytest.fixture
