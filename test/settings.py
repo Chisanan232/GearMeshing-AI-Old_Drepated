@@ -69,7 +69,7 @@ class TestXAIConfig(BaseModel):
 class TestPostgreSQLConfig(BaseModel):
     """PostgreSQL database configuration for tests."""
 
-    db: str = Field(default="ai_dev_test", alias="POSTGRES_DB", description="PostgreSQL database name for tests")
+    db: str = Field(default="ai_dev", alias="POSTGRES_DB", description="PostgreSQL database name for tests")
     user: str = Field(default="ai_dev", alias="POSTGRES_USER", description="PostgreSQL database user")
     password: str = Field(default="changeme", alias="POSTGRES_PASSWORD", description="PostgreSQL database password")
     host: str = Field(default="localhost", alias="POSTGRES_HOST", description="PostgreSQL database host address")
