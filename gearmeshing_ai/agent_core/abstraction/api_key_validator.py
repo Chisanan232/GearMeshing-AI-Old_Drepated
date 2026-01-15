@@ -44,22 +44,49 @@ PROVIDER_API_KEY_MAPPING: Dict[AIModelProvider, List[str]] = {
     AIModelProvider.GROK: ["GROK_API_KEY", "XAI_API_KEY"],
 }
 
+# Gateway API key environment variable
+GATEWAY_API_KEY_ENV = "PYDANTIC_AI_GATEWAY_API_KEY"
+
 # Regex patterns for identifying AI models by provider
-# Uses simple prefix matching to identify provider by model naming convention
+# Based on Pydantic AI model naming conventions: https://ai.pydantic.dev/models/overview/
+# Supports direct model names, provider-prefixed formats (e.g., "openai:gpt-4o"),
+# and gateway formats (e.g., "gateway/openai:gpt-4o")
 # References:
 # - OpenAI: https://platform.openai.com/docs/pricing
 # - Anthropic: https://platform.claude.com/docs/en/about-claude/models/overview
 # - Google: https://ai.google.dev/gemini-api/docs/models
 # - xAI: https://docs.x.ai/docs/models
+# - Pydantic AI: https://ai.pydantic.dev/models/overview/
+# - Pydantic AI Gateway: https://ai.pydantic.dev/gateway/
 MODEL_PROVIDER_PATTERNS: Dict[AIModelProvider, Pattern[str]] = {
-    # OpenAI models: gpt-* prefix (gpt-4o, gpt-4, gpt-3.5-turbo, etc.)
-    AIModelProvider.OPENAI: re.compile(r"^gpt-", re.IGNORECASE),
-    # Anthropic models: claude-* prefix (claude-3, claude-2, claude-instant, etc.)
-    AIModelProvider.ANTHROPIC: re.compile(r"^claude-", re.IGNORECASE),
-    # Google models: gemini-* prefix or legacy models (palm-2, text-bison)
-    AIModelProvider.GOOGLE: re.compile(r"^(?:gemini-|palm-|text-)", re.IGNORECASE),
-    # xAI Grok models: grok-* prefix (grok-1, grok-2, grok-3, etc.)
-    AIModelProvider.GROK: re.compile(r"^grok-", re.IGNORECASE),
+    # OpenAI models: gpt-* prefix (gpt-4o, gpt-4, gpt-3.5-turbo, gpt-4o-2024-11-20, etc.)
+    # Also supports OpenAI-compatible providers: deepseek-*, qwen-*, etc. via OpenAIChatModel
+    # Supports formats: gpt-4o, openai:gpt-4o, gateway/openai:gpt-4o
+    AIModelProvider.OPENAI: re.compile(
+        r"^(?:gateway/)?(?:openai:)?gpt-|^(?:gateway/)?(?:openai:)?(?:deepseek-|qwen-|yi-|llama-|mistral-|command-|cohere\.command)",
+        re.IGNORECASE
+    ),
+    # Anthropic models: claude-* prefix (claude-3, claude-2, claude-instant, claude-3-5-sonnet, etc.)
+    # Supports various Claude versions and variants
+    # Supports formats: claude-3-opus, anthropic:claude-3-opus, gateway/anthropic:claude-3-opus
+    AIModelProvider.ANTHROPIC: re.compile(
+        r"^(?:gateway/)?(?:anthropic:)?claude-",
+        re.IGNORECASE
+    ),
+    # Google models: gemini-* prefix (gemini-1.5-pro, gemini-2.0-flash, etc.)
+    # Also supports legacy models (palm-2, text-bison) and VertexAI models
+    # Supports formats: gemini-2.0-flash, google:gemini-2.0-flash, google-vertex:gemini-2.0-flash, gateway/google-vertex:gemini-2.0-flash
+    AIModelProvider.GOOGLE: re.compile(
+        r"^(?:gateway/)?(?:google(?:-vertex)?:)?(?:gemini-|palm-|text-|models/gemini-|models/palm-)",
+        re.IGNORECASE
+    ),
+    # xAI Grok models: grok-* prefix (grok-1, grok-2, grok-beta, etc.)
+    # Also supports grok via OpenAI-compatible API
+    # Supports formats: grok-2, grok:grok-2, gateway/grok:grok-2
+    AIModelProvider.GROK: re.compile(
+        r"^(?:gateway/)?(?:grok:)?grok-",
+        re.IGNORECASE
+    ),
 }
 
 
@@ -151,7 +178,7 @@ class APIKeyValidator:
         """Validate that API key is present for a given model.
 
         Args:
-            model: Model identifier (e.g., 'gpt-4o', 'claude-3-opus')
+            model: Model identifier (e.g., 'gpt-4o', 'claude-3-opus', 'gemini-2.0-flash')
 
         Raises:
             ValueError: If provider is unknown or API key is not found
@@ -161,8 +188,10 @@ class APIKeyValidator:
         if provider is None:
             raise ValueError(
                 f"Unknown model: {model}. "
-                f"Supported prefixes: gpt-* (OpenAI), claude-* (Anthropic), "
-                f"gemini-*/palm-*/text-* (Google), grok-* (xAI)"
+                f"Supported models: "
+                f"gpt-* (OpenAI), claude-* (Anthropic), "
+                f"gemini-*/palm-*/text-* (Google), grok-* (xAI). "
+                f"Also supports OpenAI-compatible models: deepseek-*, qwen-*, yi-*, llama-*, mistral-*, command-*, cohere.command-*"
             )
 
         APIKeyValidator.validate_api_key(provider)
