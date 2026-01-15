@@ -546,3 +546,176 @@ class TestModelProviderPatterns:
 
                 # Should log for each provider
                 assert mock_logger.debug.call_count >= 4  # At least one for header + 4 providers
+
+
+class TestGatewayModelFormats:
+    """Test model identification with Pydantic AI Gateway format.
+    
+    Tests for gateway/<provider>:<model> format as documented in:
+    https://ai.pydantic.dev/gateway/
+    """
+
+    @pytest.mark.parametrize("model,expected_provider", [
+        ("gateway/openai:gpt-4o", AIModelProvider.OPENAI),
+        ("gateway/openai:gpt-4-turbo", AIModelProvider.OPENAI),
+        ("gateway/openai:gpt-3.5-turbo", AIModelProvider.OPENAI),
+        ("gateway/openai:gpt-5", AIModelProvider.OPENAI),
+    ])
+    def test_gateway_openai_format(self, model, expected_provider):
+        """Test gateway format for OpenAI models."""
+        assert APIKeyValidator.get_provider_for_model(model) == expected_provider
+
+    @pytest.mark.parametrize("model,expected_provider", [
+        ("gateway/anthropic:claude-3-opus", AIModelProvider.ANTHROPIC),
+        ("gateway/anthropic:claude-3-sonnet", AIModelProvider.ANTHROPIC),
+        ("gateway/anthropic:claude-sonnet-4-5", AIModelProvider.ANTHROPIC),
+    ])
+    def test_gateway_anthropic_format(self, model, expected_provider):
+        """Test gateway format for Anthropic models."""
+        assert APIKeyValidator.get_provider_for_model(model) == expected_provider
+
+    @pytest.mark.parametrize("model,expected_provider", [
+        ("gateway/google:gemini-2.0-flash", AIModelProvider.GOOGLE),
+        ("gateway/google:gemini-1.5-pro", AIModelProvider.GOOGLE),
+        ("gateway/google-vertex:gemini-2.0-flash", AIModelProvider.GOOGLE),
+        ("gateway/google-vertex:gemini-2.5-flash", AIModelProvider.GOOGLE),
+    ])
+    def test_gateway_google_format(self, model, expected_provider):
+        """Test gateway format for Google models."""
+        assert APIKeyValidator.get_provider_for_model(model) == expected_provider
+
+    @pytest.mark.parametrize("model,expected_provider", [
+        ("gateway/grok:grok-1", AIModelProvider.GROK),
+        ("gateway/grok:grok-2", AIModelProvider.GROK),
+        ("gateway/grok:grok-3", AIModelProvider.GROK),
+    ])
+    def test_gateway_grok_format(self, model, expected_provider):
+        """Test gateway format for Grok models."""
+        assert APIKeyValidator.get_provider_for_model(model) == expected_provider
+
+    @pytest.mark.parametrize("model,expected_provider", [
+        ("GATEWAY/OPENAI:GPT-4O", AIModelProvider.OPENAI),
+        ("Gateway/Anthropic:Claude-3-Opus", AIModelProvider.ANTHROPIC),
+        ("GATEWAY/GOOGLE:GEMINI-2.0-FLASH", AIModelProvider.GOOGLE),
+        ("Gateway/Grok:Grok-2", AIModelProvider.GROK),
+    ])
+    def test_gateway_format_case_insensitive(self, model, expected_provider):
+        """Test that gateway format is case-insensitive."""
+        assert APIKeyValidator.get_provider_for_model(model) == expected_provider
+
+    @pytest.mark.parametrize("model,expected_provider", [
+        ("openai:gpt-4o", AIModelProvider.OPENAI),
+        ("openai:gpt-4-turbo", AIModelProvider.OPENAI),
+        ("openai:gpt-3.5-turbo", AIModelProvider.OPENAI),
+    ])
+    def test_provider_prefixed_format_openai(self, model, expected_provider):
+        """Test provider-prefixed format for OpenAI models."""
+        assert APIKeyValidator.get_provider_for_model(model) == expected_provider
+
+    @pytest.mark.parametrize("model,expected_provider", [
+        ("anthropic:claude-3-opus", AIModelProvider.ANTHROPIC),
+        ("anthropic:claude-3-sonnet", AIModelProvider.ANTHROPIC),
+    ])
+    def test_provider_prefixed_format_anthropic(self, model, expected_provider):
+        """Test provider-prefixed format for Anthropic models."""
+        assert APIKeyValidator.get_provider_for_model(model) == expected_provider
+
+    @pytest.mark.parametrize("model,expected_provider", [
+        ("google:gemini-2.0-flash", AIModelProvider.GOOGLE),
+        ("google-vertex:gemini-2.0-flash", AIModelProvider.GOOGLE),
+    ])
+    def test_provider_prefixed_format_google(self, model, expected_provider):
+        """Test provider-prefixed format for Google models."""
+        assert APIKeyValidator.get_provider_for_model(model) == expected_provider
+
+    @pytest.mark.parametrize("model,expected_provider", [
+        ("grok:grok-1", AIModelProvider.GROK),
+        ("grok:grok-2", AIModelProvider.GROK),
+    ])
+    def test_provider_prefixed_format_grok(self, model, expected_provider):
+        """Test provider-prefixed format for Grok models."""
+        assert APIKeyValidator.get_provider_for_model(model) == expected_provider
+
+    @pytest.mark.parametrize("model,expected_provider", [
+        ("gateway/openai:deepseek-chat", AIModelProvider.OPENAI),
+        ("gateway/openai:qwen-max", AIModelProvider.OPENAI),
+        ("gateway/openai:yi-large", AIModelProvider.OPENAI),
+        ("gateway/openai:llama-2-70b", AIModelProvider.OPENAI),
+        ("gateway/openai:mistral-large", AIModelProvider.OPENAI),
+    ])
+    def test_openai_compatible_models_via_gateway(self, model, expected_provider):
+        """Test OpenAI-compatible models through gateway."""
+        assert APIKeyValidator.get_provider_for_model(model) == expected_provider
+
+    @pytest.mark.parametrize("model,expected_provider", [
+        ("deepseek-chat", AIModelProvider.OPENAI),
+        ("qwen-max", AIModelProvider.OPENAI),
+        ("yi-large", AIModelProvider.OPENAI),
+        ("llama-2-70b", AIModelProvider.OPENAI),
+        ("mistral-large", AIModelProvider.OPENAI),
+    ])
+    def test_openai_compatible_models_direct(self, model, expected_provider):
+        """Test OpenAI-compatible models without gateway."""
+        assert APIKeyValidator.get_provider_for_model(model) == expected_provider
+
+    @pytest.mark.parametrize("model,expected_provider", [
+        ("google-vertex:gemini-2.0-flash", AIModelProvider.GOOGLE),
+        ("google-vertex:gemini-1.5-pro", AIModelProvider.GOOGLE),
+        ("gateway/google-vertex:gemini-2.0-flash", AIModelProvider.GOOGLE),
+    ])
+    def test_google_vertex_ai_format(self, model, expected_provider):
+        """Test Google VertexAI format."""
+        assert APIKeyValidator.get_provider_for_model(model) == expected_provider
+
+    @pytest.mark.parametrize("model,expected_provider", [
+        ("models/gemini-2.0-flash", AIModelProvider.GOOGLE),
+        ("models/gemini-1.5-pro", AIModelProvider.GOOGLE),
+        ("models/palm-2", AIModelProvider.GOOGLE),
+    ])
+    def test_google_models_api_format(self, model, expected_provider):
+        """Test Google models API format."""
+        assert APIKeyValidator.get_provider_for_model(model) == expected_provider
+
+    def test_gateway_api_key_validation(self):
+        """Test API key validation for gateway format models."""
+        with patch.dict(os.environ, {"PYDANTIC_AI_GATEWAY_API_KEY": "paig_test-key"}):
+            with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
+                APIKeyValidator.validate_model_api_key("gateway/openai:gpt-4o")
+
+    @pytest.mark.parametrize("model,expected_provider", [
+        ("gpt-4o", AIModelProvider.OPENAI),
+        ("openai:gpt-4o", AIModelProvider.OPENAI),
+        ("gateway/openai:gpt-4o", AIModelProvider.OPENAI),
+        ("claude-3-opus", AIModelProvider.ANTHROPIC),
+        ("anthropic:claude-3-opus", AIModelProvider.ANTHROPIC),
+        ("gateway/anthropic:claude-3-opus", AIModelProvider.ANTHROPIC),
+        ("gemini-2.0-flash", AIModelProvider.GOOGLE),
+        ("google:gemini-2.0-flash", AIModelProvider.GOOGLE),
+        ("google-vertex:gemini-2.0-flash", AIModelProvider.GOOGLE),
+        ("gateway/google-vertex:gemini-2.0-flash", AIModelProvider.GOOGLE),
+        ("grok-2", AIModelProvider.GROK),
+        ("grok:grok-2", AIModelProvider.GROK),
+        ("gateway/grok:grok-2", AIModelProvider.GROK),
+    ])
+    def test_mixed_format_models(self, model, expected_provider):
+        """Test that all format variations are correctly identified."""
+        assert APIKeyValidator.get_provider_for_model(model) == expected_provider
+
+    @pytest.mark.parametrize("model,expected_provider", [
+        ("gateway/openai:gpt-4o-2024-11-20", AIModelProvider.OPENAI),
+        ("gateway/anthropic:claude-3-5-sonnet-20241022", AIModelProvider.ANTHROPIC),
+        ("gateway/google:gemini-2.0-flash-001", AIModelProvider.GOOGLE),
+        ("gateway/grok:grok-2-1212", AIModelProvider.GROK),
+    ])
+    def test_gateway_format_with_version_numbers(self, model, expected_provider):
+        """Test gateway format with version numbers and date suffixes."""
+        assert APIKeyValidator.get_provider_for_model(model) == expected_provider
+
+    @pytest.mark.parametrize("invalid_model", [
+        "gateway/unknown:model-name",
+        "gateway/invalid-provider:model",
+        "gateway/:model-name",
+    ])
+    def test_invalid_gateway_format(self, invalid_model):
+        """Test that invalid gateway formats return None."""
+        assert APIKeyValidator.get_provider_for_model(invalid_model) is None
