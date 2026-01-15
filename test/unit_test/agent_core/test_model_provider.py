@@ -678,7 +678,7 @@ class TestGetProviderFromModelName:
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
-        invalid_models = ["unknown-model", "mistral-7b", "llama-2", "custom-model"]
+        invalid_models = ["unknown-model", "custom-model", "random-ai-model", "unsupported-llm"]
         for model in invalid_models:
             with pytest.raises(ValueError, match="Could not determine provider"):
                 provider.get_provider_from_model_name(model)
