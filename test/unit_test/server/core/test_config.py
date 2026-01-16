@@ -14,6 +14,7 @@ Examples:
 import os
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -30,6 +31,7 @@ from gearmeshing_ai.server.core.config import (
     OpenAIConfig,
     PostgreSQLConfig,
     Settings,
+    get_env_file_path,
 )
 
 
@@ -155,8 +157,13 @@ def temp_env_file(test_env_file: dict[str, str], tmp_path: Path) -> Path:
 def settings_with_test_env(test_env_file: dict[str, str], monkeypatch, tmp_path: Path) -> Settings:
     """Create Settings instance using a temporary .env file with test values.
     
-    This fixture creates a temporary directory with a .env file containing test values,
-    changes to that directory, and creates a Settings instance that will load from it.
+    This fixture:
+    1. Creates a temporary .env file with distinct test values (different from defaults)
+    2. Mocks get_env_file_path() to point to the temporary .env file
+    3. Creates a Settings instance that loads from the temporary file
+    
+    This ensures tests verify environment variable binding without being affected
+    by the local .env file.
     """
     # Create a temporary .env file with test values
     env_file = tmp_path / ".env"
@@ -164,24 +171,17 @@ def settings_with_test_env(test_env_file: dict[str, str], monkeypatch, tmp_path:
         for key, value in test_env_file.items():
             f.write(f"{key}={value}\n")
     
-    # Save the original working directory
-    original_cwd = os.getcwd()
+    # Mock get_env_file_path to return the temporary .env file path
+    monkeypatch.setattr("gearmeshing_ai.server.core.config.get_env_file_path", lambda: str(env_file))
     
-    try:
-        # Change to the temporary directory
-        monkeypatch.chdir(tmp_path)
-        
-        # Also set environment variables as a fallback
-        for key, value in test_env_file.items():
-            monkeypatch.setenv(key, value)
-        
-        # Create Settings instance - it will load from the temp .env file in current directory
-        settings_instance = Settings()
-        
-        return settings_instance
-    finally:
-        # Change back to original directory (monkeypatch will handle cleanup)
-        pass
+    # Also set environment variables as a fallback for any direct env var access
+    for key, value in test_env_file.items():
+        monkeypatch.setenv(key, value)
+    
+    # Create Settings instance - it will load from the mocked temp .env file
+    settings_instance = Settings()
+    
+    return settings_instance
 
 
 class TestSettingsBinding:
