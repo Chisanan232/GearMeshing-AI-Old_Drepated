@@ -32,7 +32,7 @@ def mock_settings():
 def mock_settings_no_db():
     """Mock settings with database disabled."""
     with patch("gearmeshing_ai.server.main.settings") as mock:
-        mock.enable_database = False
+        mock.database.enable = False
         yield mock
 
 
