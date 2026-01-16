@@ -322,6 +322,14 @@ class Settings(BaseSettings):
         default="INFO",
         description="GearMeshing-AI server logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
     )
+    gearmeshing_ai_prompt_provider: str = Field(
+        default="builtin",
+        description="Prompt provider to use (builtin or custom entry point name)",
+    )
+    gearmeshing_ai_agent_framework: Optional[str] = Field(
+        default=None,
+        description="Active agent framework (optional, can be set at runtime)",
+    )
 
     # =====================================================================
     # AI Provider Configuration
