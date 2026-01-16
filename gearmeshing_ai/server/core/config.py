@@ -13,6 +13,20 @@ from typing import Optional
 from pydantic import Field, BaseModel, ConfigDict
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
+def get_env_file_path() -> str:
+    """
+    Get the path to the .env file.
+    
+    This function is extracted to allow tests to mock it and point to a temporary
+    .env file for testing environment variable binding without being affected by
+    the local .env file.
+    
+    Returns:
+        str: Path to the .env file as a string.
+    """
+    return str(Path(".env"))
+
 # =====================================================================
 # AI Provider Configuration Models
 # =====================================================================
@@ -286,7 +300,7 @@ class Settings(BaseSettings):
     # Pydantic Configuration
     # =====================================================================
     model_config = SettingsConfigDict(
-        env_file=str(Path(".env")),
+        env_file=get_env_file_path(),
         env_file_encoding="utf-8",
         extra="ignore",
         env_nested_delimiter='__',
