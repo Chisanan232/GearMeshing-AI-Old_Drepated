@@ -2,17 +2,19 @@
 Configuration Settings.
 
 This module defines the application configuration using Pydantic's BaseSettings.
-It automatically loads all configuration from environment variables and .env file
-without explicit dotenv loading.
-"""
+Pydantic automatically loads configuration from the .env file via env_file configuration.
 
+Environment variables use double underscore (__) as delimiters for nested properties.
+For example: AI_PROVIDER__OPENAI__API_KEY maps to settings.ai_provider.openai.api_key
+"""
+from pathlib import Path
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field, BaseModel, ConfigDict
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # =====================================================================
-# LLM Provider Configuration Models
+# AI Provider Configuration Models
 # =====================================================================
 
 
@@ -20,115 +22,244 @@ class OpenAIConfig(BaseModel):
     """OpenAI API configuration."""
 
     api_key: Optional[str] = Field(
-        default=None, alias="OPENAI_API_KEY", description="OpenAI API key for authentication"
+        default=None, description="OpenAI API key for authentication"
     )
-    model: str = Field(default="gpt-4o", alias="OPENAI_MODEL", description="Default OpenAI model to use")
+    org_id: Optional[str] = Field(
+        default=None, description="OpenAI organization ID (optional)"
+    )
+    model: str = Field(default="gpt-4o", description="Default OpenAI model to use")
     base_url: Optional[str] = Field(
-        default=None, alias="OPENAI_BASE_URL", description="Custom OpenAI API base URL (optional)"
+        default=None, description="Custom OpenAI API base URL (optional)"
     )
 
-    model_config = {"populate_by_name": True}
+    model_config = ConfigDict(strict=False)
 
 
 class AnthropicConfig(BaseModel):
     """Anthropic API configuration."""
 
     api_key: Optional[str] = Field(
-        default=None, alias="ANTHROPIC_API_KEY", description="Anthropic API key for authentication"
+        default=None, description="Anthropic API key for authentication"
     )
     model: str = Field(
-        default="claude-3-opus-20240229", alias="ANTHROPIC_MODEL", description="Default Anthropic model to use"
+        default="claude-3-opus-20240229", description="Default Anthropic model to use"
     )
 
-    model_config = {"populate_by_name": True}
+    model_config = ConfigDict(strict=False)
 
 
 class GoogleConfig(BaseModel):
     """Google API configuration."""
 
     api_key: Optional[str] = Field(
-        default=None, alias="GOOGLE_API_KEY", description="Google API key for authentication"
+        default=None, description="Google API key for authentication"
     )
-    model: str = Field(default="gemini-pro", alias="GOOGLE_MODEL", description="Default Google model to use")
-
-    model_config = {"populate_by_name": True}
-
-
-class ClickUpConfig(BaseModel):
-    """ClickUp MCP Server configuration."""
-
-    api_token: Optional[str] = Field(
-        default=None, alias="CLICKUP_API_TOKEN", description="ClickUp API token for authentication"
+    project_id: Optional[str] = Field(
+        default=None, description="Google Cloud project ID (optional)"
     )
-    server_host: str = Field(
-        default="0.0.0.0", alias="CLICKUP_SERVER_HOST", description="ClickUp MCP server host address"
-    )
-    server_port: int = Field(default=8082, alias="CLICKUP_SERVER_PORT", description="ClickUp MCP server port number")
-    mcp_transport: str = Field(
-        default="sse", alias="CLICKUP_MCP_TRANSPORT", description="MCP transport type (sse or stdio)"
-    )
+    model: str = Field(default="gemini-pro", description="Default Google model to use")
 
-    model_config = {"populate_by_name": True}
+    model_config = ConfigDict(strict=False)
 
 
-class MCPGatewayConfig(BaseModel):
-    """MCP Gateway configuration."""
+class AIProviderConfig(BaseModel):
+    """AI Provider configuration container."""
 
-    url: str = Field(default="http://mcp-gateway:4444", alias="MCP_GATEWAY_URL", description="MCP Gateway base URL")
-    auth_token: Optional[str] = Field(
-        default=None, alias="MCP_GATEWAY_AUTH_TOKEN", description="MCP Gateway authentication token"
-    )
-    db_url: str = Field(
-        default="postgresql+psycopg://ai_dev:changeme@postgres:5432/ai_dev",
-        alias="MCPGATEWAY_DB_URL",
-        description="MCP Gateway PostgreSQL database URL",
-    )
-    redis_url: str = Field(
-        default="redis://redis:6379/0", alias="MCPGATEWAY_REDIS_URL", description="MCP Gateway Redis connection URL"
-    )
-    admin_password: str = Field(
-        default="adminpass", alias="MCPGATEWAY_ADMIN_PASSWORD", description="MCP Gateway admin password"
-    )
-    admin_email: str = Field(
-        default="admin@example.com", alias="MCPGATEWAY_ADMIN_EMAIL", description="MCP Gateway admin email address"
-    )
-    admin_full_name: str = Field(
-        default="Admin User", alias="MCPGATEWAY_ADMIN_FULL_NAME", description="MCP Gateway admin full name"
-    )
-    jwt_secret: str = Field(
-        default="my-test-key", alias="MCPGATEWAY_JWT_SECRET", description="MCP Gateway JWT secret key for token signing"
-    )
+    openai: OpenAIConfig = Field(default_factory=OpenAIConfig, description="OpenAI configuration")
+    anthropic: AnthropicConfig = Field(default_factory=AnthropicConfig, description="Anthropic configuration")
+    google: GoogleConfig = Field(default_factory=GoogleConfig, description="Google configuration")
 
-    model_config = {"populate_by_name": True}
+    model_config = ConfigDict(strict=False)
+
+
+# =====================================================================
+# Logfire Monitoring Configuration
+# =====================================================================
+
+
+class LogfireConfig(BaseModel):
+    """Logfire monitoring configuration."""
+
+    enabled: bool = Field(default=False, description="Enable/disable Logfire monitoring")
+    token: Optional[str] = Field(default=None, description="Logfire authentication token")
+    project_name: str = Field(default="gearmeshing-ai", description="Logfire project name")
+    environment: str = Field(default="development", description="Environment name (development, staging, production)")
+    service_name: str = Field(default="gearmeshing-ai-server", description="Service name for identification")
+    service_version: str = Field(default="0.0.0", description="Service version")
+    sample_rate: float = Field(default=1.0, description="Sampling rate (0.0 to 1.0)")
+    trace_sample_rate: float = Field(default=1.0, description="Trace sampling rate (0.0 to 1.0)")
+    trace_pydantic_ai: bool = Field(default=True, description="Enable Pydantic AI tracing")
+    trace_sqlalchemy: bool = Field(default=True, description="Enable SQLAlchemy tracing")
+    trace_httpx: bool = Field(default=True, description="Enable HTTPX tracing")
+    trace_fastapi: bool = Field(default=True, description="Enable FastAPI tracing")
+
+    model_config = ConfigDict(strict=False)
+
+
+# =====================================================================
+# LangSmith Monitoring Configuration
+# =====================================================================
+
+
+class LangSmithConfig(BaseModel):
+    """LangSmith monitoring configuration for LangGraph agent tracing."""
+
+    tracing: bool = Field(default=False, description="Enable/disable LangSmith tracing")
+    api_key: Optional[str] = Field(default=None, description="LangSmith API key")
+    project: str = Field(default="gearmeshing-ai", description="LangSmith project name")
+    endpoint: str = Field(default="https://api.smith.langchain.com", description="LangSmith API endpoint")
+    workspace_id: Optional[str] = Field(default=None, description="LangSmith workspace ID (optional)")
+
+    model_config = ConfigDict(strict=False)
+
+
+# =====================================================================
+# Database Configuration Models
+# =====================================================================
 
 
 class PostgreSQLConfig(BaseModel):
     """PostgreSQL database configuration."""
 
-    db: str = Field(default="ai_dev", alias="POSTGRES_DB", description="PostgreSQL database name")
-    user: str = Field(default="ai_dev", alias="POSTGRES_USER", description="PostgreSQL database user")
-    password: str = Field(default="changeme", alias="POSTGRES_PASSWORD", description="PostgreSQL database password")
-    host: str = Field(default="postgres", alias="POSTGRES_HOST", description="PostgreSQL database host address")
-    port: int = Field(default=5432, alias="POSTGRES_PORT", description="PostgreSQL database port number")
+    db: str = Field(default="ai_dev", description="PostgreSQL database name")
+    user: str = Field(default="ai_dev", description="PostgreSQL database user")
+    password: str = Field(default="changeme", description="PostgreSQL database password")
+    host: str = Field(default="postgres", description="PostgreSQL database host address")
+    port: int = Field(default=5432, description="PostgreSQL database port number")
 
-    model_config = {"populate_by_name": True}
+    model_config = ConfigDict(strict=False)
+
+
+class DatabaseConfig(BaseModel):
+    """Database configuration container."""
+
+    postgres: PostgreSQLConfig = Field(default_factory=PostgreSQLConfig, description="PostgreSQL configuration")
+    url: str = Field(
+        default="postgresql://ai_dev:changeme@postgres:5432/ai_dev",
+        description="Application database connection URL",
+    )
+    enable: bool = Field(
+        default=True,
+        description="Enable/disable database connectivity (true for production, false for standalone mode)",
+    )
+
+    model_config = ConfigDict(strict=False)
+
+
+# =====================================================================
+# MCP (Model Context Protocol) Configuration Models
+# =====================================================================
+
+
+class SlackMCPConfig(BaseModel):
+    """Slack MCP Server configuration."""
+
+    host: str = Field(default="0.0.0.0", description="Slack MCP server host address")
+    port: int = Field(default=8081, description="Slack MCP server port number")
+    mcp_transport: str = Field(default="sse", description="MCP transport type (sse or stdio)")
+    bot_id: Optional[str] = Field(default=None, description="Slack bot ID")
+    app_id: Optional[str] = Field(default=None, description="Slack app ID")
+    bot_token: Optional[str] = Field(default=None, description="Slack bot token")
+    user_token: Optional[str] = Field(default=None, description="Slack user token")
+    signing_secret: Optional[str] = Field(default=None, description="Slack signing secret")
+
+    model_config = ConfigDict(strict=False)
+
+
+class ClickUpMCPConfig(BaseModel):
+    """ClickUp MCP Server configuration."""
+
+    host: str = Field(default="0.0.0.0", description="ClickUp MCP server host address")
+    port: int = Field(default=8082, description="ClickUp MCP server port number")
+    mcp_transport: str = Field(default="sse", description="MCP transport type (sse or stdio)")
+    api_token: Optional[str] = Field(default=None, description="ClickUp API token for authentication")
+
+    model_config = ConfigDict(strict=False)
+
+
+class GitHubMCPConfig(BaseModel):
+    """GitHub MCP configuration."""
+
+    token: Optional[str] = Field(default=None, description="GitHub personal access token")
+    default_repo: Optional[str] = Field(default=None, description="Default repository (org/repo format)")
+
+    model_config = ConfigDict(strict=False)
+
+
+class MCPGatewayConfig(BaseModel):
+    """MCP Gateway configuration."""
+
+    url: str = Field(default="http://mcp-gateway:4444", description="MCP Gateway base URL")
+    token: Optional[str] = Field(default=None, description="MCP Gateway authentication token")
+    db_url: str = Field(
+        default="postgresql+psycopg://ai_dev:changeme@postgres:5432/ai_dev",
+        description="MCP Gateway PostgreSQL database URL",
+    )
+    redis_url: str = Field(
+        default="redis://redis:6379/0", description="MCP Gateway Redis connection URL"
+    )
+    admin_password: str = Field(
+        default="adminpass", description="MCP Gateway admin password"
+    )
+    admin_email: str = Field(
+        default="admin@example.com", description="MCP Gateway admin email address"
+    )
+    admin_full_name: str = Field(
+        default="Admin User", description="MCP Gateway admin full name"
+    )
+    jwt_secret: str = Field(
+        default="my-test-key", description="MCP Gateway JWT secret key for token signing"
+    )
+
+    model_config = ConfigDict(strict=False)
+
+
+class MCPConfig(BaseModel):
+    """MCP (Model Context Protocol) configuration container."""
+
+    slack: SlackMCPConfig = Field(default_factory=SlackMCPConfig, description="Slack MCP configuration")
+    clickup: ClickUpMCPConfig = Field(default_factory=ClickUpMCPConfig, description="ClickUp MCP configuration")
+    github: GitHubMCPConfig = Field(default_factory=GitHubMCPConfig, description="GitHub MCP configuration")
+    gateway: MCPGatewayConfig = Field(default_factory=MCPGatewayConfig, description="MCP Gateway configuration")
+
+    model_config = ConfigDict(strict=False)
+
+
+# =====================================================================
+# Message Queue Configuration
+# =====================================================================
+
+
+class MessageQueueConfig(BaseModel):
+    """Message Queue configuration."""
+
+    backend: str = Field(default="kafka", description="Message queue backend (kafka, redis, etc.)")
+    slack_kafka_topic: str = Field(default="slack.events", description="Slack events Kafka topic")
+    clickup_kafka_topic: str = Field(default="clickup.events", description="ClickUp events Kafka topic")
+
+    model_config = ConfigDict(strict=False)
+
+
+# =====================================================================
+# CORS Configuration
+# =====================================================================
 
 
 class CORSConfig(BaseModel):
     """CORS configuration."""
 
-    origins: list[str] = Field(default=["*"], alias="CORS_ORIGINS", description="Allowed CORS origins (use * for all)")
+    origins: list[str] = Field(default=["*"], description="Allowed CORS origins (use * for all)")
     allow_credentials: bool = Field(
-        default=True, alias="CORS_ALLOW_CREDENTIALS", description="Allow credentials in CORS requests"
+        default=True, description="Allow credentials in CORS requests"
     )
     allow_methods: list[str] = Field(
-        default=["*"], alias="CORS_ALLOW_METHODS", description="Allowed HTTP methods (use * for all)"
+        default=["*"], description="Allowed HTTP methods (use * for all)"
     )
     allow_headers: list[str] = Field(
-        default=["*"], alias="CORS_ALLOW_HEADERS", description="Allowed HTTP headers (use * for all)"
+        default=["*"], description="Allowed HTTP headers (use * for all)"
     )
 
-    model_config = {"populate_by_name": True}
+    model_config = ConfigDict(strict=False)
 
 
 # =====================================================================
@@ -142,96 +273,101 @@ class Settings(BaseSettings):
 
     All properties are automatically bound from environment variables and .env file.
     Pydantic's BaseSettings handles dotenv loading automatically via model_config.
+
+    Environment variables use double underscore (__) as delimiters for nested properties.
+    Examples:
+    - AI_PROVIDER__OPENAI__API_KEY → settings.ai_provider.openai.api_key
+    - DATABASE__POSTGRES__DB → settings.database.postgres.db
+    - LOGFIRE__ENABLED → settings.logfire.enabled
+    - MCP__CLICKUP__API_TOKEN → settings.mcp.clickup.api_token
     """
 
     # =====================================================================
     # Pydantic Configuration
     # =====================================================================
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(Path(".env")),
         env_file_encoding="utf-8",
         extra="ignore",
-        case_sensitive=True,
+        env_nested_delimiter='__',
+        case_sensitive=False,
     )
 
     # =====================================================================
     # GearMeshing-AI Server Configuration
     # =====================================================================
-    server_host: str = Field(
+    gearmeshing_ai_server_host: str = Field(
         default="0.0.0.0",
         description="GearMeshing-AI server host address to bind to",
-        alias="GEARMESHING_AI_SERVER_HOST",
     )
-    server_port: int = Field(
+    gearmeshing_ai_server_port: int = Field(
         default=8000,
         description="GearMeshing-AI server port number",
-        alias="GEARMESHING_AI_SERVER_PORT",
     )
-    log_level: str = Field(
+    gearmeshing_ai_log_level: str = Field(
         default="INFO",
         description="GearMeshing-AI server logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
-        alias="GEARMESHING_AI_LOG_LEVEL",
+    )
+
+    # =====================================================================
+    # AI Provider Configuration
+    # =====================================================================
+    ai_provider: AIProviderConfig = Field(
+        default_factory=AIProviderConfig,
+        description="AI provider configuration (OpenAI, Anthropic, Google)",
+    )
+
+    # =====================================================================
+    # Monitoring Configuration
+    # =====================================================================
+    logfire: LogfireConfig = Field(
+        default_factory=LogfireConfig,
+        description="Logfire monitoring configuration",
+    )
+    langsmith: LangSmithConfig = Field(
+        default_factory=LangSmithConfig,
+        description="LangSmith monitoring configuration for LangGraph agent tracing",
     )
 
     # =====================================================================
     # Database Configuration
     # =====================================================================
-    database_url: str = Field(
-        default="postgresql+asyncpg://ai_dev:changeme@postgres:5432/ai_dev",
-        description="Async PostgreSQL connection URL for application database",
-    )
-    enable_database: bool = Field(
-        default=True,
-        description="Enable database connectivity and initialization. Set to true to connect to database, false for standalone mode without database.",
-        alias="ENABLE_DATABASE",
+    database: DatabaseConfig = Field(
+        default_factory=DatabaseConfig,
+        description="Database configuration (PostgreSQL, connection URLs)",
     )
 
     # =====================================================================
     # Redis Configuration
     # =====================================================================
-    redis_url: str = Field(
-        default="redis://redis:6379/0",
-        description="Redis connection URL for caching and message queue",
+    app_redis_url: str = Field(
+        default="redis://redis:6379/1",
+        description="Application Redis connection URL for caching and message queue",
     )
 
     # =====================================================================
-    # Computed Properties (Grouped Configurations)
+    # MCP (Model Context Protocol) Configuration
     # =====================================================================
+    mcp: MCPConfig = Field(
+        default_factory=MCPConfig,
+        description="MCP configuration (Slack, ClickUp, GitHub, Gateway)",
+    )
 
-    @property
-    def openai(self) -> OpenAIConfig:
-        """Get OpenAI configuration from environment variables."""
-        return OpenAIConfig.model_validate(self.model_dump(by_alias=True))
+    # =====================================================================
+    # Message Queue Configuration
+    # =====================================================================
+    mq: MessageQueueConfig = Field(
+        default_factory=MessageQueueConfig,
+        description="Message queue configuration (Kafka, topics)",
+    )
 
-    @property
-    def anthropic(self) -> AnthropicConfig:
-        """Get Anthropic configuration from environment variables."""
-        return AnthropicConfig.model_validate(self.model_dump(by_alias=True))
-
-    @property
-    def google(self) -> GoogleConfig:
-        """Get Google configuration from environment variables."""
-        return GoogleConfig.model_validate(self.model_dump(by_alias=True))
-
-    @property
-    def clickup(self) -> ClickUpConfig:
-        """Get ClickUp MCP configuration from environment variables."""
-        return ClickUpConfig.model_validate(self.model_dump(by_alias=True))
-
-    @property
-    def mcp_gateway(self) -> MCPGatewayConfig:
-        """Get MCP Gateway configuration from environment variables."""
-        return MCPGatewayConfig.model_validate(self.model_dump(by_alias=True))
-
-    @property
-    def postgres(self) -> PostgreSQLConfig:
-        """Get PostgreSQL configuration from environment variables."""
-        return PostgreSQLConfig.model_validate(self.model_dump(by_alias=True))
-
-    @property
-    def cors(self) -> CORSConfig:
-        """Get CORS configuration from environment variables."""
-        return CORSConfig.model_validate(self.model_dump(by_alias=True))
+    # =====================================================================
+    # CORS Configuration
+    # =====================================================================
+    cors: CORSConfig = Field(
+        default_factory=CORSConfig,
+        description="CORS configuration",
+    )
 
 
 settings = Settings()
