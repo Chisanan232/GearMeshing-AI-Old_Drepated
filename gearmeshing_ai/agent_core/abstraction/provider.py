@@ -178,6 +178,8 @@ def initialize_agent_provider(
     Raises:
         ValueError: If framework is specified but not registered
     """
+    from gearmeshing_ai.server.core.config import settings
+    
     global _global_provider
 
     if factory is None:
@@ -186,8 +188,8 @@ def initialize_agent_provider(
     provider = AIAgentProvider()
     provider.set_factory(factory)
 
-    # Set framework from parameter or environment variable
-    active_framework = framework or os.getenv("AI_AGENT_FRAMEWORK")
+    # Set framework from parameter or settings configuration
+    active_framework = framework or settings.gearmeshing_ai_agent_framework
     if active_framework:
         provider.set_framework(active_framework)
 
