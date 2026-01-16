@@ -18,11 +18,37 @@ import os
 from pathlib import Path
 from typing import Optional
 
-# Log levels
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
-LOG_FORMAT = os.getenv("LOG_FORMAT", "detailed")  # detailed, json, simple
-LOG_FILE_DIR = os.getenv("LOG_FILE_DIR", "logs")
-ENABLE_FILE_LOGGING = os.getenv("ENABLE_FILE_LOGGING", "true").lower() in ("true", "1", "yes")
+
+def _get_logging_config():
+    """Get logging configuration from settings model.
+    
+    This function is used to defer settings import until needed,
+    avoiding circular imports during module initialization.
+    """
+    try:
+        from gearmeshing_ai.server.core.config import settings
+        return {
+            "log_level": settings.gearmeshing_ai_log_level.upper(),
+            "log_format": "detailed",  # Default format
+            "log_file_dir": "logs",  # Default directory
+            "enable_file_logging": True,  # Default enabled
+        }
+    except Exception:
+        # Fallback to environment variables if settings not available
+        return {
+            "log_level": os.getenv("GEARMESHING_AI_LOG_LEVEL", "INFO").upper(),
+            "log_format": os.getenv("LOG_FORMAT", "detailed"),
+            "log_file_dir": os.getenv("LOG_FILE_DIR", "logs"),
+            "enable_file_logging": os.getenv("ENABLE_FILE_LOGGING", "true").lower() in ("true", "1", "yes"),
+        }
+
+
+# Get initial logging config
+_config = _get_logging_config()
+LOG_LEVEL = _config["log_level"]
+LOG_FORMAT = _config["log_format"]
+LOG_FILE_DIR = _config["log_file_dir"]
+ENABLE_FILE_LOGGING = _config["enable_file_logging"]
 
 # Create logs directory if it doesn't exist
 if ENABLE_FILE_LOGGING:

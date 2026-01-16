@@ -19,6 +19,7 @@ from enum import Enum
 from typing import Dict, List, Optional, Pattern
 
 from gearmeshing_ai.core.logging_config import get_logger
+from gearmeshing_ai.server.core.config import settings
 
 logger = get_logger(__name__)
 

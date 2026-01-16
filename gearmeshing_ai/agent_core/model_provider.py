@@ -131,11 +131,13 @@ class ModelProvider:
             OpenAIResponsesModel instance.
 
         Raises:
-            RuntimeError: If OPENAI_API_KEY is not set.
+            RuntimeError: If AI_PROVIDER__OPENAI__API_KEY is not set.
         """
-        api_key: Optional[str] = os.getenv("OPENAI_API_KEY")
+        from gearmeshing_ai.server.core.config import settings
+        
+        api_key: Optional[str] = settings.ai_provider.openai.api_key
         if not api_key:
-            raise RuntimeError("OPENAI_API_KEY environment variable is not set")
+            raise RuntimeError("AI_PROVIDER__OPENAI__API_KEY environment variable is not set")
 
         # Use defaults if not provided
         temperature_val: float = temperature or 0.7
@@ -174,11 +176,13 @@ class ModelProvider:
             AnthropicModel instance.
 
         Raises:
-            RuntimeError: If ANTHROPIC_API_KEY is not set.
+            RuntimeError: If AI_PROVIDER__ANTHROPIC__API_KEY is not set.
         """
-        api_key: Optional[str] = os.getenv("ANTHROPIC_API_KEY")
+        from gearmeshing_ai.server.core.config import settings
+        
+        api_key: Optional[str] = settings.ai_provider.anthropic.api_key
         if not api_key:
-            raise RuntimeError("ANTHROPIC_API_KEY environment variable is not set")
+            raise RuntimeError("AI_PROVIDER__ANTHROPIC__API_KEY environment variable is not set")
 
         # Use defaults if not provided
         temperature_val: float = temperature or 0.7
@@ -217,11 +221,13 @@ class ModelProvider:
             GoogleModel instance.
 
         Raises:
-            RuntimeError: If GOOGLE_API_KEY is not set.
+            RuntimeError: If AI_PROVIDER__GOOGLE__API_KEY is not set.
         """
-        api_key: Optional[str] = os.getenv("GOOGLE_API_KEY")
+        from gearmeshing_ai.server.core.config import settings
+        
+        api_key: Optional[str] = settings.ai_provider.google.api_key
         if not api_key:
-            raise RuntimeError("GOOGLE_API_KEY environment variable is not set")
+            raise RuntimeError("AI_PROVIDER__GOOGLE__API_KEY environment variable is not set")
 
         # Use defaults if not provided
         temperature_val: float = temperature or 0.7
