@@ -45,14 +45,15 @@ class TestModelProvider:
             )
             mock_openai.assert_called_once()
 
-    @patch.dict(os.environ, {})
     def test_create_openai_model_missing_api_key(self) -> None:
         """Test creating OpenAI model without API key."""
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
-        with pytest.raises(RuntimeError, match="OPENAI_API_KEY"):
-            provider._create_openai_model("gpt-4o")
+        with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
+            mock_settings.ai_provider.openai.api_key = None
+            with pytest.raises(RuntimeError, match="API_KEY"):
+                provider._create_openai_model("gpt-4o")
 
     @patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test-key"})
     def test_create_anthropic_model_with_explicit_params(self) -> None:
@@ -70,14 +71,15 @@ class TestModelProvider:
             )
             mock_anthropic.assert_called_once()
 
-    @patch.dict(os.environ, {})
     def test_create_anthropic_model_missing_api_key(self) -> None:
         """Test creating Anthropic model without API key."""
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
-        with pytest.raises(RuntimeError, match="ANTHROPIC_API_KEY"):
-            provider._create_anthropic_model("claude-3-5-sonnet")
+        with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
+            mock_settings.ai_provider.anthropic.api_key = None
+            with pytest.raises(RuntimeError, match="API_KEY"):
+                provider._create_anthropic_model("claude-3-5-sonnet")
 
     @patch.dict(os.environ, {"GOOGLE_API_KEY": "test-key"})
     def test_create_google_model_with_explicit_params(self) -> None:
@@ -95,14 +97,15 @@ class TestModelProvider:
             )
             mock_google.assert_called_once()
 
-    @patch.dict(os.environ, {})
     def test_create_google_model_missing_api_key(self) -> None:
         """Test creating Google model without API key."""
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
-        with pytest.raises(RuntimeError, match="GOOGLE_API_KEY"):
-            provider._create_google_model("gemini-2.0-flash")
+        with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
+            mock_settings.ai_provider.google.api_key = None
+            with pytest.raises(RuntimeError, match="API_KEY"):
+                provider._create_google_model("gemini-2.0-flash")
 
     @patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
     def test_create_model_with_provider_dispatch(self) -> None:

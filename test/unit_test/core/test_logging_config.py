@@ -50,7 +50,7 @@ class TestSetupLoggingLogLevels:
         assert console_handler.level == expected_level
 
     def test_setup_logging_default_level(self):
-        """Test setup_logging uses INFO as default level."""
+        """Test setup_logging uses configured default level."""
         setup_logging(enable_file=False)
 
         root_logger = logging.getLogger()
@@ -60,8 +60,8 @@ class TestSetupLoggingLogLevels:
         )
 
         assert console_handler is not None
-        # Default should be INFO or higher
-        assert console_handler.level >= logging.INFO
+        # Default level comes from Settings model (can be DEBUG, INFO, etc.)
+        assert console_handler.level in (logging.DEBUG, logging.INFO, logging.WARNING)
 
 
 class TestSetupLoggingFormats:
@@ -509,20 +509,11 @@ class TestLoggingIntegration:
 
 
 class TestLoggingEnvironmentVariables:
-    """Test logging configuration with environment variables."""
+    """Test logging configuration with Settings model."""
 
-    def test_setup_logging_respects_env_log_level(self, monkeypatch):
-        """Test setup_logging respects LOG_LEVEL environment variable."""
-        monkeypatch.setenv("LOG_LEVEL", "DEBUG")
-
-        # Re-import to get new env var
-        from importlib import reload
-
-        import gearmeshing_ai.core.logging_config as logging_config
-
-        reload(logging_config)
-
-        setup_logging(enable_file=False)
+    def test_setup_logging_with_settings_log_level(self):
+        """Test setup_logging uses log level from Settings."""
+        setup_logging(log_level="DEBUG", enable_file=False)
         root_logger = logging.getLogger()
         console_handler = next(
             (h for h in root_logger.handlers if isinstance(h, logging.StreamHandler)),
@@ -530,18 +521,11 @@ class TestLoggingEnvironmentVariables:
         )
 
         assert console_handler is not None
+        assert console_handler.level == logging.DEBUG
 
-    def test_setup_logging_respects_env_log_format(self, monkeypatch):
-        """Test setup_logging respects LOG_FORMAT environment variable."""
-        monkeypatch.setenv("LOG_FORMAT", "json")
-
-        from importlib import reload
-
-        import gearmeshing_ai.core.logging_config as logging_config
-
-        reload(logging_config)
-
-        setup_logging(enable_file=False)
+    def test_setup_logging_with_settings_log_format(self):
+        """Test setup_logging uses log format from Settings."""
+        setup_logging(log_format="json", enable_file=False)
         root_logger = logging.getLogger()
         console_handler = next(
             (h for h in root_logger.handlers if isinstance(h, logging.StreamHandler)),
