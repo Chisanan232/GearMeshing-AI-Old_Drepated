@@ -7,25 +7,27 @@ Pydantic automatically loads configuration from the .env file via env_file confi
 Environment variables use double underscore (__) as delimiters for nested properties.
 For example: AI_PROVIDER__OPENAI__API_KEY maps to settings.ai_provider.openai.api_key
 """
+
 from pathlib import Path
 from typing import Optional
 
-from pydantic import Field, BaseModel, ConfigDict, SecretStr
+from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 def get_env_file_path() -> str:
     """
     Get the path to the .env file.
-    
+
     This function is extracted to allow tests to mock it and point to a temporary
     .env file for testing environment variable binding without being affected by
     the local .env file.
-    
+
     Returns:
         str: Path to the .env file as a string.
     """
     return str(Path(".env"))
+
 
 # =====================================================================
 # AI Provider Configuration Models
@@ -35,16 +37,10 @@ def get_env_file_path() -> str:
 class OpenAIConfig(BaseModel):
     """OpenAI API configuration."""
 
-    api_key: Optional[SecretStr] = Field(
-        default=None, description="OpenAI API key for authentication"
-    )
-    org_id: Optional[str] = Field(
-        default=None, description="OpenAI organization ID (optional)"
-    )
+    api_key: Optional[SecretStr] = Field(default=None, description="OpenAI API key for authentication")
+    org_id: Optional[str] = Field(default=None, description="OpenAI organization ID (optional)")
     model: str = Field(default="gpt-4o", description="Default OpenAI model to use")
-    base_url: Optional[str] = Field(
-        default=None, description="Custom OpenAI API base URL (optional)"
-    )
+    base_url: Optional[str] = Field(default=None, description="Custom OpenAI API base URL (optional)")
 
     model_config = ConfigDict(strict=False)
 
@@ -52,12 +48,8 @@ class OpenAIConfig(BaseModel):
 class AnthropicConfig(BaseModel):
     """Anthropic API configuration."""
 
-    api_key: Optional[SecretStr] = Field(
-        default=None, description="Anthropic API key for authentication"
-    )
-    model: str = Field(
-        default="claude-3-opus-20240229", description="Default Anthropic model to use"
-    )
+    api_key: Optional[SecretStr] = Field(default=None, description="Anthropic API key for authentication")
+    model: str = Field(default="claude-3-opus-20240229", description="Default Anthropic model to use")
 
     model_config = ConfigDict(strict=False)
 
@@ -65,12 +57,8 @@ class AnthropicConfig(BaseModel):
 class GoogleConfig(BaseModel):
     """Google API configuration."""
 
-    api_key: Optional[SecretStr] = Field(
-        default=None, description="Google API key for authentication"
-    )
-    project_id: Optional[str] = Field(
-        default=None, description="Google Cloud project ID (optional)"
-    )
+    api_key: Optional[SecretStr] = Field(default=None, description="Google API key for authentication")
+    project_id: Optional[str] = Field(default=None, description="Google Cloud project ID (optional)")
     model: str = Field(default="gemini-pro", description="Default Google model to use")
 
     model_config = ConfigDict(strict=False)
@@ -209,18 +197,10 @@ class MCPGatewayConfig(BaseModel):
         default=SecretStr("postgresql+psycopg://ai_dev:changeme@postgres:5432/ai_dev"),
         description="MCP Gateway PostgreSQL database URL",
     )
-    redis_url: str = Field(
-        default="redis://redis:6379/0", description="MCP Gateway Redis connection URL"
-    )
-    admin_password: SecretStr = Field(
-        default=SecretStr("adminpass"), description="MCP Gateway admin password"
-    )
-    admin_email: str = Field(
-        default="admin@example.com", description="MCP Gateway admin email address"
-    )
-    admin_full_name: str = Field(
-        default="Admin User", description="MCP Gateway admin full name"
-    )
+    redis_url: str = Field(default="redis://redis:6379/0", description="MCP Gateway Redis connection URL")
+    admin_password: SecretStr = Field(default=SecretStr("adminpass"), description="MCP Gateway admin password")
+    admin_email: str = Field(default="admin@example.com", description="MCP Gateway admin email address")
+    admin_full_name: str = Field(default="Admin User", description="MCP Gateway admin full name")
     jwt_secret: SecretStr = Field(
         default=SecretStr("my-test-key"), description="MCP Gateway JWT secret key for token signing"
     )
@@ -263,15 +243,9 @@ class CORSConfig(BaseModel):
     """CORS configuration."""
 
     origins: list[str] = Field(default=["*"], description="Allowed CORS origins (use * for all)")
-    allow_credentials: bool = Field(
-        default=True, description="Allow credentials in CORS requests"
-    )
-    allow_methods: list[str] = Field(
-        default=["*"], description="Allowed HTTP methods (use * for all)"
-    )
-    allow_headers: list[str] = Field(
-        default=["*"], description="Allowed HTTP headers (use * for all)"
-    )
+    allow_credentials: bool = Field(default=True, description="Allow credentials in CORS requests")
+    allow_methods: list[str] = Field(default=["*"], description="Allowed HTTP methods (use * for all)")
+    allow_headers: list[str] = Field(default=["*"], description="Allowed HTTP headers (use * for all)")
 
     model_config = ConfigDict(strict=False)
 
@@ -303,7 +277,7 @@ class Settings(BaseSettings):
         env_file=get_env_file_path(),
         env_file_encoding="utf-8",
         extra="ignore",
-        env_nested_delimiter='__',
+        env_nested_delimiter="__",
         case_sensitive=False,
     )
 

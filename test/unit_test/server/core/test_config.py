@@ -11,29 +11,16 @@ Examples:
 - MCP__CLICKUP__API_TOKEN → settings.mcp.clickup.api_token
 """
 
-import os
-import tempfile
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
+from pydantic import SecretStr
 
 from gearmeshing_ai.server.core.config import (
-    AIProviderConfig,
-    AnthropicConfig,
-    ClickUpMCPConfig,
     CORSConfig,
-    DatabaseConfig,
-    GoogleConfig,
-    LogfireConfig,
-    MCPConfig,
-    MCPGatewayConfig,
-    OpenAIConfig,
     PostgreSQLConfig,
     Settings,
-    get_env_file_path,
 )
-from pydantic import SecretStr
 
 
 @pytest.fixture
@@ -69,12 +56,10 @@ def test_env_file() -> dict[str, str]:
         "AI_PROVIDER__ANTHROPIC__API_KEY": "sk-ant-test-anthropic-key-12345",
         "AI_PROVIDER__GOOGLE__API_KEY": "test-google-api-key-12345",
         "AI_PROVIDER__GOOGLE__PROJECT_ID": "test-project-id-12345",
-        
         # Server Configuration
         "GEARMESHING_AI_SERVER_HOST": "127.0.0.1",
         "GEARMESHING_AI_SERVER_PORT": "9000",
         "GEARMESHING_AI_LOG_LEVEL": "debug",
-        
         # Logfire Configuration
         "LOGFIRE__ENABLED": "true",
         "LOGFIRE__TOKEN": "test-logfire-token-12345",
@@ -88,13 +73,11 @@ def test_env_file() -> dict[str, str]:
         "LOGFIRE__TRACE_SQLALCHEMY": "false",
         "LOGFIRE__TRACE_HTTPX": "false",
         "LOGFIRE__TRACE_FASTAPI": "false",
-        
         # LangSmith Configuration
         "LANGSMITH__TRACING": "true",
         "LANGSMITH__API_KEY": "lsv2_pt_test_key_12345",
         "LANGSMITH__PROJECT": "test-langsmith-project",
         "LANGSMITH__ENDPOINT": "https://test.smith.langchain.com",
-        
         # Database Configuration
         "DATABASE__POSTGRES__DB": "test_db",
         "DATABASE__POSTGRES__USER": "test_user",
@@ -103,10 +86,8 @@ def test_env_file() -> dict[str, str]:
         "DATABASE__POSTGRES__PORT": "5433",
         "DATABASE__URL": "postgresql://test_user:test_password_123@test-postgres-host:5433/test_db",
         "DATABASE__ENABLE": "false",
-        
         # Redis Configuration
         "APP_REDIS_URL": "redis://test-redis-host:6380/2",
-        
         # MCP Gateway Configuration
         "MCPGATEWAY__URL": "http://test-gateway:5555/mcp",
         "MCPGATEWAY__TOKEN": "test-gateway-token-12345",
@@ -116,12 +97,10 @@ def test_env_file() -> dict[str, str]:
         "MCPGATEWAY__ADMIN_EMAIL": "test-admin@test.com",
         "MCPGATEWAY__ADMIN_PASSWORD": "test-admin-password",
         "MCPGATEWAY__ADMIN_FULL_NAME": "Test Administrator",
-        
         # Message Queue Configuration
         "MQ__BACKEND": "redis",
         "MQ__SLACK_KAFKA_TOPIC": "test.slack.events",
         "MQ__CLICKUP_KAFKA_TOPIC": "test.clickup.events",
-        
         # Slack MCP Configuration
         "MCP__SLACK__HOST": "127.0.0.1",
         "MCP__SLACK__PORT": "9081",
@@ -131,13 +110,11 @@ def test_env_file() -> dict[str, str]:
         "MCP__SLACK__BOT_TOKEN": "xoxb-test-bot-token",
         "MCP__SLACK__USER_TOKEN": "xoxp-test-user-token",
         "MCP__SLACK__SIGNING_SECRET": "test-signing-secret",
-        
         # ClickUp MCP Configuration
         "MCP__CLICKUP__HOST": "127.0.0.1",
         "MCP__CLICKUP__PORT": "9082",
         "MCP__CLICKUP__MCP_TRANSPORT": "stdio",
         "MCP__CLICKUP__API_TOKEN": "test-clickup-api-token-12345",
-        
         # GitHub MCP Configuration
         "MCP__GITHUB__TOKEN": "ghp_test_github_token_12345",
         "MCP__GITHUB__DEFAULT_REPO": "test-org/test-repo",
@@ -157,12 +134,12 @@ def temp_env_file(test_env_file: dict[str, str], tmp_path: Path) -> Path:
 @pytest.fixture
 def settings_with_test_env(test_env_file: dict[str, str], monkeypatch, tmp_path: Path) -> Settings:
     """Create Settings instance using a temporary .env file with test values.
-    
+
     This fixture:
     1. Creates a temporary .env file with distinct test values (different from defaults)
     2. Mocks get_env_file_path() to point to the temporary .env file
     3. Creates a Settings instance that loads from the temporary file
-    
+
     This ensures tests verify environment variable binding without being affected
     by the local .env file.
     """
@@ -171,17 +148,17 @@ def settings_with_test_env(test_env_file: dict[str, str], monkeypatch, tmp_path:
     with open(env_file, "w") as f:
         for key, value in test_env_file.items():
             f.write(f"{key}={value}\n")
-    
+
     # Mock get_env_file_path to return the temporary .env file path
     monkeypatch.setattr("gearmeshing_ai.server.core.config.get_env_file_path", lambda: str(env_file))
-    
+
     # Also set environment variables as a fallback for any direct env var access
     for key, value in test_env_file.items():
         monkeypatch.setenv(key, value)
-    
+
     # Create Settings instance - it will load from the mocked temp .env file
     settings_instance = Settings()
-    
+
     return settings_instance
 
 
@@ -236,7 +213,9 @@ class TestAIProviderConfigBinding:
         monkeypatch.setenv("AI_PROVIDER__OPENAI__API_KEY", api_key)
 
         settings = Settings()
-        api_key_value = settings.ai_provider.openai.api_key.get_secret_value() if settings.ai_provider.openai.api_key else None
+        api_key_value = (
+            settings.ai_provider.openai.api_key.get_secret_value() if settings.ai_provider.openai.api_key else None
+        )
         assert api_key_value == api_key
 
     def test_openai_org_id_binding(self, monkeypatch):
@@ -253,7 +232,11 @@ class TestAIProviderConfigBinding:
         monkeypatch.setenv("AI_PROVIDER__ANTHROPIC__API_KEY", api_key)
 
         settings = Settings()
-        api_key_value = settings.ai_provider.anthropic.api_key.get_secret_value() if settings.ai_provider.anthropic.api_key else None
+        api_key_value = (
+            settings.ai_provider.anthropic.api_key.get_secret_value()
+            if settings.ai_provider.anthropic.api_key
+            else None
+        )
         assert api_key_value == api_key
 
     def test_google_api_key_binding(self, monkeypatch):
@@ -262,7 +245,9 @@ class TestAIProviderConfigBinding:
         monkeypatch.setenv("AI_PROVIDER__GOOGLE__API_KEY", api_key)
 
         settings = Settings()
-        api_key_value = settings.ai_provider.google.api_key.get_secret_value() if settings.ai_provider.google.api_key else None
+        api_key_value = (
+            settings.ai_provider.google.api_key.get_secret_value() if settings.ai_provider.google.api_key else None
+        )
         assert api_key_value == api_key
 
     def test_google_project_id_binding(self, monkeypatch):
@@ -272,8 +257,6 @@ class TestAIProviderConfigBinding:
 
         settings = Settings()
         assert settings.ai_provider.google.project_id == project_id
-
-
 
 
 class TestMCPClickUpConfigBinding:
@@ -332,16 +315,22 @@ class TestMCPGatewayConfigBinding:
         settings = Settings()
         # Token may be None if not set in .env file, so we just verify it's either None or a SecretStr
         from pydantic import SecretStr
+
         assert settings.mcp.gateway.token is None or isinstance(settings.mcp.gateway.token, SecretStr)
 
     def test_mcpgateway_db_url_binding(self, monkeypatch):
         """Test MCPGATEWAY__DB_URL binding."""
         from pydantic import SecretStr
+
         db_url = "postgresql+psycopg://ai_dev:changeme@postgres:5432/ai_dev"
         monkeypatch.setenv("MCPGATEWAY__DB_URL", db_url)
 
         settings = Settings()
-        db_url_value = settings.mcp.gateway.db_url.get_secret_value() if isinstance(settings.mcp.gateway.db_url, SecretStr) else settings.mcp.gateway.db_url
+        db_url_value = (
+            settings.mcp.gateway.db_url.get_secret_value()
+            if isinstance(settings.mcp.gateway.db_url, SecretStr)
+            else settings.mcp.gateway.db_url
+        )
         assert db_url_value == db_url
 
     def test_mcpgateway_redis_url_binding(self, monkeypatch):
@@ -370,11 +359,16 @@ class TestMCPGatewayConfigBinding:
     def test_mcpgateway_jwt_secret_binding(self, monkeypatch):
         """Test MCPGATEWAY__JWT_SECRET binding."""
         from pydantic import SecretStr
+
         secret = "my-test-key"
         monkeypatch.setenv("MCPGATEWAY__JWT_SECRET", secret)
 
         settings = Settings()
-        secret_value = settings.mcp.gateway.jwt_secret.get_secret_value() if isinstance(settings.mcp.gateway.jwt_secret, SecretStr) else settings.mcp.gateway.jwt_secret
+        secret_value = (
+            settings.mcp.gateway.jwt_secret.get_secret_value()
+            if isinstance(settings.mcp.gateway.jwt_secret, SecretStr)
+            else settings.mcp.gateway.jwt_secret
+        )
         assert secret_value == secret
 
 
@@ -453,33 +447,57 @@ class TestCORSConfigBinding:
 class TestSettingsWithTempEnvFile:
     """Test Settings model with temporary .env file containing test values."""
 
-    def test_ai_provider_openai_binding_from_env_file(self, settings_with_test_env: Settings, test_env_file: dict[str, str]):
+    def test_ai_provider_openai_binding_from_env_file(
+        self, settings_with_test_env: Settings, test_env_file: dict[str, str]
+    ):
         """Test OpenAI configuration binding from .env file."""
-        api_key_value = settings_with_test_env.ai_provider.openai.api_key.get_secret_value() if settings_with_test_env.ai_provider.openai.api_key else None
+        api_key_value = (
+            settings_with_test_env.ai_provider.openai.api_key.get_secret_value()
+            if settings_with_test_env.ai_provider.openai.api_key
+            else None
+        )
         assert api_key_value == test_env_file["AI_PROVIDER__OPENAI__API_KEY"]
         assert settings_with_test_env.ai_provider.openai.org_id == test_env_file["AI_PROVIDER__OPENAI__ORG_ID"]
 
-    def test_ai_provider_anthropic_binding_from_env_file(self, settings_with_test_env: Settings, test_env_file: dict[str, str]):
+    def test_ai_provider_anthropic_binding_from_env_file(
+        self, settings_with_test_env: Settings, test_env_file: dict[str, str]
+    ):
         """Test Anthropic configuration binding from .env file."""
-        api_key_value = settings_with_test_env.ai_provider.anthropic.api_key.get_secret_value() if settings_with_test_env.ai_provider.anthropic.api_key else None
+        api_key_value = (
+            settings_with_test_env.ai_provider.anthropic.api_key.get_secret_value()
+            if settings_with_test_env.ai_provider.anthropic.api_key
+            else None
+        )
         assert api_key_value == test_env_file["AI_PROVIDER__ANTHROPIC__API_KEY"]
 
-    def test_ai_provider_google_binding_from_env_file(self, settings_with_test_env: Settings, test_env_file: dict[str, str]):
+    def test_ai_provider_google_binding_from_env_file(
+        self, settings_with_test_env: Settings, test_env_file: dict[str, str]
+    ):
         """Test Google configuration binding from .env file."""
-        api_key_value = settings_with_test_env.ai_provider.google.api_key.get_secret_value() if settings_with_test_env.ai_provider.google.api_key else None
+        api_key_value = (
+            settings_with_test_env.ai_provider.google.api_key.get_secret_value()
+            if settings_with_test_env.ai_provider.google.api_key
+            else None
+        )
         assert api_key_value == test_env_file["AI_PROVIDER__GOOGLE__API_KEY"]
         assert settings_with_test_env.ai_provider.google.project_id == test_env_file["AI_PROVIDER__GOOGLE__PROJECT_ID"]
 
-    def test_server_configuration_binding_from_env_file(self, settings_with_test_env: Settings, test_env_file: dict[str, str]):
+    def test_server_configuration_binding_from_env_file(
+        self, settings_with_test_env: Settings, test_env_file: dict[str, str]
+    ):
         """Test server configuration binding from .env file."""
         assert settings_with_test_env.gearmeshing_ai_server_host == test_env_file["GEARMESHING_AI_SERVER_HOST"]
         assert settings_with_test_env.gearmeshing_ai_server_port == int(test_env_file["GEARMESHING_AI_SERVER_PORT"])
         assert settings_with_test_env.gearmeshing_ai_log_level == test_env_file["GEARMESHING_AI_LOG_LEVEL"]
 
-    def test_logfire_configuration_binding_from_env_file(self, settings_with_test_env: Settings, test_env_file: dict[str, str]):
+    def test_logfire_configuration_binding_from_env_file(
+        self, settings_with_test_env: Settings, test_env_file: dict[str, str]
+    ):
         """Test Logfire configuration binding from .env file."""
         assert settings_with_test_env.logfire.enabled is True
-        token_value = settings_with_test_env.logfire.token.get_secret_value() if settings_with_test_env.logfire.token else None
+        token_value = (
+            settings_with_test_env.logfire.token.get_secret_value() if settings_with_test_env.logfire.token else None
+        )
         assert token_value == test_env_file["LOGFIRE__TOKEN"]
         assert settings_with_test_env.logfire.project_name == test_env_file["LOGFIRE__PROJECT_NAME"]
         assert settings_with_test_env.logfire.environment == test_env_file["LOGFIRE__ENVIRONMENT"]
@@ -492,33 +510,51 @@ class TestSettingsWithTempEnvFile:
         assert settings_with_test_env.logfire.trace_httpx is False
         assert settings_with_test_env.logfire.trace_fastapi is False
 
-    def test_langsmith_configuration_binding_from_env_file(self, settings_with_test_env: Settings, test_env_file: dict[str, str]):
+    def test_langsmith_configuration_binding_from_env_file(
+        self, settings_with_test_env: Settings, test_env_file: dict[str, str]
+    ):
         """Test LangSmith configuration binding from .env file."""
         assert settings_with_test_env.langsmith.tracing is True
-        api_key_value = settings_with_test_env.langsmith.api_key.get_secret_value() if settings_with_test_env.langsmith.api_key else None
+        api_key_value = (
+            settings_with_test_env.langsmith.api_key.get_secret_value()
+            if settings_with_test_env.langsmith.api_key
+            else None
+        )
         assert api_key_value == test_env_file["LANGSMITH__API_KEY"]
         assert settings_with_test_env.langsmith.project == test_env_file["LANGSMITH__PROJECT"]
         assert settings_with_test_env.langsmith.endpoint == test_env_file["LANGSMITH__ENDPOINT"]
 
-    def test_database_configuration_binding_from_env_file(self, settings_with_test_env: Settings, test_env_file: dict[str, str]):
+    def test_database_configuration_binding_from_env_file(
+        self, settings_with_test_env: Settings, test_env_file: dict[str, str]
+    ):
         """Test database configuration binding from .env file."""
         assert settings_with_test_env.database.postgres.db == test_env_file["DATABASE__POSTGRES__DB"]
         assert settings_with_test_env.database.postgres.user == test_env_file["DATABASE__POSTGRES__USER"]
-        password_value = settings_with_test_env.database.postgres.password.get_secret_value() if settings_with_test_env.database.postgres.password else None
+        password_value = (
+            settings_with_test_env.database.postgres.password.get_secret_value()
+            if settings_with_test_env.database.postgres.password
+            else None
+        )
         assert password_value == test_env_file["DATABASE__POSTGRES__PASSWORD"]
         assert settings_with_test_env.database.postgres.host == test_env_file["DATABASE__POSTGRES__HOST"]
         assert settings_with_test_env.database.postgres.port == int(test_env_file["DATABASE__POSTGRES__PORT"])
         assert settings_with_test_env.database.url == test_env_file["DATABASE__URL"]
         assert settings_with_test_env.database.enable is False
 
-    def test_redis_configuration_binding_from_env_file(self, settings_with_test_env: Settings, test_env_file: dict[str, str]):
+    def test_redis_configuration_binding_from_env_file(
+        self, settings_with_test_env: Settings, test_env_file: dict[str, str]
+    ):
         """Test Redis configuration binding from .env file."""
-        redis_url_value = settings_with_test_env.app_redis_url.get_secret_value() if settings_with_test_env.app_redis_url else None
+        redis_url_value = (
+            settings_with_test_env.app_redis_url.get_secret_value() if settings_with_test_env.app_redis_url else None
+        )
         assert redis_url_value == test_env_file["APP_REDIS_URL"]
 
-    def test_mcp_gateway_configuration_binding_from_env_file(self, settings_with_test_env: Settings, test_env_file: dict[str, str]):
+    def test_mcp_gateway_configuration_binding_from_env_file(
+        self, settings_with_test_env: Settings, test_env_file: dict[str, str]
+    ):
         """Test MCP Gateway configuration binding from environment variables.
-        
+
         Note: When a project .env file exists, it may provide default values for some fields.
         This test verifies that the settings model structure is correct and can bind values.
         """
@@ -530,43 +566,71 @@ class TestSettingsWithTempEnvFile:
         assert isinstance(settings_with_test_env.mcp.gateway.admin_email, str)
         assert isinstance(settings_with_test_env.mcp.gateway.admin_password, SecretStr)
         assert isinstance(settings_with_test_env.mcp.gateway.admin_full_name, str)
-        
+
         # Verify URLs have expected format
         assert settings_with_test_env.mcp.gateway.url.startswith("http://")
         assert settings_with_test_env.mcp.gateway.db_url.get_secret_value().startswith("postgresql")
         assert settings_with_test_env.mcp.gateway.redis_url.startswith("redis://")
 
-    def test_message_queue_configuration_binding_from_env_file(self, settings_with_test_env: Settings, test_env_file: dict[str, str]):
+    def test_message_queue_configuration_binding_from_env_file(
+        self, settings_with_test_env: Settings, test_env_file: dict[str, str]
+    ):
         """Test Message Queue configuration binding from .env file."""
         assert settings_with_test_env.mq.backend == test_env_file["MQ__BACKEND"]
         assert settings_with_test_env.mq.slack_kafka_topic == test_env_file["MQ__SLACK_KAFKA_TOPIC"]
         assert settings_with_test_env.mq.clickup_kafka_topic == test_env_file["MQ__CLICKUP_KAFKA_TOPIC"]
 
-    def test_slack_mcp_configuration_binding_from_env_file(self, settings_with_test_env: Settings, test_env_file: dict[str, str]):
+    def test_slack_mcp_configuration_binding_from_env_file(
+        self, settings_with_test_env: Settings, test_env_file: dict[str, str]
+    ):
         """Test Slack MCP configuration binding from .env file."""
         assert settings_with_test_env.mcp.slack.host == test_env_file["MCP__SLACK__HOST"]
         assert settings_with_test_env.mcp.slack.port == int(test_env_file["MCP__SLACK__PORT"])
         assert settings_with_test_env.mcp.slack.mcp_transport == test_env_file["MCP__SLACK__MCP_TRANSPORT"]
         assert settings_with_test_env.mcp.slack.bot_id == test_env_file["MCP__SLACK__BOT_ID"]
         assert settings_with_test_env.mcp.slack.app_id == test_env_file["MCP__SLACK__APP_ID"]
-        bot_token_value = settings_with_test_env.mcp.slack.bot_token.get_secret_value() if settings_with_test_env.mcp.slack.bot_token else None
+        bot_token_value = (
+            settings_with_test_env.mcp.slack.bot_token.get_secret_value()
+            if settings_with_test_env.mcp.slack.bot_token
+            else None
+        )
         assert bot_token_value == test_env_file["MCP__SLACK__BOT_TOKEN"]
-        user_token_value = settings_with_test_env.mcp.slack.user_token.get_secret_value() if settings_with_test_env.mcp.slack.user_token else None
+        user_token_value = (
+            settings_with_test_env.mcp.slack.user_token.get_secret_value()
+            if settings_with_test_env.mcp.slack.user_token
+            else None
+        )
         assert user_token_value == test_env_file["MCP__SLACK__USER_TOKEN"]
-        signing_secret_value = settings_with_test_env.mcp.slack.signing_secret.get_secret_value() if settings_with_test_env.mcp.slack.signing_secret else None
+        signing_secret_value = (
+            settings_with_test_env.mcp.slack.signing_secret.get_secret_value()
+            if settings_with_test_env.mcp.slack.signing_secret
+            else None
+        )
         assert signing_secret_value == test_env_file["MCP__SLACK__SIGNING_SECRET"]
 
-    def test_clickup_mcp_configuration_binding_from_env_file(self, settings_with_test_env: Settings, test_env_file: dict[str, str]):
+    def test_clickup_mcp_configuration_binding_from_env_file(
+        self, settings_with_test_env: Settings, test_env_file: dict[str, str]
+    ):
         """Test ClickUp MCP configuration binding from .env file."""
         assert settings_with_test_env.mcp.clickup.host == test_env_file["MCP__CLICKUP__HOST"]
         assert settings_with_test_env.mcp.clickup.port == int(test_env_file["MCP__CLICKUP__PORT"])
         assert settings_with_test_env.mcp.clickup.mcp_transport == test_env_file["MCP__CLICKUP__MCP_TRANSPORT"]
-        api_token_value = settings_with_test_env.mcp.clickup.api_token.get_secret_value() if settings_with_test_env.mcp.clickup.api_token else None
+        api_token_value = (
+            settings_with_test_env.mcp.clickup.api_token.get_secret_value()
+            if settings_with_test_env.mcp.clickup.api_token
+            else None
+        )
         assert api_token_value == test_env_file["MCP__CLICKUP__API_TOKEN"]
 
-    def test_github_mcp_configuration_binding_from_env_file(self, settings_with_test_env: Settings, test_env_file: dict[str, str]):
+    def test_github_mcp_configuration_binding_from_env_file(
+        self, settings_with_test_env: Settings, test_env_file: dict[str, str]
+    ):
         """Test GitHub MCP configuration binding from .env file."""
-        token_value = settings_with_test_env.mcp.github.token.get_secret_value() if settings_with_test_env.mcp.github.token else None
+        token_value = (
+            settings_with_test_env.mcp.github.token.get_secret_value()
+            if settings_with_test_env.mcp.github.token
+            else None
+        )
         assert token_value == test_env_file["MCP__GITHUB__TOKEN"]
         assert settings_with_test_env.mcp.github.default_repo == test_env_file["MCP__GITHUB__DEFAULT_REPO"]
 
@@ -575,12 +639,12 @@ class TestSettingsWithTempEnvFile:
         # Test boolean coercion
         assert isinstance(settings_with_test_env.logfire.enabled, bool)
         assert isinstance(settings_with_test_env.database.enable, bool)
-        
+
         # Test integer coercion
         assert isinstance(settings_with_test_env.gearmeshing_ai_server_port, int)
         assert isinstance(settings_with_test_env.mcp.clickup.port, int)
         assert isinstance(settings_with_test_env.database.postgres.port, int)
-        
+
         # Test float coercion
         assert isinstance(settings_with_test_env.logfire.sample_rate, float)
         assert isinstance(settings_with_test_env.logfire.trace_sample_rate, float)
@@ -617,6 +681,7 @@ class TestSettingsDefaults:
     def test_openai_defaults(self):
         """Test OpenAI configuration defaults."""
         from pydantic import SecretStr
+
         settings = Settings()
         openai_config = settings.ai_provider.openai
 
@@ -627,6 +692,7 @@ class TestSettingsDefaults:
     def test_anthropic_defaults(self):
         """Test Anthropic configuration defaults."""
         from pydantic import SecretStr
+
         settings = Settings()
         anthropic_config = settings.ai_provider.anthropic
 
@@ -637,6 +703,7 @@ class TestSettingsDefaults:
     def test_google_defaults(self):
         """Test Google configuration defaults."""
         from pydantic import SecretStr
+
         settings = Settings()
         google_config = settings.ai_provider.google
 

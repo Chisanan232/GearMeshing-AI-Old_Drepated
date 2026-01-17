@@ -5,7 +5,6 @@ framework and factory, allowing the entire application to use a unified entry po
 for agent creation and configuration.
 """
 
-import os
 from typing import Optional
 
 from .base import AIAgentConfig
@@ -179,7 +178,7 @@ def initialize_agent_provider(
         ValueError: If framework is specified but not registered
     """
     from gearmeshing_ai.server.core.config import settings
-    
+
     global _global_provider
 
     if factory is None:

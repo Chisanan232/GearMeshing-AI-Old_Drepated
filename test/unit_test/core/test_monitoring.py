@@ -9,8 +9,6 @@ This test suite covers:
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 
 class TestInitializeLogfireWithSettings:
     """Test Logfire initialization using Settings model."""

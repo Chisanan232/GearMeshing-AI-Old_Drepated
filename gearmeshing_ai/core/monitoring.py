@@ -162,7 +162,9 @@ def initialize_langsmith() -> None:
         os.environ["LANGSMITH_ENDPOINT"] = settings.langsmith.endpoint
 
         logger.info(
-            f"LangSmith tracing initialized: " f"project={settings.langsmith.project}, " f"endpoint={settings.langsmith.endpoint}"
+            f"LangSmith tracing initialized: "
+            f"project={settings.langsmith.project}, "
+            f"endpoint={settings.langsmith.endpoint}"
         )
 
     except Exception as e:

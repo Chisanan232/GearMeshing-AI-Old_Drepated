@@ -19,7 +19,6 @@ from enum import Enum
 from typing import Dict, List, Optional, Pattern
 
 from gearmeshing_ai.core.logging_config import get_logger
-from gearmeshing_ai.server.core.config import settings
 
 logger = get_logger(__name__)
 
@@ -65,29 +64,22 @@ MODEL_PROVIDER_PATTERNS: Dict[AIModelProvider, Pattern[str]] = {
     # Supports formats: gpt-4o, openai:gpt-4o, gateway/openai:gpt-4o
     AIModelProvider.OPENAI: re.compile(
         r"^(?:gateway/)?(?:openai:)?gpt-|^(?:gateway/)?(?:openai:)?(?:deepseek-|qwen-|yi-|llama-|mistral-|command-|cohere\.command)",
-        re.IGNORECASE
+        re.IGNORECASE,
     ),
     # Anthropic models: claude-* prefix (claude-3, claude-2, claude-instant, claude-3-5-sonnet, etc.)
     # Supports various Claude versions and variants
     # Supports formats: claude-3-opus, anthropic:claude-3-opus, gateway/anthropic:claude-3-opus
-    AIModelProvider.ANTHROPIC: re.compile(
-        r"^(?:gateway/)?(?:anthropic:)?claude-",
-        re.IGNORECASE
-    ),
+    AIModelProvider.ANTHROPIC: re.compile(r"^(?:gateway/)?(?:anthropic:)?claude-", re.IGNORECASE),
     # Google models: gemini-* prefix (gemini-1.5-pro, gemini-2.0-flash, etc.)
     # Also supports legacy models (palm-2, text-bison) and VertexAI models
     # Supports formats: gemini-2.0-flash, google:gemini-2.0-flash, google-vertex:gemini-2.0-flash, gateway/google-vertex:gemini-2.0-flash
     AIModelProvider.GOOGLE: re.compile(
-        r"^(?:gateway/)?(?:google(?:-vertex)?:)?(?:gemini-|palm-|text-|models/gemini-|models/palm-)",
-        re.IGNORECASE
+        r"^(?:gateway/)?(?:google(?:-vertex)?:)?(?:gemini-|palm-|text-|models/gemini-|models/palm-)", re.IGNORECASE
     ),
     # xAI Grok models: grok-* prefix (grok-1, grok-2, grok-beta, etc.)
     # Also supports grok via OpenAI-compatible API
     # Supports formats: grok-2, grok:grok-2, gateway/grok:grok-2
-    AIModelProvider.GROK: re.compile(
-        r"^(?:gateway/)?(?:grok:)?grok-",
-        re.IGNORECASE
-    ),
+    AIModelProvider.GROK: re.compile(r"^(?:gateway/)?(?:grok:)?grok-", re.IGNORECASE),
 }
 
 

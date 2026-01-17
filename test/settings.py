@@ -11,7 +11,7 @@ For example: AI_PROVIDER__OPENAI__API_KEY maps to test_settings.ai_provider.open
 from pathlib import Path
 from typing import Optional
 
-from pydantic import Field, BaseModel, ConfigDict, SecretStr
+from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # =====================================================================
@@ -22,13 +22,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class TestOpenAIConfig(BaseModel):
     """OpenAI API configuration for tests."""
 
-    api_key: Optional[SecretStr] = Field(
-        default=None, description="OpenAI API key for authentication"
-    )
+    api_key: Optional[SecretStr] = Field(default=None, description="OpenAI API key for authentication")
     model: str = Field(default="gpt-4o", description="Default OpenAI model to use")
-    base_url: Optional[str] = Field(
-        default=None, description="Custom OpenAI API base URL (optional)"
-    )
+    base_url: Optional[str] = Field(default=None, description="Custom OpenAI API base URL (optional)")
 
     model_config = ConfigDict(strict=False)
 
@@ -36,12 +32,8 @@ class TestOpenAIConfig(BaseModel):
 class TestAnthropicConfig(BaseModel):
     """Anthropic API configuration for tests."""
 
-    api_key: Optional[SecretStr] = Field(
-        default=None, description="Anthropic API key for authentication"
-    )
-    model: str = Field(
-        default="claude-3-opus-20240229", description="Default Anthropic model to use"
-    )
+    api_key: Optional[SecretStr] = Field(default=None, description="Anthropic API key for authentication")
+    model: str = Field(default="claude-3-opus-20240229", description="Default Anthropic model to use")
 
     model_config = ConfigDict(strict=False)
 
@@ -49,9 +41,7 @@ class TestAnthropicConfig(BaseModel):
 class TestGoogleConfig(BaseModel):
     """Google API configuration for tests."""
 
-    api_key: Optional[SecretStr] = Field(
-        default=None, description="Google API key for authentication"
-    )
+    api_key: Optional[SecretStr] = Field(default=None, description="Google API key for authentication")
     model: str = Field(default="gemini-pro", description="Default Google model to use")
 
     model_config = ConfigDict(strict=False)
@@ -143,7 +133,7 @@ class TestSettings(BaseSettings):
         env_file=str(Path(__file__).parent / ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
-        env_nested_delimiter='__',
+        env_nested_delimiter="__",
     )
 
     # =====================================================================

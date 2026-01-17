@@ -21,7 +21,6 @@ back to the builtin provider and emits a redacted warning.
 from __future__ import annotations
 
 import logging
-import os
 from importlib import metadata
 from typing import Iterable
 
@@ -77,7 +76,7 @@ def load_prompt_provider(builtin: PromptProvider | None = None) -> PromptProvide
         The resolved PromptProvider instance.
     """
     from gearmeshing_ai.server.core.config import settings
-    
+
     provider_key = settings.gearmeshing_ai_prompt_provider or "builtin"
     base = builtin or BuiltinPromptProvider()
 

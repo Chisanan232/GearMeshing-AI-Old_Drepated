@@ -20,7 +20,6 @@ by the abstraction layer's adapters (e.g., PydanticAIAdapter).
 from __future__ import annotations
 
 import logging
-import os
 from typing import TYPE_CHECKING, Optional
 
 from pydantic_ai import ModelSettings
@@ -134,7 +133,7 @@ class ModelProvider:
             RuntimeError: If AI_PROVIDER__OPENAI__API_KEY is not set.
         """
         from gearmeshing_ai.server.core.config import settings
-        
+
         api_key_secret = settings.ai_provider.openai.api_key
         api_key: Optional[str] = api_key_secret.get_secret_value() if api_key_secret else None
         if not api_key:
@@ -180,7 +179,7 @@ class ModelProvider:
             RuntimeError: If AI_PROVIDER__ANTHROPIC__API_KEY is not set.
         """
         from gearmeshing_ai.server.core.config import settings
-        
+
         api_key_secret = settings.ai_provider.anthropic.api_key
         api_key: Optional[str] = api_key_secret.get_secret_value() if api_key_secret else None
         if not api_key:
@@ -226,7 +225,7 @@ class ModelProvider:
             RuntimeError: If AI_PROVIDER__GOOGLE__API_KEY is not set.
         """
         from gearmeshing_ai.server.core.config import settings
-        
+
         api_key_secret = settings.ai_provider.google.api_key
         api_key: Optional[str] = api_key_secret.get_secret_value() if api_key_secret else None
         if not api_key:

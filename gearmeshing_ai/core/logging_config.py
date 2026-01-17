@@ -21,12 +21,13 @@ from typing import Optional
 
 def _get_logging_config():
     """Get logging configuration from settings model.
-    
+
     This function is used to defer settings import until needed,
     avoiding circular imports during module initialization.
     """
     try:
         from gearmeshing_ai.server.core.config import settings
+
         return {
             "log_level": settings.gearmeshing_ai_log_level.upper(),
             "log_format": "detailed",  # Default format
