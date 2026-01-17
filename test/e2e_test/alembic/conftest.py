@@ -3,6 +3,8 @@
 import os
 import time
 from pathlib import Path
+
+from sqlalchemy.util import ellipses_string
 from test.settings import test_settings
 
 import pytest
@@ -46,7 +48,7 @@ def _compose_env():
     _set("MCP__CLICKUP__SERVER_PORT", str(clickup_config.port))
     _set("MCP__CLICKUP__MCP_TRANSPORT", clickup_config.mcp_transport)
     # Token must be provided by env for real runs; default for CI/e2e
-    _set("MCP__CLICKUP__API_TOKEN", clickup_config.api_token.get_secret_value() or "e2e-test-token")
+    _set("MCP__CLICKUP__API_TOKEN", clickup_config.api_token.get_secret_value() if clickup_config.api_token else "e2e-test-token")
     _set("MQ__BACKEND", "redis")
 
     try:
