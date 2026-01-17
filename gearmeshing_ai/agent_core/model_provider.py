@@ -135,7 +135,8 @@ class ModelProvider:
         """
         from gearmeshing_ai.server.core.config import settings
         
-        api_key: Optional[str] = settings.ai_provider.openai.api_key
+        api_key_secret = settings.ai_provider.openai.api_key
+        api_key: Optional[str] = api_key_secret.get_secret_value() if api_key_secret else None
         if not api_key:
             raise RuntimeError("AI_PROVIDER__OPENAI__API_KEY environment variable is not set")
 
@@ -180,7 +181,8 @@ class ModelProvider:
         """
         from gearmeshing_ai.server.core.config import settings
         
-        api_key: Optional[str] = settings.ai_provider.anthropic.api_key
+        api_key_secret = settings.ai_provider.anthropic.api_key
+        api_key: Optional[str] = api_key_secret.get_secret_value() if api_key_secret else None
         if not api_key:
             raise RuntimeError("AI_PROVIDER__ANTHROPIC__API_KEY environment variable is not set")
 
@@ -225,7 +227,8 @@ class ModelProvider:
         """
         from gearmeshing_ai.server.core.config import settings
         
-        api_key: Optional[str] = settings.ai_provider.google.api_key
+        api_key_secret = settings.ai_provider.google.api_key
+        api_key: Optional[str] = api_key_secret.get_secret_value() if api_key_secret else None
         if not api_key:
             raise RuntimeError("AI_PROVIDER__GOOGLE__API_KEY environment variable is not set")
 

@@ -29,7 +29,7 @@ def _compose_env():
     postgres_config = settings.database.postgres
     _set("DATABASE__POSTGRES__DB", postgres_config.db)
     _set("DATABASE__POSTGRES__USER", postgres_config.user)
-    _set("DATABASE__POSTGRES__PASSWORD", postgres_config.password)
+    _set("DATABASE__POSTGRES__PASSWORD", postgres_config.password.get_secret_value())
 
     # MCP Gateway - use server settings defaults (with nested delimiter pattern)
     mcp_gateway_config = settings.mcp.gateway
@@ -46,7 +46,7 @@ def _compose_env():
     _set("MCP__CLICKUP__SERVER_PORT", str(clickup_config.port))
     _set("MCP__CLICKUP__MCP_TRANSPORT", clickup_config.mcp_transport)
     # Token must be provided by env for real runs; default for CI/e2e
-    _set("MCP__CLICKUP__API_TOKEN", clickup_config.api_token or "e2e-test-token")
+    _set("MCP__CLICKUP__API_TOKEN", clickup_config.api_token.get_secret_value() or "e2e-test-token")
     _set("MQ__BACKEND", "redis")
 
     try:
@@ -96,14 +96,14 @@ def compose_stack(_compose_env):
 def database_url(compose_stack) -> str:
     """Get async test database URL from test settings."""
     postgres_config = test_settings.database.postgres
-    return f"postgresql+asyncpg://{postgres_config.user}:{postgres_config.password}@127.0.0.1:{postgres_config.port}/{postgres_config.db}"
+    return f"postgresql+asyncpg://{postgres_config.user}:{postgres_config.password.get_secret_value()}@127.0.0.1:{postgres_config.port}/{postgres_config.db}"
 
 
 @pytest.fixture(scope="session")
 def sync_database_url(compose_stack) -> str:
     """Get sync test database URL from test settings."""
     postgres_config = test_settings.database.postgres
-    return f"postgresql://{postgres_config.user}:{postgres_config.password}@127.0.0.1:{postgres_config.port}/{postgres_config.db}"
+    return f"postgresql://{postgres_config.user}:{postgres_config.password.get_secret_value()}@127.0.0.1:{postgres_config.port}/{postgres_config.db}"
 
 
 @pytest.fixture

@@ -60,9 +60,12 @@ def initialize_logfire(app: FastAPI | None = None) -> None:
     try:
         import logfire
 
+        # Get the secret token value
+        token_value = settings.logfire.token.get_secret_value() if settings.logfire.token else None
+
         # Configure Logfire with project settings
         logfire.configure(
-            token=settings.logfire.token,
+            token=token_value,
             service_name=settings.logfire.service_name,
             service_version=settings.logfire.service_version,
             environment=settings.logfire.environment,
@@ -148,10 +151,13 @@ def initialize_langsmith() -> None:
         return
 
     try:
+        # Get the secret API key value
+        api_key_value = settings.langsmith.api_key.get_secret_value() if settings.langsmith.api_key else None
+
         # Set LangSmith environment variables for automatic instrumentation
         # These must be set before LangGraph/LangChain operations are initialized
         os.environ["LANGSMITH_TRACING"] = "true"
-        os.environ["LANGSMITH_API_KEY"] = settings.langsmith.api_key
+        os.environ["LANGSMITH_API_KEY"] = api_key_value
         os.environ["LANGSMITH_PROJECT"] = settings.langsmith.project
         os.environ["LANGSMITH_ENDPOINT"] = settings.langsmith.endpoint
 

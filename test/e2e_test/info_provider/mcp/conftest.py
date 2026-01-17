@@ -76,7 +76,7 @@ def _compose_env() -> Iterable[None]:
     postgres_config = settings.database.postgres
     _set("DATABASE__POSTGRES__DB", postgres_config.db)
     _set("DATABASE__POSTGRES__USER", postgres_config.user)
-    _set("DATABASE__POSTGRES__PASSWORD", postgres_config.password)
+    _set("DATABASE__POSTGRES__PASSWORD", postgres_config.password.get_secret_value())
 
     # MCP Gateway *IBM/mcp-context-forge* - use server settings defaults (with nested delimiter pattern)
     mcp_gateway_config = settings.mcp.gateway
@@ -93,7 +93,7 @@ def _compose_env() -> Iterable[None]:
     _set("MCP__CLICKUP__SERVER_PORT", str(clickup_config.port))
     _set("MCP__CLICKUP__MCP_TRANSPORT", clickup_config.mcp_transport)
     # Token must be provided by env for real runs; default for CI/e2e
-    _set("MCP__CLICKUP__API_TOKEN", clickup_config.api_token or "e2e-test-token")
+    _set("MCP__CLICKUP__API_TOKEN", clickup_config.api_token.get_secret_value() or "e2e-test-token")
     _set("MQ__BACKEND", "redis")
 
     # GearMeshing AI Server - use server settings defaults
@@ -167,7 +167,7 @@ def _wait_gateway_ready(base_url: str, timeout: float = 30.0) -> None:
     while time.time() - start < timeout:
         try:
             user: str = settings.mcp.gateway.admin_email
-            secret: str = settings.mcp.gateway.admin_password
+            secret: str = settings.mcp.gateway.admin_password.get_secret_value()
             token = GatewayApiClient.generate_bearer_token(jwt_secret_key=secret, username=user)
             r = httpx.get(f"{base_url}/health", headers={"Authorization": token}, timeout=3.0)
             if r.status_code == 200:
