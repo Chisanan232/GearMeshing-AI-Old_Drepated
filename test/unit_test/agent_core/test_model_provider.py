@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -32,6 +31,7 @@ class TestModelProvider:
     def test_create_openai_model_with_explicit_params(self) -> None:
         """Test creating OpenAI model with explicit parameters."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -60,6 +60,7 @@ class TestModelProvider:
     def test_create_anthropic_model_with_explicit_params(self) -> None:
         """Test creating Anthropic model with explicit parameters."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -88,6 +89,7 @@ class TestModelProvider:
     def test_create_google_model_with_explicit_params(self) -> None:
         """Test creating Google model with explicit parameters."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -116,6 +118,7 @@ class TestModelProvider:
     def test_create_model_with_provider_dispatch(self) -> None:
         """Test create_model dispatches to correct provider."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -198,6 +201,7 @@ class TestModelProviderDefaults:
     def test_openai_uses_defaults_when_params_none(self) -> None:
         """Test OpenAI model uses defaults when params are None."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -216,6 +220,7 @@ class TestModelProviderDefaults:
     def test_anthropic_uses_defaults_when_params_none(self) -> None:
         """Test Anthropic model uses defaults when params are None."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -234,6 +239,7 @@ class TestModelProviderDefaults:
     def test_google_uses_defaults_when_params_none(self) -> None:
         """Test Google model uses defaults when params are None."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -256,6 +262,7 @@ class TestModelProviderDispatch:
     def test_create_model_dispatches_to_openai(self) -> None:
         """Test create_model dispatches to OpenAI provider."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -271,6 +278,7 @@ class TestModelProviderDispatch:
     def test_create_model_dispatches_to_openai_case_insensitive(self) -> None:
         """Test create_model dispatches to OpenAI with case-insensitive provider name."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -284,6 +292,7 @@ class TestModelProviderDispatch:
     def test_create_model_dispatches_to_anthropic(self) -> None:
         """Test create_model dispatches to Anthropic provider."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -301,6 +310,7 @@ class TestModelProviderDispatch:
     def test_create_model_dispatches_to_anthropic_case_insensitive(self) -> None:
         """Test create_model dispatches to Anthropic with case-insensitive provider name."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -314,6 +324,7 @@ class TestModelProviderDispatch:
     def test_create_model_dispatches_to_google(self) -> None:
         """Test create_model dispatches to Google provider."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -321,7 +332,9 @@ class TestModelProviderDispatch:
             mock_settings.ai_provider.google.api_key = SecretStr("test-key")
             with patch.object(provider, "_create_google_model") as mock_google:
                 mock_google.return_value = MagicMock()
-                result = provider.create_model("google", "gemini-2.0-flash", temperature=0.4, max_tokens=2500, top_p=0.75)
+                result = provider.create_model(
+                    "google", "gemini-2.0-flash", temperature=0.4, max_tokens=2500, top_p=0.75
+                )
 
                 mock_google.assert_called_once_with("gemini-2.0-flash", 0.4, 2500, 0.75)
                 assert result is not None
@@ -329,6 +342,7 @@ class TestModelProviderDispatch:
     def test_create_model_dispatches_to_google_case_insensitive(self) -> None:
         """Test create_model dispatches to Google with case-insensitive provider name."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -368,6 +382,7 @@ class TestModelProviderDispatch:
     def test_create_model_with_all_parameters(self) -> None:
         """Test create_model passes all parameters correctly to provider."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -388,6 +403,7 @@ class TestModelProviderDispatch:
     def test_create_model_with_none_parameters(self) -> None:
         """Test create_model passes None parameters correctly to provider."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -406,6 +422,7 @@ class TestModelProviderFallback:
     def test_create_fallback_model_openai_to_anthropic(self) -> None:
         """Test creating fallback model with OpenAI primary and Anthropic fallback."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -436,6 +453,7 @@ class TestModelProviderFallback:
     def test_create_fallback_model_openai_to_google(self) -> None:
         """Test creating fallback model with OpenAI primary and Google fallback."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -463,6 +481,7 @@ class TestModelProviderFallback:
     def test_create_fallback_model_anthropic_to_google(self) -> None:
         """Test creating fallback model with Anthropic primary and Google fallback."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -493,6 +512,7 @@ class TestModelProviderFallback:
     def test_create_fallback_model_google_to_openai(self) -> None:
         """Test creating fallback model with Google primary and OpenAI fallback."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -520,6 +540,7 @@ class TestModelProviderFallback:
     def test_create_fallback_model_passes_parameters_to_both_models(self) -> None:
         """Test that fallback model creation passes parameters to both primary and fallback."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -553,6 +574,7 @@ class TestModelProviderFallback:
     def test_create_fallback_model_with_none_parameters(self) -> None:
         """Test fallback model creation with None parameters."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -585,6 +607,7 @@ class TestModelProviderFallback:
     def test_create_fallback_model_primary_creation_fails(self) -> None:
         """Test fallback model creation when primary model creation fails."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -604,6 +627,7 @@ class TestModelProviderFallback:
     def test_create_fallback_model_fallback_creation_fails(self) -> None:
         """Test fallback model creation when fallback model creation fails."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -625,6 +649,7 @@ class TestModelProviderFallback:
     def test_create_fallback_model_returns_fallback_model_instance(self) -> None:
         """Test that create_fallback_model returns a FallbackModel instance."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 
@@ -653,6 +678,7 @@ class TestModelProviderFallback:
     def test_create_fallback_model_same_provider_different_models(self) -> None:
         """Test fallback model with same provider but different models."""
         from pydantic import SecretStr
+
         mock_session = MagicMock()
         provider = ModelProvider(db_session=mock_session)
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -38,6 +37,7 @@ class TestModelProviderIntegration:
     def test_get_model_provider_returns_provider(self, mock_db_session):
         """Test get_model_provider factory function."""
         from pydantic import SecretStr
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_settings.ai_provider.openai.api_key = SecretStr("test-key")
             provider = get_model_provider(mock_db_session)
@@ -47,6 +47,7 @@ class TestModelProviderIntegration:
     def test_model_provider_lazy_loads_db_provider(self, mock_db_session):
         """Test that ModelProvider lazily loads DatabaseConfigProvider."""
         from pydantic import SecretStr
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_settings.ai_provider.openai.api_key = SecretStr("test-key")
             provider = ModelProvider(db_session=mock_db_session)
@@ -64,6 +65,7 @@ class TestModelProviderIntegration:
     def test_create_model_dispatches_to_correct_provider(self, mock_db_session):
         """Test that create_model dispatches to correct provider implementation."""
         from pydantic import SecretStr
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_settings.ai_provider.openai.api_key = SecretStr("test-key")
             provider = ModelProvider(db_session=mock_db_session)
@@ -76,6 +78,7 @@ class TestModelProviderIntegration:
     def test_create_model_dispatches_anthropic(self, mock_db_session):
         """Test that create_model dispatches to Anthropic provider."""
         from pydantic import SecretStr
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_settings.ai_provider.anthropic.api_key = SecretStr("test-key")
             provider = ModelProvider(db_session=mock_db_session)
@@ -88,6 +91,7 @@ class TestModelProviderIntegration:
     def test_create_model_dispatches_google(self, mock_db_session):
         """Test that create_model dispatches to Google provider."""
         from pydantic import SecretStr
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_settings.ai_provider.google.api_key = SecretStr("test-key")
             provider = ModelProvider(db_session=mock_db_session)
@@ -107,6 +111,7 @@ class TestModelProviderIntegration:
     def test_create_fallback_model_creates_both_models(self, mock_db_session):
         """Test that create_fallback_model creates both primary and fallback models."""
         from pydantic import SecretStr
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_settings.ai_provider.openai.api_key = SecretStr("test-key")
             mock_settings.ai_provider.anthropic.api_key = SecretStr("test-key")
@@ -135,6 +140,7 @@ class TestModelProviderIntegration:
     def test_create_model_for_role_uses_db_config(self, mock_db_session, mock_model_config):
         """Test that create_model_for_role loads config from database."""
         from pydantic import SecretStr
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_settings.ai_provider.openai.api_key = SecretStr("test-key")
             provider = ModelProvider(db_session=mock_db_session)
@@ -163,6 +169,7 @@ class TestModelProviderIntegration:
     def test_create_model_for_role_function(self, mock_db_session, mock_model_config):
         """Test the module-level create_model_for_role function."""
         from pydantic import SecretStr
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_settings.ai_provider.openai.api_key = SecretStr("test-key")
             with patch("gearmeshing_ai.agent_core.model_provider.get_model_provider") as mock_get_provider:
@@ -178,6 +185,7 @@ class TestModelProviderIntegration:
     def test_create_model_with_all_parameters(self, mock_db_session):
         """Test create_model with all parameters specified."""
         from pydantic import SecretStr
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_settings.ai_provider.openai.api_key = SecretStr("test-key")
             provider = ModelProvider(db_session=mock_db_session)
@@ -203,6 +211,7 @@ class TestModelProviderIntegration:
     def test_create_model_with_default_parameters(self, mock_db_session):
         """Test create_model uses defaults when parameters not provided."""
         from pydantic import SecretStr
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_settings.ai_provider.openai.api_key = SecretStr("test-key")
             provider = ModelProvider(db_session=mock_db_session)
