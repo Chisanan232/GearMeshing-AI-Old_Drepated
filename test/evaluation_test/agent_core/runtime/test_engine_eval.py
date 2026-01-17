@@ -35,7 +35,7 @@ from gearmeshing_ai.agent_core.schemas.domain import (
 
 def _eval_enabled() -> bool:
     """Check if evaluation tests are enabled via GM_RUN_EVAL_TESTS setting."""
-    return test_settings.run_eval_tests
+    return test_settings.test.run_eval_tests
 
 
 class _DeterministicSummarize(Capability):
