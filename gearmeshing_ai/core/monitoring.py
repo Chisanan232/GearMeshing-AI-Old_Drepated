@@ -157,7 +157,7 @@ def initialize_langsmith() -> None:
         # Set LangSmith environment variables for automatic instrumentation
         # These must be set before LangGraph/LangChain operations are initialized
         os.environ["LANGSMITH_TRACING"] = "true"
-        os.environ["LANGSMITH_API_KEY"] = api_key_value
+        os.environ["LANGSMITH_API_KEY"] = api_key_value or ""
         os.environ["LANGSMITH_PROJECT"] = settings.langsmith.project
         os.environ["LANGSMITH_ENDPOINT"] = settings.langsmith.endpoint
 

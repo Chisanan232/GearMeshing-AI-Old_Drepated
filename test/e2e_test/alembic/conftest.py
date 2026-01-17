@@ -33,11 +33,11 @@ def _compose_env():
 
     # MCP Gateway - use server settings defaults (with nested delimiter pattern)
     mcp_gateway_config = settings.mcp.gateway
-    _set("MCPGATEWAY__JWT_SECRET", mcp_gateway_config.jwt_secret)
-    _set("MCPGATEWAY__ADMIN_PASSWORD", mcp_gateway_config.admin_password)
+    _set("MCPGATEWAY__JWT_SECRET", mcp_gateway_config.jwt_secret.get_secret_value())
+    _set("MCPGATEWAY__ADMIN_PASSWORD", mcp_gateway_config.admin_password.get_secret_value())
     _set("MCPGATEWAY__ADMIN_EMAIL", mcp_gateway_config.admin_email)
     _set("MCPGATEWAY__ADMIN_FULL_NAME", mcp_gateway_config.admin_full_name)
-    _set("MCPGATEWAY__DB_URL", mcp_gateway_config.db_url)
+    _set("MCPGATEWAY__DB_URL", mcp_gateway_config.db_url.get_secret_value())
     _set("MCPGATEWAY__REDIS_URL", mcp_gateway_config.redis_url)
 
     # ClickUp MCP - use server settings defaults (with nested delimiter pattern)

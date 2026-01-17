@@ -82,7 +82,7 @@ class TestPostgreSQLConfig(BaseModel):
 
     db: str = Field(default="ai_dev", description="PostgreSQL database name for tests")
     user: str = Field(default="ai_dev", description="PostgreSQL database user")
-    password: SecretStr = Field(default="changeme", description="PostgreSQL database password")
+    password: SecretStr = Field(default=SecretStr("changeme"), description="PostgreSQL database password")
     host: str = Field(default="localhost", description="PostgreSQL database host address")
     port: int = Field(default=5432, description="PostgreSQL database port number")
 

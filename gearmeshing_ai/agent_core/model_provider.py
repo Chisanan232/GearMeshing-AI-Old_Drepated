@@ -150,13 +150,13 @@ class ModelProvider:
         )
 
         # Create model settings for Pydantic AI
-        settings: ModelSettings = ModelSettings(
+        model_settings: ModelSettings = ModelSettings(
             temperature=temperature_val,
             max_tokens=max_tokens_val,
             top_p=top_p_val,
         )
 
-        return OpenAIResponsesModel(model, settings=settings)
+        return OpenAIResponsesModel(model, settings=model_settings)
 
     def _create_anthropic_model(
         self,
@@ -196,13 +196,13 @@ class ModelProvider:
         )
 
         # Create model settings for Pydantic AI
-        settings: ModelSettings = ModelSettings(
+        model_settings: ModelSettings = ModelSettings(
             temperature=temperature_val,
             max_tokens=max_tokens_val,
             top_p=top_p_val,
         )
 
-        return AnthropicModel(model, settings=settings)
+        return AnthropicModel(model, settings=model_settings)
 
     def _create_google_model(
         self,
@@ -242,13 +242,13 @@ class ModelProvider:
         )
 
         # Create model settings for Pydantic AI
-        settings: ModelSettings = ModelSettings(
+        model_settings: ModelSettings = ModelSettings(
             temperature=temperature_val,
             max_tokens=max_tokens_val,
             top_p=top_p_val,
         )
 
-        return GoogleModel(model, settings=settings)
+        return GoogleModel(model, settings=model_settings)
 
     def get_provider_from_model_name(self, model_name: str) -> str:
         """Determine the provider from a model name using regex patterns.

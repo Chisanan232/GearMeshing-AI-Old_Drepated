@@ -80,11 +80,11 @@ def _compose_env() -> Iterable[None]:
 
     # MCP Gateway *IBM/mcp-context-forge* - use server settings defaults (with nested delimiter pattern)
     mcp_gateway_config = settings.mcp.gateway
-    _set("MCPGATEWAY__JWT_SECRET", mcp_gateway_config.jwt_secret)
-    _set("MCPGATEWAY__ADMIN_PASSWORD", mcp_gateway_config.admin_password)
+    _set("MCPGATEWAY__JWT_SECRET", mcp_gateway_config.jwt_secret.get_secret_value())
+    _set("MCPGATEWAY__ADMIN_PASSWORD", mcp_gateway_config.admin_password.get_secret_value())
     _set("MCPGATEWAY__ADMIN_EMAIL", mcp_gateway_config.admin_email)
     _set("MCPGATEWAY__ADMIN_FULL_NAME", mcp_gateway_config.admin_full_name)
-    _set("MCPGATEWAY__DB_URL", mcp_gateway_config.db_url)
+    _set("MCPGATEWAY__DB_URL", mcp_gateway_config.db_url.get_secret_value())
     _set("MCPGATEWAY__REDIS_URL", mcp_gateway_config.redis_url)
 
     # ClickUp MCP - use server settings defaults (with nested delimiter pattern)
@@ -93,7 +93,7 @@ def _compose_env() -> Iterable[None]:
     _set("MCP__CLICKUP__SERVER_PORT", str(clickup_config.port))
     _set("MCP__CLICKUP__MCP_TRANSPORT", clickup_config.mcp_transport)
     # Token must be provided by env for real runs; default for CI/e2e
-    _set("MCP__CLICKUP__API_TOKEN", clickup_config.api_token.get_secret_value() or "e2e-test-token")
+    _set("MCP__CLICKUP__API_TOKEN", clickup_config.api_token.get_secret_value() if clickup_config.api_token else "e2e-test-token")
     _set("MQ__BACKEND", "redis")
 
     # GearMeshing AI Server - use server settings defaults
@@ -185,7 +185,7 @@ def gateway_client(compose_stack: DockerCompose):
     base = f"http://127.0.0.1:{gateway_port()}"
     # Generate token once
     user: str = settings.mcp.gateway.admin_email
-    secret: str = settings.mcp.gateway.admin_password
+    secret: str = settings.mcp.gateway.admin_password.get_secret_value()
     token = GatewayApiClient.generate_bearer_token(jwt_secret_key=secret, username=user)
 
     mgmt_client = httpx.Client(base_url=base)

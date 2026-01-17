@@ -137,7 +137,7 @@ class PostgreSQLConfig(BaseModel):
 
     db: str = Field(default="ai_dev", description="PostgreSQL database name")
     user: str = Field(default="ai_dev", description="PostgreSQL database user")
-    password: SecretStr = Field(default="changeme", description="PostgreSQL database password")
+    password: SecretStr = Field(default=SecretStr("changeme"), description="PostgreSQL database password")
     host: str = Field(default="postgres", description="PostgreSQL database host address")
     port: int = Field(default=5432, description="PostgreSQL database port number")
 
@@ -206,14 +206,14 @@ class MCPGatewayConfig(BaseModel):
     url: str = Field(default="http://mcp-gateway:4444", description="MCP Gateway base URL")
     token: Optional[SecretStr] = Field(default=None, description="MCP Gateway authentication token")
     db_url: SecretStr = Field(
-        default="postgresql+psycopg://ai_dev:changeme@postgres:5432/ai_dev",
+        default=SecretStr("postgresql+psycopg://ai_dev:changeme@postgres:5432/ai_dev"),
         description="MCP Gateway PostgreSQL database URL",
     )
     redis_url: str = Field(
         default="redis://redis:6379/0", description="MCP Gateway Redis connection URL"
     )
     admin_password: SecretStr = Field(
-        default="adminpass", description="MCP Gateway admin password"
+        default=SecretStr("adminpass"), description="MCP Gateway admin password"
     )
     admin_email: str = Field(
         default="admin@example.com", description="MCP Gateway admin email address"
@@ -222,7 +222,7 @@ class MCPGatewayConfig(BaseModel):
         default="Admin User", description="MCP Gateway admin full name"
     )
     jwt_secret: SecretStr = Field(
-        default="my-test-key", description="MCP Gateway JWT secret key for token signing"
+        default=SecretStr("my-test-key"), description="MCP Gateway JWT secret key for token signing"
     )
 
     model_config = ConfigDict(strict=False)
@@ -363,7 +363,7 @@ class Settings(BaseSettings):
     # Redis Configuration
     # =====================================================================
     app_redis_url: SecretStr = Field(
-        default="redis://redis:6379/1",
+        default=SecretStr("redis://redis:6379/1"),
         description="Application Redis connection URL for caching and message queue",
     )
 

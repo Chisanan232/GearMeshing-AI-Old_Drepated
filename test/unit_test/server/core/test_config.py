@@ -363,7 +363,7 @@ class TestMCPGatewayConfigBinding:
 
         settings = Settings()
         assert settings.mcp.gateway.admin_email == email
-        assert settings.mcp.gateway.admin_password == password
+        assert settings.mcp.gateway.admin_password.get_secret_value() == password
         assert settings.mcp.gateway.admin_full_name == full_name
 
     def test_mcpgateway_jwt_secret_binding(self, monkeypatch):
