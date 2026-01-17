@@ -33,6 +33,7 @@ from gearmeshing_ai.server.core.config import (
     Settings,
     get_env_file_path,
 )
+from pydantic import SecretStr
 
 
 @pytest.fixture
@@ -523,16 +524,16 @@ class TestSettingsWithTempEnvFile:
         """
         # Verify the gateway configuration structure exists and has expected types
         assert isinstance(settings_with_test_env.mcp.gateway.url, str)
-        assert isinstance(settings_with_test_env.mcp.gateway.db_url, str)
+        assert isinstance(settings_with_test_env.mcp.gateway.db_url, SecretStr)
         assert isinstance(settings_with_test_env.mcp.gateway.redis_url, str)
-        assert isinstance(settings_with_test_env.mcp.gateway.jwt_secret, str)
+        assert isinstance(settings_with_test_env.mcp.gateway.jwt_secret, SecretStr)
         assert isinstance(settings_with_test_env.mcp.gateway.admin_email, str)
-        assert isinstance(settings_with_test_env.mcp.gateway.admin_password, str)
+        assert isinstance(settings_with_test_env.mcp.gateway.admin_password, SecretStr)
         assert isinstance(settings_with_test_env.mcp.gateway.admin_full_name, str)
         
         # Verify URLs have expected format
         assert settings_with_test_env.mcp.gateway.url.startswith("http://")
-        assert settings_with_test_env.mcp.gateway.db_url.startswith("postgresql")
+        assert settings_with_test_env.mcp.gateway.db_url.get_secret_value().startswith("postgresql")
         assert settings_with_test_env.mcp.gateway.redis_url.startswith("redis://")
 
     def test_message_queue_configuration_binding_from_env_file(self, settings_with_test_env: Settings, test_env_file: dict[str, str]):
