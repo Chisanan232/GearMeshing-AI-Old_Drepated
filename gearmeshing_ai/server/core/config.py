@@ -10,7 +10,7 @@ For example: AI_PROVIDER__OPENAI__API_KEY maps to settings.ai_provider.openai.ap
 from pathlib import Path
 from typing import Optional
 
-from pydantic import Field, BaseModel, ConfigDict
+from pydantic import Field, BaseModel, ConfigDict, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -35,7 +35,7 @@ def get_env_file_path() -> str:
 class OpenAIConfig(BaseModel):
     """OpenAI API configuration."""
 
-    api_key: Optional[str] = Field(
+    api_key: Optional[SecretStr] = Field(
         default=None, description="OpenAI API key for authentication"
     )
     org_id: Optional[str] = Field(
@@ -52,7 +52,7 @@ class OpenAIConfig(BaseModel):
 class AnthropicConfig(BaseModel):
     """Anthropic API configuration."""
 
-    api_key: Optional[str] = Field(
+    api_key: Optional[SecretStr] = Field(
         default=None, description="Anthropic API key for authentication"
     )
     model: str = Field(
@@ -65,7 +65,7 @@ class AnthropicConfig(BaseModel):
 class GoogleConfig(BaseModel):
     """Google API configuration."""
 
-    api_key: Optional[str] = Field(
+    api_key: Optional[SecretStr] = Field(
         default=None, description="Google API key for authentication"
     )
     project_id: Optional[str] = Field(
@@ -95,7 +95,7 @@ class LogfireConfig(BaseModel):
     """Logfire monitoring configuration."""
 
     enabled: bool = Field(default=False, description="Enable/disable Logfire monitoring")
-    token: Optional[str] = Field(default=None, description="Logfire authentication token")
+    token: Optional[SecretStr] = Field(default=None, description="Logfire authentication token")
     project_name: str = Field(default="gearmeshing-ai", description="Logfire project name")
     environment: str = Field(default="development", description="Environment name (development, staging, production)")
     service_name: str = Field(default="gearmeshing-ai-server", description="Service name for identification")
@@ -119,7 +119,7 @@ class LangSmithConfig(BaseModel):
     """LangSmith monitoring configuration for LangGraph agent tracing."""
 
     tracing: bool = Field(default=False, description="Enable/disable LangSmith tracing")
-    api_key: Optional[str] = Field(default=None, description="LangSmith API key")
+    api_key: Optional[SecretStr] = Field(default=None, description="LangSmith API key")
     project: str = Field(default="gearmeshing-ai", description="LangSmith project name")
     endpoint: str = Field(default="https://api.smith.langchain.com", description="LangSmith API endpoint")
     workspace_id: Optional[str] = Field(default=None, description="LangSmith workspace ID (optional)")
@@ -137,7 +137,7 @@ class PostgreSQLConfig(BaseModel):
 
     db: str = Field(default="ai_dev", description="PostgreSQL database name")
     user: str = Field(default="ai_dev", description="PostgreSQL database user")
-    password: str = Field(default="changeme", description="PostgreSQL database password")
+    password: SecretStr = Field(default="changeme", description="PostgreSQL database password")
     host: str = Field(default="postgres", description="PostgreSQL database host address")
     port: int = Field(default=5432, description="PostgreSQL database port number")
 
@@ -173,9 +173,9 @@ class SlackMCPConfig(BaseModel):
     mcp_transport: str = Field(default="sse", description="MCP transport type (sse or stdio)")
     bot_id: Optional[str] = Field(default=None, description="Slack bot ID")
     app_id: Optional[str] = Field(default=None, description="Slack app ID")
-    bot_token: Optional[str] = Field(default=None, description="Slack bot token")
-    user_token: Optional[str] = Field(default=None, description="Slack user token")
-    signing_secret: Optional[str] = Field(default=None, description="Slack signing secret")
+    bot_token: Optional[SecretStr] = Field(default=None, description="Slack bot token")
+    user_token: Optional[SecretStr] = Field(default=None, description="Slack user token")
+    signing_secret: Optional[SecretStr] = Field(default=None, description="Slack signing secret")
 
     model_config = ConfigDict(strict=False)
 
@@ -186,7 +186,7 @@ class ClickUpMCPConfig(BaseModel):
     host: str = Field(default="0.0.0.0", description="ClickUp MCP server host address")
     port: int = Field(default=8082, description="ClickUp MCP server port number")
     mcp_transport: str = Field(default="sse", description="MCP transport type (sse or stdio)")
-    api_token: Optional[str] = Field(default=None, description="ClickUp API token for authentication")
+    api_token: Optional[SecretStr] = Field(default=None, description="ClickUp API token for authentication")
 
     model_config = ConfigDict(strict=False)
 
@@ -194,7 +194,7 @@ class ClickUpMCPConfig(BaseModel):
 class GitHubMCPConfig(BaseModel):
     """GitHub MCP configuration."""
 
-    token: Optional[str] = Field(default=None, description="GitHub personal access token")
+    token: Optional[SecretStr] = Field(default=None, description="GitHub personal access token")
     default_repo: Optional[str] = Field(default=None, description="Default repository (org/repo format)")
 
     model_config = ConfigDict(strict=False)
@@ -204,15 +204,15 @@ class MCPGatewayConfig(BaseModel):
     """MCP Gateway configuration."""
 
     url: str = Field(default="http://mcp-gateway:4444", description="MCP Gateway base URL")
-    token: Optional[str] = Field(default=None, description="MCP Gateway authentication token")
-    db_url: str = Field(
+    token: Optional[SecretStr] = Field(default=None, description="MCP Gateway authentication token")
+    db_url: SecretStr = Field(
         default="postgresql+psycopg://ai_dev:changeme@postgres:5432/ai_dev",
         description="MCP Gateway PostgreSQL database URL",
     )
     redis_url: str = Field(
         default="redis://redis:6379/0", description="MCP Gateway Redis connection URL"
     )
-    admin_password: str = Field(
+    admin_password: SecretStr = Field(
         default="adminpass", description="MCP Gateway admin password"
     )
     admin_email: str = Field(
@@ -221,7 +221,7 @@ class MCPGatewayConfig(BaseModel):
     admin_full_name: str = Field(
         default="Admin User", description="MCP Gateway admin full name"
     )
-    jwt_secret: str = Field(
+    jwt_secret: SecretStr = Field(
         default="my-test-key", description="MCP Gateway JWT secret key for token signing"
     )
 
@@ -362,7 +362,7 @@ class Settings(BaseSettings):
     # =====================================================================
     # Redis Configuration
     # =====================================================================
-    app_redis_url: str = Field(
+    app_redis_url: SecretStr = Field(
         default="redis://redis:6379/1",
         description="Application Redis connection URL for caching and message queue",
     )

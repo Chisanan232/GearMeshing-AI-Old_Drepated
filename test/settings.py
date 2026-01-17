@@ -11,7 +11,7 @@ For example: AI_PROVIDER__OPENAI__API_KEY maps to test_settings.ai_provider.open
 from pathlib import Path
 from typing import Optional
 
-from pydantic import Field, BaseModel, ConfigDict
+from pydantic import Field, BaseModel, ConfigDict, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # =====================================================================
@@ -22,7 +22,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class TestOpenAIConfig(BaseModel):
     """OpenAI API configuration for tests."""
 
-    api_key: Optional[str] = Field(
+    api_key: Optional[SecretStr] = Field(
         default=None, description="OpenAI API key for authentication"
     )
     model: str = Field(default="gpt-4o", description="Default OpenAI model to use")
@@ -36,7 +36,7 @@ class TestOpenAIConfig(BaseModel):
 class TestAnthropicConfig(BaseModel):
     """Anthropic API configuration for tests."""
 
-    api_key: Optional[str] = Field(
+    api_key: Optional[SecretStr] = Field(
         default=None, description="Anthropic API key for authentication"
     )
     model: str = Field(
@@ -49,7 +49,7 @@ class TestAnthropicConfig(BaseModel):
 class TestGoogleConfig(BaseModel):
     """Google API configuration for tests."""
 
-    api_key: Optional[str] = Field(
+    api_key: Optional[SecretStr] = Field(
         default=None, description="Google API key for authentication"
     )
     model: str = Field(default="gemini-pro", description="Default Google model to use")
@@ -60,7 +60,7 @@ class TestGoogleConfig(BaseModel):
 class TestXAIConfig(BaseModel):
     """xAI (Grok) API configuration for tests."""
 
-    api_key: Optional[str] = Field(default=None, description="xAI API key for authentication")
+    api_key: Optional[SecretStr] = Field(default=None, description="xAI API key for authentication")
     model: str = Field(default="grok-2", description="Default xAI model to use")
 
     model_config = ConfigDict(strict=False)
@@ -82,7 +82,7 @@ class TestPostgreSQLConfig(BaseModel):
 
     db: str = Field(default="ai_dev", description="PostgreSQL database name for tests")
     user: str = Field(default="ai_dev", description="PostgreSQL database user")
-    password: str = Field(default="changeme", description="PostgreSQL database password")
+    password: SecretStr = Field(default="changeme", description="PostgreSQL database password")
     host: str = Field(default="localhost", description="PostgreSQL database host address")
     port: int = Field(default=5432, description="PostgreSQL database port number")
 
