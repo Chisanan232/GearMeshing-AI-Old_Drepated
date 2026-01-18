@@ -202,11 +202,12 @@ class TestGlobalProvider:
 
     @pytest.mark.asyncio
     async def test_initialize_from_env(self):
-        """Test initializing from environment variable."""
+        """Test initializing from settings."""
         factory = AIAgentFactory()
         factory.register("mock", MockAgent)
 
-        with patch.dict("os.environ", {"AI_AGENT_FRAMEWORK": "mock"}):
+        with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
+            mock_settings.gearmeshing_ai_agent_framework = "mock"
             provider = initialize_agent_provider(factory=factory)
             assert provider.get_framework() == "mock"
 

@@ -21,7 +21,6 @@ back to the builtin provider and emits a redacted warning.
 from __future__ import annotations
 
 import logging
-import os
 from importlib import metadata
 from typing import Iterable
 
@@ -61,7 +60,7 @@ def load_prompt_provider(builtin: PromptProvider | None = None) -> PromptProvide
     or custom prompt bundles to be injected without modifying the core codebase.
 
     Resolution algorithm:
-    1. Read ``GEARMESH_PROMPT_PROVIDER`` from the environment; default to ``"builtin"`` when unset.
+    1. Read ``GEARMESHING_AI_PROMPT_PROVIDER`` from settings; default to ``"builtin"`` when unset.
     2. If the key is empty or ``"builtin"``, return a :class:`BuiltinPromptProvider` (or the ``builtin`` override).
     3. Otherwise, search the ``gearmesh.prompt_providers`` entry-point group for a matching name.
     4. If found, load and instantiate the provider factory.
@@ -76,7 +75,9 @@ def load_prompt_provider(builtin: PromptProvider | None = None) -> PromptProvide
     Returns:
         The resolved PromptProvider instance.
     """
-    provider_key = os.getenv("GEARMESH_PROMPT_PROVIDER") or "builtin"
+    from gearmeshing_ai.server.core.config import settings
+
+    provider_key = settings.gearmeshing_ai_prompt_provider or "builtin"
     base = builtin or BuiltinPromptProvider()
 
     if provider_key in {"", "builtin"}:

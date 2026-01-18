@@ -25,32 +25,9 @@ from typing import Optional
 
 from fastapi import FastAPI
 
+from gearmeshing_ai.server.core.config import settings
+
 logger = logging.getLogger(__name__)
-
-# Logfire configuration from environment
-LOGFIRE_ENABLED = os.getenv("LOGFIRE_ENABLED", "false").lower() in ("true", "1", "yes")
-LOGFIRE_TOKEN = os.getenv("LOGFIRE_TOKEN", "")
-LOGFIRE_PROJECT_NAME = os.getenv("LOGFIRE_PROJECT_NAME", "gearmeshing-ai")
-LOGFIRE_ENVIRONMENT = os.getenv("LOGFIRE_ENVIRONMENT", "development")
-LOGFIRE_SERVICE_NAME = os.getenv("LOGFIRE_SERVICE_NAME", "gearmeshing-ai-server")
-LOGFIRE_SERVICE_VERSION = os.getenv("LOGFIRE_SERVICE_VERSION", "0.0.0")
-
-# Sampling configuration
-LOGFIRE_SAMPLE_RATE = float(os.getenv("LOGFIRE_SAMPLE_RATE", "1.0"))
-LOGFIRE_TRACE_SAMPLE_RATE = float(os.getenv("LOGFIRE_TRACE_SAMPLE_RATE", "1.0"))
-
-# Feature flags
-LOGFIRE_TRACE_PYDANTIC_AI = os.getenv("LOGFIRE_TRACE_PYDANTIC_AI", "true").lower() in ("true", "1", "yes")
-LOGFIRE_TRACE_SQLALCHEMY = os.getenv("LOGFIRE_TRACE_SQLALCHEMY", "true").lower() in ("true", "1", "yes")
-LOGFIRE_TRACE_HTTPX = os.getenv("LOGFIRE_TRACE_HTTPX", "true").lower() in ("true", "1", "yes")
-LOGFIRE_TRACE_FASTAPI = os.getenv("LOGFIRE_TRACE_FASTAPI", "true").lower() in ("true", "1", "yes")
-
-# LangSmith configuration from environment
-# LANGSMITH_TRACING enables automatic tracing of LangGraph and LangChain operations
-LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING", "false").lower() in ("true", "1", "yes")
-LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY", "")
-LANGSMITH_PROJECT = os.getenv("LANGSMITH_PROJECT", "gearmeshing-ai")
-LANGSMITH_ENDPOINT = os.getenv("LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
 
 
 def initialize_logfire(app: FastAPI | None = None) -> None:
@@ -67,32 +44,35 @@ def initialize_logfire(app: FastAPI | None = None) -> None:
         app: FastAPI application instance for FastAPI instrumentation (optional).
              If provided, enables automatic tracing of FastAPI endpoints.
 
-    The initialization is conditional based on LOGFIRE_ENABLED environment variable.
+    The initialization is conditional based on settings.logfire.enabled.
     """
-    if not LOGFIRE_ENABLED:
-        logger.info("Logfire monitoring is disabled. Set LOGFIRE_ENABLED=true to enable.")
+    if not settings.logfire.enabled:
+        logger.info("Logfire monitoring is disabled. Set LOGFIRE__ENABLED=true to enable.")
         return
 
-    if not LOGFIRE_TOKEN:
+    if not settings.logfire.token:
         logger.warning(
-            "Logfire is enabled but LOGFIRE_TOKEN is not set. "
-            "Monitoring will not work. Set LOGFIRE_TOKEN to enable Logfire."
+            "Logfire is enabled but LOGFIRE__TOKEN is not set. "
+            "Monitoring will not work. Set LOGFIRE__TOKEN to enable Logfire."
         )
         return
 
     try:
         import logfire
 
+        # Get the secret token value
+        token_value = settings.logfire.token.get_secret_value() if settings.logfire.token else None
+
         # Configure Logfire with project settings
         logfire.configure(
-            token=LOGFIRE_TOKEN,
-            service_name=LOGFIRE_SERVICE_NAME,
-            service_version=LOGFIRE_SERVICE_VERSION,
-            environment=LOGFIRE_ENVIRONMENT,
+            token=token_value,
+            service_name=settings.logfire.service_name,
+            service_version=settings.logfire.service_version,
+            environment=settings.logfire.environment,
         )
 
         # Instrument Pydantic AI
-        if LOGFIRE_TRACE_PYDANTIC_AI:
+        if settings.logfire.trace_pydantic_ai:
             try:
                 logfire.instrument_pydantic_ai()
                 logger.info("Logfire: Pydantic AI instrumentation enabled")
@@ -100,7 +80,7 @@ def initialize_logfire(app: FastAPI | None = None) -> None:
                 logger.warning(f"Failed to instrument Pydantic AI: {e}")
 
         # Instrument SQLAlchemy
-        if LOGFIRE_TRACE_SQLALCHEMY:
+        if settings.logfire.trace_sqlalchemy:
             try:
                 logfire.instrument_sqlalchemy()
                 logger.info("Logfire: SQLAlchemy instrumentation enabled")
@@ -108,7 +88,7 @@ def initialize_logfire(app: FastAPI | None = None) -> None:
                 logger.warning(f"Failed to instrument SQLAlchemy: {e}")
 
         # Instrument HTTPX
-        if LOGFIRE_TRACE_HTTPX:
+        if settings.logfire.trace_httpx:
             try:
                 logfire.instrument_httpx()
                 logger.info("Logfire: HTTPX instrumentation enabled")
@@ -116,7 +96,7 @@ def initialize_logfire(app: FastAPI | None = None) -> None:
                 logger.warning(f"Failed to instrument HTTPX: {e}")
 
         # Instrument FastAPI
-        if LOGFIRE_TRACE_FASTAPI:
+        if settings.logfire.trace_fastapi:
             try:
                 if app is not None:
                     logfire.instrument_fastapi(app=app)
@@ -128,9 +108,9 @@ def initialize_logfire(app: FastAPI | None = None) -> None:
 
         logger.info(
             f"Logfire monitoring initialized: "
-            f"project={LOGFIRE_PROJECT_NAME}, "
-            f"environment={LOGFIRE_ENVIRONMENT}, "
-            f"service={LOGFIRE_SERVICE_NAME}"
+            f"project={settings.logfire.project_name}, "
+            f"environment={settings.logfire.environment}, "
+            f"service={settings.logfire.service_name}"
         )
 
     except ImportError:
@@ -152,34 +132,39 @@ def initialize_langsmith() -> None:
     - Error and exception tracking in agent workflows
 
     LangSmith uses environment variables for configuration:
-    - LANGSMITH_TRACING: Enable/disable tracing (true/false)
-    - LANGSMITH_API_KEY: API key for authentication
-    - LANGSMITH_PROJECT: Project name for organizing traces
-    - LANGSMITH_ENDPOINT: API endpoint (default: https://api.smith.langchain.com)
+    - LANGSMITH__TRACING: Enable/disable tracing (true/false)
+    - LANGSMITH__API_KEY: API key for authentication
+    - LANGSMITH__PROJECT: Project name for organizing traces
+    - LANGSMITH__ENDPOINT: API endpoint (default: https://api.smith.langchain.com)
 
-    When LANGSMITH_TRACING=true, LangGraph runs are automatically traced.
+    When LANGSMITH__TRACING=true, LangGraph runs are automatically traced.
     """
-    if not LANGSMITH_TRACING:
-        logger.debug("LangSmith tracing is disabled. Set LANGSMITH_TRACING=true to enable.")
+    if not settings.langsmith.tracing:
+        logger.debug("LangSmith tracing is disabled. Set LANGSMITH__TRACING=true to enable.")
         return
 
-    if not LANGSMITH_API_KEY:
+    if not settings.langsmith.api_key:
         logger.warning(
-            "LangSmith tracing is enabled but LANGSMITH_API_KEY is not set. "
-            "Tracing will not work. Set LANGSMITH_API_KEY to enable LangSmith."
+            "LangSmith tracing is enabled but LANGSMITH__API_KEY is not set. "
+            "Tracing will not work. Set LANGSMITH__API_KEY to enable LangSmith."
         )
         return
 
     try:
+        # Get the secret API key value
+        api_key_value = settings.langsmith.api_key.get_secret_value() if settings.langsmith.api_key else None
+
         # Set LangSmith environment variables for automatic instrumentation
         # These must be set before LangGraph/LangChain operations are initialized
         os.environ["LANGSMITH_TRACING"] = "true"
-        os.environ["LANGSMITH_API_KEY"] = LANGSMITH_API_KEY
-        os.environ["LANGSMITH_PROJECT"] = LANGSMITH_PROJECT
-        os.environ["LANGSMITH_ENDPOINT"] = LANGSMITH_ENDPOINT
+        os.environ["LANGSMITH_API_KEY"] = api_key_value or ""
+        os.environ["LANGSMITH_PROJECT"] = settings.langsmith.project
+        os.environ["LANGSMITH_ENDPOINT"] = settings.langsmith.endpoint
 
         logger.info(
-            f"LangSmith tracing initialized: " f"project={LANGSMITH_PROJECT}, " f"endpoint={LANGSMITH_ENDPOINT}"
+            f"LangSmith tracing initialized: "
+            f"project={settings.langsmith.project}, "
+            f"endpoint={settings.langsmith.endpoint}"
         )
 
     except Exception as e:

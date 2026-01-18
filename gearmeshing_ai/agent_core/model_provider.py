@@ -20,7 +20,6 @@ by the abstraction layer's adapters (e.g., PydanticAIAdapter).
 from __future__ import annotations
 
 import logging
-import os
 from typing import TYPE_CHECKING, Optional
 
 from pydantic_ai import ModelSettings
@@ -131,11 +130,14 @@ class ModelProvider:
             OpenAIResponsesModel instance.
 
         Raises:
-            RuntimeError: If OPENAI_API_KEY is not set.
+            RuntimeError: If AI_PROVIDER__OPENAI__API_KEY is not set.
         """
-        api_key: Optional[str] = os.getenv("OPENAI_API_KEY")
+        from gearmeshing_ai.server.core.config import settings
+
+        api_key_secret = settings.ai_provider.openai.api_key
+        api_key: Optional[str] = api_key_secret.get_secret_value() if api_key_secret else None
         if not api_key:
-            raise RuntimeError("OPENAI_API_KEY environment variable is not set")
+            raise RuntimeError("AI_PROVIDER__OPENAI__API_KEY environment variable is not set")
 
         # Use defaults if not provided
         temperature_val: float = temperature or 0.7
@@ -147,13 +149,13 @@ class ModelProvider:
         )
 
         # Create model settings for Pydantic AI
-        settings: ModelSettings = ModelSettings(
+        model_settings: ModelSettings = ModelSettings(
             temperature=temperature_val,
             max_tokens=max_tokens_val,
             top_p=top_p_val,
         )
 
-        return OpenAIResponsesModel(model, settings=settings)
+        return OpenAIResponsesModel(model, settings=model_settings)
 
     def _create_anthropic_model(
         self,
@@ -174,11 +176,14 @@ class ModelProvider:
             AnthropicModel instance.
 
         Raises:
-            RuntimeError: If ANTHROPIC_API_KEY is not set.
+            RuntimeError: If AI_PROVIDER__ANTHROPIC__API_KEY is not set.
         """
-        api_key: Optional[str] = os.getenv("ANTHROPIC_API_KEY")
+        from gearmeshing_ai.server.core.config import settings
+
+        api_key_secret = settings.ai_provider.anthropic.api_key
+        api_key: Optional[str] = api_key_secret.get_secret_value() if api_key_secret else None
         if not api_key:
-            raise RuntimeError("ANTHROPIC_API_KEY environment variable is not set")
+            raise RuntimeError("AI_PROVIDER__ANTHROPIC__API_KEY environment variable is not set")
 
         # Use defaults if not provided
         temperature_val: float = temperature or 0.7
@@ -190,13 +195,13 @@ class ModelProvider:
         )
 
         # Create model settings for Pydantic AI
-        settings: ModelSettings = ModelSettings(
+        model_settings: ModelSettings = ModelSettings(
             temperature=temperature_val,
             max_tokens=max_tokens_val,
             top_p=top_p_val,
         )
 
-        return AnthropicModel(model, settings=settings)
+        return AnthropicModel(model, settings=model_settings)
 
     def _create_google_model(
         self,
@@ -217,11 +222,14 @@ class ModelProvider:
             GoogleModel instance.
 
         Raises:
-            RuntimeError: If GOOGLE_API_KEY is not set.
+            RuntimeError: If AI_PROVIDER__GOOGLE__API_KEY is not set.
         """
-        api_key: Optional[str] = os.getenv("GOOGLE_API_KEY")
+        from gearmeshing_ai.server.core.config import settings
+
+        api_key_secret = settings.ai_provider.google.api_key
+        api_key: Optional[str] = api_key_secret.get_secret_value() if api_key_secret else None
         if not api_key:
-            raise RuntimeError("GOOGLE_API_KEY environment variable is not set")
+            raise RuntimeError("AI_PROVIDER__GOOGLE__API_KEY environment variable is not set")
 
         # Use defaults if not provided
         temperature_val: float = temperature or 0.7
@@ -233,13 +241,13 @@ class ModelProvider:
         )
 
         # Create model settings for Pydantic AI
-        settings: ModelSettings = ModelSettings(
+        model_settings: ModelSettings = ModelSettings(
             temperature=temperature_val,
             max_tokens=max_tokens_val,
             top_p=top_p_val,
         )
 
-        return GoogleModel(model, settings=settings)
+        return GoogleModel(model, settings=model_settings)
 
     def get_provider_from_model_name(self, model_name: str) -> str:
         """Determine the provider from a model name using regex patterns.
@@ -412,7 +420,7 @@ async def async_create_model_for_role(
     try:
         # Create a sync engine and session for model provider
         # The model provider requires a sync session, so we create one here
-        sync_engine = sync_create_engine(settings.database_url)
+        sync_engine = sync_create_engine(settings.database.url)
 
         session = Session(sync_engine)
         try:

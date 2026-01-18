@@ -50,7 +50,7 @@ class TestSetupLoggingLogLevels:
         assert console_handler.level == expected_level
 
     def test_setup_logging_default_level(self):
-        """Test setup_logging uses INFO as default level."""
+        """Test setup_logging uses configured default level."""
         setup_logging(enable_file=False)
 
         root_logger = logging.getLogger()
@@ -60,8 +60,8 @@ class TestSetupLoggingLogLevels:
         )
 
         assert console_handler is not None
-        # Default should be INFO or higher
-        assert console_handler.level >= logging.INFO
+        # Default level comes from Settings model (can be DEBUG, INFO, etc.)
+        assert console_handler.level in (logging.DEBUG, logging.INFO, logging.WARNING)
 
 
 class TestSetupLoggingFormats:
@@ -509,20 +509,11 @@ class TestLoggingIntegration:
 
 
 class TestLoggingEnvironmentVariables:
-    """Test logging configuration with environment variables."""
+    """Test logging configuration with Settings model."""
 
-    def test_setup_logging_respects_env_log_level(self, monkeypatch):
-        """Test setup_logging respects LOG_LEVEL environment variable."""
-        monkeypatch.setenv("LOG_LEVEL", "DEBUG")
-
-        # Re-import to get new env var
-        from importlib import reload
-
-        import gearmeshing_ai.core.logging_config as logging_config
-
-        reload(logging_config)
-
-        setup_logging(enable_file=False)
+    def test_setup_logging_with_settings_log_level(self):
+        """Test setup_logging uses log level from Settings."""
+        setup_logging(log_level="DEBUG", enable_file=False)
         root_logger = logging.getLogger()
         console_handler = next(
             (h for h in root_logger.handlers if isinstance(h, logging.StreamHandler)),
@@ -530,18 +521,11 @@ class TestLoggingEnvironmentVariables:
         )
 
         assert console_handler is not None
+        assert console_handler.level == logging.DEBUG
 
-    def test_setup_logging_respects_env_log_format(self, monkeypatch):
-        """Test setup_logging respects LOG_FORMAT environment variable."""
-        monkeypatch.setenv("LOG_FORMAT", "json")
-
-        from importlib import reload
-
-        import gearmeshing_ai.core.logging_config as logging_config
-
-        reload(logging_config)
-
-        setup_logging(enable_file=False)
+    def test_setup_logging_with_settings_log_format(self):
+        """Test setup_logging uses log format from Settings."""
+        setup_logging(log_format="json", enable_file=False)
         root_logger = logging.getLogger()
         console_handler = next(
             (h for h in root_logger.handlers if isinstance(h, logging.StreamHandler)),
@@ -605,3 +589,286 @@ class TestLoggingEdgeCases:
 
         assert console_handler is not None
         assert console_handler.level == logging.WARNING
+
+
+class TestGetLoggingConfigErrorHandling:
+    """Test error handling in _get_logging_config function (L37-L45)."""
+
+    def test_get_logging_config_fallback_on_import_error(self):
+        """Test that _get_logging_config falls back to env vars when settings import fails."""
+        import builtins
+
+        original_import = builtins.__import__
+
+        def mock_import_func(name, *args, **kwargs):
+            if "gearmeshing_ai.server.core.config" in name:
+                raise ImportError("Settings module not found")
+            return original_import(name, *args, **kwargs)
+
+        try:
+            builtins.__import__ = mock_import_func
+            from gearmeshing_ai.core.logging_config import _get_logging_config
+
+            config = _get_logging_config()
+
+            # Should return config from environment variables
+            assert isinstance(config, dict)
+            assert "log_level" in config
+            assert "log_format" in config
+            assert "log_file_dir" in config
+            assert "enable_file_logging" in config
+        finally:
+            builtins.__import__ = original_import
+
+    def test_get_logging_config_fallback_env_var_log_level(self):
+        """Test that fallback uses GEARMESHING_AI_LOG_LEVEL from environment."""
+        import builtins
+
+        original_import = builtins.__import__
+
+        def mock_import_func(name, *args, **kwargs):
+            if "gearmeshing_ai.server.core.config" in name:
+                raise ImportError("Settings module not found")
+            return original_import(name, *args, **kwargs)
+
+        try:
+            with patch.dict("os.environ", {"GEARMESHING_AI_LOG_LEVEL": "DEBUG"}, clear=False):
+                builtins.__import__ = mock_import_func
+                from gearmeshing_ai.core.logging_config import _get_logging_config
+
+                config = _get_logging_config()
+
+                # Should use the DEBUG from environment
+                assert config["log_level"] == "DEBUG"
+        finally:
+            builtins.__import__ = original_import
+
+    def test_get_logging_config_fallback_env_var_log_format(self):
+        """Test that fallback uses LOG_FORMAT from environment."""
+        import builtins
+
+        original_import = builtins.__import__
+
+        def mock_import_func(name, *args, **kwargs):
+            if "gearmeshing_ai.server.core.config" in name:
+                raise ImportError("Settings module not found")
+            return original_import(name, *args, **kwargs)
+
+        try:
+            with patch.dict("os.environ", {"LOG_FORMAT": "json"}, clear=False):
+                builtins.__import__ = mock_import_func
+                from gearmeshing_ai.core.logging_config import _get_logging_config
+
+                config = _get_logging_config()
+
+                # Should use the json format from environment
+                assert config["log_format"] == "json"
+        finally:
+            builtins.__import__ = original_import
+
+    def test_get_logging_config_fallback_env_var_log_file_dir(self):
+        """Test that fallback uses LOG_FILE_DIR from environment."""
+        import builtins
+
+        original_import = builtins.__import__
+
+        def mock_import_func(name, *args, **kwargs):
+            if "gearmeshing_ai.server.core.config" in name:
+                raise ImportError("Settings module not found")
+            return original_import(name, *args, **kwargs)
+
+        try:
+            with patch.dict("os.environ", {"LOG_FILE_DIR": "/custom/logs"}, clear=False):
+                builtins.__import__ = mock_import_func
+                from gearmeshing_ai.core.logging_config import _get_logging_config
+
+                config = _get_logging_config()
+
+                # Should use the custom path from environment
+                assert config["log_file_dir"] == "/custom/logs"
+        finally:
+            builtins.__import__ = original_import
+
+    def test_get_logging_config_fallback_env_var_enable_file_logging_true(self):
+        """Test that fallback uses ENABLE_FILE_LOGGING=true from environment."""
+        import builtins
+
+        original_import = builtins.__import__
+
+        def mock_import_func(name, *args, **kwargs):
+            if "gearmeshing_ai.server.core.config" in name:
+                raise ImportError("Settings module not found")
+            return original_import(name, *args, **kwargs)
+
+        try:
+            with patch.dict("os.environ", {"ENABLE_FILE_LOGGING": "true"}, clear=False):
+                builtins.__import__ = mock_import_func
+                from gearmeshing_ai.core.logging_config import _get_logging_config
+
+                config = _get_logging_config()
+
+                # Should be True
+                assert config["enable_file_logging"] is True
+        finally:
+            builtins.__import__ = original_import
+
+    def test_get_logging_config_fallback_env_var_enable_file_logging_false(self):
+        """Test that fallback uses ENABLE_FILE_LOGGING=false from environment."""
+        import builtins
+
+        original_import = builtins.__import__
+
+        def mock_import_func(name, *args, **kwargs):
+            if "gearmeshing_ai.server.core.config" in name:
+                raise ImportError("Settings module not found")
+            return original_import(name, *args, **kwargs)
+
+        try:
+            with patch.dict("os.environ", {"ENABLE_FILE_LOGGING": "false"}, clear=False):
+                builtins.__import__ = mock_import_func
+                from gearmeshing_ai.core.logging_config import _get_logging_config
+
+                config = _get_logging_config()
+
+                # Should be False
+                assert config["enable_file_logging"] is False
+        finally:
+            builtins.__import__ = original_import
+
+    def test_get_logging_config_fallback_env_var_enable_file_logging_1(self):
+        """Test that fallback treats ENABLE_FILE_LOGGING=1 as true."""
+        import builtins
+
+        original_import = builtins.__import__
+
+        def mock_import_func(name, *args, **kwargs):
+            if "gearmeshing_ai.server.core.config" in name:
+                raise ImportError("Settings module not found")
+            return original_import(name, *args, **kwargs)
+
+        try:
+            with patch.dict("os.environ", {"ENABLE_FILE_LOGGING": "1"}, clear=False):
+                builtins.__import__ = mock_import_func
+                from gearmeshing_ai.core.logging_config import _get_logging_config
+
+                config = _get_logging_config()
+
+                # Should be True
+                assert config["enable_file_logging"] is True
+        finally:
+            builtins.__import__ = original_import
+
+    def test_get_logging_config_fallback_env_var_enable_file_logging_yes(self):
+        """Test that fallback treats ENABLE_FILE_LOGGING=yes as true."""
+        import builtins
+
+        original_import = builtins.__import__
+
+        def mock_import_func(name, *args, **kwargs):
+            if "gearmeshing_ai.server.core.config" in name:
+                raise ImportError("Settings module not found")
+            return original_import(name, *args, **kwargs)
+
+        try:
+            with patch.dict("os.environ", {"ENABLE_FILE_LOGGING": "yes"}, clear=False):
+                builtins.__import__ = mock_import_func
+                from gearmeshing_ai.core.logging_config import _get_logging_config
+
+                config = _get_logging_config()
+
+                # Should be True
+                assert config["enable_file_logging"] is True
+        finally:
+            builtins.__import__ = original_import
+
+    def test_get_logging_config_fallback_default_log_level(self):
+        """Test that fallback defaults to INFO for log level."""
+        import builtins
+
+        original_import = builtins.__import__
+
+        def mock_import_func(name, *args, **kwargs):
+            if "gearmeshing_ai.server.core.config" in name:
+                raise ImportError("Settings module not found")
+            return original_import(name, *args, **kwargs)
+
+        try:
+            with patch.dict("os.environ", {}, clear=True):
+                builtins.__import__ = mock_import_func
+                from gearmeshing_ai.core.logging_config import _get_logging_config
+
+                config = _get_logging_config()
+
+                # Should default to INFO
+                assert config["log_level"] == "INFO"
+        finally:
+            builtins.__import__ = original_import
+
+    def test_get_logging_config_fallback_default_log_format(self):
+        """Test that fallback defaults to 'detailed' for log format."""
+        import builtins
+
+        original_import = builtins.__import__
+
+        def mock_import_func(name, *args, **kwargs):
+            if "gearmeshing_ai.server.core.config" in name:
+                raise ImportError("Settings module not found")
+            return original_import(name, *args, **kwargs)
+
+        try:
+            with patch.dict("os.environ", {}, clear=True):
+                builtins.__import__ = mock_import_func
+                from gearmeshing_ai.core.logging_config import _get_logging_config
+
+                config = _get_logging_config()
+
+                # Should default to detailed
+                assert config["log_format"] == "detailed"
+        finally:
+            builtins.__import__ = original_import
+
+    def test_get_logging_config_fallback_default_log_file_dir(self):
+        """Test that fallback defaults to 'logs' for log file directory."""
+        import builtins
+
+        original_import = builtins.__import__
+
+        def mock_import_func(name, *args, **kwargs):
+            if "gearmeshing_ai.server.core.config" in name:
+                raise ImportError("Settings module not found")
+            return original_import(name, *args, **kwargs)
+
+        try:
+            with patch.dict("os.environ", {}, clear=True):
+                builtins.__import__ = mock_import_func
+                from gearmeshing_ai.core.logging_config import _get_logging_config
+
+                config = _get_logging_config()
+
+                # Should default to logs
+                assert config["log_file_dir"] == "logs"
+        finally:
+            builtins.__import__ = original_import
+
+    def test_get_logging_config_fallback_default_enable_file_logging(self):
+        """Test that fallback defaults to True for enable_file_logging."""
+        import builtins
+
+        original_import = builtins.__import__
+
+        def mock_import_func(name, *args, **kwargs):
+            if "gearmeshing_ai.server.core.config" in name:
+                raise ImportError("Settings module not found")
+            return original_import(name, *args, **kwargs)
+
+        try:
+            with patch.dict("os.environ", {}, clear=True):
+                builtins.__import__ = mock_import_func
+                from gearmeshing_ai.core.logging_config import _get_logging_config
+
+                config = _get_logging_config()
+
+                # Should default to True
+                assert config["enable_file_logging"] is True
+        finally:
+            builtins.__import__ = original_import

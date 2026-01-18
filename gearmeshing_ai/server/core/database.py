@@ -22,7 +22,7 @@ engine:
     The global SQLAlchemy AsyncEngine instance.
     Configured with the connection URL from settings and optimized for async usage.
 """
-engine = create_engine(settings.database_url)
+engine = create_engine(settings.database.url)
 
 # Create Session Factory
 """
@@ -43,7 +43,7 @@ from psycopg_pool import AsyncConnectionPool
 # Convert sqlalchemy URL to psycopg URL (remove +asyncpg if present)
 # sqlalchemy: postgresql+asyncpg://user:pass@host/db
 # psycopg: postgresql://user:pass@host/db
-psycopg_url = settings.database_url.replace("+asyncpg", "")
+psycopg_url = settings.database.url.replace("+asyncpg", "")
 checkpointer_pool = AsyncConnectionPool(conninfo=psycopg_url, open=False)
 
 

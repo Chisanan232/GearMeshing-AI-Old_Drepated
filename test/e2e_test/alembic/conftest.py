@@ -25,44 +25,52 @@ def _compose_env():
             prev[k] = os.environ[k]
         os.environ[k] = v
 
-    # PostgreSQL - use server settings defaults
-    postgres_config = settings.postgres
-    _set("POSTGRES_DB", postgres_config.db)
-    _set("POSTGRES_USER", postgres_config.user)
-    _set("POSTGRES_PASSWORD", postgres_config.password)
+    # PostgreSQL - use server settings defaults (with nested delimiter pattern)
+    postgres_config = settings.database.postgres
+    _set("DATABASE__POSTGRES__DB", postgres_config.db)
+    _set("DATABASE__POSTGRES__USER", postgres_config.user)
+    _set("DATABASE__POSTGRES__PASSWORD", postgres_config.password.get_secret_value())
 
-    # MCP Gateway - use server settings defaults
-    mcp_gateway_config = settings.mcp_gateway
-    _set("MCPGATEWAY_JWT_SECRET", mcp_gateway_config.jwt_secret)
-    _set("MCPGATEWAY_ADMIN_PASSWORD", mcp_gateway_config.admin_password)
-    _set("MCPGATEWAY_ADMIN_EMAIL", mcp_gateway_config.admin_email)
-    _set("MCPGATEWAY_ADMIN_FULL_NAME", mcp_gateway_config.admin_full_name)
-    _set("MCPGATEWAY_DB_URL", mcp_gateway_config.db_url)
-    _set("MCPGATEWAY_REDIS_URL", mcp_gateway_config.redis_url)
+    # MCP Gateway - use server settings defaults (with nested delimiter pattern)
+    mcp_gateway_config = settings.mcp.gateway
+    _set("MCPGATEWAY__JWT_SECRET", mcp_gateway_config.jwt_secret.get_secret_value())
+    _set("MCPGATEWAY__ADMIN_PASSWORD", mcp_gateway_config.admin_password.get_secret_value())
+    _set("MCPGATEWAY__ADMIN_EMAIL", mcp_gateway_config.admin_email)
+    _set("MCPGATEWAY__ADMIN_FULL_NAME", mcp_gateway_config.admin_full_name)
+    _set("MCPGATEWAY__DB_URL", mcp_gateway_config.db_url.get_secret_value())
+    _set("MCPGATEWAY__REDIS_URL", mcp_gateway_config.redis_url)
 
-    # ClickUp MCP - use server settings defaults
-    clickup_config = settings.clickup
-    _set("CLICKUP_SERVER_HOST", clickup_config.server_host)
-    _set("CLICKUP_SERVER_PORT", str(clickup_config.server_port))
-    _set("CLICKUP_MCP_TRANSPORT", clickup_config.mcp_transport)
+    # ClickUp MCP - use server settings defaults (with nested delimiter pattern)
+    clickup_config = settings.mcp.clickup
+    _set("MCP__CLICKUP__SERVER_HOST", clickup_config.host)
+    _set("MCP__CLICKUP__SERVER_PORT", str(clickup_config.port))
+    _set("MCP__CLICKUP__MCP_TRANSPORT", clickup_config.mcp_transport)
     # Token must be provided by env for real runs; default for CI/e2e
-    _set("CLICKUP_API_TOKEN", clickup_config.api_token or "e2e-test-token")
-    _set("MQ_BACKEND", "redis")
+    _set(
+        "MCP__CLICKUP__API_TOKEN",
+        clickup_config.api_token.get_secret_value() if clickup_config.api_token else "e2e-test-token",
+    )
+    _set("MQ__BACKEND", "redis")
 
     try:
         yield
     finally:
         for k in list(
             {
-                "POSTGRES_DB",
-                "POSTGRES_USER",
-                "POSTGRES_PASSWORD",
-                "MCPGATEWAY_JWT_SECRET",
-                "MCPGATEWAY_ADMIN_PASSWORD",
-                "MCPGATEWAY_ADMIN_EMAIL",
-                "MCPGATEWAY_ADMIN_FULL_NAME",
-                "MCPGATEWAY_DB_URL",
-                "MCPGATEWAY_REDIS_URL",
+                "DATABASE__POSTGRES__DB",
+                "DATABASE__POSTGRES__USER",
+                "DATABASE__POSTGRES__PASSWORD",
+                "MCPGATEWAY__JWT_SECRET",
+                "MCPGATEWAY__ADMIN_PASSWORD",
+                "MCPGATEWAY__ADMIN_EMAIL",
+                "MCPGATEWAY__ADMIN_FULL_NAME",
+                "MCPGATEWAY__DB_URL",
+                "MCPGATEWAY__REDIS_URL",
+                "MCP__CLICKUP__SERVER_HOST",
+                "MCP__CLICKUP__SERVER_PORT",
+                "MCP__CLICKUP__MCP_TRANSPORT",
+                "MCP__CLICKUP__API_TOKEN",
+                "MQ__BACKEND",
             }
         ):
             if k in prev:
@@ -90,15 +98,15 @@ def compose_stack(_compose_env):
 @pytest.fixture(scope="session")
 def database_url(compose_stack) -> str:
     """Get async test database URL from test settings."""
-    postgres_config = test_settings.postgres
-    return f"postgresql+asyncpg://{postgres_config.user}:{postgres_config.password}@127.0.0.1:{postgres_config.port}/{postgres_config.db}"
+    postgres_config = test_settings.database.postgres
+    return f"postgresql+asyncpg://{postgres_config.user}:{postgres_config.password.get_secret_value()}@127.0.0.1:{postgres_config.port}/{postgres_config.db}"
 
 
 @pytest.fixture(scope="session")
 def sync_database_url(compose_stack) -> str:
     """Get sync test database URL from test settings."""
-    postgres_config = test_settings.postgres
-    return f"postgresql://{postgres_config.user}:{postgres_config.password}@127.0.0.1:{postgres_config.port}/{postgres_config.db}"
+    postgres_config = test_settings.database.postgres
+    return f"postgresql://{postgres_config.user}:{postgres_config.password.get_secret_value()}@127.0.0.1:{postgres_config.port}/{postgres_config.db}"
 
 
 @pytest.fixture

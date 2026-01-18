@@ -46,7 +46,7 @@ async def lifespan(app: FastAPI):
     try:
         logger.info("Starting up GearMeshing-AI Server...")
 
-        if settings.enable_database:
+        if settings.database.enable:
             logger.info("Database connectivity enabled. Initializing database...")
             await init_db()
             logger.info("Database initialized successfully")
@@ -65,7 +65,7 @@ async def lifespan(app: FastAPI):
                 await checkpointer.setup()
             logger.info("LangGraph checkpointer initialized successfully")
         else:
-            logger.info("Running in standalone mode without database connectivity (ENABLE_DATABASE=false)")
+            logger.info("Running in standalone mode without database connectivity (DATABASE__ENABLE=false)")
 
     except Exception as e:
         logger.error(f"Initialization failed: {e}", exc_info=True)
@@ -75,7 +75,7 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     logger.info("Shutting down GearMeshing-AI Server...")
-    if settings.enable_database:
+    if settings.database.enable:
         await checkpointer_pool.close()
 
 

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-# Import test settings (Pydantic BaseSettings automatically loads from .env)
-from test.settings import test_settings
 from typing import Iterable
 
 import httpx
@@ -15,6 +13,8 @@ def test_config():
     Returns:
         TestSettings: Test configuration with all environment variables loaded
     """
+    from test.settings import test_settings
+
     return test_settings
 
 
