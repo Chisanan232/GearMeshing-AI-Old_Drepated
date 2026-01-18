@@ -597,6 +597,7 @@ class TestGetLoggingConfigErrorHandling:
     def test_get_logging_config_fallback_on_import_error(self):
         """Test that _get_logging_config falls back to env vars when settings import fails."""
         import builtins
+
         original_import = builtins.__import__
 
         def mock_import_func(name, *args, **kwargs):
@@ -607,6 +608,7 @@ class TestGetLoggingConfigErrorHandling:
         try:
             builtins.__import__ = mock_import_func
             from gearmeshing_ai.core.logging_config import _get_logging_config
+
             config = _get_logging_config()
 
             # Should return config from environment variables
@@ -621,6 +623,7 @@ class TestGetLoggingConfigErrorHandling:
     def test_get_logging_config_fallback_env_var_log_level(self):
         """Test that fallback uses GEARMESHING_AI_LOG_LEVEL from environment."""
         import builtins
+
         original_import = builtins.__import__
 
         def mock_import_func(name, *args, **kwargs):
@@ -632,6 +635,7 @@ class TestGetLoggingConfigErrorHandling:
             with patch.dict("os.environ", {"GEARMESHING_AI_LOG_LEVEL": "DEBUG"}, clear=False):
                 builtins.__import__ = mock_import_func
                 from gearmeshing_ai.core.logging_config import _get_logging_config
+
                 config = _get_logging_config()
 
                 # Should use the DEBUG from environment
@@ -642,6 +646,7 @@ class TestGetLoggingConfigErrorHandling:
     def test_get_logging_config_fallback_env_var_log_format(self):
         """Test that fallback uses LOG_FORMAT from environment."""
         import builtins
+
         original_import = builtins.__import__
 
         def mock_import_func(name, *args, **kwargs):
@@ -653,6 +658,7 @@ class TestGetLoggingConfigErrorHandling:
             with patch.dict("os.environ", {"LOG_FORMAT": "json"}, clear=False):
                 builtins.__import__ = mock_import_func
                 from gearmeshing_ai.core.logging_config import _get_logging_config
+
                 config = _get_logging_config()
 
                 # Should use the json format from environment
@@ -663,6 +669,7 @@ class TestGetLoggingConfigErrorHandling:
     def test_get_logging_config_fallback_env_var_log_file_dir(self):
         """Test that fallback uses LOG_FILE_DIR from environment."""
         import builtins
+
         original_import = builtins.__import__
 
         def mock_import_func(name, *args, **kwargs):
@@ -674,6 +681,7 @@ class TestGetLoggingConfigErrorHandling:
             with patch.dict("os.environ", {"LOG_FILE_DIR": "/custom/logs"}, clear=False):
                 builtins.__import__ = mock_import_func
                 from gearmeshing_ai.core.logging_config import _get_logging_config
+
                 config = _get_logging_config()
 
                 # Should use the custom path from environment
@@ -684,6 +692,7 @@ class TestGetLoggingConfigErrorHandling:
     def test_get_logging_config_fallback_env_var_enable_file_logging_true(self):
         """Test that fallback uses ENABLE_FILE_LOGGING=true from environment."""
         import builtins
+
         original_import = builtins.__import__
 
         def mock_import_func(name, *args, **kwargs):
@@ -695,6 +704,7 @@ class TestGetLoggingConfigErrorHandling:
             with patch.dict("os.environ", {"ENABLE_FILE_LOGGING": "true"}, clear=False):
                 builtins.__import__ = mock_import_func
                 from gearmeshing_ai.core.logging_config import _get_logging_config
+
                 config = _get_logging_config()
 
                 # Should be True
@@ -705,6 +715,7 @@ class TestGetLoggingConfigErrorHandling:
     def test_get_logging_config_fallback_env_var_enable_file_logging_false(self):
         """Test that fallback uses ENABLE_FILE_LOGGING=false from environment."""
         import builtins
+
         original_import = builtins.__import__
 
         def mock_import_func(name, *args, **kwargs):
@@ -716,6 +727,7 @@ class TestGetLoggingConfigErrorHandling:
             with patch.dict("os.environ", {"ENABLE_FILE_LOGGING": "false"}, clear=False):
                 builtins.__import__ = mock_import_func
                 from gearmeshing_ai.core.logging_config import _get_logging_config
+
                 config = _get_logging_config()
 
                 # Should be False
@@ -726,6 +738,7 @@ class TestGetLoggingConfigErrorHandling:
     def test_get_logging_config_fallback_env_var_enable_file_logging_1(self):
         """Test that fallback treats ENABLE_FILE_LOGGING=1 as true."""
         import builtins
+
         original_import = builtins.__import__
 
         def mock_import_func(name, *args, **kwargs):
@@ -737,6 +750,7 @@ class TestGetLoggingConfigErrorHandling:
             with patch.dict("os.environ", {"ENABLE_FILE_LOGGING": "1"}, clear=False):
                 builtins.__import__ = mock_import_func
                 from gearmeshing_ai.core.logging_config import _get_logging_config
+
                 config = _get_logging_config()
 
                 # Should be True
@@ -747,6 +761,7 @@ class TestGetLoggingConfigErrorHandling:
     def test_get_logging_config_fallback_env_var_enable_file_logging_yes(self):
         """Test that fallback treats ENABLE_FILE_LOGGING=yes as true."""
         import builtins
+
         original_import = builtins.__import__
 
         def mock_import_func(name, *args, **kwargs):
@@ -758,6 +773,7 @@ class TestGetLoggingConfigErrorHandling:
             with patch.dict("os.environ", {"ENABLE_FILE_LOGGING": "yes"}, clear=False):
                 builtins.__import__ = mock_import_func
                 from gearmeshing_ai.core.logging_config import _get_logging_config
+
                 config = _get_logging_config()
 
                 # Should be True
@@ -768,6 +784,7 @@ class TestGetLoggingConfigErrorHandling:
     def test_get_logging_config_fallback_default_log_level(self):
         """Test that fallback defaults to INFO for log level."""
         import builtins
+
         original_import = builtins.__import__
 
         def mock_import_func(name, *args, **kwargs):
@@ -779,6 +796,7 @@ class TestGetLoggingConfigErrorHandling:
             with patch.dict("os.environ", {}, clear=True):
                 builtins.__import__ = mock_import_func
                 from gearmeshing_ai.core.logging_config import _get_logging_config
+
                 config = _get_logging_config()
 
                 # Should default to INFO
@@ -789,6 +807,7 @@ class TestGetLoggingConfigErrorHandling:
     def test_get_logging_config_fallback_default_log_format(self):
         """Test that fallback defaults to 'detailed' for log format."""
         import builtins
+
         original_import = builtins.__import__
 
         def mock_import_func(name, *args, **kwargs):
@@ -800,6 +819,7 @@ class TestGetLoggingConfigErrorHandling:
             with patch.dict("os.environ", {}, clear=True):
                 builtins.__import__ = mock_import_func
                 from gearmeshing_ai.core.logging_config import _get_logging_config
+
                 config = _get_logging_config()
 
                 # Should default to detailed
@@ -810,6 +830,7 @@ class TestGetLoggingConfigErrorHandling:
     def test_get_logging_config_fallback_default_log_file_dir(self):
         """Test that fallback defaults to 'logs' for log file directory."""
         import builtins
+
         original_import = builtins.__import__
 
         def mock_import_func(name, *args, **kwargs):
@@ -821,6 +842,7 @@ class TestGetLoggingConfigErrorHandling:
             with patch.dict("os.environ", {}, clear=True):
                 builtins.__import__ = mock_import_func
                 from gearmeshing_ai.core.logging_config import _get_logging_config
+
                 config = _get_logging_config()
 
                 # Should default to logs
@@ -831,6 +853,7 @@ class TestGetLoggingConfigErrorHandling:
     def test_get_logging_config_fallback_default_enable_file_logging(self):
         """Test that fallback defaults to True for enable_file_logging."""
         import builtins
+
         original_import = builtins.__import__
 
         def mock_import_func(name, *args, **kwargs):
@@ -842,6 +865,7 @@ class TestGetLoggingConfigErrorHandling:
             with patch.dict("os.environ", {}, clear=True):
                 builtins.__import__ = mock_import_func
                 from gearmeshing_ai.core.logging_config import _get_logging_config
+
                 config = _get_logging_config()
 
                 # Should default to True
