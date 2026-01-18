@@ -82,7 +82,7 @@ class TestPostgreSQLConfig(BaseModel):
 class TestDatabaseConfig(BaseModel):
     """Database configuration container for tests."""
 
-    url: str = Field(
+    test_url: str = Field(
         default="sqlite+aiosqlite:///:memory:",
         description="Test database connection URL (defaults to in-memory SQLite)",
     )
