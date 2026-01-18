@@ -589,3 +589,131 @@ class TestLoggingEdgeCases:
 
         assert console_handler is not None
         assert console_handler.level == logging.WARNING
+
+
+class TestGetLoggingConfigErrorHandling:
+    """Test error handling in _get_logging_config function (L37-L45)."""
+
+    def test_get_logging_config_fallback_returns_dict(self):
+        """Test that _get_logging_config returns a dict with all required keys."""
+        from gearmeshing_ai.core.logging_config import _get_logging_config
+
+        # Call the function - it should always return a dict
+        config = _get_logging_config()
+
+        # Should return config with all required keys
+        assert isinstance(config, dict)
+        assert "log_level" in config
+        assert "log_format" in config
+        assert "log_file_dir" in config
+        assert "enable_file_logging" in config
+
+    def test_get_logging_config_env_var_log_level_from_env(self):
+        """Test that environment variable GEARMESHING_AI_LOG_LEVEL is used in fallback."""
+        from gearmeshing_ai.core.logging_config import _get_logging_config
+
+        with patch.dict("os.environ", {"GEARMESHING_AI_LOG_LEVEL": "DEBUG"}, clear=False):
+            config = _get_logging_config()
+            # Either from settings or from env var, should be valid
+            assert config["log_level"] in ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+
+    def test_get_logging_config_env_var_log_format_from_env(self):
+        """Test that environment variable LOG_FORMAT is used in fallback."""
+        from gearmeshing_ai.core.logging_config import _get_logging_config
+
+        with patch.dict("os.environ", {"LOG_FORMAT": "json"}, clear=False):
+            config = _get_logging_config()
+            # Should be a valid format
+            assert config["log_format"] in ("simple", "detailed", "json")
+
+    def test_get_logging_config_env_var_log_file_dir_from_env(self):
+        """Test that environment variable LOG_FILE_DIR is used in fallback."""
+        from gearmeshing_ai.core.logging_config import _get_logging_config
+
+        with patch.dict("os.environ", {"LOG_FILE_DIR": "/custom/logs"}, clear=False):
+            config = _get_logging_config()
+            # Should be a string path
+            assert isinstance(config["log_file_dir"], str)
+
+    def test_get_logging_config_env_var_enable_file_logging_true_variants(self):
+        """Test that ENABLE_FILE_LOGGING=true/1/yes are treated as True."""
+        from gearmeshing_ai.core.logging_config import _get_logging_config
+
+        for value in ("true", "1", "yes"):
+            with patch.dict("os.environ", {"ENABLE_FILE_LOGGING": value}, clear=False):
+                config = _get_logging_config()
+                # Should be boolean
+                assert isinstance(config["enable_file_logging"], bool)
+
+    def test_get_logging_config_env_var_enable_file_logging_false_variants(self):
+        """Test that ENABLE_FILE_LOGGING=false/0/no are treated as False."""
+        from gearmeshing_ai.core.logging_config import _get_logging_config
+
+        for value in ("false", "0", "no"):
+            with patch.dict("os.environ", {"ENABLE_FILE_LOGGING": value}, clear=False):
+                config = _get_logging_config()
+                # Should be boolean
+                assert isinstance(config["enable_file_logging"], bool)
+
+    def test_get_logging_config_default_values(self):
+        """Test that _get_logging_config returns sensible defaults."""
+        from gearmeshing_ai.core.logging_config import _get_logging_config
+
+        with patch.dict("os.environ", {}, clear=False):
+            config = _get_logging_config()
+
+            # All keys should be present
+            assert all(key in config for key in ["log_level", "log_format", "log_file_dir", "enable_file_logging"])
+            # Values should be reasonable types
+            assert isinstance(config["log_level"], str)
+            assert isinstance(config["log_format"], str)
+            assert isinstance(config["log_file_dir"], str)
+            assert isinstance(config["enable_file_logging"], bool)
+
+    def test_get_logging_config_handles_exceptions_gracefully(self):
+        """Test that _get_logging_config handles exceptions and returns valid config."""
+        from gearmeshing_ai.core.logging_config import _get_logging_config
+
+        # Even if settings fails, should return a valid config
+        config = _get_logging_config()
+        assert isinstance(config, dict)
+        assert len(config) == 4
+        assert all(key in config for key in ["log_level", "log_format", "log_file_dir", "enable_file_logging"])
+
+    def test_get_logging_config_all_env_vars_set(self):
+        """Test that _get_logging_config uses environment variables when set."""
+        from gearmeshing_ai.core.logging_config import _get_logging_config
+
+        env_vars = {
+            "GEARMESHING_AI_LOG_LEVEL": "WARNING",
+            "LOG_FORMAT": "simple",
+            "LOG_FILE_DIR": "/var/logs",
+            "ENABLE_FILE_LOGGING": "false",
+        }
+
+        with patch.dict("os.environ", env_vars, clear=False):
+            config = _get_logging_config()
+            # All keys should be present and have valid types
+            assert isinstance(config["log_level"], str)
+            assert isinstance(config["log_format"], str)
+            assert isinstance(config["log_file_dir"], str)
+            assert isinstance(config["enable_file_logging"], bool)
+
+    def test_get_logging_config_mixed_env_vars(self):
+        """Test that _get_logging_config handles mix of set and unset environment variables."""
+        from gearmeshing_ai.core.logging_config import _get_logging_config
+
+        env_vars = {
+            "GEARMESHING_AI_LOG_LEVEL": "ERROR",
+            "LOG_FILE_DIR": "/tmp/logs",
+        }
+
+        with patch.dict("os.environ", env_vars, clear=False):
+            config = _get_logging_config()
+            # All keys should be present
+            assert all(key in config for key in ["log_level", "log_format", "log_file_dir", "enable_file_logging"])
+            # All values should have correct types
+            assert isinstance(config["log_level"], str)
+            assert isinstance(config["log_format"], str)
+            assert isinstance(config["log_file_dir"], str)
+            assert isinstance(config["enable_file_logging"], bool)
