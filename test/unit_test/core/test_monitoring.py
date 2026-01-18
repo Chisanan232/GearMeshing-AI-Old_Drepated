@@ -222,7 +222,7 @@ class TestWrapOpenAIClient:
         from gearmeshing_ai.core.monitoring import wrap_openai_client
 
         mock_client = MagicMock()
-        
+
         with patch("builtins.__import__") as mock_import:
             mock_langsmith = MagicMock()
             mock_wrapped_client = MagicMock()
@@ -244,7 +244,7 @@ class TestWrapOpenAIClient:
         from gearmeshing_ai.core.monitoring import wrap_openai_client
 
         mock_client = MagicMock()
-        
+
         with patch("builtins.__import__", side_effect=ImportError("langsmith not installed")):
             result = wrap_openai_client(mock_client)
             # Should return original client when wrapping fails
@@ -257,7 +257,7 @@ class TestWrapOpenAIClient:
         from gearmeshing_ai.core.monitoring import wrap_openai_client
 
         mock_client = MagicMock()
-        
+
         with patch("builtins.__import__") as mock_import:
             mock_import.side_effect = RuntimeError("Wrapping failed")
             result = wrap_openai_client(mock_client)
@@ -274,7 +274,7 @@ class TestWrapAnthropicClient:
         from gearmeshing_ai.core.monitoring import wrap_anthropic_client
 
         mock_client = MagicMock()
-        
+
         with patch("builtins.__import__") as mock_import:
             mock_langsmith = MagicMock()
             mock_wrapped_client = MagicMock()
@@ -295,7 +295,7 @@ class TestWrapAnthropicClient:
         from gearmeshing_ai.core.monitoring import wrap_anthropic_client
 
         mock_client = MagicMock()
-        
+
         with patch("builtins.__import__", side_effect=ImportError("langsmith not installed")):
             result = wrap_anthropic_client(mock_client)
             # Should return original client when wrapping fails
@@ -308,7 +308,7 @@ class TestWrapAnthropicClient:
         from gearmeshing_ai.core.monitoring import wrap_anthropic_client
 
         mock_client = MagicMock()
-        
+
         with patch("builtins.__import__") as mock_import:
             mock_import.side_effect = RuntimeError("Wrapping failed")
             result = wrap_anthropic_client(mock_client)
@@ -358,11 +358,11 @@ class TestGetTraceableDecorator:
 
         with patch("builtins.__import__", side_effect=ImportError("langsmith not installed")):
             decorator = get_traceable_decorator()
-            
+
             # Test that the no-op decorator preserves function
             def test_func(x):
                 return x * 2
-            
+
             decorated = decorator(test_func)
             assert decorated(5) == 10
 
@@ -905,8 +905,9 @@ class TestLogfireFastAPIInstrumentation:
     @patch("gearmeshing_ai.core.monitoring.logger")
     def test_initialize_logfire_fastapi_with_app_success(self, mock_logger):
         """Test successful FastAPI instrumentation with app."""
-        from gearmeshing_ai.core.monitoring import initialize_logfire
         from fastapi import FastAPI
+
+        from gearmeshing_ai.core.monitoring import initialize_logfire
 
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_settings.logfire.enabled = True
@@ -952,8 +953,9 @@ class TestLogfireFastAPIInstrumentation:
     @patch("gearmeshing_ai.core.monitoring.logger")
     def test_initialize_logfire_fastapi_failure(self, mock_logger):
         """Test FastAPI instrumentation failure handling."""
-        from gearmeshing_ai.core.monitoring import initialize_logfire
         from fastapi import FastAPI
+
+        from gearmeshing_ai.core.monitoring import initialize_logfire
 
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_settings.logfire.enabled = True
@@ -1018,8 +1020,9 @@ class TestLangSmithInitializationPath:
     @patch.dict("os.environ", {}, clear=False)
     def test_initialize_langsmith_sets_environment_variables(self, mock_logger):
         """Test that LangSmith initialization sets environment variables."""
-        from gearmeshing_ai.core.monitoring import initialize_langsmith
         import os
+
+        from gearmeshing_ai.core.monitoring import initialize_langsmith
 
         with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
             mock_settings.langsmith.tracing = True
@@ -1064,8 +1067,8 @@ class TestLangSmithInitializationPath:
     @patch.dict("os.environ", {}, clear=False)
     def test_initialize_langsmith_with_none_api_key_sets_empty_string(self, mock_logger):
         """Test that None API key is converted to empty string in environment."""
+
         from gearmeshing_ai.core.monitoring import initialize_langsmith
-        import os
 
         with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
             mock_settings.langsmith.tracing = True
@@ -1085,14 +1088,15 @@ class TestLogfireInstrumentationActivation:
     def test_pydantic_ai_instrumentation_called_when_enabled(self):
         """Test that instrument_pydantic_ai is called when trace_pydantic_ai=True."""
         import sys
+
         from gearmeshing_ai.core.monitoring import initialize_logfire
 
         mock_logfire = MagicMock()
         original_logfire = sys.modules.get("logfire")
-        
+
         try:
             sys.modules["logfire"] = mock_logfire
-            
+
             with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
                 mock_settings.logfire.enabled = True
                 mock_token = MagicMock()
@@ -1119,14 +1123,15 @@ class TestLogfireInstrumentationActivation:
     def test_pydantic_ai_instrumentation_not_called_when_disabled(self):
         """Test that instrument_pydantic_ai is NOT called when trace_pydantic_ai=False."""
         import sys
+
         from gearmeshing_ai.core.monitoring import initialize_logfire
 
         mock_logfire = MagicMock()
         original_logfire = sys.modules.get("logfire")
-        
+
         try:
             sys.modules["logfire"] = mock_logfire
-            
+
             with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
                 mock_settings.logfire.enabled = True
                 mock_token = MagicMock()
@@ -1153,14 +1158,15 @@ class TestLogfireInstrumentationActivation:
     def test_sqlalchemy_instrumentation_called_when_enabled(self):
         """Test that instrument_sqlalchemy is called when trace_sqlalchemy=True."""
         import sys
+
         from gearmeshing_ai.core.monitoring import initialize_logfire
 
         mock_logfire = MagicMock()
         original_logfire = sys.modules.get("logfire")
-        
+
         try:
             sys.modules["logfire"] = mock_logfire
-            
+
             with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
                 mock_settings.logfire.enabled = True
                 mock_token = MagicMock()
@@ -1187,14 +1193,15 @@ class TestLogfireInstrumentationActivation:
     def test_sqlalchemy_instrumentation_not_called_when_disabled(self):
         """Test that instrument_sqlalchemy is NOT called when trace_sqlalchemy=False."""
         import sys
+
         from gearmeshing_ai.core.monitoring import initialize_logfire
 
         mock_logfire = MagicMock()
         original_logfire = sys.modules.get("logfire")
-        
+
         try:
             sys.modules["logfire"] = mock_logfire
-            
+
             with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
                 mock_settings.logfire.enabled = True
                 mock_token = MagicMock()
@@ -1221,14 +1228,15 @@ class TestLogfireInstrumentationActivation:
     def test_httpx_instrumentation_called_when_enabled(self):
         """Test that instrument_httpx is called when trace_httpx=True."""
         import sys
+
         from gearmeshing_ai.core.monitoring import initialize_logfire
 
         mock_logfire = MagicMock()
         original_logfire = sys.modules.get("logfire")
-        
+
         try:
             sys.modules["logfire"] = mock_logfire
-            
+
             with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
                 mock_settings.logfire.enabled = True
                 mock_token = MagicMock()
@@ -1255,14 +1263,15 @@ class TestLogfireInstrumentationActivation:
     def test_httpx_instrumentation_not_called_when_disabled(self):
         """Test that instrument_httpx is NOT called when trace_httpx=False."""
         import sys
+
         from gearmeshing_ai.core.monitoring import initialize_logfire
 
         mock_logfire = MagicMock()
         original_logfire = sys.modules.get("logfire")
-        
+
         try:
             sys.modules["logfire"] = mock_logfire
-            
+
             with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
                 mock_settings.logfire.enabled = True
                 mock_token = MagicMock()
@@ -1289,15 +1298,17 @@ class TestLogfireInstrumentationActivation:
     def test_fastapi_instrumentation_called_when_enabled_with_app(self):
         """Test that instrument_fastapi is called when trace_fastapi=True and app provided."""
         import sys
-        from gearmeshing_ai.core.monitoring import initialize_logfire
+
         from fastapi import FastAPI
+
+        from gearmeshing_ai.core.monitoring import initialize_logfire
 
         mock_logfire = MagicMock()
         original_logfire = sys.modules.get("logfire")
-        
+
         try:
             sys.modules["logfire"] = mock_logfire
-            
+
             with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
                 mock_settings.logfire.enabled = True
                 mock_token = MagicMock()
@@ -1325,14 +1336,15 @@ class TestLogfireInstrumentationActivation:
     def test_fastapi_instrumentation_not_called_when_app_is_none(self):
         """Test that instrument_fastapi is NOT called when app is None."""
         import sys
+
         from gearmeshing_ai.core.monitoring import initialize_logfire
 
         mock_logfire = MagicMock()
         original_logfire = sys.modules.get("logfire")
-        
+
         try:
             sys.modules["logfire"] = mock_logfire
-            
+
             with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
                 mock_settings.logfire.enabled = True
                 mock_token = MagicMock()
@@ -1359,15 +1371,17 @@ class TestLogfireInstrumentationActivation:
     def test_fastapi_instrumentation_not_called_when_disabled(self):
         """Test that instrument_fastapi is NOT called when trace_fastapi=False."""
         import sys
-        from gearmeshing_ai.core.monitoring import initialize_logfire
+
         from fastapi import FastAPI
+
+        from gearmeshing_ai.core.monitoring import initialize_logfire
 
         mock_logfire = MagicMock()
         original_logfire = sys.modules.get("logfire")
-        
+
         try:
             sys.modules["logfire"] = mock_logfire
-            
+
             with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
                 mock_settings.logfire.enabled = True
                 mock_token = MagicMock()
@@ -1395,15 +1409,17 @@ class TestLogfireInstrumentationActivation:
     def test_all_instrumentations_called_when_all_enabled(self):
         """Test that all instrumentation methods are called when all flags are enabled."""
         import sys
-        from gearmeshing_ai.core.monitoring import initialize_logfire
+
         from fastapi import FastAPI
+
+        from gearmeshing_ai.core.monitoring import initialize_logfire
 
         mock_logfire = MagicMock()
         original_logfire = sys.modules.get("logfire")
-        
+
         try:
             sys.modules["logfire"] = mock_logfire
-            
+
             with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
                 mock_settings.logfire.enabled = True
                 mock_token = MagicMock()
@@ -1436,15 +1452,17 @@ class TestLogfireInstrumentationActivation:
     def test_no_instrumentations_called_when_all_disabled(self):
         """Test that NO instrumentation methods are called when all flags are disabled."""
         import sys
-        from gearmeshing_ai.core.monitoring import initialize_logfire
+
         from fastapi import FastAPI
+
+        from gearmeshing_ai.core.monitoring import initialize_logfire
 
         mock_logfire = MagicMock()
         original_logfire = sys.modules.get("logfire")
-        
+
         try:
             sys.modules["logfire"] = mock_logfire
-            
+
             with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
                 mock_settings.logfire.enabled = True
                 mock_token = MagicMock()
@@ -1482,15 +1500,16 @@ class TestLogfireInstrumentationErrorHandling:
     def test_pydantic_ai_instrumentation_exception_logged(self, mock_logger):
         """Test that exceptions from instrument_pydantic_ai are caught and logged."""
         import sys
+
         from gearmeshing_ai.core.monitoring import initialize_logfire
 
         mock_logfire = MagicMock()
         mock_logfire.instrument_pydantic_ai.side_effect = RuntimeError("Pydantic AI instrumentation failed")
         original_logfire = sys.modules.get("logfire")
-        
+
         try:
             sys.modules["logfire"] = mock_logfire
-            
+
             with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
                 mock_settings.logfire.enabled = True
                 mock_token = MagicMock()
@@ -1520,15 +1539,16 @@ class TestLogfireInstrumentationErrorHandling:
     def test_sqlalchemy_instrumentation_exception_logged(self, mock_logger):
         """Test that exceptions from instrument_sqlalchemy are caught and logged."""
         import sys
+
         from gearmeshing_ai.core.monitoring import initialize_logfire
 
         mock_logfire = MagicMock()
         mock_logfire.instrument_sqlalchemy.side_effect = RuntimeError("SQLAlchemy instrumentation failed")
         original_logfire = sys.modules.get("logfire")
-        
+
         try:
             sys.modules["logfire"] = mock_logfire
-            
+
             with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
                 mock_settings.logfire.enabled = True
                 mock_token = MagicMock()
@@ -1558,15 +1578,16 @@ class TestLogfireInstrumentationErrorHandling:
     def test_httpx_instrumentation_exception_logged(self, mock_logger):
         """Test that exceptions from instrument_httpx are caught and logged."""
         import sys
+
         from gearmeshing_ai.core.monitoring import initialize_logfire
 
         mock_logfire = MagicMock()
         mock_logfire.instrument_httpx.side_effect = RuntimeError("HTTPX instrumentation failed")
         original_logfire = sys.modules.get("logfire")
-        
+
         try:
             sys.modules["logfire"] = mock_logfire
-            
+
             with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
                 mock_settings.logfire.enabled = True
                 mock_token = MagicMock()
@@ -1596,16 +1617,18 @@ class TestLogfireInstrumentationErrorHandling:
     def test_fastapi_instrumentation_exception_logged(self, mock_logger):
         """Test that exceptions from instrument_fastapi are caught and logged."""
         import sys
-        from gearmeshing_ai.core.monitoring import initialize_logfire
+
         from fastapi import FastAPI
+
+        from gearmeshing_ai.core.monitoring import initialize_logfire
 
         mock_logfire = MagicMock()
         mock_logfire.instrument_fastapi.side_effect = RuntimeError("FastAPI instrumentation failed")
         original_logfire = sys.modules.get("logfire")
-        
+
         try:
             sys.modules["logfire"] = mock_logfire
-            
+
             with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
                 mock_settings.logfire.enabled = True
                 mock_token = MagicMock()
@@ -1636,8 +1659,10 @@ class TestLogfireInstrumentationErrorHandling:
     def test_multiple_instrumentation_exceptions_all_logged(self, mock_logger):
         """Test that multiple instrumentation exceptions are all caught and logged."""
         import sys
-        from gearmeshing_ai.core.monitoring import initialize_logfire
+
         from fastapi import FastAPI
+
+        from gearmeshing_ai.core.monitoring import initialize_logfire
 
         mock_logfire = MagicMock()
         mock_logfire.instrument_pydantic_ai.side_effect = RuntimeError("Pydantic AI failed")
@@ -1645,10 +1670,10 @@ class TestLogfireInstrumentationErrorHandling:
         mock_logfire.instrument_httpx.side_effect = RuntimeError("HTTPX failed")
         mock_logfire.instrument_fastapi.side_effect = RuntimeError("FastAPI failed")
         original_logfire = sys.modules.get("logfire")
-        
+
         try:
             sys.modules["logfire"] = mock_logfire
-            
+
             with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
                 mock_settings.logfire.enabled = True
                 mock_token = MagicMock()
@@ -1682,15 +1707,16 @@ class TestLogfireInstrumentationErrorHandling:
     def test_pydantic_ai_exception_type_error(self, mock_logger):
         """Test that TypeError from instrument_pydantic_ai is caught and logged."""
         import sys
+
         from gearmeshing_ai.core.monitoring import initialize_logfire
 
         mock_logfire = MagicMock()
         mock_logfire.instrument_pydantic_ai.side_effect = TypeError("Invalid type for Pydantic AI")
         original_logfire = sys.modules.get("logfire")
-        
+
         try:
             sys.modules["logfire"] = mock_logfire
-            
+
             with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
                 mock_settings.logfire.enabled = True
                 mock_token = MagicMock()
@@ -1720,15 +1746,16 @@ class TestLogfireInstrumentationErrorHandling:
     def test_sqlalchemy_exception_attribute_error(self, mock_logger):
         """Test that AttributeError from instrument_sqlalchemy is caught and logged."""
         import sys
+
         from gearmeshing_ai.core.monitoring import initialize_logfire
 
         mock_logfire = MagicMock()
         mock_logfire.instrument_sqlalchemy.side_effect = AttributeError("SQLAlchemy attribute missing")
         original_logfire = sys.modules.get("logfire")
-        
+
         try:
             sys.modules["logfire"] = mock_logfire
-            
+
             with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
                 mock_settings.logfire.enabled = True
                 mock_token = MagicMock()
@@ -1758,15 +1785,16 @@ class TestLogfireInstrumentationErrorHandling:
     def test_httpx_exception_value_error(self, mock_logger):
         """Test that ValueError from instrument_httpx is caught and logged."""
         import sys
+
         from gearmeshing_ai.core.monitoring import initialize_logfire
 
         mock_logfire = MagicMock()
         mock_logfire.instrument_httpx.side_effect = ValueError("Invalid value for HTTPX")
         original_logfire = sys.modules.get("logfire")
-        
+
         try:
             sys.modules["logfire"] = mock_logfire
-            
+
             with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
                 mock_settings.logfire.enabled = True
                 mock_token = MagicMock()
@@ -1796,16 +1824,18 @@ class TestLogfireInstrumentationErrorHandling:
     def test_fastapi_exception_import_error(self, mock_logger):
         """Test that ImportError from instrument_fastapi is caught and logged."""
         import sys
-        from gearmeshing_ai.core.monitoring import initialize_logfire
+
         from fastapi import FastAPI
+
+        from gearmeshing_ai.core.monitoring import initialize_logfire
 
         mock_logfire = MagicMock()
         mock_logfire.instrument_fastapi.side_effect = ImportError("FastAPI import failed")
         original_logfire = sys.modules.get("logfire")
-        
+
         try:
             sys.modules["logfire"] = mock_logfire
-            
+
             with patch("gearmeshing_ai.core.monitoring.settings") as mock_settings:
                 mock_settings.logfire.enabled = True
                 mock_token = MagicMock()

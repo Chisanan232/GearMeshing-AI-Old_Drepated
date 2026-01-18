@@ -14,6 +14,7 @@ def test_config():
         TestSettings: Test configuration with all environment variables loaded
     """
     from test.settings import test_settings
+
     return test_settings
 
 
