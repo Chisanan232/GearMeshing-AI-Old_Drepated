@@ -14,6 +14,10 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from gearmeshing_ai.agent_core.abstraction.provider_env_standards import (
+    export_all_provider_env_vars_from_settings,
+)
+
 
 def get_env_file_path() -> str:
     """
@@ -366,4 +370,45 @@ class Settings(BaseSettings):
     )
 
 
-settings = Settings()
+_settings_instance: Optional[Settings] = None
+_export_completed: bool = False
+
+
+def get_settings() -> Settings:
+    """
+    Get the application settings instance.
+
+    This function initializes the Settings model and automatically exports all AI provider
+    API keys from the settings to official environment variables (e.g., OPENAI_API_KEY).
+    This makes the API keys accessible to external libraries via os.getenv().
+
+    The export happens after settings initialization to ensure all configuration values
+    are loaded from the .env file before being exported to environment variables.
+
+    Returns:
+        Settings: The initialized application settings instance with exported environment variables.
+
+    Example:
+        ```python
+        from gearmeshing_ai.server.core.config import get_settings
+
+        settings = get_settings()
+        # Now OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY are available via os.getenv()
+        ```
+    """
+    global _settings_instance, _export_completed
+
+    if _settings_instance is None:
+        _settings_instance = Settings()
+
+    # Export AI provider API keys only once after settings initialization
+    # Pass the settings instance to avoid circular imports
+    if not _export_completed:
+        export_all_provider_env_vars_from_settings(_settings_instance)
+        _export_completed = True
+
+    return _settings_instance
+
+
+# Initialize settings and export environment variables
+settings = get_settings()
