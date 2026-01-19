@@ -1105,7 +1105,7 @@ pre-commit-ci = [
 requires-dist = [
     { name = "alembic", specifier = ">=1.17.2" },
     { name = "asyncpg", specifier = ">=0.31.0" },
-    { name = "fastapi", specifier = ">=0.127.0" },
+    { name = "fastapi", specifier = ">=0.128.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "langgraph", specifier = ">=1.0.6" },
     { name = "langgraph-checkpoint-postgres", specifier = ">=3.0.2" },
@@ -1117,7 +1117,7 @@ requires-dist = [
     { name = "pydantic-ai", specifier = ">=1.43.0" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.45" },
     { name = "sqlmodel", specifier = ">=0.0.27" },
-    { name = "sse-starlette", specifier = ">=3.0.4" },
+    { name = "sse-starlette", specifier = ">=3.1.2" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.40.0" },
 ]
 

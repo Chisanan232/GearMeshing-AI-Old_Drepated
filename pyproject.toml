@@ -45,9 +45,9 @@ dependencies = [
     ## Postgres (Neon-compatible) persistence
     "sqlalchemy[asyncio]>=2.0.45",
     ## Web Server
-    "fastapi>=0.127.0",
+    "fastapi>=0.128.0",
     "uvicorn[standard]>=0.40.0",
-    "sse-starlette>=3.0.4",
+    "sse-starlette>=3.1.2",
     ## Web Server - Persistence
     "sqlmodel>=0.0.27",
     "alembic>=1.17.2",
