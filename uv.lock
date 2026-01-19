@@ -1132,11 +1132,7 @@ dev = [
     { name = "pytest-rerunfailures", specifier = ">=16.1" },
     { name = "testcontainers", specifier = ">=4.14.0" },
 ]
-monitoring = [
-    { name = "logfire", specifier = ">=4.16.0" },
-    { name = "logfire", extras = ["fastapi"], specifier = ">=4.16.0" },
-    { name = "logfire", extras = ["sqlalchemy"], specifier = ">=4.16.0" },
-]
+monitoring = [{ name = "logfire", extras = ["fastapi", "sqlalchemy"], specifier = ">=4.19.0" }]
 pre-commit-ci = [
     { name = "mypy", specifier = ">=1.2.0,<2" },
     { name = "pre-commit", specifier = ">=3.5.0,<5" },

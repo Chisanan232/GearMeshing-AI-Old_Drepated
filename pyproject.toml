@@ -86,9 +86,7 @@ pre-commit-ci = [
 ]
 # Optional monitoring and observability
 monitoring = [
-    "logfire>=4.16.0",
-    "logfire[fastapi]>=4.16.0",
-    "logfire[sqlalchemy]>=4.16.0",
+    "logfire[fastapi,sqlalchemy]>=4.19.0",
 ]
 
 # Optional group for contract tests with external AI agent frameworks.
