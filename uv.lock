@@ -1110,7 +1110,7 @@ requires-dist = [
     { name = "langgraph", specifier = ">=1.0.4" },
     { name = "langgraph-checkpoint-postgres", specifier = ">=3.0.2" },
     { name = "mcp", extras = ["cli"], specifier = ">=1.25.0" },
-    { name = "mcp-contextforge-gateway", specifier = ">=0.7.0" },
+    { name = "mcp-contextforge-gateway", specifier = ">=0.9.0" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.3.2" },
     { name = "psycopg2-binary", specifier = ">=2.9.11" },
     { name = "pydantic", specifier = ">=2.7.0" },

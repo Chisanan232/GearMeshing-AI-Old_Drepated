@@ -32,7 +32,7 @@ dependencies = [
     ## MCP SDK
     "mcp[cli]>=1.25.0",
     ## MCP gateway service
-    "mcp-contextforge-gateway>=0.7.0",
+    "mcp-contextforge-gateway>=0.9.0",
     ## HTTP client
     "httpx>=0.27.0",
     ## Pydantic for model validation
