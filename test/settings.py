@@ -14,69 +14,10 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# =====================================================================
-# LLM Provider Configuration Models (for tests)
-# =====================================================================
-
-
-class TestOpenAIConfig(BaseModel):
-    """OpenAI API configuration for tests."""
-
-    api_key: Optional[SecretStr] = Field(default=None, description="OpenAI API key for authentication")
-    model: str = Field(default="gpt-4o", description="Default OpenAI model to use")
-    base_url: Optional[str] = Field(default=None, description="Custom OpenAI API base URL (optional)")
-
-    model_config = ConfigDict(strict=False)
-
-
-class TestAnthropicConfig(BaseModel):
-    """Anthropic API configuration for tests."""
-
-    api_key: Optional[SecretStr] = Field(default=None, description="Anthropic API key for authentication")
-    model: str = Field(default="claude-3-opus-20240229", description="Default Anthropic model to use")
-
-    model_config = ConfigDict(strict=False)
-
-
-class TestGoogleConfig(BaseModel):
-    """Google API configuration for tests."""
-
-    api_key: Optional[SecretStr] = Field(default=None, description="Google API key for authentication")
-    model: str = Field(default="gemini-pro", description="Default Google model to use")
-
-    model_config = ConfigDict(strict=False)
-
-
-class TestXAIConfig(BaseModel):
-    """xAI (Grok) API configuration for tests."""
-
-    api_key: Optional[SecretStr] = Field(default=None, description="xAI API key for authentication")
-    model: str = Field(default="grok-2", description="Default xAI model to use")
-
-    model_config = ConfigDict(strict=False)
-
-
-class TestAIProviderConfig(BaseModel):
-    """AI Provider configuration container for tests."""
-
-    openai: TestOpenAIConfig = Field(default_factory=TestOpenAIConfig, description="OpenAI configuration")
-    anthropic: TestAnthropicConfig = Field(default_factory=TestAnthropicConfig, description="Anthropic configuration")
-    google: TestGoogleConfig = Field(default_factory=TestGoogleConfig, description="Google configuration")
-    xai: TestXAIConfig = Field(default_factory=TestXAIConfig, description="xAI (Grok) configuration")
-
-    model_config = ConfigDict(strict=False)
-
-
-class TestPostgreSQLConfig(BaseModel):
-    """PostgreSQL database configuration for tests."""
-
-    db: str = Field(default="ai_dev", description="PostgreSQL database name for tests")
-    user: str = Field(default="ai_dev", description="PostgreSQL database user")
-    password: SecretStr = Field(default=SecretStr("changeme"), description="PostgreSQL database password")
-    host: str = Field(default="localhost", description="PostgreSQL database host address")
-    port: int = Field(default=5432, description="PostgreSQL database port number")
-
-    model_config = ConfigDict(strict=False)
+from gearmeshing_ai.agent_core.abstraction.provider_env_standards import (
+    export_all_provider_env_vars_from_settings,
+)
+from gearmeshing_ai.server.core.config import PostgreSQLConfig, AIProviderConfig
 
 
 class TestDatabaseConfig(BaseModel):
@@ -90,7 +31,7 @@ class TestDatabaseConfig(BaseModel):
         default=False,
         description="Enable PostgreSQL-based tests (requires PostgreSQL running)",
     )
-    postgres: TestPostgreSQLConfig = Field(default_factory=TestPostgreSQLConfig, description="PostgreSQL configuration")
+    postgres: PostgreSQLConfig = Field(default_factory=PostgreSQLConfig, description="PostgreSQL configuration")
 
     model_config = ConfigDict(strict=False)
 
@@ -139,8 +80,8 @@ class TestSettings(BaseSettings):
     # =====================================================================
     # AI Provider Configuration
     # =====================================================================
-    ai_provider: TestAIProviderConfig = Field(
-        default_factory=TestAIProviderConfig,
+    ai_provider: AIProviderConfig = Field(
+        default_factory=AIProviderConfig,
         description="AI provider configuration (OpenAI, Anthropic, Google, xAI)",
     )
 
@@ -161,5 +102,47 @@ class TestSettings(BaseSettings):
     )
 
 
-# Create singleton instance
-test_settings = TestSettings()
+_test_settings_instance: Optional[TestSettings] = None
+_test_export_completed: bool = False
+
+
+def get_test_settings() -> TestSettings:
+    """
+    Get the test settings instance.
+
+    This function initializes the TestSettings model and automatically exports all AI provider
+    API keys from the test settings to official environment variables (e.g., OPENAI_API_KEY).
+    This makes the API keys accessible to external libraries via os.getenv() for smoke tests
+    that call real AI models.
+
+    The export happens after settings initialization to ensure all configuration values
+    are loaded from the test/.env file before being exported to environment variables.
+
+    Returns:
+        TestSettings: The initialized test settings instance with exported environment variables.
+
+    Example:
+        ```python
+        from test.settings import get_test_settings
+
+        test_settings = get_test_settings()
+        # Now OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY are available via os.getenv()
+        # for smoke tests calling real AI models
+        ```
+    """
+    global _test_settings_instance, _test_export_completed
+
+    if _test_settings_instance is None:
+        _test_settings_instance = TestSettings()
+
+    # Export AI provider API keys only once after settings initialization
+    # Pass the settings instance to avoid circular imports
+    if not _test_export_completed:
+        export_all_provider_env_vars_from_settings(_test_settings_instance)
+        _test_export_completed = True
+
+    return _test_settings_instance
+
+
+# Create singleton instance with exported environment variables
+test_settings = get_test_settings()

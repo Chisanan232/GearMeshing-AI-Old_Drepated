@@ -68,12 +68,22 @@ class GoogleConfig(BaseModel):
     model_config = ConfigDict(strict=False)
 
 
+class XAIConfig(BaseModel):
+    """xAI (Grok) API configuration for tests."""
+
+    api_key: Optional[SecretStr] = Field(default=None, description="xAI API key for authentication")
+    model: str = Field(default="grok-2", description="Default xAI model to use")
+
+    model_config = ConfigDict(strict=False)
+
+
 class AIProviderConfig(BaseModel):
     """AI Provider configuration container."""
 
     openai: OpenAIConfig = Field(default_factory=OpenAIConfig, description="OpenAI configuration")
     anthropic: AnthropicConfig = Field(default_factory=AnthropicConfig, description="Anthropic configuration")
     google: GoogleConfig = Field(default_factory=GoogleConfig, description="Google configuration")
+    xai: XAIConfig = Field(default_factory=XAIConfig, description="xAI configuration")
 
     model_config = ConfigDict(strict=False)
 
