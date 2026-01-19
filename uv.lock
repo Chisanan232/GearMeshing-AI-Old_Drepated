@@ -1103,7 +1103,7 @@ pre-commit-ci = [
 
 [package.metadata]
 requires-dist = [
-    { name = "alembic", specifier = ">=1.17.2" },
+    { name = "alembic", specifier = ">=1.18.1" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "fastapi", specifier = ">=0.128.0" },
     { name = "httpx", specifier = ">=0.28.1" },
@@ -1116,7 +1116,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pydantic-ai", specifier = ">=1.43.0" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.45" },
-    { name = "sqlmodel", specifier = ">=0.0.27" },
+    { name = "sqlmodel", specifier = ">=0.0.31" },
     { name = "sse-starlette", specifier = ">=3.1.2" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.40.0" },
 ]

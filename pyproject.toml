@@ -49,8 +49,8 @@ dependencies = [
     "uvicorn[standard]>=0.40.0",
     "sse-starlette>=3.1.2",
     ## Web Server - Persistence
-    "sqlmodel>=0.0.27",
-    "alembic>=1.17.2",
+    "sqlmodel>=0.0.31",
+    "alembic>=1.18.1",
     ## Database driver --- Postgres
     "asyncpg>=0.31.0",
     "psycopg2-binary>=2.9.11",
