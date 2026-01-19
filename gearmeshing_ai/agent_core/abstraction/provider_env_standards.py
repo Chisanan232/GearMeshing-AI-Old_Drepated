@@ -20,11 +20,14 @@ References:
 """
 
 import os
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
 from gearmeshing_ai.agent_core.abstraction.api_key_validator import AIModelProvider
+
+if TYPE_CHECKING:
+    from gearmeshing_ai.server.core.config import Settings
 
 
 class ProviderEnvStandard(BaseModel):
@@ -112,7 +115,7 @@ PROVIDER_ENV_STANDARDS_MODEL = ProviderEnvStandards(
 
 
 
-def get_provider_secret_from_settings(provider: AIModelProvider) -> Optional[str]:
+def get_provider_secret_from_settings(provider: AIModelProvider, settings: Optional["Settings"] = None) -> Optional[str]:
     """Get the API key secret value from the settings model for a provider.
 
     This function retrieves the actual secret value from the settings model,
@@ -121,6 +124,7 @@ def get_provider_secret_from_settings(provider: AIModelProvider) -> Optional[str
 
     Args:
         provider: AIModelProvider enum value
+        settings: Optional Settings instance. If not provided, imports from config module.
 
     Returns:
         The API key secret value if available, None otherwise
@@ -128,7 +132,9 @@ def get_provider_secret_from_settings(provider: AIModelProvider) -> Optional[str
     Raises:
         ValueError: If provider is not recognized
     """
-    from gearmeshing_ai.server.core.config import settings
+    if settings is None:
+        from gearmeshing_ai.server.core.config import settings as config_settings
+        settings = config_settings
 
     if provider not in PROVIDER_ENV_STANDARDS:
         raise ValueError(f"Unknown provider: {provider}")
@@ -152,7 +158,7 @@ def get_provider_secret_from_settings(provider: AIModelProvider) -> Optional[str
     return None
 
 
-def export_provider_env_vars_from_settings(provider: AIModelProvider) -> bool:
+def export_provider_env_vars_from_settings(provider: AIModelProvider, settings: Optional["Settings"] = None) -> bool:
     """Export provider API key from settings to official environment variables.
 
     This function retrieves the API key from the settings model and sets it
@@ -165,6 +171,7 @@ def export_provider_env_vars_from_settings(provider: AIModelProvider) -> bool:
 
     Args:
         provider: AIModelProvider enum value
+        settings: Optional Settings instance. If not provided, imports from config module.
 
     Returns:
         True if environment variable was set, False if no API key found in settings
@@ -176,7 +183,7 @@ def export_provider_env_vars_from_settings(provider: AIModelProvider) -> bool:
         raise ValueError(f"Unknown provider: {provider}")
 
     # Get the API key from settings
-    api_key = get_provider_secret_from_settings(provider)
+    api_key = get_provider_secret_from_settings(provider, settings)
 
     if not api_key:
         return False
@@ -190,11 +197,14 @@ def export_provider_env_vars_from_settings(provider: AIModelProvider) -> bool:
     return True
 
 
-def export_all_provider_env_vars_from_settings() -> Dict[str, bool]:
+def export_all_provider_env_vars_from_settings(settings: Optional["Settings"] = None) -> Dict[str, bool]:
     """Export all provider API keys from settings to official environment variables.
 
     This function retrieves all available API keys from the settings model
     and sets them as official provider environment variables.
+
+    Args:
+        settings: Optional Settings instance. If not provided, imports from config module.
 
     Returns:
         Dictionary mapping provider names to success status (True if set, False if not found)
@@ -217,7 +227,7 @@ def export_all_provider_env_vars_from_settings() -> Dict[str, bool]:
 
     for provider in AIModelProvider:
         try:
-            success = export_provider_env_vars_from_settings(provider)
+            success = export_provider_env_vars_from_settings(provider, settings)
             results[provider.value] = success
         except ValueError:
             results[provider.value] = False
