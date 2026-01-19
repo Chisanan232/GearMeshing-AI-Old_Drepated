@@ -41,7 +41,7 @@ dependencies = [
     # LangChain core + LangGraph
     "langgraph>=1.0.6",
     # Pydantic AI by FastAPI Pydantic team
-    "pydantic-ai>=1.27.0",
+    "pydantic-ai>=1.43.0",
     ## Postgres (Neon-compatible) persistence
     "sqlalchemy[asyncio]>=2.0.0",
     "asyncpg>=0.29.0",
