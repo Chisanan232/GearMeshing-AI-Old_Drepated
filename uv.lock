@@ -1124,13 +1124,13 @@ requires-dist = [
 [package.metadata.requires-dev]
 contract-test-with-ai-frameworks = []
 dev = [
-    { name = "aiosqlite", specifier = ">=0.20.0" },
-    { name = "coverage", specifier = "~=7.10" },
-    { name = "pytest", specifier = ">=8.1.1,<10" },
-    { name = "pytest-asyncio", specifier = ">=0.23.6" },
-    { name = "pytest-cov", specifier = ">=5.0.0,<8" },
-    { name = "pytest-rerunfailures", specifier = "~=16.0" },
-    { name = "testcontainers", specifier = ">=4.7.2" },
+    { name = "aiosqlite", specifier = ">=0.22.1" },
+    { name = "coverage", specifier = ">=7.13.1" },
+    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pytest-asyncio", specifier = ">=1.3.0" },
+    { name = "pytest-cov", specifier = ">=7.0.0" },
+    { name = "pytest-rerunfailures", specifier = ">=16.1" },
+    { name = "testcontainers", specifier = ">=4.14.0" },
 ]
 monitoring = [
     { name = "logfire", specifier = ">=4.16.0" },
