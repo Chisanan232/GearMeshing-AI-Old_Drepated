@@ -30,7 +30,7 @@ classifiers = [
 ]
 dependencies = [
     ## MCP SDK
-    "mcp[cli]>=1.10.1",
+    "mcp[cli]>=1.25.0",
     ## MCP gateway service
     "mcp-contextforge-gateway>=0.7.0",
     ## HTTP client

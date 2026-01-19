@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -1109,7 +1109,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "langgraph", specifier = ">=1.0.4" },
     { name = "langgraph-checkpoint-postgres", specifier = ">=3.0.2" },
-    { name = "mcp", extras = ["cli"], specifier = ">=1.10.1" },
+    { name = "mcp", extras = ["cli"], specifier = ">=1.25.0" },
     { name = "mcp-contextforge-gateway", specifier = ">=0.7.0" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.3.2" },
     { name = "psycopg2-binary", specifier = ">=2.9.11" },
