@@ -17,7 +17,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from gearmeshing_ai.agent_core.abstraction.provider_env_standards import (
     export_all_provider_env_vars_from_settings,
 )
-from gearmeshing_ai.server.core.config import PostgreSQLConfig, AIProviderConfig
+from gearmeshing_ai.server.core.config import PostgreSQLConfig, AIProviderConfig, BaseAISetting
 
 
 class TestDatabaseConfig(BaseModel):
@@ -52,7 +52,7 @@ class TestExecutionConfig(BaseModel):
 # =====================================================================
 
 
-class TestSettings(BaseSettings):
+class TestSettings(BaseAISetting):
     """
     Test environment settings model.
 
@@ -75,14 +75,6 @@ class TestSettings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
         env_nested_delimiter="__",
-    )
-
-    # =====================================================================
-    # AI Provider Configuration
-    # =====================================================================
-    ai_provider: AIProviderConfig = Field(
-        default_factory=AIProviderConfig,
-        description="AI provider configuration (OpenAI, Anthropic, Google, xAI)",
     )
 
     # =====================================================================

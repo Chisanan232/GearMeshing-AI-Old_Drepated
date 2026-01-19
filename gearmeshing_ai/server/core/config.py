@@ -269,7 +269,29 @@ class CORSConfig(BaseModel):
 # =====================================================================
 
 
-class Settings(BaseSettings):
+class BaseAISetting(BaseSettings):
+
+    # =====================================================================
+    # Pydantic Configuration
+    # =====================================================================
+    model_config = SettingsConfigDict(
+        env_file=get_env_file_path(),
+        env_file_encoding="utf-8",
+        extra="ignore",
+        env_nested_delimiter="__",
+        case_sensitive=False,
+    )
+
+    # =====================================================================
+    # AI Provider Configuration
+    # =====================================================================
+    ai_provider: AIProviderConfig = Field(
+        default_factory=AIProviderConfig,
+        description="AI provider configuration (OpenAI, Anthropic, Google)",
+    )
+
+
+class Settings(BaseAISetting):
     """
     Application settings model.
 
@@ -283,17 +305,6 @@ class Settings(BaseSettings):
     - LOGFIRE__ENABLED → settings.logfire.enabled
     - MCP__CLICKUP__API_TOKEN → settings.mcp.clickup.api_token
     """
-
-    # =====================================================================
-    # Pydantic Configuration
-    # =====================================================================
-    model_config = SettingsConfigDict(
-        env_file=get_env_file_path(),
-        env_file_encoding="utf-8",
-        extra="ignore",
-        env_nested_delimiter="__",
-        case_sensitive=False,
-    )
 
     # =====================================================================
     # GearMeshing-AI Server Configuration
@@ -317,14 +328,6 @@ class Settings(BaseSettings):
     gearmeshing_ai_agent_framework: Optional[str] = Field(
         default=None,
         description="Active agent framework (optional, can be set at runtime)",
-    )
-
-    # =====================================================================
-    # AI Provider Configuration
-    # =====================================================================
-    ai_provider: AIProviderConfig = Field(
-        default_factory=AIProviderConfig,
-        description="AI provider configuration (OpenAI, Anthropic, Google)",
     )
 
     # =====================================================================
