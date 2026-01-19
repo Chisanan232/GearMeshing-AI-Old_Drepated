@@ -41,12 +41,8 @@ class ProviderEnvStandard(BaseModel):
         supported_models: List of supported model names for this provider
     """
 
-    primary_env_var: str = Field(
-        description="Primary official environment variable name (e.g., 'OPENAI_API_KEY')"
-    )
-    alternative_env_vars: List[str] = Field(
-        default_factory=list, description="Alternative environment variable names"
-    )
+    primary_env_var: str = Field(description="Primary official environment variable name (e.g., 'OPENAI_API_KEY')")
+    alternative_env_vars: List[str] = Field(default_factory=list, description="Alternative environment variable names")
     description: str = Field(description="Description of the API key and its purpose")
     official_docs: str = Field(description="URL to official provider documentation")
     supported_models: List[str] = Field(description="List of supported model names")
@@ -113,9 +109,9 @@ PROVIDER_ENV_STANDARDS_MODEL = ProviderEnvStandards(
 )
 
 
-
-
-def get_provider_secret_from_settings(provider: AIModelProvider, settings: Optional["Settings"] = None) -> Optional[str]:
+def get_provider_secret_from_settings(
+    provider: AIModelProvider, settings: Optional["Settings"] = None
+) -> Optional[str]:
     """Get the API key secret value from the settings model for a provider.
 
     This function retrieves the actual secret value from the settings model,
@@ -134,6 +130,7 @@ def get_provider_secret_from_settings(provider: AIModelProvider, settings: Optio
     """
     if settings is None:
         from gearmeshing_ai.server.core.config import settings as config_settings
+
         settings = config_settings
 
     if provider not in PROVIDER_ENV_STANDARDS:
@@ -233,5 +230,3 @@ def export_all_provider_env_vars_from_settings(settings: Optional["Settings"] = 
             results[provider.value] = False
 
     return results
-
-

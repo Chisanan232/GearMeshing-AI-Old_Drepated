@@ -5,15 +5,16 @@ Tests the export of API keys from settings to official provider environment vari
 """
 
 import os
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 from gearmeshing_ai.agent_core.abstraction.api_key_validator import AIModelProvider
 from gearmeshing_ai.agent_core.abstraction.provider_env_standards import (
+    PROVIDER_ENV_STANDARDS,
     export_all_provider_env_vars_from_settings,
     export_provider_env_vars_from_settings,
     get_provider_secret_from_settings,
-    PROVIDER_ENV_STANDARDS,
 )
 
 
@@ -131,7 +132,7 @@ class TestProviderEnvStandards:
         try:
             # Get the secret from settings
             secret = get_provider_secret_from_settings(provider)
-            
+
             # Export it
             result = export_provider_env_vars_from_settings(provider)
 
@@ -154,11 +155,11 @@ class TestProviderEnvStandards:
         try:
             # Get secret to verify it exists
             secret = get_provider_secret_from_settings(provider)
-            
+
             if secret:
                 # Call export
                 result = export_provider_env_vars_from_settings(provider)
-                
+
                 # If successful, verify the assignment happened
                 if result:
                     # Line 185: env_var_name = PROVIDER_ENV_STANDARDS[provider].primary_env_var
@@ -180,7 +181,7 @@ class TestProviderEnvStandards:
 
         try:
             result = export_provider_env_vars_from_settings(provider)
-            
+
             # If successful, return value must be True
             if result:
                 assert result is True
@@ -346,16 +347,11 @@ class TestProviderEnvStandards:
             # Verify the result is stored in the dict (line 223)
             assert provider_name in results
 
-    @patch('gearmeshing_ai.agent_core.abstraction.provider_env_standards.export_provider_env_vars_from_settings')
+    @patch("gearmeshing_ai.agent_core.abstraction.provider_env_standards.export_provider_env_vars_from_settings")
     def test_export_all_exception_handler_catches_value_error(self, mock_export):
         """Test that ValueError is caught and handled (lines 222-223)."""
         # Mock to raise ValueError for first provider, then return normally
-        mock_export.side_effect = [
-            ValueError("Test error"),
-            False,
-            False,
-            False
-        ]
+        mock_export.side_effect = [ValueError("Test error"), False, False, False]
 
         results = export_all_provider_env_vars_from_settings()
 
@@ -367,12 +363,12 @@ class TestProviderEnvStandards:
         # First provider should be False (caught exception, line 223)
         assert results.get("openai") is False
 
-    @patch('gearmeshing_ai.agent_core.abstraction.provider_env_standards.get_provider_secret_from_settings')
+    @patch("gearmeshing_ai.agent_core.abstraction.provider_env_standards.get_provider_secret_from_settings")
     def test_export_sets_os_environ_when_secret_exists(self, mock_get_secret):
         """Test that os.environ is set when secret exists (lines 185-190)."""
         # Mock to return a test API key
         mock_get_secret.return_value = "test-api-key-12345"
-        
+
         provider = AIModelProvider.OPENAI
         env_var_name = PROVIDER_ENV_STANDARDS[provider].primary_env_var
         original_value = os.environ.get(env_var_name)
