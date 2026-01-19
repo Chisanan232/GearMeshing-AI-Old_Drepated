@@ -1108,7 +1108,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.128.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "langgraph", specifier = ">=1.0.6" },
-    { name = "langgraph-checkpoint-postgres", specifier = ">=3.0.2" },
+    { name = "langgraph-checkpoint-postgres", specifier = ">=3.0.3" },
     { name = "mcp", extras = ["cli"], specifier = ">=1.25.0" },
     { name = "mcp-contextforge-gateway", specifier = ">=0.9.0" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.3.2" },
