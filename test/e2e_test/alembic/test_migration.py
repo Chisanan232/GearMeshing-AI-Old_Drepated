@@ -273,16 +273,12 @@ class TestMigrationExecution:
         engine = sa.create_engine(sync_url)
 
         with engine.connect() as conn:
-            cursor_result = conn.execute(
-                text(
-                    """
+            cursor_result = conn.execute(text("""
                     SELECT role_name, temperature, max_tokens, top_p,
                            capabilities, tools, autonomy_profiles, is_active
                     FROM agent_configs
                     WHERE role_name = 'planner'
-                """
-                )
-            )
+                """))
             row = cursor_result.fetchone()
 
             assert row is not None
@@ -328,15 +324,11 @@ class TestMigrationExecution:
         engine = sa.create_engine(sync_url)
 
         with engine.connect() as conn:
-            cursor_result = conn.execute(
-                text(
-                    """
+            cursor_result = conn.execute(text("""
                     SELECT id, tenant_id, config
                     FROM gm_policies
                     WHERE id = 'policy_default_tenant'
-                """
-                )
-            )
+                """))
             row = cursor_result.fetchone()
 
             assert row is not None
@@ -522,15 +514,11 @@ class TestMigrationDataIntegrity:
         engine = sa.create_engine(sync_url)
 
         with engine.connect() as conn:
-            result = conn.execute(
-                text(
-                    """
+            result = conn.execute(text("""
                     SELECT created_at, updated_at
                     FROM agent_configs
                     WHERE role_name = 'planner'
-                """
-                )
-            )
+                """))
             row = result.fetchone()
 
             assert row is not None
