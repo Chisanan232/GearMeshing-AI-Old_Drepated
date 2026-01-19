@@ -36,7 +36,7 @@ dependencies = [
     ## HTTP client
     "httpx>=0.28.1",
     ## Pydantic for model validation
-    "pydantic>=2.7.0",
+    "pydantic>=2.12.5",
     ## Core agent runtime
     # LangChain core + LangGraph
     "langgraph>=1.0.4",
