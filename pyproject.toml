@@ -39,7 +39,7 @@ dependencies = [
     "pydantic>=2.12.5",
     ## Core agent runtime
     # LangChain core + LangGraph
-    "langgraph>=1.0.4",
+    "langgraph>=1.0.6",
     # Pydantic AI by FastAPI Pydantic team
     "pydantic-ai>=1.27.0",
     ## Postgres (Neon-compatible) persistence

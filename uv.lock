@@ -1107,7 +1107,7 @@ requires-dist = [
     { name = "asyncpg", specifier = ">=0.29.0" },
     { name = "fastapi", specifier = ">=0.127.0" },
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "langgraph", specifier = ">=1.0.4" },
+    { name = "langgraph", specifier = ">=1.0.6" },
     { name = "langgraph-checkpoint-postgres", specifier = ">=3.0.2" },
     { name = "mcp", extras = ["cli"], specifier = ">=1.25.0" },
     { name = "mcp-contextforge-gateway", specifier = ">=0.9.0" },
