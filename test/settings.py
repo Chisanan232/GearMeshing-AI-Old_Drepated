@@ -11,13 +11,16 @@ For example: AI_PROVIDER__OPENAI__API_KEY maps to test_settings.ai_provider.open
 from pathlib import Path
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic_settings import SettingsConfigDict
 
 from gearmeshing_ai.agent_core.abstraction.provider_env_standards import (
     export_all_provider_env_vars_from_settings,
 )
-from gearmeshing_ai.server.core.config import PostgreSQLConfig, AIProviderConfig, BaseAISetting
+from gearmeshing_ai.server.core.config import (
+    BaseAISetting,
+    PostgreSQLConfig,
+)
 
 
 class TestDatabaseConfig(BaseModel):

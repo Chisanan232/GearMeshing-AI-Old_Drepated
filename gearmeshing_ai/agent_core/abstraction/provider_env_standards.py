@@ -155,7 +155,9 @@ def get_provider_secret_from_settings(
     return None
 
 
-def export_provider_env_vars_from_settings(provider: AIModelProvider, settings: Optional["BaseAISetting"] = None) -> bool:
+def export_provider_env_vars_from_settings(
+    provider: AIModelProvider, settings: Optional["BaseAISetting"] = None
+) -> bool:
     """Export provider API key from settings to official environment variables.
 
     This function retrieves the API key from the settings model and sets it
