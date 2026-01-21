@@ -11,7 +11,7 @@ import asyncio
 import os
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from typing import Any, Dict, List
+from typing import Any, Dict, Generator
 
 from test.settings import test_settings
 from gearmeshing_ai.agent_core.planning.planner import StructuredPlanner
@@ -24,7 +24,7 @@ class TestStructuredPlannerE2E:
     """End-to-end tests for StructuredPlanner with real AI models."""
 
     @pytest.fixture
-    def mock_repos(self):
+    def mock_repos(self) -> Dict[str, AsyncMock]:
         """Mock all repository dependencies."""
         return {
             'runs': AsyncMock(),
@@ -36,7 +36,7 @@ class TestStructuredPlannerE2E:
         }
 
     @pytest.fixture
-    def mock_capabilities(self):
+    def mock_capabilities(self) -> MagicMock:
         """Mock capabilities registry."""
         capabilities = MagicMock()
         capabilities.list_all.return_value = [
@@ -59,7 +59,7 @@ class TestStructuredPlannerE2E:
         return capabilities
 
     @pytest.mark.asyncio
-    async def test_planner_with_openai_real_model(self, mock_repos, mock_capabilities, mock_database_access, mock_settings_for_ai):
+    async def test_planner_with_openai_real_model(self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock, mock_database_access: Any, mock_settings_for_ai: Any) -> None:
         """Test planner with real OpenAI model for planning."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -125,7 +125,7 @@ class TestStructuredPlannerE2E:
         assert has_thought
 
     @pytest.mark.asyncio
-    async def test_planner_with_google_real_model(self, mock_repos, mock_capabilities):
+    async def test_planner_with_google_real_model(self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock) -> None:
         """Test planner with real Google model for planning."""
         if not test_settings.ai_provider.google.api_key:
             pytest.skip("Google API key not configured")
@@ -174,7 +174,7 @@ class TestStructuredPlannerE2E:
         assert 'role' in step['args']
 
     @pytest.mark.asyncio
-    async def test_planner_with_different_roles(self, mock_repos, mock_capabilities):
+    async def test_planner_with_different_roles(self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock) -> None:
         """Test planner behavior with different roles."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -199,7 +199,7 @@ class TestStructuredPlannerE2E:
                 assert 'kind' in step
 
     @pytest.mark.asyncio
-    async def test_planner_with_complex_objectives(self, mock_repos, mock_capabilities):
+    async def test_planner_with_complex_objectives(self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock) -> None:
         """Test planner with complex, multi-step objectives."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -228,7 +228,7 @@ class TestStructuredPlannerE2E:
             assert len(thought_steps) > 0
 
     @pytest.mark.asyncio
-    async def test_planner_error_handling(self, mock_repos, mock_capabilities):
+    async def test_planner_error_handling(self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock) -> None:
         """Test planner error handling with real models."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -246,7 +246,7 @@ class TestStructuredPlannerE2E:
         assert len(plan) >= 1
 
     @pytest.mark.asyncio
-    async def test_planner_concurrent_requests(self, mock_repos, mock_capabilities):
+    async def test_planner_concurrent_requests(self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock) -> None:
         """Test planner handling concurrent planning requests."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -276,7 +276,7 @@ class TestStructuredPlannerE2E:
             assert len(plan) > 0
 
     @pytest.mark.asyncio
-    async def test_planner_model_creation_from_role(self, mock_repos, mock_capabilities):
+    async def test_planner_model_creation_from_role(self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock) -> None:
         """Test planner creating model from role configuration."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -296,7 +296,7 @@ class TestStructuredPlannerE2E:
         assert planner._model is not None
 
     @pytest.mark.asyncio
-    async def test_planner_with_tenant_isolation(self, mock_repos, mock_capabilities):
+    async def test_planner_with_tenant_isolation(self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock) -> None:
         """Test planner with tenant-specific configuration."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")

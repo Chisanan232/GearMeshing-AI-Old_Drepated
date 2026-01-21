@@ -12,7 +12,7 @@ from __future__ import annotations
 import asyncio
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Generator
+from typing import Any, AsyncGenerator, Dict, Generator, Optional
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -23,7 +23,7 @@ from gearmeshing_ai.agent_core.abstraction import get_agent_provider
 
 
 @pytest.fixture
-def mock_database_access():
+def mock_database_access() -> Generator[MagicMock, None, None]:
     """Simple fixture to mock database access for smoke tests."""
     from unittest.mock import patch
     
@@ -40,7 +40,7 @@ def mock_database_access():
 
 
 @pytest.fixture
-def mock_settings_for_ai():
+def mock_settings_for_ai() -> Generator[MagicMock, None, None]:
     """Mock settings to provide real AI API keys for smoke tests."""
     from unittest.mock import patch
     from test.settings import test_settings
@@ -60,7 +60,7 @@ def mock_settings_for_ai():
 
 
 @pytest.fixture(scope="session", autouse=True)
-async def initialize_ai_agent_provider():
+async def initialize_ai_agent_provider() -> AsyncGenerator[Optional[Any], None]:
     """Initialize the AI agent provider for all E2E tests."""
     try:
         # Set up the agent abstraction layer
@@ -75,7 +75,7 @@ async def initialize_ai_agent_provider():
 # Markers for different test types
 
 
-def pytest_configure(config):
+def pytest_configure(config: Any) -> None:
     """Configure custom pytest markers."""
     config.addinivalue_line(
         "markers", "e2e_ai: mark test as E2E AI test (requires real AI API keys)"

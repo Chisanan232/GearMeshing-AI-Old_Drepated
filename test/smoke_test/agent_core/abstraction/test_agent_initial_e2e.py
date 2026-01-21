@@ -20,7 +20,7 @@ import shutil
 from pathlib import Path
 import pytest
 from unittest.mock import AsyncMock, MagicMock
-from typing import Any, Dict, List
+from typing import Any, Dict, Generator, List
 
 from test.settings import test_settings
 from gearmeshing_ai.agent_core.abstraction import (
@@ -33,12 +33,12 @@ from gearmeshing_ai.agent_core.abstraction import (
 class BaseAIAgentAbstractionTestSuite:
 
     @pytest.fixture
-    def mock_cache(self):
+    def mock_cache(self) -> AsyncMock:
         """Mock AI agent cache."""
         return AsyncMock()
 
     @pytest.fixture
-    def mock_tools(self):
+    def mock_tools(self) -> List[Dict[str, Any]]:
         """Mock tool definitions for agent testing."""
         return [
             {
@@ -96,7 +96,7 @@ class TestAIAgentInitialization(BaseAIAgentAbstractionTestSuite):
 
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
-    async def test_agent_initialization_with_openai(self, mock_cache, mock_tools, mock_settings_for_ai):
+    async def test_agent_initialization_with_openai(self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], mock_settings_for_ai: MagicMock) -> None:
         """Test AI agent can be initialized with OpenAI model."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -144,7 +144,7 @@ class TestAIAgentInitialization(BaseAIAgentAbstractionTestSuite):
 
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
-    async def test_agent_initialization_with_anthropic(self, mock_cache, mock_tools, mock_settings_for_ai):
+    async def test_agent_initialization_with_anthropic(self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], mock_settings_for_ai: MagicMock) -> None:
         """Test AI agent can be initialized with Anthropic model."""
         if not test_settings.ai_provider.anthropic.api_key:
             pytest.skip("Anthropic API key not configured")
@@ -188,7 +188,7 @@ class TestAIAgentInitialization(BaseAIAgentAbstractionTestSuite):
 
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
-    async def test_agent_initialization_with_google(self, mock_cache, mock_tools, mock_settings_for_ai):
+    async def test_agent_initialization_with_google(self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], mock_settings_for_ai: MagicMock) -> None:
         """Test AI agent can be initialized with Google model."""
         if not test_settings.ai_provider.google.api_key:
             pytest.skip("Google API key not configured")
@@ -232,7 +232,7 @@ class TestAIAgentInitialization(BaseAIAgentAbstractionTestSuite):
 
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
-    async def test_agent_real_ai_calling_verification(self, mock_cache, mock_tools, mock_settings_for_ai):
+    async def test_agent_real_ai_calling_verification(self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], mock_settings_for_ai: MagicMock) -> None:
         """Test that AI agent makes real AI model calls, not just mock responses."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -279,7 +279,7 @@ class TestAIAgentInitialization(BaseAIAgentAbstractionTestSuite):
 
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
-    async def test_agent_different_prompts_different_responses(self, mock_cache, mock_tools, mock_settings_for_ai):
+    async def test_agent_different_prompts_different_responses(self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], mock_settings_for_ai: MagicMock) -> None:
         """Test that different prompts produce different responses (not cached/static)."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -322,7 +322,7 @@ class TestAIAgentInitialization(BaseAIAgentAbstractionTestSuite):
 
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
-    async def test_agent_error_handling_with_real_api(self, mock_cache, mock_tools, mock_settings_for_ai):
+    async def test_agent_error_handling_with_real_api(self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], mock_settings_for_ai: MagicMock) -> None:
         """Test agent error handling with real API calls."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -355,7 +355,7 @@ class TestAIAgentInitialization(BaseAIAgentAbstractionTestSuite):
 
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
-    async def test_agent_concurrent_initialization(self, mock_cache, mock_tools, mock_settings_for_ai):
+    async def test_agent_concurrent_initialization(self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], mock_settings_for_ai: MagicMock) -> None:
         """Test multiple agents can be initialized and used concurrently."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -410,7 +410,7 @@ class TestAIAgentInitialization(BaseAIAgentAbstractionTestSuite):
 
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
-    async def test_agent_framework_configuration(self, mock_cache, mock_tools, mock_settings_for_ai):
+    async def test_agent_framework_configuration(self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], mock_settings_for_ai: MagicMock) -> None:
         """Test agent framework configuration works correctly."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -446,7 +446,7 @@ class TestAIAgentInitialization(BaseAIAgentAbstractionTestSuite):
 class TestAIAgentWithNativeTools(BaseAIAgentAbstractionTestSuite):
 
     @pytest.fixture(autouse=True)
-    def runtime_environment_cleanup(self):
+    def runtime_environment_cleanup(self) -> Generator[str, None, None]:
         """Fixture to ensure clean runtime environment before and after each test."""
         # Store original environment
         original_env = dict(os.environ)
@@ -472,7 +472,7 @@ class TestAIAgentWithNativeTools(BaseAIAgentAbstractionTestSuite):
             shutil.rmtree(temp_dir, ignore_errors=True)
 
     @pytest.fixture
-    def test_filesystem(self, runtime_environment_cleanup):
+    def test_filesystem(self, runtime_environment_cleanup: str) -> Dict[str, Any]:
         """Fixture providing a clean test filesystem environment."""
         temp_dir = runtime_environment_cleanup
         
@@ -492,7 +492,7 @@ class TestAIAgentWithNativeTools(BaseAIAgentAbstractionTestSuite):
 
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
-    async def test_agent_file_reading_tools(self, mock_cache, mock_tools, mock_settings_for_ai, test_filesystem):
+    async def test_agent_file_reading_tools(self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], mock_settings_for_ai: MagicMock, test_filesystem: Dict[str, Any]) -> None:
         """Test AI agent can read files using tools."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -543,7 +543,7 @@ class TestAIAgentWithNativeTools(BaseAIAgentAbstractionTestSuite):
 
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
-    async def test_agent_file_writing_tools(self, mock_cache, mock_tools, mock_settings_for_ai, test_filesystem):
+    async def test_agent_file_writing_tools(self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], mock_settings_for_ai: MagicMock, test_filesystem: Dict[str, Any]) -> None:
         """Test AI agent can write files using tools."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -602,7 +602,7 @@ class TestAIAgentWithNativeTools(BaseAIAgentAbstractionTestSuite):
 
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
-    async def test_agent_command_execution_tools(self, mock_cache, mock_tools, mock_settings_for_ai, test_filesystem):
+    async def test_agent_command_execution_tools(self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], mock_settings_for_ai: MagicMock, test_filesystem: Dict[str, Any]) -> None:
         """Test AI agent can execute commands using tools."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -661,7 +661,7 @@ class TestAIAgentWithNativeTools(BaseAIAgentAbstractionTestSuite):
 
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
-    async def test_agent_integrated_file_operations(self, mock_cache, mock_tools, mock_settings_for_ai, test_filesystem):
+    async def test_agent_integrated_file_operations(self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], mock_settings_for_ai: MagicMock, test_filesystem: Dict[str, Any]) -> None:
         """Test AI agent can perform integrated file operations (read, write, execute)."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -719,7 +719,7 @@ class TestAIAgentWithNativeTools(BaseAIAgentAbstractionTestSuite):
 
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
-    async def test_agent_tool_error_handling(self, mock_cache, mock_tools, mock_settings_for_ai, test_filesystem):
+    async def test_agent_tool_error_handling(self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], mock_settings_for_ai: MagicMock, test_filesystem: Dict[str, Any]) -> None:
         """Test AI agent handles tool errors gracefully."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
