@@ -68,12 +68,22 @@ class GoogleConfig(BaseModel):
     model_config = ConfigDict(strict=False)
 
 
+class XAIConfig(BaseModel):
+    """xAI (Grok) API configuration for tests."""
+
+    api_key: Optional[SecretStr] = Field(default=None, description="xAI API key for authentication")
+    model: str = Field(default="grok-2", description="Default xAI model to use")
+
+    model_config = ConfigDict(strict=False)
+
+
 class AIProviderConfig(BaseModel):
     """AI Provider configuration container."""
 
     openai: OpenAIConfig = Field(default_factory=OpenAIConfig, description="OpenAI configuration")
     anthropic: AnthropicConfig = Field(default_factory=AnthropicConfig, description="Anthropic configuration")
     google: GoogleConfig = Field(default_factory=GoogleConfig, description="Google configuration")
+    xai: XAIConfig = Field(default_factory=XAIConfig, description="xAI configuration")
 
     model_config = ConfigDict(strict=False)
 
@@ -259,7 +269,29 @@ class CORSConfig(BaseModel):
 # =====================================================================
 
 
-class Settings(BaseSettings):
+class BaseAISetting(BaseSettings):
+
+    # =====================================================================
+    # Pydantic Configuration
+    # =====================================================================
+    model_config = SettingsConfigDict(
+        env_file=get_env_file_path(),
+        env_file_encoding="utf-8",
+        extra="ignore",
+        env_nested_delimiter="__",
+        case_sensitive=False,
+    )
+
+    # =====================================================================
+    # AI Provider Configuration
+    # =====================================================================
+    ai_provider: AIProviderConfig = Field(
+        default_factory=AIProviderConfig,
+        description="AI provider configuration (OpenAI, Anthropic, Google)",
+    )
+
+
+class Settings(BaseAISetting):
     """
     Application settings model.
 
@@ -273,17 +305,6 @@ class Settings(BaseSettings):
     - LOGFIRE__ENABLED → settings.logfire.enabled
     - MCP__CLICKUP__API_TOKEN → settings.mcp.clickup.api_token
     """
-
-    # =====================================================================
-    # Pydantic Configuration
-    # =====================================================================
-    model_config = SettingsConfigDict(
-        env_file=get_env_file_path(),
-        env_file_encoding="utf-8",
-        extra="ignore",
-        env_nested_delimiter="__",
-        case_sensitive=False,
-    )
 
     # =====================================================================
     # GearMeshing-AI Server Configuration
@@ -307,14 +328,6 @@ class Settings(BaseSettings):
     gearmeshing_ai_agent_framework: Optional[str] = Field(
         default=None,
         description="Active agent framework (optional, can be set at runtime)",
-    )
-
-    # =====================================================================
-    # AI Provider Configuration
-    # =====================================================================
-    ai_provider: AIProviderConfig = Field(
-        default_factory=AIProviderConfig,
-        description="AI provider configuration (OpenAI, Anthropic, Google)",
     )
 
     # =====================================================================

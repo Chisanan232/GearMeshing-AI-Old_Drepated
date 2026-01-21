@@ -52,6 +52,7 @@
         * [ ] 🧪 Unit testing
         * [ ] 🧪 Integration testing
         * [ ] 🧪 End-to-end testing
+        * [ ] 🧪 Smoke testing (with AI models real calling)
         * [ ] 🧪 Contract testing
         * [ ] 🧪 Evaluation testing
     * [ ] 📚 Documentation

@@ -27,7 +27,7 @@ from pydantic import BaseModel, Field
 from gearmeshing_ai.agent_core.abstraction.api_key_validator import AIModelProvider
 
 if TYPE_CHECKING:
-    from gearmeshing_ai.server.core.config import Settings
+    from gearmeshing_ai.server.core.config import BaseAISetting, Settings
 
 
 class ProviderEnvStandard(BaseModel):
@@ -155,7 +155,9 @@ def get_provider_secret_from_settings(
     return None
 
 
-def export_provider_env_vars_from_settings(provider: AIModelProvider, settings: Optional["Settings"] = None) -> bool:
+def export_provider_env_vars_from_settings(
+    provider: AIModelProvider, settings: Optional["BaseAISetting"] = None
+) -> bool:
     """Export provider API key from settings to official environment variables.
 
     This function retrieves the API key from the settings model and sets it
@@ -168,7 +170,7 @@ def export_provider_env_vars_from_settings(provider: AIModelProvider, settings: 
 
     Args:
         provider: AIModelProvider enum value
-        settings: Optional Settings instance. If not provided, imports from config module.
+        settings: Optional BaseAISetting instance. If not provided, imports from config module.
 
     Returns:
         True if environment variable was set, False if no API key found in settings
@@ -194,14 +196,14 @@ def export_provider_env_vars_from_settings(provider: AIModelProvider, settings: 
     return True
 
 
-def export_all_provider_env_vars_from_settings(settings: Optional["Settings"] = None) -> Dict[str, bool]:
+def export_all_provider_env_vars_from_settings(settings: Optional["BaseAISetting"] = None) -> Dict[str, bool]:
     """Export all provider API keys from settings to official environment variables.
 
     This function retrieves all available API keys from the settings model
     and sets them as official provider environment variables.
 
     Args:
-        settings: Optional Settings instance. If not provided, imports from config module.
+        settings: Optional BaseAISetting instance. If not provided, imports from config module.
 
     Returns:
         Dictionary mapping provider names to success status (True if set, False if not found)

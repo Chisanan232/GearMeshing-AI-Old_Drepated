@@ -24,9 +24,20 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  run_smoke-test:
+#    name: Run all smoke test items before release
+    uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_uv_run_test.yaml@master
+    with:
+      test_type: smoke-test
+      test_folder: './test/smoke_test'
+      install_dependency_with_group: 'dev'
+      operating-systems: '["ubuntu-latest"]'
+      python-versions: '["3.13"]'
+
   # Call the centralized complete staging release workflow
   staging:
     name: Complete Staging Release Process
+    needs: run_smoke-test
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_release_staging_complete.yaml@master
     with:
       level: ${{ inputs.level }}
