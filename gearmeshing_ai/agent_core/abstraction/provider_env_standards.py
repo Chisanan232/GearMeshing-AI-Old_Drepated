@@ -27,7 +27,7 @@ from pydantic import BaseModel, Field
 from gearmeshing_ai.agent_core.abstraction.api_key_validator import AIModelProvider
 
 if TYPE_CHECKING:
-    from gearmeshing_ai.server.core.config import BaseAISetting
+    from gearmeshing_ai.server.core.config import BaseAISetting, Settings
 
 
 class ProviderEnvStandard(BaseModel):
