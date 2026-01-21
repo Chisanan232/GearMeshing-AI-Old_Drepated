@@ -30,8 +30,7 @@ from gearmeshing_ai.agent_core.abstraction import (
 )
 
 
-class TestAIAgentRolesSmoke:
-    """Smoke tests for different AI agent roles with real models."""
+class BaseAIAgentAbstractionTestSuite:
 
     @pytest.fixture
     def mock_cache(self):
@@ -90,6 +89,10 @@ class TestAIAgentRolesSmoke:
                 }
             }
         ]
+
+
+class TestAIAgentInitialization(BaseAIAgentAbstractionTestSuite):
+    """Smoke tests for different AI agent roles with real models."""
 
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
@@ -439,6 +442,8 @@ class TestAIAgentRolesSmoke:
         
         await agent.cleanup()
 
+
+class TestAIAgentWithNativeTools(BaseAIAgentAbstractionTestSuite):
 
     @pytest.fixture(autouse=True)
     def runtime_environment_cleanup(self):
