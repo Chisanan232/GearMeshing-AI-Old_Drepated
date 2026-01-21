@@ -299,10 +299,13 @@ class PydanticAIAgent(AIAgentBase):
                 full_prompt = f"{context_str}\n\n{input_text}"
 
             # Invoke the agent
-            result = await self._agent.run(
-                full_prompt,
-                timeout=timeout,
-            )
+            if timeout:
+                result = await self._agent.run(
+                    full_prompt,
+                    timeout=timeout,
+                )
+            else:
+                result = await self._agent.run(full_prompt)
 
             # Extract response content
             content = result.data if hasattr(result, "data") else str(result)
