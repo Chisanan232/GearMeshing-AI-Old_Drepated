@@ -10,8 +10,7 @@ from __future__ import annotations
 import asyncio
 import os
 from test.settings import test_settings
-from typing import Any, Dict
-from unittest.mock import AsyncMock, MagicMock
+from typing import Any
 
 import pytest
 
@@ -65,9 +64,7 @@ class TestStructuredPlannerE2E:
                 assert "args" in step
 
     @pytest.mark.asyncio
-    async def test_planner_with_anthropic_real_model(
-        self, compose_stack: Any, database_url: str
-    ) -> None:
+    async def test_planner_with_anthropic_real_model(self, compose_stack: Any, database_url: str) -> None:
         """Test planner with real Anthropic model for planning."""
         if not test_settings.ai_provider.anthropic.api_key:
             pytest.skip("Anthropic API key not configured")
@@ -95,9 +92,7 @@ class TestStructuredPlannerE2E:
         assert has_thought
 
     @pytest.mark.asyncio
-    async def test_planner_with_google_real_model(
-        self, compose_stack: Any, database_url: str
-    ) -> None:
+    async def test_planner_with_google_real_model(self, compose_stack: Any, database_url: str) -> None:
         """Test planner with real Google model for planning."""
         if not test_settings.ai_provider.google.api_key:
             pytest.skip("Google API key not configured")
@@ -126,9 +121,7 @@ class TestStructuredPlannerE2E:
                 assert step["capability"] in ["read_file", "write_file", "web_search"]
 
     @pytest.mark.asyncio
-    async def test_planner_fallback_without_model(
-        self, compose_stack: Any, database_url: str
-    ) -> None:
+    async def test_planner_fallback_without_model(self, compose_stack: Any, database_url: str) -> None:
         """Test planner fallback behavior when no model is available."""
         planner = StructuredPlanner(model=None, role="planner")
 
@@ -148,9 +141,7 @@ class TestStructuredPlannerE2E:
         assert "role" in step["args"]
 
     @pytest.mark.asyncio
-    async def test_planner_with_different_roles(
-        self, compose_stack: Any, database_url: str
-    ) -> None:
+    async def test_planner_with_different_roles(self, compose_stack: Any, database_url: str) -> None:
         """Test planner behavior with different roles."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -175,9 +166,7 @@ class TestStructuredPlannerE2E:
                 assert "kind" in step
 
     @pytest.mark.asyncio
-    async def test_planner_with_complex_objectives(
-        self, compose_stack: Any, database_url: str
-    ) -> None:
+    async def test_planner_with_complex_objectives(self, compose_stack: Any, database_url: str) -> None:
         """Test planner with complex, multi-step objectives."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -206,9 +195,7 @@ class TestStructuredPlannerE2E:
             assert len(thought_steps) > 0
 
     @pytest.mark.asyncio
-    async def test_planner_error_handling(
-        self, compose_stack: Any, database_url: str
-    ) -> None:
+    async def test_planner_error_handling(self, compose_stack: Any, database_url: str) -> None:
         """Test planner error handling with real models."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -226,9 +213,7 @@ class TestStructuredPlannerE2E:
         assert len(plan) >= 1
 
     @pytest.mark.asyncio
-    async def test_planner_concurrent_requests(
-        self, compose_stack: Any, database_url: str
-    ) -> None:
+    async def test_planner_concurrent_requests(self, compose_stack: Any, database_url: str) -> None:
         """Test planner handling concurrent planning requests."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -255,9 +240,7 @@ class TestStructuredPlannerE2E:
             assert len(plan) > 0
 
     @pytest.mark.asyncio
-    async def test_planner_model_creation_from_role(
-        self, compose_stack: Any, database_url: str
-    ) -> None:
+    async def test_planner_model_creation_from_role(self, compose_stack: Any, database_url: str) -> None:
         """Test planner creating model from role configuration."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -277,9 +260,7 @@ class TestStructuredPlannerE2E:
         assert planner._model is not None
 
     @pytest.mark.asyncio
-    async def test_planner_with_tenant_isolation(
-        self, compose_stack: Any, database_url: str
-    ) -> None:
+    async def test_planner_with_tenant_isolation(self, compose_stack: Any, database_url: str) -> None:
         """Test planner with tenant-specific configuration."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")

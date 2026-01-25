@@ -7,12 +7,12 @@ Uses testcontainers with Docker Compose for real services integration.
 
 from __future__ import annotations
 
+from test.settings import test_settings
 from typing import Any, Dict, Generator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from test.settings import test_settings
 from gearmeshing_ai.agent_core.capabilities.base import CapabilityResult
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
 from gearmeshing_ai.agent_core.schemas.domain import RiskLevel
@@ -23,25 +23,26 @@ def agent_configs_setup(compose_stack):
     """Set up agent configurations in the database for runtime tests."""
     from sqlalchemy import create_engine
     from sqlmodel import Session
-    
+
     # Use the PostgreSQL database from testcontainers
     db_url = "postgresql+asyncpg://ai_dev:changeme@localhost:5432/ai_dev"
     # Convert to sync URL for SQLAlchemy
     sync_db_url = db_url.replace("postgresql+asyncpg://", "postgresql://")
-    
+
     engine = create_engine(sync_db_url)
-    
+
     # Import the SQLModel tables
     from gearmeshing_ai.server.models.agent_config import AgentConfig
-    
+
     # Insert test agent configurations
     with Session(engine) as session:
         # Check if assistant config already exists
-        existing = session.query(AgentConfig).filter(
-            AgentConfig.role_name == "assistant",
-            AgentConfig.model_provider == "openai"
-        ).first()
-        
+        existing = (
+            session.query(AgentConfig)
+            .filter(AgentConfig.role_name == "assistant", AgentConfig.model_provider == "openai")
+            .first()
+        )
+
         if not existing:
             # OpenAI agent config
             openai_config = AgentConfig(
@@ -57,7 +58,7 @@ def agent_configs_setup(compose_stack):
                 tenant_id=None,  # No tenant for general lookup
             )
             session.add(openai_config)
-            
+
             # Anthropic agent config
             anthropic_config = AgentConfig(
                 role_name="assistant",
@@ -72,7 +73,7 @@ def agent_configs_setup(compose_stack):
                 tenant_id=None,  # No tenant for general lookup
             )
             session.add(anthropic_config)
-            
+
             # Google agent config
             google_config = AgentConfig(
                 role_name="assistant",
@@ -87,9 +88,9 @@ def agent_configs_setup(compose_stack):
                 tenant_id=None,  # No tenant for general lookup
             )
             session.add(google_config)
-            
+
             session.commit()
-    
+
     yield
 
 

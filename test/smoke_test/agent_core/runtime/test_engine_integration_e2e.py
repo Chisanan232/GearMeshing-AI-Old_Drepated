@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from test.settings import test_settings
 
 # Import fixtures from the shared fixtures module
-from typing import cast, Any
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest

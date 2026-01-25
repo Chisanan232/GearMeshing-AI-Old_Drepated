@@ -9,12 +9,11 @@ This module provides fixtures and utilities for smoke testing that:
 
 from __future__ import annotations
 
-import os
-import sys
 import logging
+import os
 import time
 from pathlib import Path
-from typing import Any, AsyncGenerator, Generator, Optional
+from typing import Any, AsyncGenerator, Optional
 from unittest.mock import MagicMock
 
 import pytest
@@ -28,9 +27,9 @@ os.environ["LANGSMITH_TRACING"] = "false"
 # Disable logging to prevent file handle issues during tests
 logging.disable(logging.CRITICAL)
 
-from gearmeshing_ai.agent_core.abstraction.initialization import setup_agent_abstraction
-from gearmeshing_ai.server.core.config import settings
 from test.settings import test_settings
+
+from gearmeshing_ai.agent_core.abstraction.initialization import setup_agent_abstraction
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -56,7 +55,7 @@ def _compose_env():
     _set("DATABASE__POSTGRES__PASSWORD", postgres_config.password.get_secret_value())
 
     # MCP Gateway - use test settings defaults (with nested delimiter pattern)
-    if hasattr(test_settings, 'mcp') and hasattr(test_settings.mcp, 'gateway'):
+    if hasattr(test_settings, "mcp") and hasattr(test_settings.mcp, "gateway"):
         mcp_gateway_config = test_settings.mcp.gateway
         _set("MCPGATEWAY__JWT_SECRET", mcp_gateway_config.jwt_secret.get_secret_value())
         _set("MCPGATEWAY__ADMIN_PASSWORD", mcp_gateway_config.admin_password.get_secret_value())
@@ -72,15 +71,16 @@ def _compose_env():
 
     # Also patch the server settings to use the same database URL
     from unittest.mock import patch
+
     import gearmeshing_ai.server.core.config as server_config
-    
+
     # Create a mock settings object with the correct database URL
     mock_settings = MagicMock()
     mock_settings.database.url = postgres_url
     mock_settings.database.postgres = postgres_config
-    
+
     # Store the patch globally
-    _server_settings_patch = patch.object(server_config, 'settings', mock_settings)
+    _server_settings_patch = patch.object(server_config, "settings", mock_settings)
 
     try:
         yield
@@ -99,55 +99,54 @@ def compose_stack(_compose_env):
     """Start docker-compose stack for testing."""
     global _server_settings_patch
     compose = DockerCompose(str(PROJECT_ROOT), compose_file_name="./test/docker-compose.yml")
-    
+
     # Start the server settings patch
     if _server_settings_patch:
         _server_settings_patch.start()
-    
+
     try:
         compose.start()
-        
+
         # Wait for services to be ready
         print("Waiting for services to start...")
         time.sleep(10)
-        
+
         # Check if PostgreSQL is ready using the correct API
         stdout, stderr, exit_code = compose.exec_in_container(
-            ["pg_isready", "-U", "ai_dev", "-d", "ai_dev"], 
-            service_name="postgres"
+            ["pg_isready", "-U", "ai_dev", "-d", "ai_dev"], service_name="postgres"
         )
         if exit_code != 0:
             print(f"PostgreSQL not ready: {stderr}")
             # Give it more time and try again
             time.sleep(10)
             stdout, stderr, exit_code = compose.exec_in_container(
-                ["pg_isready", "-U", "ai_dev", "-d", "ai_dev"], 
-                service_name="postgres"
+                ["pg_isready", "-U", "ai_dev", "-d", "ai_dev"], service_name="postgres"
             )
             if exit_code != 0:
                 raise RuntimeError(f"PostgreSQL failed to start: {stderr}")
-        
+
         print("Services are ready!")
-        
+
         # Run database migrations to create the required tables
         print("Running database migrations...")
-        from alembic.config import Config
         from alembic import command
-        
+        from alembic.config import Config
+
         # Configure Alembic to use our test database
         alembic_cfg = Config("alembic.ini")
         alembic_cfg.set_main_option("sqlalchemy.url", "postgresql+asyncpg://ai_dev:changeme@localhost:5432/ai_dev")
-        
+
         # Run migrations
         command.upgrade(alembic_cfg, "head")
         print("Database migrations completed!")
-        
+
         # Initialize the AI provider framework
         from gearmeshing_ai.agent_core.abstraction import get_agent_provider
+
         provider = get_agent_provider()
         provider.set_framework("pydantic_ai")
         print("AI provider framework initialized!")
-        
+
         yield compose
     finally:
         if _server_settings_patch:
@@ -180,9 +179,7 @@ def async_engine(database_url):
 @pytest.fixture(scope="session")
 def async_session_maker(async_engine):
     """Create async session maker."""
-    return sessionmaker(
-        async_engine, class_=AsyncSession, expire_on_commit=False
-    )
+    return sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
 
 
 @pytest.fixture
@@ -206,6 +203,7 @@ async def initialize_ai_agent_provider() -> AsyncGenerator[Optional[Any], None]:
     finally:
         # Clean up LangSmith to prevent logging issues
         import os
+
         # Remove LangSmith environment variables to prevent background thread issues
         for key in ["LANGSMITH_TRACING", "LANGSMITH_API_KEY", "LANGSMITH_PROJECT", "LANGSMITH_ENDPOINT"]:
             if key in os.environ:
@@ -259,7 +257,8 @@ def pytest_sessionfinish(session, exitstatus):
     try:
         # Force cleanup of LangSmith background thread
         import langsmith._internal._background_thread as bg_thread
-        if hasattr(bg_thread, '_tracing_thread'):
+
+        if hasattr(bg_thread, "_tracing_thread"):
             thread = bg_thread._tracing_thread
             if thread and thread.is_alive():
                 # Wait a moment for the thread to finish
@@ -267,9 +266,10 @@ def pytest_sessionfinish(session, exitstatus):
     except Exception:
         # Ignore cleanup errors
         pass
-    
+
     # Clean up environment variables
     import os
+
     for key in ["LANGSMITH_TRACING", "LANGSMITH_API_KEY", "LANGSMITH_PROJECT", "LANGSMITH_ENDPOINT"]:
         if key in os.environ:
             del os.environ[key]

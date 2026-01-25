@@ -19,12 +19,8 @@ from gearmeshing_ai.agent_core.abstraction.provider_env_standards import (
 )
 from gearmeshing_ai.server.core.config import (
     BaseAISetting,
-    PostgreSQLConfig,
-    SlackMCPConfig,
-    ClickUpMCPConfig,
-    GitHubMCPConfig,
-    MCPGatewayConfig,
     MCPConfig,
+    PostgreSQLConfig,
 )
 
 
