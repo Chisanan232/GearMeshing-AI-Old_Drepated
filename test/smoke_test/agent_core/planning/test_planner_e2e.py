@@ -62,8 +62,8 @@ class TestStructuredPlannerE2E:
         self,
         mock_repos: Dict[str, AsyncMock],
         mock_capabilities: MagicMock,
-        mock_database_access: Any,
-        mock_settings_for_ai: Any,
+        compose_stack: Any,
+        database_url: str,
     ) -> None:
         """Test planner with real OpenAI model for planning."""
         if not test_settings.ai_provider.openai.api_key:
@@ -102,7 +102,9 @@ class TestStructuredPlannerE2E:
                 assert "args" in step
 
     @pytest.mark.asyncio
-    async def test_planner_with_anthropic_real_model(self, mock_repos, mock_capabilities):
+    async def test_planner_with_anthropic_real_model(
+        self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock, compose_stack: Any, database_url: str
+    ) -> None:
         """Test planner with real Anthropic model for planning."""
         if not test_settings.ai_provider.anthropic.api_key:
             pytest.skip("Anthropic API key not configured")
@@ -131,7 +133,7 @@ class TestStructuredPlannerE2E:
 
     @pytest.mark.asyncio
     async def test_planner_with_google_real_model(
-        self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock
+        self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock, compose_stack: Any, database_url: str
     ) -> None:
         """Test planner with real Google model for planning."""
         if not test_settings.ai_provider.google.api_key:
@@ -161,7 +163,7 @@ class TestStructuredPlannerE2E:
                 assert step["capability"] in ["read_file", "write_file", "web_search"]
 
     @pytest.mark.asyncio
-    async def test_planner_fallback_without_model(self, mock_repos, mock_capabilities):
+    async def test_planner_fallback_without_model(self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock, compose_stack: Any, database_url: str) -> None:
         """Test planner fallback behavior when no model is available."""
         planner = StructuredPlanner(model=None, role="planner")
 
@@ -182,7 +184,7 @@ class TestStructuredPlannerE2E:
 
     @pytest.mark.asyncio
     async def test_planner_with_different_roles(
-        self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock
+        self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock, compose_stack: Any, database_url: str
     ) -> None:
         """Test planner behavior with different roles."""
         if not test_settings.ai_provider.openai.api_key:
@@ -209,7 +211,7 @@ class TestStructuredPlannerE2E:
 
     @pytest.mark.asyncio
     async def test_planner_with_complex_objectives(
-        self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock
+        self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock, compose_stack: Any, database_url: str
     ) -> None:
         """Test planner with complex, multi-step objectives."""
         if not test_settings.ai_provider.openai.api_key:
@@ -239,7 +241,7 @@ class TestStructuredPlannerE2E:
             assert len(thought_steps) > 0
 
     @pytest.mark.asyncio
-    async def test_planner_error_handling(self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock) -> None:
+    async def test_planner_error_handling(self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock, compose_stack: Any, database_url: str) -> None:
         """Test planner error handling with real models."""
         if not test_settings.ai_provider.openai.api_key:
             pytest.skip("OpenAI API key not configured")
@@ -258,7 +260,7 @@ class TestStructuredPlannerE2E:
 
     @pytest.mark.asyncio
     async def test_planner_concurrent_requests(
-        self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock
+        self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock, compose_stack: Any, database_url: str
     ) -> None:
         """Test planner handling concurrent planning requests."""
         if not test_settings.ai_provider.openai.api_key:
@@ -287,7 +289,7 @@ class TestStructuredPlannerE2E:
 
     @pytest.mark.asyncio
     async def test_planner_model_creation_from_role(
-        self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock
+        self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock, compose_stack: Any, database_url: str
     ) -> None:
         """Test planner creating model from role configuration."""
         if not test_settings.ai_provider.openai.api_key:
@@ -309,7 +311,7 @@ class TestStructuredPlannerE2E:
 
     @pytest.mark.asyncio
     async def test_planner_with_tenant_isolation(
-        self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock
+        self, mock_repos: Dict[str, AsyncMock], mock_capabilities: MagicMock, compose_stack: Any, database_url: str
     ) -> None:
         """Test planner with tenant-specific configuration."""
         if not test_settings.ai_provider.openai.api_key:

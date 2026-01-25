@@ -90,7 +90,7 @@ class TestAIAgentInitialization(BaseAIAgentAbstractionTestSuite):
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
     async def test_agent_initialization_with_openai(
-        self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], mock_settings_for_ai: MagicMock
+        self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], compose_stack: Any, database_url: str
     ) -> None:
         """Test AI agent can be initialized with OpenAI model."""
         if not test_settings.ai_provider.openai.api_key:
@@ -139,7 +139,7 @@ class TestAIAgentInitialization(BaseAIAgentAbstractionTestSuite):
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
     async def test_agent_initialization_with_anthropic(
-        self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], mock_settings_for_ai: MagicMock
+        self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], compose_stack: Any, database_url: str
     ) -> None:
         """Test AI agent can be initialized with Anthropic model."""
         if not test_settings.ai_provider.anthropic.api_key:
@@ -184,7 +184,7 @@ class TestAIAgentInitialization(BaseAIAgentAbstractionTestSuite):
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
     async def test_agent_initialization_with_google(
-        self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], mock_settings_for_ai: MagicMock
+        self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], compose_stack: Any, database_url: str
     ) -> None:
         """Test AI agent can be initialized with Google model."""
         if not test_settings.ai_provider.google.api_key:
@@ -229,7 +229,7 @@ class TestAIAgentInitialization(BaseAIAgentAbstractionTestSuite):
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
     async def test_agent_real_ai_calling_verification(
-        self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], mock_settings_for_ai: MagicMock
+        self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], compose_stack: Any, database_url: str
     ) -> None:
         """Test that AI agent makes real AI model calls, not just mock responses."""
         if not test_settings.ai_provider.openai.api_key:
@@ -275,7 +275,7 @@ class TestAIAgentInitialization(BaseAIAgentAbstractionTestSuite):
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
     async def test_agent_different_prompts_different_responses(
-        self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], mock_settings_for_ai: MagicMock
+        self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], compose_stack: Any, database_url: str
     ) -> None:
         """Test that different prompts produce different responses (not cached/static)."""
         if not test_settings.ai_provider.openai.api_key:
@@ -316,7 +316,7 @@ class TestAIAgentInitialization(BaseAIAgentAbstractionTestSuite):
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
     async def test_agent_error_handling_with_real_api(
-        self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], mock_settings_for_ai: MagicMock
+        self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], compose_stack: Any, database_url: str
     ) -> None:
         """Test agent error handling with real API calls."""
         if not test_settings.ai_provider.openai.api_key:
@@ -351,7 +351,7 @@ class TestAIAgentInitialization(BaseAIAgentAbstractionTestSuite):
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
     async def test_agent_concurrent_initialization(
-        self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], mock_settings_for_ai: MagicMock
+        self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], compose_stack: Any, database_url: str
     ) -> None:
         """Test multiple agents can be initialized and used concurrently."""
         if not test_settings.ai_provider.openai.api_key:
@@ -402,7 +402,7 @@ class TestAIAgentInitialization(BaseAIAgentAbstractionTestSuite):
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
     async def test_agent_framework_configuration(
-        self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], mock_settings_for_ai: MagicMock
+        self, mock_cache: AsyncMock, mock_tools: List[Dict[str, Any]], compose_stack: Any, database_url: str
     ) -> None:
         """Test agent framework configuration works correctly."""
         if not test_settings.ai_provider.openai.api_key:
@@ -489,7 +489,8 @@ class TestAIAgentWithNativeTools(BaseAIAgentAbstractionTestSuite):
         self,
         mock_cache: AsyncMock,
         mock_tools: List[Dict[str, Any]],
-        mock_settings_for_ai: MagicMock,
+        compose_stack: Any,
+        database_url: str,
         test_filesystem: Dict[str, Any],
     ) -> None:
         """Test AI agent can read files using tools."""
@@ -546,7 +547,8 @@ class TestAIAgentWithNativeTools(BaseAIAgentAbstractionTestSuite):
         self,
         mock_cache: AsyncMock,
         mock_tools: List[Dict[str, Any]],
-        mock_settings_for_ai: MagicMock,
+        compose_stack: Any,
+        database_url: str,
         test_filesystem: Dict[str, Any],
     ) -> None:
         """Test AI agent can write files using tools."""
@@ -611,7 +613,8 @@ class TestAIAgentWithNativeTools(BaseAIAgentAbstractionTestSuite):
         self,
         mock_cache: AsyncMock,
         mock_tools: List[Dict[str, Any]],
-        mock_settings_for_ai: MagicMock,
+        compose_stack: Any,
+        database_url: str,
         test_filesystem: Dict[str, Any],
     ) -> None:
         """Test AI agent can execute commands using tools."""
@@ -676,7 +679,8 @@ class TestAIAgentWithNativeTools(BaseAIAgentAbstractionTestSuite):
         self,
         mock_cache: AsyncMock,
         mock_tools: List[Dict[str, Any]],
-        mock_settings_for_ai: MagicMock,
+        compose_stack: Any,
+        database_url: str,
         test_filesystem: Dict[str, Any],
     ) -> None:
         """Test AI agent can perform integrated file operations (read, write, execute)."""
@@ -743,7 +747,8 @@ class TestAIAgentWithNativeTools(BaseAIAgentAbstractionTestSuite):
         self,
         mock_cache: AsyncMock,
         mock_tools: List[Dict[str, Any]],
-        mock_settings_for_ai: MagicMock,
+        compose_stack: Any,
+        database_url: str,
         test_filesystem: Dict[str, Any],
     ) -> None:
         """Test AI agent handles tool errors gracefully."""
