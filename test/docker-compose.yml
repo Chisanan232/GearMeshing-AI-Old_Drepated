@@ -111,7 +111,7 @@ services:
     ports:
       - "4444:4444"
     volumes:
-      - ./configs/mcp_gateway/mcp-catalog_e2e.yml:/data/mcp-catalog.yml:ro
+      - ./mcp-catalog_e2e.yml:/data/mcp-catalog.yml:ro
 
 
   # -------------------------------------------------------
