@@ -24,7 +24,12 @@ def _first_gateway_id(gateway_client_with_register_servers: GatewayApiClient) ->
 
 @pytest.mark.e2e
 def test_sync_provider_gateway_lists_tools(gateway_client_with_register_servers: GatewayApiClient) -> None:
-    cfg = McpClientConfig(gateway=GatewayConfig(base_url=gateway_client_with_register_servers.base_url, auth_token=gateway_client_with_register_servers.auth_token))
+    cfg = McpClientConfig(
+        gateway=GatewayConfig(
+            base_url=gateway_client_with_register_servers.base_url,
+            auth_token=gateway_client_with_register_servers.auth_token,
+        )
+    )
 
     provider = MCPInfoProvider.from_config(
         cfg,
@@ -50,7 +55,12 @@ def test_sync_provider_gateway_lists_tools(gateway_client_with_register_servers:
 @pytest.mark.e2e
 @pytest.mark.asyncio
 async def test_async_provider_gateway_lists_tools(gateway_client_with_register_servers: GatewayApiClient) -> None:
-    cfg = McpClientConfig(gateway=GatewayConfig(base_url=gateway_client_with_register_servers.base_url, auth_token=gateway_client_with_register_servers.auth_token))
+    cfg = McpClientConfig(
+        gateway=GatewayConfig(
+            base_url=gateway_client_with_register_servers.base_url,
+            auth_token=gateway_client_with_register_servers.auth_token,
+        )
+    )
 
     assert cfg.gateway
     http_client = httpx.AsyncClient(base_url=cfg.gateway.base_url)
