@@ -152,7 +152,9 @@ class TestAIWorkflowNormalCases(BaseAIWorkflowTestSuite):
         engine_deps: EngineDeps,
         mock_policy: GlobalPolicy,
         sample_agent_run: AgentRun,
-        test_database: str,
+        compose_stack: Any,
+        database_url: str,
+        agent_configs_setup,
         patched_settings,
     ) -> None:
         """Test complete AI workflow from planning to execution with OpenAI."""
@@ -226,7 +228,9 @@ class TestAIWorkflowNormalCases(BaseAIWorkflowTestSuite):
         engine_deps: EngineDeps,
         mock_policy: GlobalPolicy,
         sample_agent_run: AgentRun,
-        test_database: str,
+        compose_stack: Any,
+        database_url: str,
+        agent_configs_setup,
         patched_settings,
     ) -> None:
         """Test multi-step workflow with Anthropic model."""
@@ -298,7 +302,9 @@ class TestAIWorkflowNormalCases(BaseAIWorkflowTestSuite):
         engine_deps: EngineDeps,
         mock_policy: GlobalPolicy,
         sample_agent_run: AgentRun,
-        test_database: str,
+        compose_stack: Any,
+        database_url: str,
+        agent_configs_setup,
         patched_settings,
     ) -> None:
         """Test workflow execution with Google model."""
@@ -351,7 +357,9 @@ class TestAIWorkflowNormalCases(BaseAIWorkflowTestSuite):
         self,
         engine_deps: EngineDeps,
         mock_policy: GlobalPolicy,
-        test_database: str,
+        compose_stack: Any,
+        database_url: str,
+        agent_configs_setup,
         patched_settings,
     ) -> None:
         """Test sequential execution of multiple workflows."""
@@ -431,7 +439,9 @@ class TestAIWorkflowEdgeCases(BaseAIWorkflowTestSuite):
         engine_deps: EngineDeps,
         mock_policy: GlobalPolicy,
         sample_agent_run: AgentRun,
-        test_database: str,
+        compose_stack: Any,
+        database_url: str,
+        agent_configs_setup,
         patched_settings,
     ) -> None:
         """Test workflow handling when a capability fails."""
@@ -495,7 +505,9 @@ class TestAIWorkflowEdgeCases(BaseAIWorkflowTestSuite):
         self,
         engine_deps: EngineDeps,
         sample_agent_run: AgentRun,
-        test_database: str,
+        compose_stack: Any,
+        database_url: str,
+        agent_configs_setup,
         patched_settings,
     ) -> None:
         """Test workflow when approval is required for an action."""
@@ -567,7 +579,9 @@ class TestAIWorkflowEdgeCases(BaseAIWorkflowTestSuite):
         engine_deps: EngineDeps,
         mock_policy: GlobalPolicy,
         sample_agent_run: AgentRun,
-        test_database: str,
+        compose_stack: Any,
+        database_url: str,
+        agent_configs_setup,
         patched_settings,
     ) -> None:
         """Test workflow handling with invalid plan structure."""
@@ -615,7 +629,9 @@ class TestAIWorkflowEdgeCases(BaseAIWorkflowTestSuite):
         engine_deps: EngineDeps,
         mock_policy: GlobalPolicy,
         sample_agent_run: AgentRun,
-        test_database: str,
+        compose_stack: Any,
+        database_url: str,
+        agent_configs_setup,
         patched_settings,
     ) -> None:
         """Test workflow handling with empty plan."""
@@ -674,7 +690,9 @@ class TestAIWorkflowStateManagement(BaseAIWorkflowTestSuite):
         engine_deps: EngineDeps,
         mock_policy: GlobalPolicy,
         sample_agent_run: AgentRun,
-        test_database: str,
+        compose_stack: Any,
+        database_url: str,
+        agent_configs_setup,
         patched_settings,
     ) -> None:
         """Test workflow state checkpointing and resumption."""
@@ -731,7 +749,9 @@ class TestAIWorkflowStateManagement(BaseAIWorkflowTestSuite):
         engine_deps: EngineDeps,
         mock_policy: GlobalPolicy,
         sample_agent_run: AgentRun,
-        test_database: str,
+        compose_stack: Any,
+        database_url: str,
+        agent_configs_setup,
         patched_settings,
     ) -> None:
         """Test comprehensive event logging during workflow execution."""

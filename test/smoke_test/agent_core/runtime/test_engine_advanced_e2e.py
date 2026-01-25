@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from test.settings import test_settings
 
 # Import fixtures from the shared fixtures module
-from typing import cast
+from typing import cast, Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -42,7 +42,9 @@ class TestAdvancedAIWorkflows:
         self,
         engine_deps: EngineDeps,
         mock_policy: GlobalPolicy,
-        test_database: str,
+        compose_stack: Any,
+        database_url: str,
+        agent_configs_setup,
         patched_settings,
     ) -> None:
         """Test long-running workflow with multiple phases."""
@@ -152,7 +154,9 @@ class TestAdvancedAIWorkflows:
         self,
         engine_deps: EngineDeps,
         mock_policy: GlobalPolicy,
-        test_database: str,
+        compose_stack: Any,
+        database_url: str,
+        agent_configs_setup,
         patched_settings,
     ) -> None:
         """Test workflow with automatic retry on transient failures."""
@@ -248,7 +252,9 @@ class TestAdvancedAIWorkflows:
         self,
         engine_deps: EngineDeps,
         mock_policy: GlobalPolicy,
-        test_database: str,
+        compose_stack: Any,
+        database_url: str,
+        agent_configs_setup,
         patched_settings,
     ) -> None:
         """Test workflow that adapts based on intermediate results."""
@@ -342,7 +348,9 @@ class TestAdvancedAIWorkflows:
         self,
         engine_deps: EngineDeps,
         mock_policy: GlobalPolicy,
-        test_database: str,
+        compose_stack: Any,
+        database_url: str,
+        agent_configs_setup,
         patched_settings,
     ) -> None:
         """Test workflow behavior under resource constraints."""
@@ -444,7 +452,9 @@ class TestAdvancedAIWorkflows:
         self,
         engine_deps: EngineDeps,
         mock_policy: GlobalPolicy,
-        test_database: str,
+        compose_stack: Any,
+        database_url: str,
+        agent_configs_setup,
         patched_settings,
     ) -> None:
         """Test workflow with external system dependencies."""
