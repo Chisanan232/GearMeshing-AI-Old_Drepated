@@ -430,7 +430,7 @@ async def async_create_model_for_role(
             sync_db_url = db_url.replace("sqlite+aiosqlite://", "sqlite://")
         else:
             sync_db_url = db_url
-        
+
         sync_engine = sync_create_engine(sync_db_url)
 
         session = Session(sync_engine)

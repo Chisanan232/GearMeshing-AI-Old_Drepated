@@ -51,19 +51,19 @@ class BaseAIWorkflowTestSuite:
     @pytest.fixture
     def mock_repositories(self) -> Dict[str, AsyncMock]:
         """Mock all repository dependencies."""
-        
+
     @pytest.fixture
     def mock_capabilities(self) -> MagicMock:
         """Mock capabilities registry with realistic capabilities."""
-        
+
     @pytest.fixture
     def mock_policy(self) -> GlobalPolicy:
         """Mock global policy for testing."""
-        
+
     @pytest.fixture
     def sample_agent_run(self) -> AgentRun:
         """Sample agent run for testing."""
-        
+
     @pytest.fixture
     def engine_deps(self) -> EngineDeps:
         """Create engine dependencies for testing."""
