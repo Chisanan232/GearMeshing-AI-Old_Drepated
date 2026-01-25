@@ -18,7 +18,7 @@ from __future__ import annotations
 import asyncio
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, Generator, List, Optional
+from typing import Any, Dict, Generator, List, Optional, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -64,7 +64,7 @@ class BaseAIWorkflowTestSuite:
     def mock_capabilities(self) -> MagicMock:
         """Mock capabilities registry with realistic capabilities."""
         capabilities = MagicMock()
-        capabilities.list_all.return_value = [
+        cast(MagicMock, capabilities.list_all).return_value = [
             {
                 "name": "web_search",
                 "description": "Search the web for information",
@@ -94,11 +94,11 @@ class BaseAIWorkflowTestSuite:
         
         # Mock the get method to return async mock capability
         async_mock_capability = AsyncMock()
-        async_mock_capability.execute.return_value = CapabilityResult(
+        cast(MagicMock, async_mock_capability.execute).return_value = CapabilityResult(
             ok=True,
             output={"status": "success", "data": "mock result"}
         )
-        capabilities.get.return_value = async_mock_capability
+        cast(MagicMock, capabilities.get).return_value = async_mock_capability
         
         return capabilities
 
@@ -115,9 +115,9 @@ class BaseAIWorkflowTestSuite:
         mock_decision.risk = RiskLevel.low
         
         # Setup all required methods
-        policy.decide.return_value = mock_decision
-        policy.validate_tool_args.return_value = None
-        policy.classify_risk.return_value = RiskLevel.low
+        cast(MagicMock, policy.decide).return_value = mock_decision
+        cast(MagicMock, policy.validate_tool_args).return_value = None
+        cast(MagicMock, policy.classify_risk).return_value = RiskLevel.low
         
         return policy
 
@@ -230,10 +230,10 @@ class TestAIWorkflowNormalCases(BaseAIWorkflowTestSuite):
         ]
         
         # Mock repository responses
-        engine_deps.runs.create.return_value = None
-        engine_deps.events.append.return_value = None
-        engine_deps.runs.get.return_value = sample_agent_run
-        engine_deps.runs.update_status.return_value = None
+        cast(MagicMock, engine_deps.runs.create).return_value = None
+        cast(MagicMock, engine_deps.events.append).return_value = None
+        cast(MagicMock, engine_deps.runs.get).return_value = sample_agent_run
+        cast(MagicMock, engine_deps.runs.update_status).return_value = None
         
         # Mock capability execution
         mock_capability_result = CapabilityResult(
@@ -248,10 +248,10 @@ class TestAIWorkflowNormalCases(BaseAIWorkflowTestSuite):
         assert result == sample_agent_run.id
         
         # Verify events were logged
-        assert engine_deps.events.append.call_count > 0
+        assert cast(MagicMock, engine_deps.events.append).call_count > 0
         
         # Verify run status was updated
-        engine_deps.runs.update_status.assert_called()
+        cast(MagicMock, engine_deps.runs.update_status).assert_called()
 
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
@@ -268,7 +268,7 @@ class TestAIWorkflowNormalCases(BaseAIWorkflowTestSuite):
             pytest.skip("Anthropic API key not configured")
 
         # Create real Anthropic model
-        thought_model = await async_create_model_for_role("assistant", database_url=test_database)
+        thought_model = await async_create_model_for_role("assistant")
         
         engine_deps = EngineDeps(
             runs=engine_deps.runs,
@@ -318,10 +318,10 @@ class TestAIWorkflowNormalCases(BaseAIWorkflowTestSuite):
         ]
         
         # Setup mocks
-        engine_deps.runs.create.return_value = None
-        engine_deps.events.append.return_value = None
-        engine_deps.runs.get.return_value = sample_agent_run
-        engine_deps.runs.update_status.return_value = None
+        cast(MagicMock, engine_deps.runs.create).return_value = None
+        cast(MagicMock, engine_deps.events.append).return_value = None
+        cast(MagicMock, engine_deps.runs.get).return_value = sample_agent_run
+        cast(MagicMock, engine_deps.runs.update_status).return_value = None
         
         # Execute workflow
         result = await engine.start_run(run=sample_agent_run, plan=complex_plan)
@@ -330,7 +330,7 @@ class TestAIWorkflowNormalCases(BaseAIWorkflowTestSuite):
         assert result == sample_agent_run.id
         
         # Verify multiple events were logged
-        event_calls = engine_deps.events.append.call_args_list
+        event_calls = cast(MagicMock, engine_deps.events.append).call_args_list
         assert len(event_calls) >= 5  # At least one event per step
 
     @pytest.mark.asyncio
@@ -348,7 +348,7 @@ class TestAIWorkflowNormalCases(BaseAIWorkflowTestSuite):
             pytest.skip("Google API key not configured")
 
         # Create real Google model
-        thought_model = await async_create_model_for_role("assistant", database_url=test_database)
+        thought_model = await async_create_model_for_role("assistant")
         
         engine_deps = EngineDeps(
             runs=engine_deps.runs,
@@ -388,10 +388,10 @@ class TestAIWorkflowNormalCases(BaseAIWorkflowTestSuite):
         ]
         
         # Setup mocks
-        engine_deps.runs.create.return_value = None
-        engine_deps.events.append.return_value = None
-        engine_deps.runs.get.return_value = sample_agent_run
-        engine_deps.runs.update_status.return_value = None
+        cast(MagicMock, engine_deps.runs.create).return_value = None
+        cast(MagicMock, engine_deps.events.append).return_value = None
+        cast(MagicMock, engine_deps.runs.get).return_value = sample_agent_run
+        cast(MagicMock, engine_deps.runs.update_status).return_value = None
         
         # Execute workflow
         result = await engine.start_run(run=sample_agent_run, plan=simple_plan)
@@ -457,8 +457,8 @@ class TestAIWorkflowNormalCases(BaseAIWorkflowTestSuite):
         ]
         
         # Mock repository responses
-        engine_deps.runs.create.return_value = None
-        engine_deps.events.append.return_value = None
+        cast(MagicMock, engine_deps.runs.create).return_value = None
+        cast(MagicMock, engine_deps.events.append).return_value = None
         
         # Create a proper mock for runs.get that returns the correct run
         def mock_get_run(run_id):
@@ -467,8 +467,8 @@ class TestAIWorkflowNormalCases(BaseAIWorkflowTestSuite):
                     return run
             return runs[0]  # fallback
         
-        engine_deps.runs.get.side_effect = mock_get_run
-        engine_deps.runs.update_status.return_value = None
+        cast(MagicMock, engine_deps.runs.get).side_effect = mock_get_run
+        cast(MagicMock, engine_deps.runs.update_status).return_value = None
         
         # Execute workflows sequentially to avoid async generator issues
         results = []
@@ -539,10 +539,10 @@ class TestAIWorkflowEdgeCases(BaseAIWorkflowTestSuite):
         ]
         
         # Setup mocks
-        engine_deps.runs.create.return_value = None
-        engine_deps.events.append.return_value = None
-        engine_deps.runs.get.return_value = sample_agent_run
-        engine_deps.runs.update_status.return_value = None
+        cast(MagicMock, engine_deps.runs.create).return_value = None
+        cast(MagicMock, engine_deps.events.append).return_value = None
+        cast(MagicMock, engine_deps.runs.get).return_value = sample_agent_run
+        cast(MagicMock, engine_deps.runs.update_status).return_value = None
         
         # Mock capability failure
         failing_result = CapabilityResult(
@@ -551,8 +551,9 @@ class TestAIWorkflowEdgeCases(BaseAIWorkflowTestSuite):
         )
         
         # Setup capability mock to return failure
-        engine_deps.capabilities.get.return_value = MagicMock()
-        engine_deps.capabilities.get.return_value.execute = AsyncMock(return_value=failing_result)
+        failing_capability = MagicMock()
+        failing_capability.execute = AsyncMock(return_value=failing_result)
+        cast(MagicMock, engine_deps.capabilities.get).return_value = failing_capability
         
         # Execute workflow
         result = await engine.start_run(run=sample_agent_run, plan=failing_plan)
@@ -604,9 +605,9 @@ class TestAIWorkflowEdgeCases(BaseAIWorkflowTestSuite):
         mock_decision.risk = RiskLevel.medium
         
         # Setup all required methods
-        mock_policy.decide.return_value = mock_decision
-        mock_policy.validate_tool_args.return_value = None
-        mock_policy.classify_risk.return_value = RiskLevel.medium
+        cast(MagicMock, mock_policy.decide).return_value = mock_decision
+        cast(MagicMock, mock_policy.validate_tool_args).return_value = None
+        cast(MagicMock, mock_policy.classify_risk).return_value = RiskLevel.medium
         
         engine = AgentEngine(policy=mock_policy, deps=engine_deps)
         
@@ -625,20 +626,20 @@ class TestAIWorkflowEdgeCases(BaseAIWorkflowTestSuite):
         ]
         
         # Setup mocks
-        engine_deps.runs.create.return_value = None
-        engine_deps.events.append.return_value = None
-        engine_deps.runs.get.return_value = sample_agent_run
-        engine_deps.runs.update_status.return_value = None
-        engine_deps.approvals.create.return_value = None
+        cast(MagicMock, engine_deps.runs.create).return_value = None
+        cast(MagicMock, engine_deps.events.append).return_value = None
+        cast(MagicMock, engine_deps.runs.get).return_value = sample_agent_run
+        cast(MagicMock, engine_deps.runs.update_status).return_value = None
+        cast(MagicMock, engine_deps.approvals.create).return_value = None
         
         # Execute workflow
         result = await engine.start_run(run=sample_agent_run, plan=approval_plan)
         
         # Verify approval was requested
-        engine_deps.approvals.create.assert_called()
+        cast(MagicMock, engine_deps.approvals.create).assert_called()
         
         # Verify approval events were logged
-        event_calls = engine_deps.events.append.call_args_list
+        event_calls = cast(MagicMock, engine_deps.events.append).call_args_list
         approval_events = [call for call in event_calls 
                           if call[0][0].type == AgentEventType.approval_requested]
         assert len(approval_events) > 0
@@ -688,10 +689,10 @@ class TestAIWorkflowEdgeCases(BaseAIWorkflowTestSuite):
         ]
         
         # Setup mocks
-        engine_deps.runs.create.return_value = None
-        engine_deps.events.append.return_value = None
-        engine_deps.runs.get.return_value = sample_agent_run
-        engine_deps.runs.update_status.return_value = None
+        cast(MagicMock, engine_deps.runs.create).return_value = None
+        cast(MagicMock, engine_deps.events.append).return_value = None
+        cast(MagicMock, engine_deps.runs.get).return_value = sample_agent_run
+        cast(MagicMock, engine_deps.runs.update_status).return_value = None
         
         # Execute workflow - should handle invalid plan gracefully
         with pytest.raises(ValueError, match="unknown step kind"):
@@ -733,13 +734,13 @@ class TestAIWorkflowEdgeCases(BaseAIWorkflowTestSuite):
         engine = AgentEngine(policy=mock_policy, deps=engine_deps)
         
         # Empty plan
-        empty_plan = []
+        empty_plan: List[Dict[str, Any]] = []
         
         # Setup mocks
-        engine_deps.runs.create.return_value = None
-        engine_deps.events.append.return_value = None
-        engine_deps.runs.get.return_value = sample_agent_run
-        engine_deps.runs.update_status.return_value = None
+        cast(MagicMock, engine_deps.runs.create).return_value = None
+        cast(MagicMock, engine_deps.events.append).return_value = None
+        cast(MagicMock, engine_deps.runs.get).return_value = sample_agent_run
+        cast(MagicMock, engine_deps.runs.update_status).return_value = None
         
         # Execute workflow
         result = await engine.start_run(run=sample_agent_run, plan=empty_plan)
@@ -748,7 +749,7 @@ class TestAIWorkflowEdgeCases(BaseAIWorkflowTestSuite):
         assert result == sample_agent_run.id
         
         # Verify completion event was logged
-        event_calls = engine_deps.events.append.call_args_list
+        event_calls = cast(MagicMock, engine_deps.events.append).call_args_list
         completion_events = [call for call in event_calls 
                             if call[0][0].type == AgentEventType.run_completed]
         assert len(completion_events) > 0
@@ -812,16 +813,16 @@ class TestAIWorkflowStateManagement(BaseAIWorkflowTestSuite):
         ]
         
         # Setup mocks
-        engine_deps.runs.create.return_value = None
-        engine_deps.events.append.return_value = None
-        engine_deps.runs.get.return_value = sample_agent_run
-        engine_deps.runs.update_status.return_value = None
+        cast(MagicMock, engine_deps.runs.create).return_value = None
+        cast(MagicMock, engine_deps.events.append).return_value = None
+        cast(MagicMock, engine_deps.runs.get).return_value = sample_agent_run
+        cast(MagicMock, engine_deps.runs.update_status).return_value = None
         
         # Execute workflow
         result = await engine.start_run(run=sample_agent_run, plan=checkpoint_plan)
         
         # Verify checkpoints were created
-        assert engine_deps.checkpoints.put.called or engine_deps.checkpointer is not None
+        assert cast(MagicMock, engine_deps.checkpoints.save).called or engine_deps.checkpointer is not None
         
         # Verify workflow completed
         assert result == sample_agent_run.id
@@ -886,16 +887,16 @@ class TestAIWorkflowStateManagement(BaseAIWorkflowTestSuite):
         ]
         
         # Setup mocks
-        engine_deps.runs.create.return_value = None
-        engine_deps.events.append.return_value = None
-        engine_deps.runs.get.return_value = sample_agent_run
-        engine_deps.runs.update_status.return_value = None
+        cast(MagicMock, engine_deps.runs.create).return_value = None
+        cast(MagicMock, engine_deps.events.append).return_value = None
+        cast(MagicMock, engine_deps.runs.get).return_value = sample_agent_run
+        cast(MagicMock, engine_deps.runs.update_status).return_value = None
         
         # Execute workflow
         result = await engine.start_run(run=sample_agent_run, plan=event_plan)
         
         # Verify comprehensive event logging
-        event_calls = engine_deps.events.append.call_args_list
+        event_calls = cast(MagicMock, engine_deps.events.append).call_args_list
         event_types = [call[0][0].type for call in event_calls]
         
         # Should have various event types

@@ -15,7 +15,7 @@ import asyncio
 import time
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any, Dict, List, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -147,10 +147,10 @@ class TestAdvancedAIWorkflows:
         )
         
         # Setup mocks
-        engine_deps.runs.create.return_value = None
-        engine_deps.events.append.return_value = None
-        engine_deps.runs.get.return_value = long_run
-        engine_deps.runs.update_status.return_value = None
+        cast(MagicMock, engine_deps.runs.create).return_value = None
+        cast(MagicMock, engine_deps.events.append).return_value = None
+        cast(MagicMock, engine_deps.runs.get).return_value = long_run
+        cast(MagicMock, engine_deps.runs.update_status).return_value = None
         
         # Execute long-running workflow
         start_time = time.time()
@@ -161,11 +161,11 @@ class TestAdvancedAIWorkflows:
         assert result == long_run.id
         
         # Verify comprehensive event logging
-        event_calls = engine_deps.events.append.call_args_list
+        event_calls = cast(MagicMock, engine_deps.events.append).call_args_list
         assert len(event_calls) >= 8  # At least one event per major step
         
         # Verify status updates occurred
-        assert engine_deps.runs.update_status.call_count >= 1  # At least completed status
+        assert cast(MagicMock, engine_deps.runs.update_status).call_count >= 1  # At least completed status
 
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
@@ -250,14 +250,15 @@ class TestAdvancedAIWorkflows:
                 )
         
         # Mock the capability execution
-        engine_deps.capabilities.get.return_value = MagicMock()
-        engine_deps.capabilities.get.return_value.execute = mock_web_search
+        retry_capability = MagicMock()
+        retry_capability.execute = mock_web_search
+        cast(MagicMock, engine_deps.capabilities.get).return_value = retry_capability
         
         # Setup other mocks
-        engine_deps.runs.create.return_value = None
-        engine_deps.events.append.return_value = None
-        engine_deps.runs.get.return_value = retry_run
-        engine_deps.runs.update_status.return_value = None
+        cast(MagicMock, engine_deps.runs.create).return_value = None
+        cast(MagicMock, engine_deps.events.append).return_value = None
+        cast(MagicMock, engine_deps.runs.get).return_value = retry_run
+        cast(MagicMock, engine_deps.runs.update_status).return_value = None
         
         # Execute workflow with retry
         result = await engine.start_run(run=retry_run, plan=retry_plan)
@@ -267,7 +268,7 @@ class TestAdvancedAIWorkflows:
         assert call_count >= 1  # Should have tried at least once
         
         # Verify retry events were logged
-        event_calls = engine_deps.events.append.call_args_list
+        event_calls = cast(MagicMock, engine_deps.events.append).call_args_list
         retry_events = [call for call in event_calls 
                         if "retry" in str(call[0][0]).lower()]
         assert len(retry_events) > 0
@@ -349,14 +350,15 @@ class TestAdvancedAIWorkflows:
                 }
             )
         
-        engine_deps.capabilities.get.return_value = MagicMock()
-        engine_deps.capabilities.get.return_value.execute = mock_read_file
+        adaptive_capability = MagicMock()
+        adaptive_capability.execute = mock_read_file
+        cast(MagicMock, engine_deps.capabilities.get).return_value = adaptive_capability
         
         # Setup other mocks
-        engine_deps.runs.create.return_value = None
-        engine_deps.events.append.return_value = None
-        engine_deps.runs.get.return_value = adaptive_run
-        engine_deps.runs.update_status.return_value = None
+        cast(MagicMock, engine_deps.runs.create).return_value = None
+        cast(MagicMock, engine_deps.events.append).return_value = None
+        cast(MagicMock, engine_deps.runs.get).return_value = adaptive_run
+        cast(MagicMock, engine_deps.runs.update_status).return_value = None
         
         # Execute adaptive workflow
         result = await engine.start_run(run=adaptive_run, plan=adaptive_plan)
@@ -365,7 +367,7 @@ class TestAdvancedAIWorkflows:
         assert result == adaptive_run.id
         
         # Verify adaptation events were logged
-        event_calls = engine_deps.events.append.call_args_list
+        event_calls = cast(MagicMock, engine_deps.events.append).call_args_list
         adaptation_events = [call for call in event_calls 
                            if "adapt" in str(call[0][0]).lower()]
         assert len(adaptation_events) > 0
@@ -447,14 +449,15 @@ class TestAdvancedAIWorkflows:
                 }
             )
         
-        engine_deps.capabilities.get.return_value = MagicMock()
-        engine_deps.capabilities.get.return_value.execute = mock_analyze_with_constraints
+        constrained_capability = MagicMock()
+        constrained_capability.execute = mock_analyze_with_constraints
+        cast(MagicMock, engine_deps.capabilities.get).return_value = constrained_capability
         
         # Setup other mocks
-        engine_deps.runs.create.return_value = None
-        engine_deps.events.append.return_value = None
-        engine_deps.runs.get.return_value = constrained_run
-        engine_deps.runs.update_status.return_value = None
+        cast(MagicMock, engine_deps.runs.create).return_value = None
+        cast(MagicMock, engine_deps.events.append).return_value = None
+        cast(MagicMock, engine_deps.runs.get).return_value = constrained_run
+        cast(MagicMock, engine_deps.runs.update_status).return_value = None
         
         # Execute constrained workflow
         result = await engine.start_run(run=constrained_run, plan=constrained_plan)
@@ -464,7 +467,7 @@ class TestAdvancedAIWorkflows:
         
         # Verify resource usage tracking (if implemented)
         # Note: Usage tracking might not be implemented in current engine version
-        usage_calls = engine_deps.usage.track.call_args_list if hasattr(engine_deps.usage, 'track') else []
+        usage_calls = cast(MagicMock, engine_deps.usage.track).call_args_list if engine_deps.usage and hasattr(engine_deps.usage, 'track') else []
         # Don't assert on usage calls as they might not be implemented yet
 
     @pytest.mark.asyncio
@@ -554,14 +557,15 @@ class TestAdvancedAIWorkflows:
                     output={"cached_data": "fallback_results", "timestamp": "2024-01-01"}
                 )
         
-        engine_deps.capabilities.get.return_value = MagicMock()
-        engine_deps.capabilities.get.return_value.execute = mock_external_call
+        external_capability = MagicMock()
+        external_capability.execute = mock_external_call
+        cast(MagicMock, engine_deps.capabilities.get).return_value = external_capability
         
         # Setup other mocks
-        engine_deps.runs.create.return_value = None
-        engine_deps.events.append.return_value = None
-        engine_deps.runs.get.return_value = external_run
-        engine_deps.runs.update_status.return_value = None
+        cast(MagicMock, engine_deps.runs.create).return_value = None
+        cast(MagicMock, engine_deps.events.append).return_value = None
+        cast(MagicMock, engine_deps.runs.get).return_value = external_run
+        cast(MagicMock, engine_deps.runs.update_status).return_value = None
         
         # Execute workflow with external dependencies
         result = await engine.start_run(run=external_run, plan=external_plan)
@@ -571,7 +575,7 @@ class TestAdvancedAIWorkflows:
         assert call_count >= 2  # Should have tried external then fallback
         
         # Verify external dependency events were logged
-        event_calls = engine_deps.events.append.call_args_list
+        event_calls = cast(MagicMock, engine_deps.events.append).call_args_list
         external_events = [call for call in event_calls 
                           if "external" in str(call[0][0]).lower() or "fallback" in str(call[0][0]).lower()]
         assert len(external_events) > 0

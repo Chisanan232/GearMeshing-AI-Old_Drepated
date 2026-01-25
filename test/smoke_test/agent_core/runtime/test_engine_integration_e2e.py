@@ -14,7 +14,7 @@ from __future__ import annotations
 import asyncio
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any, Dict, List, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -177,10 +177,10 @@ class TestRealWorldIntegrationWorkflows:
         )
         
         # Setup mocks
-        engine_deps.runs.create.return_value = None
-        engine_deps.events.append.return_value = None
-        engine_deps.runs.get.return_value = ds_run
-        engine_deps.runs.update_status.return_value = None
+        cast(MagicMock, engine_deps.runs.create).return_value = None
+        cast(MagicMock, engine_deps.events.append).return_value = None
+        cast(MagicMock, engine_deps.runs.get).return_value = ds_run
+        cast(MagicMock, engine_deps.runs.update_status).return_value = None
         
         # Mock capability executions
         async def mock_capability_execution(*args, **kwargs):
@@ -189,8 +189,9 @@ class TestRealWorldIntegrationWorkflows:
                 output={"status": "success", "processed_records": 10000}
             )
         
-        engine_deps.capabilities.get.return_value = MagicMock()
-        engine_deps.capabilities.get.return_value.execute = mock_capability_execution
+        mock_capability = MagicMock()
+        mock_capability.execute = mock_capability_execution
+        cast(MagicMock, engine_deps.capabilities.get).return_value = mock_capability
         
         # Execute data science pipeline
         result = await engine.start_run(run=ds_run, plan=ds_pipeline)
@@ -199,7 +200,7 @@ class TestRealWorldIntegrationWorkflows:
         assert result == ds_run.id
         
         # Verify comprehensive event logging
-        event_calls = engine_deps.events.append.call_args_list
+        event_calls = cast(MagicMock, engine_deps.events.append).call_args_list
         assert len(event_calls) >= 10  # Should have events for each major step
         
         # Verify stage transitions
@@ -308,10 +309,10 @@ class TestRealWorldIntegrationWorkflows:
         )
         
         # Setup mocks
-        engine_deps.runs.create.return_value = None
-        engine_deps.events.append.return_value = None
-        engine_deps.runs.get.return_value = web_run
-        engine_deps.runs.update_status.return_value = None
+        cast(MagicMock, engine_deps.runs.create).return_value = None
+        cast(MagicMock, engine_deps.events.append).return_value = None
+        cast(MagicMock, engine_deps.runs.get).return_value = web_run
+        cast(MagicMock, engine_deps.runs.update_status).return_value = None
         
         # Mock web automation capabilities
         async def mock_web_automation(*args, **kwargs):
@@ -324,8 +325,9 @@ class TestRealWorldIntegrationWorkflows:
                 }
             )
         
-        engine_deps.capabilities.get.return_value = MagicMock()
-        engine_deps.capabilities.get.return_value.execute = mock_web_automation
+        mock_web_capability = MagicMock()
+        mock_web_capability.execute = mock_web_automation
+        cast(MagicMock, engine_deps.capabilities.get).return_value = mock_web_capability
         
         # Execute web automation workflow
         result = await engine.start_run(run=web_run, plan=web_automation_plan)
@@ -334,7 +336,7 @@ class TestRealWorldIntegrationWorkflows:
         assert result == web_run.id
         
         # Verify tool invocations were tracked
-        assert engine_deps.tool_invocations.append.call_count > 0
+        assert cast(MagicMock, engine_deps.tool_invocations.append).call_count > 0
 
     @pytest.mark.asyncio
     @pytest.mark.smoke_ai
@@ -390,8 +392,8 @@ class TestRealWorldIntegrationWorkflows:
         
         # Setup the test policy
         test_policy.decide = mock_decide
-        test_policy.validate_tool_args.return_value = None
-        test_policy.classify_risk.return_value = RiskLevel.low
+        cast(MagicMock, test_policy.validate_tool_args).return_value = None
+        cast(MagicMock, test_policy.classify_risk).return_value = RiskLevel.low
         
         engine = AgentEngine(policy=test_policy, deps=engine_deps)
         
@@ -441,11 +443,11 @@ class TestRealWorldIntegrationWorkflows:
         )
         
         # Setup mocks
-        engine_deps.runs.create.return_value = None
-        engine_deps.events.append.return_value = None
-        engine_deps.runs.get.return_value = hitl_run
-        engine_deps.runs.update_status.return_value = None
-        engine_deps.approvals.create.return_value = None
+        cast(MagicMock, engine_deps.runs.create).return_value = None
+        cast(MagicMock, engine_deps.events.append).return_value = None
+        cast(MagicMock, engine_deps.runs.get).return_value = hitl_run
+        cast(MagicMock, engine_deps.runs.update_status).return_value = None
+        cast(MagicMock, engine_deps.approvals.create).return_value = None
         
         # Mock capability execution
         async def mock_critical_action(*args, **kwargs):
@@ -454,17 +456,18 @@ class TestRealWorldIntegrationWorkflows:
                 output={"deleted_records": 1000000, "space_freed": "5GB"}
             )
         
-        engine_deps.capabilities.get.return_value = MagicMock()
-        engine_deps.capabilities.get.return_value.execute = mock_critical_action
+        mock_critical_capability = MagicMock()
+        mock_critical_capability.execute = mock_critical_action
+        cast(MagicMock, engine_deps.capabilities.get).return_value = mock_critical_capability
         
         # Execute HITL workflow
         result = await engine.start_run(run=hitl_run, plan=hitl_plan)
         
         # Verify approval was requested for critical action
-        engine_deps.approvals.create.assert_called()
+        cast(MagicMock, engine_deps.approvals.create).assert_called()
         
         # Verify approval events were logged
-        event_calls = engine_deps.events.append.call_args_list
+        event_calls = cast(MagicMock, engine_deps.events.append).call_args_list
         approval_events = [call for call in event_calls 
                           if call[0][0].type == AgentEventType.approval_requested]
         assert len(approval_events) > 0
@@ -564,10 +567,10 @@ class TestRealWorldIntegrationWorkflows:
         )
         
         # Setup mocks
-        engine_deps.runs.create.return_value = None
-        engine_deps.events.append.return_value = None
-        engine_deps.runs.get.return_value = multi_run
-        engine_deps.runs.update_status.return_value = None
+        cast(MagicMock, engine_deps.runs.create).return_value = None
+        cast(MagicMock, engine_deps.events.append).return_value = None
+        cast(MagicMock, engine_deps.runs.get).return_value = multi_run
+        cast(MagicMock, engine_deps.runs.update_status).return_value = None
         
         # Mock multi-agent capabilities
         async def mock_collaborative_action(*args, **kwargs):
@@ -580,8 +583,9 @@ class TestRealWorldIntegrationWorkflows:
                 }
             )
         
-        engine_deps.capabilities.get.return_value = MagicMock()
-        engine_deps.capabilities.get.return_value.execute = mock_collaborative_action
+        mock_collaborative_capability = MagicMock()
+        mock_collaborative_capability.execute = mock_collaborative_action
+        cast(MagicMock, engine_deps.capabilities.get).return_value = mock_collaborative_capability
         
         # Execute multi-agent workflow
         result = await engine.start_run(run=multi_run, plan=collaboration_plan)
@@ -590,7 +594,7 @@ class TestRealWorldIntegrationWorkflows:
         assert result == multi_run.id
         
         # Verify shared workspace operations
-        write_calls = engine_deps.tool_invocations.append.call_args_list
+        write_calls = cast(MagicMock, engine_deps.tool_invocations.append).call_args_list
         shared_operations = [call for call in write_calls 
                            if "shared_workspace" in str(call)]
         assert len(shared_operations) > 0
@@ -642,8 +646,8 @@ class TestRealWorldIntegrationWorkflows:
         
         # Setup the enterprise policy
         enterprise_policy.decide = mock_compliance_check
-        enterprise_policy.validate_tool_args.return_value = None
-        enterprise_policy.classify_risk.return_value = RiskLevel.medium
+        cast(MagicMock, enterprise_policy.validate_tool_args).return_value = None
+        cast(MagicMock, enterprise_policy.classify_risk).return_value = RiskLevel.medium
         
         engine = AgentEngine(policy=enterprise_policy, deps=engine_deps)
         
@@ -700,11 +704,11 @@ class TestRealWorldIntegrationWorkflows:
         )
         
         # Setup mocks
-        engine_deps.runs.create.return_value = None
-        engine_deps.events.append.return_value = None
-        engine_deps.runs.get.return_value = enterprise_run
-        engine_deps.runs.update_status.return_value = None
-        engine_deps.approvals.create.return_value = None
+        cast(MagicMock, engine_deps.runs.create).return_value = None
+        cast(MagicMock, engine_deps.events.append).return_value = None
+        cast(MagicMock, engine_deps.runs.get).return_value = enterprise_run
+        cast(MagicMock, engine_deps.runs.update_status).return_value = None
+        cast(MagicMock, engine_deps.approvals.create).return_value = None
         
         # Mock compliant execution
         async def mock_compliant_action(*args, **kwargs):
@@ -717,18 +721,19 @@ class TestRealWorldIntegrationWorkflows:
                 }
             )
         
-        engine_deps.capabilities.get.return_value = MagicMock()
-        engine_deps.capabilities.get.return_value.execute = mock_compliant_action
+        mock_compliant_capability = MagicMock()
+        mock_compliant_capability.execute = mock_compliant_action
+        cast(MagicMock, engine_deps.capabilities.get).return_value = mock_compliant_capability
         
         # Execute enterprise workflow
         result = await engine.start_run(run=enterprise_run, plan=compliance_plan)
         
         # Verify compliance requirements were enforced
-        assert engine_deps.approvals.create.call_count >= 1  # At least one approval required
+        assert cast(MagicMock, engine_deps.approvals.create).call_count >= 1  # At least one approval required
         
         # Verify audit trail was created (if implemented)
         # Note: Tool invocation audit trail might not be implemented in current engine version
-        audit_calls = [call for call in engine_deps.tool_invocations.append.call_args_list 
+        audit_calls = [call for call in cast(MagicMock, engine_deps.tool_invocations.append).call_args_list 
                       if "audit" in str(call)]
         # Don't assert on audit calls as they might not be implemented yet
         
