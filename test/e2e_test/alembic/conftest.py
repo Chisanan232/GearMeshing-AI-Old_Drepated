@@ -83,7 +83,7 @@ def _compose_env():
 def compose_stack(_compose_env):
     """Start docker-compose stack for testing."""
     project_root = Path(os.getcwd()).resolve()
-    compose = DockerCompose(str(project_root), compose_file_name="./docker-compose.e2e.yml")
+    compose = DockerCompose(str(project_root), compose_file_name="./test/docker-compose.yml")
     compose.start()
 
     # Wait for PostgreSQL to be ready

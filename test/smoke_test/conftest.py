@@ -98,7 +98,7 @@ def _compose_env():
 def compose_stack(_compose_env):
     """Start docker-compose stack for testing."""
     global _server_settings_patch
-    compose = DockerCompose(str(PROJECT_ROOT), compose_file_name="./docker-compose.e2e.yml")
+    compose = DockerCompose(str(PROJECT_ROOT), compose_file_name="./test/docker-compose.yml")
     
     # Start the server settings patch
     if _server_settings_patch:
