@@ -19,6 +19,7 @@ from gearmeshing_ai.agent_core.abstraction.provider_env_standards import (
 )
 from gearmeshing_ai.server.core.config import (
     BaseAISetting,
+    MCPConfig,
     PostgreSQLConfig,
 )
 
@@ -94,6 +95,14 @@ class TestSettings(BaseAISetting):
     database: TestDatabaseConfig = Field(
         default_factory=TestDatabaseConfig,
         description="Database configuration (SQLite, PostgreSQL)",
+    )
+
+    # =====================================================================
+    # MCP Configuration for Tests
+    # =====================================================================
+    mcp: MCPConfig = Field(
+        default_factory=MCPConfig,
+        description="MCP configuration (Slack, ClickUp, GitHub, Gateway)",
     )
 
 

@@ -134,8 +134,8 @@ def _compose_env() -> Iterable[None]:
 @pytest.fixture(scope="session")
 def compose_stack(_compose_env: Iterable[None]) -> Iterable[DockerCompose]:
     # Repo root is the CWD when running tests; compose file is at the root
-    project_root = Path(os.getcwd()).resolve()
-    compose = DockerCompose(str(project_root), compose_file_name="./docker-compose.e2e.yml")
+    project_test_root = Path("./test")
+    compose = DockerCompose(str(project_test_root))
     compose.start()
     try:
         yield compose

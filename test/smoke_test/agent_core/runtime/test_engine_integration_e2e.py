@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from test.settings import test_settings
 
 # Import fixtures from the shared fixtures module
-from typing import cast
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -43,7 +43,9 @@ class TestRealWorldIntegrationWorkflows:
         self,
         engine_deps: EngineDeps,
         mock_policy: GlobalPolicy,
-        test_database: str,
+        compose_stack: Any,
+        database_url: str,
+        agent_configs_setup,
         patched_settings,
     ) -> None:
         """Test complete data science pipeline workflow."""
@@ -184,7 +186,9 @@ class TestRealWorldIntegrationWorkflows:
         self,
         engine_deps: EngineDeps,
         mock_policy: GlobalPolicy,
-        test_database: str,
+        compose_stack: Any,
+        database_url: str,
+        agent_configs_setup,
         patched_settings,
     ) -> None:
         """Test web automation and scraping workflow."""
@@ -300,7 +304,9 @@ class TestRealWorldIntegrationWorkflows:
     async def test_human_in_the_loop_workflow(
         self,
         engine_deps: EngineDeps,
-        test_database: str,
+        compose_stack: Any,
+        database_url: str,
+        agent_configs_setup,
         patched_settings,
     ) -> None:
         """Test human-in-the-loop workflow with approvals and interventions."""
@@ -428,7 +434,9 @@ class TestRealWorldIntegrationWorkflows:
         self,
         engine_deps: EngineDeps,
         mock_policy: GlobalPolicy,
-        test_database: str,
+        compose_stack: Any,
+        database_url: str,
+        agent_configs_setup,
         patched_settings,
     ) -> None:
         """Test multi-agent collaboration workflow."""
@@ -547,7 +555,9 @@ class TestRealWorldIntegrationWorkflows:
     async def test_enterprise_workflow_compliance(
         self,
         engine_deps: EngineDeps,
-        test_database: str,
+        compose_stack: Any,
+        database_url: str,
+        agent_configs_setup,
         patched_settings,
     ) -> None:
         """Test enterprise workflow with compliance and audit requirements."""

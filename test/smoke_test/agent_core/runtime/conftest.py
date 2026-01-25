@@ -1,8 +1,8 @@
 """
 Shared fixtures for runtime engine smoke tests.
 
-This module provides common fixtures used across all runtime test files
-to avoid circular import issues.
+This module provides common fixtures used across all runtime test files.
+Uses testcontainers with Docker Compose for real services integration.
 """
 
 from __future__ import annotations
@@ -12,8 +12,6 @@ from typing import Any, Dict, Generator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from sqlalchemy import create_engine
-from sqlmodel import Session, SQLModel
 
 from gearmeshing_ai.agent_core.capabilities.base import CapabilityResult
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
@@ -21,70 +19,79 @@ from gearmeshing_ai.agent_core.schemas.domain import RiskLevel
 
 
 @pytest.fixture(scope="session")
-def test_database() -> str:
-    """Create a test database with agent configurations for smoke tests."""
-    # Use SQLite file database for smoke tests to persist across connections
-    db_url = "sqlite:///test_smoke.db"
-    engine = create_engine(db_url, echo=False)
+def agent_configs_setup(compose_stack):
+    """Set up agent configurations in the database for runtime tests."""
+    from sqlalchemy import create_engine
+    from sqlmodel import Session
+
+    # Use the PostgreSQL database from testcontainers
+    db_url = "postgresql+asyncpg://ai_dev:changeme@localhost:5432/ai_dev"
+    # Convert to sync URL for SQLAlchemy
+    sync_db_url = db_url.replace("postgresql+asyncpg://", "postgresql://")
+
+    engine = create_engine(sync_db_url)
 
     # Import the SQLModel tables
     from gearmeshing_ai.server.models.agent_config import AgentConfig
 
-    # Drop and recreate tables
-    SQLModel.metadata.drop_all(engine)
-    SQLModel.metadata.create_all(engine)
-
     # Insert test agent configurations
     with Session(engine) as session:
-        # OpenAI agent config
-        openai_config = AgentConfig(
-            role_name="assistant",
-            display_name="Assistant",
-            description="General assistant role",
-            system_prompt_key="assistant",
-            model_provider="openai",
-            model_name="gpt-4o",
-            temperature=0.7,
-            max_tokens=4096,
-            top_p=0.9,
-            tenant_id=None,  # No tenant for general lookup
+        # Check if assistant config already exists
+        existing = (
+            session.query(AgentConfig)
+            .filter(AgentConfig.role_name == "assistant", AgentConfig.model_provider == "openai")
+            .first()
         )
-        session.add(openai_config)
 
-        # Anthropic agent config
-        anthropic_config = AgentConfig(
-            role_name="assistant",
-            display_name="Assistant",
-            description="General assistant role",
-            system_prompt_key="assistant",
-            model_provider="anthropic",
-            model_name="claude-3-opus-20240229",
-            temperature=0.7,
-            max_tokens=4096,
-            top_p=0.9,
-            tenant_id=None,  # No tenant for general lookup
-        )
-        session.add(anthropic_config)
+        if not existing:
+            # OpenAI agent config
+            openai_config = AgentConfig(
+                role_name="assistant",
+                display_name="Assistant",
+                description="General assistant role",
+                system_prompt_key="assistant",
+                model_provider="openai",
+                model_name="gpt-4o",
+                temperature=0.7,
+                max_tokens=4096,
+                top_p=0.9,
+                tenant_id=None,  # No tenant for general lookup
+            )
+            session.add(openai_config)
 
-        # Google agent config
-        google_config = AgentConfig(
-            role_name="assistant",
-            display_name="Assistant",
-            description="General assistant role",
-            system_prompt_key="assistant",
-            model_provider="google",
-            model_name="gemini-pro",
-            temperature=0.7,
-            max_tokens=4096,
-            top_p=0.9,
-            tenant_id=None,  # No tenant for general lookup
-        )
-        session.add(google_config)
+            # Anthropic agent config
+            anthropic_config = AgentConfig(
+                role_name="assistant",
+                display_name="Assistant",
+                description="General assistant role",
+                system_prompt_key="assistant",
+                model_provider="anthropic",
+                model_name="claude-3-opus-20240229",
+                temperature=0.7,
+                max_tokens=4096,
+                top_p=0.9,
+                tenant_id=None,  # No tenant for general lookup
+            )
+            session.add(anthropic_config)
 
-        session.commit()
+            # Google agent config
+            google_config = AgentConfig(
+                role_name="assistant",
+                display_name="Assistant",
+                description="General assistant role",
+                system_prompt_key="assistant",
+                model_provider="google",
+                model_name="gemini-pro",
+                temperature=0.7,
+                max_tokens=4096,
+                top_p=0.9,
+                tenant_id=None,  # No tenant for general lookup
+            )
+            session.add(google_config)
 
-    # Return the database URL for use in tests
-    return db_url
+            session.commit()
+
+    yield
 
 
 @pytest.fixture(scope="function")
@@ -97,9 +104,9 @@ def patched_settings() -> Generator[Any, None, None]:
     # Copy AI provider settings from test_settings
     mock_settings.ai_provider = test_settings.ai_provider
     # Create a proper DatabaseConfig with url attribute
-    # Use the test database URL that has the tables created
+    # Use the PostgreSQL database from testcontainers
     mock_settings.database = DatabaseConfig()
-    mock_settings.database.url = "sqlite:///test_smoke.db"  # Use the test database with tables
+    mock_settings.database.url = "postgresql+asyncpg://ai_dev:changeme@localhost:5432/ai_dev"
 
     # Patch the main config settings (this affects the import in model_provider)
     with patch("gearmeshing_ai.server.core.config.settings", mock_settings):
