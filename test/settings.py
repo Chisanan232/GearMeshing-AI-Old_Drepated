@@ -26,7 +26,7 @@ from gearmeshing_ai.server.core.config import (
 class TestDatabaseConfig(BaseModel):
     """Database configuration container for tests."""
 
-    test_url: str = Field(
+    url: str = Field(
         default="sqlite+aiosqlite:///:memory:",
         description="Test database connection URL (defaults to in-memory SQLite)",
     )

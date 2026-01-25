@@ -420,7 +420,18 @@ async def async_create_model_for_role(
     try:
         # Create a sync engine and session for model provider
         # The model provider requires a sync session, so we create one here
-        sync_engine = sync_create_engine(settings.database.url)
+        # Convert async URL to sync URL if needed
+        db_url = settings.database.url
+        if db_url.startswith("postgresql+asyncpg://"):
+            # Convert async PostgreSQL URL to sync URL
+            sync_db_url = db_url.replace("postgresql+asyncpg://", "postgresql://")
+        elif db_url.startswith("sqlite+aiosqlite://"):
+            # Convert async SQLite URL to sync URL
+            sync_db_url = db_url.replace("sqlite+aiosqlite://", "sqlite://")
+        else:
+            sync_db_url = db_url
+
+        sync_engine = sync_create_engine(sync_db_url)
 
         session = Session(sync_engine)
         try:
