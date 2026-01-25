@@ -15,26 +15,26 @@ from gearmeshing_ai.info_provider.mcp.schemas.config import (
 from gearmeshing_ai.info_provider.mcp.transport import SseMCPTransport
 
 
-def _first_gateway_id(gateway_client: GatewayApiClient) -> str:
-    gateways = gateway_client.admin.gateway.list()
+def _first_gateway_id(gateway_client_with_register_servers: GatewayApiClient) -> str:
+    gateways = gateway_client_with_register_servers.admin.gateway.list()
     assert gateways and len(gateways) >= 1
     gw0 = gateways[0]
     return gw0.id or getattr(gw0, "slug", None) or gw0.name
 
 
 @pytest.mark.e2e
-def test_sync_provider_gateway_lists_tools(gateway_client: GatewayApiClient) -> None:
-    cfg = McpClientConfig(gateway=GatewayConfig(base_url=gateway_client.base_url, auth_token=gateway_client.auth_token))
+def test_sync_provider_gateway_lists_tools(gateway_client_with_register_servers: GatewayApiClient) -> None:
+    cfg = McpClientConfig(gateway=GatewayConfig(base_url=gateway_client_with_register_servers.base_url, auth_token=gateway_client_with_register_servers.auth_token))
 
     provider = MCPInfoProvider.from_config(
         cfg,
         mcp_transport=SseMCPTransport(),
-        gateway_mgmt_client=gateway_client._client,  # reuse mgmt client
-        gateway_http_client=httpx.Client(base_url=gateway_client.base_url),
+        gateway_mgmt_client=gateway_client_with_register_servers._client,  # reuse mgmt client
+        gateway_http_client=httpx.Client(base_url=gateway_client_with_register_servers.base_url),
     )
 
     try:
-        server_id = _first_gateway_id(gateway_client)
+        server_id = _first_gateway_id(gateway_client_with_register_servers)
         tools = provider.list_tools(server_id)
         assert tools and len(tools) >= 1
         assert all(t.name for t in tools)
@@ -49,8 +49,8 @@ def test_sync_provider_gateway_lists_tools(gateway_client: GatewayApiClient) -> 
 
 @pytest.mark.e2e
 @pytest.mark.asyncio
-async def test_async_provider_gateway_lists_tools(gateway_client: GatewayApiClient) -> None:
-    cfg = McpClientConfig(gateway=GatewayConfig(base_url=gateway_client.base_url, auth_token=gateway_client.auth_token))
+async def test_async_provider_gateway_lists_tools(gateway_client_with_register_servers: GatewayApiClient) -> None:
+    cfg = McpClientConfig(gateway=GatewayConfig(base_url=gateway_client_with_register_servers.base_url, auth_token=gateway_client_with_register_servers.auth_token))
 
     assert cfg.gateway
     http_client = httpx.AsyncClient(base_url=cfg.gateway.base_url)
@@ -60,12 +60,12 @@ async def test_async_provider_gateway_lists_tools(gateway_client: GatewayApiClie
         provider = await AsyncMCPInfoProvider.from_config(
             cfg,
             mcp_transport=SseMCPTransport(),
-            gateway_mgmt_client=gateway_client._client,
+            gateway_mgmt_client=gateway_client_with_register_servers._client,
             gateway_http_client=http_client,
             gateway_sse_client=sse_client,
         )
 
-        server_id = _first_gateway_id(gateway_client)
+        server_id = _first_gateway_id(gateway_client_with_register_servers)
         tools = await provider.list_tools(server_id)
         assert tools and len(tools) >= 1
         assert all(t.name for t in tools)
