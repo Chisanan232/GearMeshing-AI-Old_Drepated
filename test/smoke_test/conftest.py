@@ -9,12 +9,32 @@ This module provides fixtures and utilities for smoke testing that:
 
 from __future__ import annotations
 
+import os
+import sys
+import logging
 from typing import Any, AsyncGenerator, Generator, Optional
 from unittest.mock import MagicMock
 
 import pytest
 
+# Disable LangSmith during smoke tests to prevent logging issues
+os.environ["LANGSMITH_TRACING"] = "false"
+
+# Disable logging to prevent file handle issues during tests
+logging.disable(logging.CRITICAL)
+
 from gearmeshing_ai.agent_core.abstraction.initialization import setup_agent_abstraction
+
+# Import runtime fixtures to make them available to all smoke tests
+from .agent_core.runtime.fixtures import (
+    mock_capabilities,
+    mock_policy,
+    mock_repositories,
+    patched_settings,
+    sample_agent_run,
+    test_database,
+    engine_deps,
+)
 
 
 @pytest.fixture
@@ -63,6 +83,13 @@ async def initialize_ai_agent_provider() -> AsyncGenerator[Optional[Any], None]:
         # If setup fails, tests will be skipped appropriately
         print(f"Warning: Failed to initialize AI agent provider: {e}")
         yield None
+    finally:
+        # Clean up LangSmith to prevent logging issues
+        import os
+        # Remove LangSmith environment variables to prevent background thread issues
+        for key in ["LANGSMITH_TRACING", "LANGSMITH_API_KEY", "LANGSMITH_PROJECT", "LANGSMITH_ENDPOINT"]:
+            if key in os.environ:
+                del os.environ[key]
 
 
 # Markers for different test types
@@ -83,25 +110,46 @@ def pytest_collection_modifyitems(config, items):
 
     for item in items:
         # Skip OpenAI-only tests if no API key
-        if "openai_only" in item.keywords and not test_settings.openai.api_key:
+        if "openai_only" in item.keywords and not test_settings.ai_provider.openai.api_key:
             item.add_marker(pytest.mark.skip(reason="OpenAI API key not configured"))
 
         # Skip Anthropic-only tests if no API key
-        if "anthropic_only" in item.keywords and not test_settings.anthropic.api_key:
+        if "anthropic_only" in item.keywords and not test_settings.ai_provider.anthropic.api_key:
             item.add_marker(pytest.mark.skip(reason="Anthropic API key not configured"))
 
         # Skip Google-only tests if no API key
-        if "google_only" in item.keywords and not test_settings.google.api_key:
+        if "google_only" in item.keywords and not test_settings.ai_provider.google.api_key:
             item.add_marker(pytest.mark.skip(reason="Google API key not configured"))
 
         # Skip multi-provider tests if no API keys
         if "multi_provider" in item.keywords:
             has_keys = any(
                 [
-                    test_settings.openai.api_key,
-                    test_settings.anthropic.api_key,
-                    test_settings.google.api_key,
+                    test_settings.ai_provider.openai.api_key,
+                    test_settings.ai_provider.anthropic.api_key,
+                    test_settings.ai_provider.google.api_key,
                 ]
             )
             if not has_keys:
                 item.add_marker(pytest.mark.skip(reason="No AI provider API keys configured"))
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Clean up LangSmith background thread after test session."""
+    try:
+        # Force cleanup of LangSmith background thread
+        import langsmith._internal._background_thread as bg_thread
+        if hasattr(bg_thread, '_tracing_thread'):
+            thread = bg_thread._tracing_thread
+            if thread and thread.is_alive():
+                # Wait a moment for the thread to finish
+                thread.join(timeout=1.0)
+    except Exception:
+        # Ignore cleanup errors
+        pass
+    
+    # Clean up environment variables
+    import os
+    for key in ["LANGSMITH_TRACING", "LANGSMITH_API_KEY", "LANGSMITH_PROJECT", "LANGSMITH_ENDPOINT"]:
+        if key in os.environ:
+            del os.environ[key]
