@@ -8,12 +8,39 @@ permissions (allowed capabilities/tools), and termination criteria.
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import Dict, Iterable, Protocol, Set
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 
-from .schemas.base import BaseSchema
-from .schemas.domain import AgentRole, CapabilityName
+
+class AgentRole(str, Enum):
+    """Enumeration of supported agent roles."""
+    
+    planner = "planner"
+    market = "market"
+    dev = "dev"
+    dev_lead = "dev_lead"
+    qa = "qa"
+    sre = "sre"
+
+
+class CapabilityName(str, Enum):
+    """Enumeration of supported capabilities."""
+    
+    summarize = "summarize"
+    docs_read = "docs_read"
+    web_search = "web_search"
+    web_fetch = "web_fetch"
+    codegen = "codegen"
+    mcp_call = "mcp_call"
+    shell_exec = "shell_exec"
+    code_execution = "code_execution"
+
+
+class BaseSchema(BaseModel):
+    """Base schema for role provider models."""
+    pass
 
 
 class CognitiveProfile(BaseSchema):

@@ -9,3 +9,28 @@ The role provider is responsible for:
 - Providing role specifications for runtime execution
 - Managing role-based access control for capabilities and tools
 """
+
+from .role_provider import (
+    AgentRole,
+    AgentRoleProvider,
+    CapabilityName,
+    CognitiveProfile,
+    DEFAULT_ROLE_PROVIDER,
+    RoleDefinition,
+    RolePermissions,
+    StaticAgentRoleProvider,
+)
+
+__all__ = [
+    # Core types
+    "AgentRole",
+    "CapabilityName",
+    # Role provider types
+    "AgentRoleProvider",
+    "StaticAgentRoleProvider",
+    "DEFAULT_ROLE_PROVIDER",
+    # Role definition types
+    "RoleDefinition",
+    "CognitiveProfile",
+    "RolePermissions",
+]
