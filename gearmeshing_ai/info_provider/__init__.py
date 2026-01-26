@@ -78,3 +78,7 @@ __all__ = [
     "load_role_provider",
     "load_role_provider_with_session",
 ]
+
+# Resolve forward references in domain models after imports are complete
+from gearmeshing_ai.agent_core.schemas.domain import _resolve_forward_references
+_resolve_forward_references()

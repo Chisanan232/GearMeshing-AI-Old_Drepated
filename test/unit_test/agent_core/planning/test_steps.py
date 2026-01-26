@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from gearmeshing_ai.agent_core.planning.steps import normalize_plan
-from gearmeshing_ai.agent_core.schemas.domain import CapabilityName
+from gearmeshing_ai.info_provider import CapabilityName
 
 
 def test_normalize_plan_legacy_action_step_is_converted_to_kind_action() -> None:

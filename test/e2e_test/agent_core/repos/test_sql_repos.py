@@ -31,12 +31,12 @@ from gearmeshing_ai.agent_core.schemas.domain import (
     AgentRun,
     Approval,
     ApprovalDecision,
-    CapabilityName,
     Checkpoint,
     RiskLevel,
     ToolInvocation,
     UsageLedgerEntry,
 )
+from gearmeshing_ai.info_provider import CapabilityName
 
 
 @pytest.fixture

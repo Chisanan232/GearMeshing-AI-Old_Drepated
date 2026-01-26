@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Any, Dict, Optional, TYPE_CHECKING
 from uuid import uuid4
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from .base import BaseSchema
 
@@ -161,7 +161,7 @@ class Approval(BaseSchema):
     run_id: str
 
     risk: RiskLevel
-    capability: CapabilityName
+    capability: "CapabilityName"  # Forward reference to avoid circular import
 
     reason: str
     requested_at: datetime = Field(default_factory=_utc_now)
@@ -210,3 +210,11 @@ class UsageLedgerEntry(BaseSchema):
     cost_usd: Optional[float] = None
 
     created_at: datetime = Field(default_factory=_utc_now)
+
+
+# Rebuild models to resolve forward references
+# This is called after all imports are resolved
+def _resolve_forward_references():
+    """Resolve forward references in models."""
+    from gearmeshing_ai.info_provider import CapabilityName
+    Approval.model_rebuild()

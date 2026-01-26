@@ -23,9 +23,9 @@ from gearmeshing_ai.agent_core.schemas.domain import (
     AgentRunStatus,
     Approval,
     ApprovalDecision,
-    CapabilityName,
     RiskLevel,
 )
+from gearmeshing_ai.info_provider import CapabilityName
 
 
 class _GraphSpy:
