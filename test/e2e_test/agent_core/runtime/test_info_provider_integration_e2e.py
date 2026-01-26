@@ -245,11 +245,11 @@ async def test_e2e_role_prompt_provider_is_used_for_thought_step(monkeypatch: py
             agent = _FakeAgent(config)
             await agent.initialize()
             return agent
-        
+
         async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
             # Mock the config source to return an AIAgentConfig object
             from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
-            
+
             # Start with base config
             config_dict = {
                 "name": "test-thought",
@@ -261,11 +261,11 @@ async def test_e2e_role_prompt_provider_is_used_for_thought_step(monkeypatch: py
                 "top_p": 0.9,
                 "metadata": {"output_type": dict},
             }
-            
+
             # Apply overrides if present
             if hasattr(config_source, "overrides") and config_source.overrides:
                 config_dict.update(config_source.overrides)
-            
+
             mock_config = AIAgentConfig(**config_dict)
             agent = _FakeAgent(mock_config)
             await agent.initialize()
