@@ -44,9 +44,9 @@ from .schemas.domain import (
     Approval,
     ApprovalDecision,
     AutonomyProfile,
-    CapabilityName,
     RiskLevel,
 )
+from gearmeshing_ai.info_provider import CapabilityName
 
 __all__ = [
     "AgentRun",

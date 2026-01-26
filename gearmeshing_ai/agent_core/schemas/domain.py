@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TYPE_CHECKING
 from uuid import uuid4
 
 from pydantic import Field
 
-# Import role and capability types from info_provider to avoid duplication
-from gearmeshing_ai.info_provider import CapabilityName
-
 from .base import BaseSchema
+
+if TYPE_CHECKING:
+    from gearmeshing_ai.info_provider import CapabilityName
 
 
 def _utc_now() -> datetime:

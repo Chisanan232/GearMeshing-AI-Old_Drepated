@@ -53,10 +53,10 @@ from ..schemas.domain import (
     AgentRunStatus,
     Approval,
     ApprovalDecision,
-    CapabilityName,
     ToolInvocation,
     UsageLedgerEntry,
 )
+from gearmeshing_ai.info_provider import CapabilityName
 from .models import EngineDeps, _GraphState
 
 logger = logging.getLogger(__name__)

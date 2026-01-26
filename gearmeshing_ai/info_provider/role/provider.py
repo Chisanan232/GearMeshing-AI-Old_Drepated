@@ -20,11 +20,13 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from typing import Dict, Optional
+from typing import Dict, Optional, TYPE_CHECKING
 
 from sqlmodel import Session, select
 
-from gearmeshing_ai.agent_core.schemas.config import RoleConfig
+if TYPE_CHECKING:
+    from gearmeshing_ai.agent_core.schemas.config import RoleConfig
+
 from gearmeshing_ai.info_provider.role.models import (
     AgentRole,
     CapabilityName,
@@ -37,11 +39,6 @@ from .base import RoleProvider
 from .models import (
     DEFAULT_ROLE_DEFINITIONS,
     ROLE_SPECS,
-    AgentRole,
-    CapabilityName,
-    CognitiveProfile,
-    RoleDefinition,
-    RolePermissions,
     RoleSpec,
 )
 
@@ -239,7 +236,7 @@ class DatabaseRoleProvider(RoleProvider):
             logger.error(f"Failed to list roles from database: {e}")
             return []
 
-    def _role_config_to_definition(self, role_config: RoleConfig) -> RoleDefinition:
+    def _role_config_to_definition(self, role_config: "RoleConfig") -> RoleDefinition:
         """Convert RoleConfig to RoleDefinition.
 
         Args:
