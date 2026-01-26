@@ -329,31 +329,26 @@ class AgentEngine:
             ):
                 try:
                     role_def = self._deps.role_provider.get(run.role)
-                    key = role_def.cognitive.system_prompt_key
-                    try:
-                        prompt_text = self._deps.prompt_provider.get(key, tenant=run.tenant_id)
-                    except KeyError:
-                        fallback = get_role_spec(run.role).system_prompt_key
-                        prompt_text = self._deps.prompt_provider.get(fallback, tenant=run.tenant_id)
+                    prompt_key = role_def.cognitive.system_prompt_key
                 except Exception:
-                    prompt_text = None
+                    # Fallback to role spec if role provider fails
+                    prompt_key = get_role_spec(run.role).system_prompt_key
 
-                if prompt_text is not None:
-                    # Use abstraction layer for thought execution
-                    provider = get_agent_provider()
+                # Use abstraction layer for thought execution
+                provider = get_agent_provider()
 
-                    # Create config source for thought agent
-                    config_source = AgentConfigSource(
-                        model_config_key="gpt4_default",  # Use default GPT-4 model for thoughts
-                        prompt_key="dev/system",  # Use developer system prompt as base
-                        overrides={
-                            "system_prompt": prompt_text,  # Override with role-specific prompt
-                            "output_type": dict,  # Expect structured output
-                        },
-                        tenant_id=run.tenant_id,  # Pass tenant for multi-tenancy
-                        prompt_tenant_id=run.tenant_id,  # Pass tenant for prompts
-                    )
+                # Create config source for thought agent using role's prompt key
+                config_source = AgentConfigSource(
+                    model_config_key="gpt4_default",  # Use default GPT-4 model for thoughts
+                    prompt_key=prompt_key,  # Use role-specific system prompt
+                    overrides={
+                        "output_type": dict,  # Expect structured output
+                    },
+                    tenant_id=run.tenant_id,  # Pass tenant for multi-tenancy
+                    prompt_tenant_id=run.tenant_id,  # Pass tenant for prompts
+                )
 
+                try:
                     agent = await provider.create_agent_from_config_source(config_source, use_cache=True)
                     res = await agent.invoke(
                         input_text=f"thought={thought}\nrole={run.role}\nobjective={run.objective}\nargs={args}"
@@ -363,6 +358,10 @@ class AgentEngine:
                     else:
                         output = {"result": res.content}
                     await agent.cleanup()
+                except Exception as e:
+                    # If prompt provider or agent creation fails, skip thought execution
+                    logger.debug(f"Thought execution failed due to prompt provider error: {e}")
+                    output = None
 
             await self._deps.events.append(
                 AgentEvent(
