@@ -36,7 +36,6 @@ class ModelProvider(ABC):
         Raises:
             KeyError: If the model configuration name is not found.
         """
-        pass
 
     @abstractmethod
     def version(self) -> str:
@@ -46,7 +45,6 @@ class ModelProvider(ABC):
         Returns:
             str: Version string for tracking and debugging purposes.
         """
-        pass
 
     @abstractmethod
     def refresh(self) -> None:
@@ -56,4 +54,3 @@ class ModelProvider(ABC):
         For static providers (like hardcoded), this is a no-op.
         For dynamic providers (database, external), this reloads configurations.
         """
-        pass

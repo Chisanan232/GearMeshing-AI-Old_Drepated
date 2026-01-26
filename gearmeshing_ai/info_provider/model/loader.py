@@ -82,7 +82,7 @@ def load_model_provider(builtin: ModelProvider | None = None) -> ModelProvider:
     """
     from gearmeshing_ai.server.core.config import settings
 
-    provider_key = getattr(settings, 'gearmeshing_ai_model_provider', 'hardcoded')
+    provider_key = getattr(settings, "gearmeshing_ai_model_provider", "hardcoded")
     base = builtin or HardcodedModelProvider()
 
     if provider_key in {"", "hardcoded"}:

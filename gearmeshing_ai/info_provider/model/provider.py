@@ -22,64 +22,28 @@ import threading
 import time
 from typing import Dict, Optional
 
-from .base import ModelProvider
-
 # Import ModelConfig for type hints
 from gearmeshing_ai.agent_core.schemas.config import ModelConfig
+
+from .base import ModelProvider
 
 # Minimal, builtin model configurations for basic/local usage. These are
 # intentionally conservative and generic. In production deployments these
 # are usually overridden by database configurations or custom providers.
 
 _BUILTIN_MODEL_CONFIGS: Dict[str, ModelConfig] = {
-    "gpt4_default": ModelConfig(
-        provider="openai",
-        model="gpt-4o",
-        temperature=0.7,
-        max_tokens=4096,
-        top_p=0.9
-    ),
-    "gpt4_creative": ModelConfig(
-        provider="openai",
-        model="gpt-4o",
-        temperature=1.0,
-        max_tokens=4096,
-        top_p=1.0
-    ),
-    "gpt4_precise": ModelConfig(
-        provider="openai",
-        model="gpt-4o",
-        temperature=0.1,
-        max_tokens=4096,
-        top_p=0.5
-    ),
+    "gpt4_default": ModelConfig(provider="openai", model="gpt-4o", temperature=0.7, max_tokens=4096, top_p=0.9),
+    "gpt4_creative": ModelConfig(provider="openai", model="gpt-4o", temperature=1.0, max_tokens=4096, top_p=1.0),
+    "gpt4_precise": ModelConfig(provider="openai", model="gpt-4o", temperature=0.1, max_tokens=4096, top_p=0.5),
     "claude_sonnet": ModelConfig(
-        provider="anthropic",
-        model="claude-3-5-sonnet-20241022",
-        temperature=0.7,
-        max_tokens=8192,
-        top_p=0.9
+        provider="anthropic", model="claude-3-5-sonnet-20241022", temperature=0.7, max_tokens=8192, top_p=0.9
     ),
     "claude_haiku": ModelConfig(
-        provider="anthropic",
-        model="claude-3-5-haiku-20241022",
-        temperature=0.5,
-        max_tokens=4096,
-        top_p=0.8
+        provider="anthropic", model="claude-3-5-haiku-20241022", temperature=0.5, max_tokens=4096, top_p=0.8
     ),
-    "gemini_pro": ModelConfig(
-        provider="google",
-        model="gemini-1.5-pro",
-        temperature=0.7,
-        max_tokens=2048,
-        top_p=0.9
-    ),
+    "gemini_pro": ModelConfig(provider="google", model="gemini-1.5-pro", temperature=0.7, max_tokens=2048, top_p=0.9),
     "gemini_flash": ModelConfig(
-        provider="google",
-        model="gemini-1.5-flash",
-        temperature=0.3,
-        max_tokens=1024,
-        top_p=0.8
+        provider="google", model="gemini-1.5-flash", temperature=0.3, max_tokens=1024, top_p=0.8
     ),
 }
 
@@ -182,25 +146,22 @@ class DatabaseModelProvider(ModelProvider):
         with self._db_session_factory() as session:
             # Import here to avoid circular imports
             from gearmeshing_ai.server.models.agent_config import AgentConfig
-            
+
             # Query for active configuration
-            query = session.query(AgentConfig).filter(
-                AgentConfig.role_name == name,
-                AgentConfig.is_active == True
-            )
-            
+            query = session.query(AgentConfig).filter(AgentConfig.role_name == name, AgentConfig.is_active == True)
+
             # Add tenant filter if specified
-            if tenant:
+            if tenant is not None:
                 query = query.filter(AgentConfig.tenant_id == tenant)
             else:
                 # For non-tenant requests, prefer null tenant_id
-                query = query.filter(AgentConfig.tenant_id.is_(None))
-            
+                query = query.filter(AgentConfig.tenant_id.is_(None))  # type: ignore[union-attr]
+
             config = query.first()
-            
+
             if not config:
                 raise KeyError(f"model config not found: name={name!r}, tenant={tenant!r}")
-            
+
             # Convert to ModelConfig
             return config.to_model_config()
 
