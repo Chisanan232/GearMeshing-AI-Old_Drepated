@@ -5,6 +5,7 @@ functionality, mirroring the structure of the prompt provider package.
 """
 
 from .base import ModelProvider
+from .loader import load_model_provider
 from .provider import (
     DatabaseModelProvider,
     HardcodedModelProvider,
@@ -14,6 +15,7 @@ from .provider import (
 
 __all__ = [
     "ModelProvider",
+    "load_model_provider",
     "HardcodedModelProvider",
     "DatabaseModelProvider",
     "StackedModelProvider",
