@@ -26,7 +26,7 @@ from importlib import metadata
 from typing import Iterable
 
 from .base import RoleProvider
-from .static import HardcodedRoleProvider
+from .provider import HardcodedRoleProvider
 
 _LOGGER = logging.getLogger(__name__)
 

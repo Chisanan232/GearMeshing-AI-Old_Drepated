@@ -18,25 +18,30 @@ Provider Architecture:
 """
 
 from .base import RoleProvider
-from .database import DatabaseRoleProvider, get_database_role_provider
 from .loader import load_role_provider, load_role_provider_with_session
-from .role_provider import (
+from .models import (
     AgentRole,
     CapabilityName,
     CognitiveProfile,
-    DEFAULT_ROLE_PROVIDER,
-    RoleDefinition,
-    RolePermissions,
-    StaticAgentRoleProvider,
-)
-from .roles import (
+    DEFAULT_ROLE_DEFINITIONS,
     ROLE_CAPABILITIES,
     ROLE_SPECS,
+    RoleDefinition,
+    RolePermissions,
     RoleSpec,
     coerce_role,
     get_role_spec,
 )
-from .static import HardcodedRoleProvider, get_hardcoded_role_provider
+from .provider import (
+    DatabaseRoleProvider,
+    DEFAULT_ROLE_PROVIDER,
+    HardcodedRoleProvider,
+    StaticAgentRoleProvider,
+    StackedRoleProvider,
+    HotReloadRoleWrapper,
+    get_database_role_provider,
+    get_hardcoded_role_provider,
+)
 
 __all__ = [
     # Core types
@@ -48,7 +53,10 @@ __all__ = [
     "HardcodedRoleProvider",
     "DatabaseRoleProvider",
     "StaticAgentRoleProvider",
+    "StackedRoleProvider",
+    "HotReloadRoleWrapper",
     "DEFAULT_ROLE_PROVIDER",
+    "DEFAULT_ROLE_DEFINITIONS",
     # Provider factories
     "get_hardcoded_role_provider",
     "get_database_role_provider",

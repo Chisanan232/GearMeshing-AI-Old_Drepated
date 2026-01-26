@@ -147,7 +147,7 @@ class TestModelProviderIntegration:
 
             with patch.object(provider, "_get_db_provider") as mock_get_db:
                 mock_db_provider = MagicMock()
-                mock_db_provider.get_model_config.return_value = mock_model_config
+                mock_db_provider.get.return_value = mock_model_config
                 mock_get_db.return_value = mock_db_provider
 
                 with patch.object(provider, "create_model") as mock_create:
@@ -155,7 +155,7 @@ class TestModelProviderIntegration:
                     provider.create_model_for_role("dev", tenant_id="acme-corp")
 
                     # Verify database config was fetched
-                    mock_db_provider.get_model_config.assert_called_once_with("dev", "acme-corp")
+                    mock_db_provider.get.assert_called_once_with("dev", "acme-corp")
 
                     # Verify create_model was called with config values
                     mock_create.assert_called_once_with(
@@ -234,7 +234,7 @@ class TestModelProviderIntegration:
 
         with patch.object(provider, "_get_db_provider") as mock_get_db:
             mock_db_provider = MagicMock()
-            mock_db_provider.get_model_config.side_effect = ValueError("Role not found")
+            mock_db_provider.get.side_effect = ValueError("Role not found")
             mock_get_db.return_value = mock_db_provider
 
             with pytest.raises(ValueError, match="Role not found"):
