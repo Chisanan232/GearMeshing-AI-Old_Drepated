@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-
 from gearmeshing_ai.info_provider.model.base import ModelProvider
 from gearmeshing_ai.info_provider.model.loader import load_model_provider
 from gearmeshing_ai.info_provider.model.provider import HardcodedModelProvider
