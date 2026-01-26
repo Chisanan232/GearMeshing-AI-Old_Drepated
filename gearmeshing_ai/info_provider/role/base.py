@@ -8,9 +8,13 @@ and external/commercial providers are wired in via entry points.
 
 from __future__ import annotations
 
-from typing import Optional, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Optional, Protocol, runtime_checkable
 
-from .role_provider import RoleDefinition
+if TYPE_CHECKING:
+    from .models import RoleDefinition
+else:
+    # Runtime import to avoid circular dependency
+    RoleDefinition = None
 
 
 @runtime_checkable
