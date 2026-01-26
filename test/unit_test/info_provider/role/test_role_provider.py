@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import pytest
 
-from gearmeshing_ai.agent_core.role_provider import (
+from gearmeshing_ai.info_provider import (
     DEFAULT_ROLE_PROVIDER,
     StaticAgentRoleProvider,
+    AgentRole,
 )
-from gearmeshing_ai.agent_core.schemas.domain import AgentRole
 
 
 @pytest.mark.parametrize("role", list(AgentRole))

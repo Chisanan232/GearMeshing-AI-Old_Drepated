@@ -25,7 +25,7 @@ from gearmeshing_ai.agent_core.repos.sql import (
     create_engine,
     create_sessionmaker,
 )
-from gearmeshing_ai.agent_core.role_provider import DEFAULT_ROLE_PROVIDER
+from gearmeshing_ai.info_provider import DEFAULT_ROLE_PROVIDER, AgentRole, CapabilityName
 from gearmeshing_ai.agent_core.runtime import EngineDeps
 from gearmeshing_ai.agent_core.runtime.engine import AgentEngine
 from gearmeshing_ai.agent_core.schemas.domain import (
@@ -33,7 +33,6 @@ from gearmeshing_ai.agent_core.schemas.domain import (
     AgentRun,
     AgentRunStatus,
     ApprovalDecision,
-    CapabilityName,
     RiskLevel,
 )
 from gearmeshing_ai.info_provider.mcp.gateway_api.client import GatewayApiClient

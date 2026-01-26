@@ -37,7 +37,7 @@ from ..repos import (
     ToolInvocationRepository,
     UsageRepository,
 )
-from ..role_provider import AgentRoleProvider
+from gearmeshing_ai.info_provider import AgentRoleProvider
 
 
 @dataclass(frozen=True)

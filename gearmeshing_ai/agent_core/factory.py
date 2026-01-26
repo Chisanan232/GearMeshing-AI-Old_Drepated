@@ -25,10 +25,10 @@ from .capabilities.registry import CapabilityRegistry
 from .policy.global_policy import GlobalPolicy
 from .policy.models import PolicyConfig
 from .policy.provider import PolicyProvider
-from .role_provider import DEFAULT_ROLE_PROVIDER, AgentRoleProvider
+from gearmeshing_ai.info_provider import DEFAULT_ROLE_PROVIDER, AgentRoleProvider, AgentRole
 from .runtime import EngineDeps
 from .runtime.engine import AgentEngine
-from .schemas.domain import AgentRole, AgentRun
+from .schemas.domain import AgentRun
 from .service import AgentService, AgentServiceDeps
 
 

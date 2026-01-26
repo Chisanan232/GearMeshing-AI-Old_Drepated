@@ -9,7 +9,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from gearmeshing_ai.agent_core.capabilities.registry import CapabilityRegistry
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
-from gearmeshing_ai.agent_core.role_provider import DEFAULT_ROLE_PROVIDER
+from gearmeshing_ai.info_provider import DEFAULT_ROLE_PROVIDER, AgentRole, CapabilityName
 from gearmeshing_ai.agent_core.runtime.engine import AgentEngine
 from gearmeshing_ai.agent_core.runtime.models import EngineDeps
 from gearmeshing_ai.agent_core.schemas.domain import AgentEvent, AgentRun

@@ -44,7 +44,7 @@ from ..model_provider import async_create_model_for_role
 from ..monitoring_integration import trace_capability_execution
 from ..planning.steps import normalize_plan
 from ..policy.global_policy import GlobalPolicy
-from ..roles import get_role_spec
+from gearmeshing_ai.info_provider import get_role_spec, AgentRole
 from ..schemas.domain import (
     AgentEvent,
     AgentEventType,

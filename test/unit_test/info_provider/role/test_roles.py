@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import pytest
 
-from gearmeshing_ai.agent_core.roles import (
+from gearmeshing_ai.info_provider import (
     ROLE_CAPABILITIES,
     ROLE_SPECS,
     coerce_role,
     get_role_spec,
+    AgentRole,
+    CapabilityName,
 )
-from gearmeshing_ai.agent_core.schemas.domain import AgentRole, CapabilityName
 
 
 @pytest.mark.parametrize(
