@@ -81,4 +81,5 @@ __all__ = [
 
 # Resolve forward references in domain models after imports are complete
 from gearmeshing_ai.agent_core.schemas.domain import _resolve_forward_references
+
 _resolve_forward_references()

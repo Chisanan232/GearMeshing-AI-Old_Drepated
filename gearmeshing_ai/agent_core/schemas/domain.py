@@ -5,7 +5,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, Optional
 from uuid import uuid4
 
-from pydantic import Field, field_validator
+from pydantic import Field
 
 from .base import BaseSchema
 
@@ -216,5 +216,4 @@ class UsageLedgerEntry(BaseSchema):
 # This is called after all imports are resolved
 def _resolve_forward_references():
     """Resolve forward references in models."""
-    from gearmeshing_ai.info_provider import CapabilityName
     Approval.model_rebuild()

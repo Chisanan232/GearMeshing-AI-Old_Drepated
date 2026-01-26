@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Dict
 
 from gearmeshing_ai.info_provider import CapabilityName
+
 from .base import Capability, CapabilityContext, CapabilityResult
 
 
