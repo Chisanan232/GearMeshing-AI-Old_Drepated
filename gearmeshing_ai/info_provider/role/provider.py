@@ -36,6 +36,15 @@ from .models import (
     RoleSpec,
 )
 
+from gearmeshing_ai.agent_core.schemas.config import RoleConfig
+from gearmeshing_ai.info_provider.role.models import (
+    AgentRole,
+    CapabilityName,
+    CognitiveProfile,
+    RoleDefinition,
+    RolePermissions,
+)
+
 logger = logging.getLogger(__name__)
 
 # ============================================================================
@@ -230,7 +239,7 @@ class DatabaseRoleProvider(RoleProvider):
             logger.error(f"Failed to list roles from database: {e}")
             return []
 
-    def _role_config_to_definition(self, role_config) -> RoleDefinition:
+    def _role_config_to_definition(self, role_config: RoleConfig) -> RoleDefinition:
         """Convert RoleConfig to RoleDefinition.
 
         Args:
@@ -239,18 +248,6 @@ class DatabaseRoleProvider(RoleProvider):
         Returns:
             RoleDefinition for info_provider interface.
         """
-        from gearmeshing_ai.agent_core.schemas.config import RoleConfig
-        from gearmeshing_ai.info_provider.role.models import (
-            AgentRole,
-            CapabilityName,
-            CognitiveProfile,
-            RoleDefinition,
-            RolePermissions,
-        )
-
-        if not isinstance(role_config, RoleConfig):
-            raise ValueError(f"Expected RoleConfig, got {type(role_config)}")
-
         # Convert role name to AgentRole enum
         try:
             agent_role = AgentRole(role_config.role_name)
