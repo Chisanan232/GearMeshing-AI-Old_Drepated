@@ -31,6 +31,8 @@ the full run:
 4. If approval is required, resume after approval resolution.
 """
 
+from gearmeshing_ai.info_provider import CapabilityName
+
 from .agent_registry import AgentRegistry
 from .model_provider import (
     ModelProvider,
@@ -46,7 +48,6 @@ from .schemas.domain import (
     AutonomyProfile,
     RiskLevel,
 )
-from gearmeshing_ai.info_provider import CapabilityName
 
 __all__ = [
     "AgentRun",

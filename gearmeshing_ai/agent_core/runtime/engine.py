@@ -38,7 +38,11 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.errors import NodeInterrupt
 from langgraph.graph import END, StateGraph
 
-from gearmeshing_ai.info_provider import get_role_spec, load_role_provider
+from gearmeshing_ai.info_provider import (
+    CapabilityName,
+    get_role_spec,
+    load_role_provider,
+)
 
 from ..abstraction import AgentConfigSource, get_agent_provider
 from ..capabilities.base import CapabilityContext
@@ -56,7 +60,6 @@ from ..schemas.domain import (
     ToolInvocation,
     UsageLedgerEntry,
 )
-from gearmeshing_ai.info_provider import CapabilityName
 from .models import EngineDeps, _GraphState
 
 logger = logging.getLogger(__name__)
