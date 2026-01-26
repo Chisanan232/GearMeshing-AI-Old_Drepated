@@ -13,9 +13,12 @@ from typing import Dict, Set
 
 from pydantic import Field
 
-from .role_provider import DEFAULT_ROLE_PROVIDER
-from .schemas.base import BaseSchema
-from .schemas.domain import AgentRole, CapabilityName
+from .role_provider import (
+    DEFAULT_ROLE_PROVIDER,
+    AgentRole,
+    BaseSchema,
+    CapabilityName,
+)
 
 
 class RoleSpec(BaseSchema):

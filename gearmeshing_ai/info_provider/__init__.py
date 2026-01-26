@@ -33,9 +33,14 @@ from .role import (
     CapabilityName,
     CognitiveProfile,
     DEFAULT_ROLE_PROVIDER,
+    ROLE_CAPABILITIES,
+    ROLE_SPECS,
     RoleDefinition,
     RolePermissions,
+    RoleSpec,
     StaticAgentRoleProvider,
+    coerce_role,
+    get_role_spec,
 )
 
 __all__ = [
@@ -49,4 +54,9 @@ __all__ = [
     "RoleDefinition",
     "CognitiveProfile",
     "RolePermissions",
+    "RoleSpec",
+    "ROLE_SPECS",
+    "ROLE_CAPABILITIES",
+    "coerce_role",
+    "get_role_spec",
 ]

@@ -20,6 +20,13 @@ from .role_provider import (
     RolePermissions,
     StaticAgentRoleProvider,
 )
+from .roles import (
+    ROLE_CAPABILITIES,
+    ROLE_SPECS,
+    RoleSpec,
+    coerce_role,
+    get_role_spec,
+)
 
 __all__ = [
     # Core types
@@ -33,4 +40,11 @@ __all__ = [
     "RoleDefinition",
     "CognitiveProfile",
     "RolePermissions",
+    # Role specification types
+    "RoleSpec",
+    "ROLE_SPECS",
+    "ROLE_CAPABILITIES",
+    # Utility functions
+    "coerce_role",
+    "get_role_spec",
 ]
