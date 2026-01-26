@@ -8,9 +8,9 @@ from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig, ToolRiskKind
 from gearmeshing_ai.agent_core.schemas.domain import (
     AutonomyProfile,
-    CapabilityName,
     RiskLevel,
 )
+from gearmeshing_ai.info_provider import CapabilityName
 
 
 def test_redaction_masks_known_tokens() -> None:

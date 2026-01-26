@@ -327,9 +327,9 @@ class SqlApprovalRepository(ApprovalRepository):
                 return None
             from gearmeshing_ai.agent_core.schemas.domain import (
                 ApprovalDecision,
-                CapabilityName,
                 RiskLevel,
             )
+            from gearmeshing_ai.info_provider import CapabilityName
 
             return Approval(
                 id=row.id,
@@ -384,9 +384,9 @@ class SqlApprovalRepository(ApprovalRepository):
 
             from gearmeshing_ai.agent_core.schemas.domain import (
                 ApprovalDecision,
-                CapabilityName,
                 RiskLevel,
             )
+            from gearmeshing_ai.info_provider import CapabilityName
 
             return [
                 Approval(

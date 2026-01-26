@@ -23,9 +23,9 @@ from gearmeshing_ai.agent_core.schemas.domain import (
     AgentRun,
     AgentRunStatus,
     ApprovalDecision,
-    CapabilityName,
     RiskLevel,
 )
+from gearmeshing_ai.info_provider import CapabilityName
 
 
 @pytest.mark.asyncio

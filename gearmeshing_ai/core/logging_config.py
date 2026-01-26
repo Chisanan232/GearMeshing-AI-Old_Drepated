@@ -86,7 +86,6 @@ MODULE_LOG_LEVELS = {
     "gearmeshing_ai.agent_core.policy": "DEBUG",
     "gearmeshing_ai.agent_core.service": "DEBUG",
     "gearmeshing_ai.agent_core.model_provider": "DEBUG",
-    "gearmeshing_ai.agent_core.db_config_provider": "DEBUG",
     # Server modules
     "gearmeshing_ai.server": "INFO",
     "gearmeshing_ai.server.api": "DEBUG",

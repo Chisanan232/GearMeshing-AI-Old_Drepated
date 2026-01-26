@@ -29,8 +29,8 @@ from gearmeshing_ai.agent_core.runtime.engine import AgentEngine
 from gearmeshing_ai.agent_core.schemas.domain import (
     AgentRun,
     AgentRunStatus,
-    CapabilityName,
 )
+from gearmeshing_ai.info_provider import CapabilityName
 
 
 def _eval_enabled() -> bool:

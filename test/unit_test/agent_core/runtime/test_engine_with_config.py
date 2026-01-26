@@ -12,7 +12,8 @@ from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
 from gearmeshing_ai.agent_core.runtime import EngineDeps
 from gearmeshing_ai.agent_core.runtime.engine import AgentEngine
-from gearmeshing_ai.agent_core.schemas.domain import AgentRole, AgentRun
+from gearmeshing_ai.agent_core.schemas.domain import AgentRun
+from gearmeshing_ai.info_provider import AgentRole
 
 
 class TestEngineWithConfigurationSupport:

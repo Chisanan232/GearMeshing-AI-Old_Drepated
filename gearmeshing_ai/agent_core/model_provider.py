@@ -32,7 +32,9 @@ from pydantic_ai.models.openai import OpenAIResponsesModel
 if TYPE_CHECKING:
     from sqlmodel import Session
 
-    from gearmeshing_ai.agent_core.db_config_provider import DatabaseConfigProvider
+    from gearmeshing_ai.info_provider.model.base import (
+        ModelProvider as InfoModelProvider,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -58,18 +60,24 @@ class ModelProvider:
         if db_session is None:
             raise ValueError("db_session is required for ModelProvider")
         self.db_session: Session = db_session
-        self._db_provider: Optional[DatabaseConfigProvider] = None
+        self._db_provider: Optional[InfoModelProvider] = None
 
-    def _get_db_provider(self) -> DatabaseConfigProvider:
+    def _get_db_provider(self) -> InfoModelProvider:
         """Get or create database configuration provider.
 
         Returns:
-            DatabaseConfigProvider instance for accessing database configuration.
+            DatabaseModelProvider instance for accessing database configuration.
         """
         if self._db_provider is None:
-            from .db_config_provider import DatabaseConfigProvider
+            from gearmeshing_ai.info_provider.model.provider import (
+                DatabaseModelProvider,
+            )
 
-            self._db_provider = DatabaseConfigProvider(self.db_session)
+            # Create a session factory for the DatabaseModelProvider
+            def session_factory():
+                return self.db_session
+
+            self._db_provider = DatabaseModelProvider(session_factory)
         return self._db_provider
 
     def create_model(
@@ -335,8 +343,8 @@ class ModelProvider:
         """
         from gearmeshing_ai.agent_core.schemas.config import ModelConfig
 
-        db_provider: DatabaseConfigProvider = self._get_db_provider()
-        model_config: ModelConfig = db_provider.get_model_config(role, tenant_id)
+        db_provider = self._get_db_provider()
+        model_config: ModelConfig = db_provider.get(role, tenant_id)
         logger.debug(f"Creating model for role '{role}': {model_config.model}")
         return self.create_model(
             provider=model_config.provider,

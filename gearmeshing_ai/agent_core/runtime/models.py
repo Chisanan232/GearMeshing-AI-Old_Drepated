@@ -26,6 +26,8 @@ from typing import (
     TypedDict,
 )
 
+from gearmeshing_ai.info_provider import RoleProvider
+
 from ...info_provider.mcp.base import BaseAsyncMCPInfoProvider
 from ...info_provider.prompt.base import PromptProvider
 from ..capabilities import CapabilityRegistry
@@ -37,7 +39,6 @@ from ..repos import (
     ToolInvocationRepository,
     UsageRepository,
 )
-from ..role_provider import AgentRoleProvider
 
 
 @dataclass(frozen=True)
@@ -77,7 +78,7 @@ class EngineDeps:
     usage: Optional[UsageRepository] = None
 
     prompt_provider: Optional[PromptProvider] = None
-    role_provider: Optional[AgentRoleProvider] = None
+    role_provider: Optional[RoleProvider] = None
     thought_model: Any | None = None
     mcp_info_provider: Optional[BaseAsyncMCPInfoProvider] = None
     mcp_call: Optional[Callable[[str, str, Dict[str, Any]], Awaitable[Any]]] = None

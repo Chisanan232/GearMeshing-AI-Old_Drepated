@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 from uuid import uuid4
 
 from pydantic import Field
 
 from .base import BaseSchema
+
+if TYPE_CHECKING:
+    from gearmeshing_ai.info_provider import CapabilityName
 
 
 def _utc_now() -> datetime:
@@ -38,45 +41,12 @@ class RiskLevel(str, Enum):
     high = "high"  # Critical, expensive, or irreversible operations (e.g. shell exec).
 
 
-class AgentRole(str, Enum):
-    """
-    Standard agent roles/personas.
-
-    These roles determine the default capabilities, system prompts, and permissions
-    assigned to an agent.
-    """
-
-    planner = "planner"
-    market = "market"
-    dev = "dev"
-    dev_lead = "dev_lead"
-    qa = "qa"
-    sre = "sre"
-
-
 class ApprovalDecision(str, Enum):
     """Possible outcomes for an approval request."""
 
     approved = "approved"
     rejected = "rejected"
     expired = "expired"
-
-
-class CapabilityName(str, Enum):
-    """
-    Logical names for built-in capabilities.
-
-    These names are used in plans and policies to refer to executable units of work.
-    """
-
-    web_search = "web_search"
-    web_fetch = "web_fetch"
-    docs_read = "docs_read"
-    summarize = "summarize"
-    mcp_call = "mcp_call"
-    codegen = "codegen"
-    code_execution = "code_execution"
-    shell_exec = "shell_exec"
 
 
 class AgentRunStatus(str, Enum):
@@ -191,7 +161,7 @@ class Approval(BaseSchema):
     run_id: str
 
     risk: RiskLevel
-    capability: CapabilityName
+    capability: "CapabilityName"  # Forward reference to avoid circular import
 
     reason: str
     requested_at: datetime = Field(default_factory=_utc_now)
@@ -240,3 +210,14 @@ class UsageLedgerEntry(BaseSchema):
     cost_usd: Optional[float] = None
 
     created_at: datetime = Field(default_factory=_utc_now)
+
+
+# Rebuild models to resolve forward references
+# This is called after all imports are resolved
+def _resolve_forward_references():
+    """Resolve forward references in models."""
+    from gearmeshing_ai.info_provider import (  # noqa: F401  # Required for Pydantic forward reference resolution
+        CapabilityName,
+    )
+
+    Approval.model_rebuild()

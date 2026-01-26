@@ -31,8 +31,9 @@ the full run:
 4. If approval is required, resume after approval resolution.
 """
 
+from gearmeshing_ai.info_provider import CapabilityName
+
 from .agent_registry import AgentRegistry
-from .db_config_provider import DatabaseConfigProvider, get_db_config_provider
 from .model_provider import (
     ModelProvider,
     create_model_for_role,
@@ -45,7 +46,6 @@ from .schemas.domain import (
     Approval,
     ApprovalDecision,
     AutonomyProfile,
-    CapabilityName,
     RiskLevel,
 )
 
@@ -59,9 +59,6 @@ __all__ = [
     "RiskLevel",
     "AgentRegistry",
     "Router",
-    # Database configuration provider
-    "DatabaseConfigProvider",
-    "get_db_config_provider",
     # Model provider
     "ModelProvider",
     "get_model_provider",

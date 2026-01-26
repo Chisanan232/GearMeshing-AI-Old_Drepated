@@ -11,7 +11,7 @@ from gearmeshing_ai.agent_core.planning import (
     ActionStep,
     StructuredPlanner,
 )
-from gearmeshing_ai.agent_core.schemas.domain import CapabilityName
+from gearmeshing_ai.info_provider import CapabilityName
 
 
 class TestPlannerWithConfigurationSupport:

@@ -19,8 +19,10 @@ Capabilities should:
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Dict, Protocol
 
+from gearmeshing_ai.info_provider import CapabilityName
+
 from ..policy.global_policy import GlobalPolicy
-from ..schemas.domain import AgentRun, CapabilityName
+from ..schemas.domain import AgentRun
 
 if TYPE_CHECKING:
     from ..runtime.models import EngineDeps

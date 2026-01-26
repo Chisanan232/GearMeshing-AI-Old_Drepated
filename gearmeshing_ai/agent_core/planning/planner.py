@@ -111,12 +111,8 @@ class StructuredPlanner:
         # Create config source for planner agent
         config_source = AgentConfigSource(
             model_config_key="gpt4_default",  # Use default GPT-4 model for planning
-            prompt_key="dev/system",  # Use developer system prompt for structured planning
+            prompt_key="planner/system",  # Use planner-specific system prompt
             overrides={
-                "system_prompt": (
-                    "You are an expert planner for an autonomous software engineering agent. "
-                    "Return a minimal, safe sequence of action steps as JSON."
-                ),
                 "output_type": List[ActionStep],
             },
         )

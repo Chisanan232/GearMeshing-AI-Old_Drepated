@@ -11,7 +11,7 @@ from gearmeshing_ai.agent_core.capabilities.base import (
     CapabilityResult,
 )
 from gearmeshing_ai.agent_core.capabilities.registry import CapabilityRegistry
-from gearmeshing_ai.agent_core.schemas.domain import CapabilityName
+from gearmeshing_ai.info_provider import CapabilityName
 
 
 @dataclass(frozen=True)

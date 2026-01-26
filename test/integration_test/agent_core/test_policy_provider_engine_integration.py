@@ -23,10 +23,10 @@ from gearmeshing_ai.agent_core.schemas.domain import (
     AgentRun,
     AgentRunStatus,
     AutonomyProfile,
-    CapabilityName,
     RiskLevel,
 )
 from gearmeshing_ai.agent_core.service import AgentService, AgentServiceDeps
+from gearmeshing_ai.info_provider import CapabilityName
 
 
 class TestPolicyProviderWithGlobalPolicy:

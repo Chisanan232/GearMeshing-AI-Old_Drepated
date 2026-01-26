@@ -376,7 +376,8 @@ class TestOrchestratorApprovalManagement:
     @pytest.mark.asyncio
     async def test_get_pending_approvals(self, mock_orchestrator: OrchestratorService) -> None:
         """Test getting pending approvals."""
-        from gearmeshing_ai.agent_core.schemas.domain import CapabilityName, RiskLevel
+        from gearmeshing_ai.agent_core.schemas.domain import RiskLevel
+        from gearmeshing_ai.info_provider import CapabilityName
 
         approvals: List[Approval] = [
             Approval(
@@ -407,9 +408,9 @@ class TestOrchestratorApprovalManagement:
         """Test submitting an approved decision."""
         from gearmeshing_ai.agent_core.schemas.domain import (
             ApprovalDecision,
-            CapabilityName,
             RiskLevel,
         )
+        from gearmeshing_ai.info_provider import CapabilityName
 
         approval: Approval = Approval(
             id="approval-1",
@@ -461,9 +462,9 @@ class TestOrchestratorApprovalManagement:
         """Test submitting a rejected decision."""
         from gearmeshing_ai.agent_core.schemas.domain import (
             ApprovalDecision,
-            CapabilityName,
             RiskLevel,
         )
+        from gearmeshing_ai.info_provider import CapabilityName
 
         approval: Approval = Approval(
             id="approval-1",

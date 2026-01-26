@@ -30,8 +30,9 @@ from typing import Any, Dict, List, Literal, Union
 
 from pydantic import Field
 
+from gearmeshing_ai.info_provider import CapabilityName
+
 from ..schemas.base import BaseSchema
-from ..schemas.domain import CapabilityName
 
 
 class ThoughtStep(BaseSchema):
