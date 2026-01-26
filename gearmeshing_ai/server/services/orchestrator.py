@@ -546,7 +546,7 @@ class OrchestratorService:
         return display_text
 
     async def list_available_roles(self) -> List[str]:
-        from gearmeshing_ai.agent_core.schemas.domain import AgentRole
+        from gearmeshing_ai.info_provider import AgentRole
 
         return [role.value for role in AgentRole]
 
