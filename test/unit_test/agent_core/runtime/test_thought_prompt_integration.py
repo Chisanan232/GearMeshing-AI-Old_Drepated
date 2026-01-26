@@ -98,6 +98,31 @@ async def test_thought_step_uses_prompt_provider_and_model_when_configured(monke
             agent = _FakeAgent(config)
             await agent.initialize()
             return agent
+        
+        async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
+            # Mock the config source to return an AIAgentConfig object
+            from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+            
+            # Start with base config
+            config_dict = {
+                "name": "test-thought",
+                "framework": "pydantic_ai",
+                "model": "gpt-4o",
+                "system_prompt": "You are a helpful assistant...",  # Default
+                "temperature": 0.7,
+                "max_tokens": 4096,
+                "top_p": 0.9,
+                "metadata": {"output_type": dict},
+            }
+            
+            # Apply overrides if present
+            if hasattr(config_source, 'overrides') and config_source.overrides:
+                config_dict.update(config_source.overrides)
+            
+            mock_config = AIAgentConfig(**config_dict)
+            agent = _FakeAgent(mock_config)
+            await agent.initialize()
+            return agent
 
     import gearmeshing_ai.agent_core.runtime.engine as engine_mod
 
@@ -158,6 +183,31 @@ async def test_thought_step_prompt_keyerror_uses_fallback_prompt(monkeypatch: py
     class _FakeProvider:
         async def create_agent(self, config: Any, use_cache: bool = False) -> _FakeAgent:
             agent = _FakeAgent(config)
+            await agent.initialize()
+            return agent
+        
+        async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
+            # Mock the config source to return an AIAgentConfig object
+            from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+            
+            # Start with base config
+            config_dict = {
+                "name": "test-thought",
+                "framework": "pydantic_ai",
+                "model": "gpt-4o",
+                "system_prompt": "You are a helpful assistant...",  # Default
+                "temperature": 0.7,
+                "max_tokens": 4096,
+                "top_p": 0.9,
+                "metadata": {"output_type": dict},
+            }
+            
+            # Apply overrides if present
+            if hasattr(config_source, 'overrides') and config_source.overrides:
+                config_dict.update(config_source.overrides)
+            
+            mock_config = AIAgentConfig(**config_dict)
+            agent = _FakeAgent(mock_config)
             await agent.initialize()
             return agent
 
@@ -243,6 +293,31 @@ async def test_thought_step_prompt_provider_exception_disables_agent_call(monkey
             agent = _FakeAgent(config)
             await agent.initialize()
             return agent
+        
+        async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
+            # Mock the config source to return an AIAgentConfig object
+            from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+            
+            # Start with base config
+            config_dict = {
+                "name": "test-thought",
+                "framework": "pydantic_ai",
+                "model": "gpt-4o",
+                "system_prompt": "You are a helpful assistant...",  # Default
+                "temperature": 0.7,
+                "max_tokens": 4096,
+                "top_p": 0.9,
+                "metadata": {"output_type": dict},
+            }
+            
+            # Apply overrides if present
+            if hasattr(config_source, 'overrides') and config_source.overrides:
+                config_dict.update(config_source.overrides)
+            
+            mock_config = AIAgentConfig(**config_dict)
+            agent = _FakeAgent(mock_config)
+            await agent.initialize()
+            return agent
 
     import gearmeshing_ai.agent_core.runtime.engine as engine_mod
 
@@ -308,6 +383,31 @@ async def test_thought_step_non_dict_agent_output_is_wrapped(monkeypatch: pytest
     class _FakeProvider:
         async def create_agent(self, config: Any, use_cache: bool = False) -> _FakeAgent:
             agent = _FakeAgent(config)
+            await agent.initialize()
+            return agent
+        
+        async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
+            # Mock the config source to return an AIAgentConfig object
+            from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+            
+            # Start with base config
+            config_dict = {
+                "name": "test-thought",
+                "framework": "pydantic_ai",
+                "model": "gpt-4o",
+                "system_prompt": "You are a helpful assistant...",  # Default
+                "temperature": 0.7,
+                "max_tokens": 4096,
+                "top_p": 0.9,
+                "metadata": {"output_type": dict},
+            }
+            
+            # Apply overrides if present
+            if hasattr(config_source, 'overrides') and config_source.overrides:
+                config_dict.update(config_source.overrides)
+            
+            mock_config = AIAgentConfig(**config_dict)
+            agent = _FakeAgent(mock_config)
             await agent.initialize()
             return agent
 
