@@ -12,6 +12,7 @@ values into concrete implementations.
 from typing import Dict
 
 from gearmeshing_ai.info_provider import CapabilityName
+
 from .base import Capability
 
 
