@@ -411,7 +411,7 @@ class HotReloadRoleWrapper(RoleProvider):
         while not self._stop_event.wait(self._interval):
             try:
                 self.refresh()
-                logger.debug(f"Hot reload refreshed role provider")
+                logger.debug("Hot reload refreshed role provider")
             except Exception as e:
                 logger.error(f"Hot reload failed: {e}")
 
