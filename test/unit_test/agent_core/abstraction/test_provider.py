@@ -1,6 +1,6 @@
 """Unit tests for AI agent provider."""
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -351,7 +351,7 @@ class TestAIAgentProviderCreateAgentFromConfigSource:
             system_prompt="You are a helpful assistant.",
             temperature=0.7,
             max_tokens=4096,
-            top_p=0.9
+            top_p=0.9,
         )
 
         # Create agent
@@ -380,14 +380,11 @@ class TestAIAgentProviderCreateAgentFromConfigSource:
 
         config_source = MagicMock()
         config_source.to_agent_config.return_value = AIAgentConfig(
-            name="test_agent",
-            framework="mock",
-            model="gpt-4o",
-            system_prompt="Test prompt"
+            name="test_agent", framework="mock", model="gpt-4o", system_prompt="Test prompt"
         )
 
         # Create agent with cache disabled
-        with patch.object(factory, 'create') as mock_create:
+        with patch.object(factory, "create") as mock_create:
             mock_agent = MockAgent(AIAgentConfig(name="test", framework="mock", model="test"))
             mock_create.return_value = mock_agent
 
@@ -448,14 +445,11 @@ class TestAIAgentProviderCreateAgentFromConfigSource:
 
         config_source = MagicMock()
         config_source.to_agent_config.return_value = AIAgentConfig(
-            name="test_agent",
-            framework="mock",
-            model="gpt-4o",
-            system_prompt="Test prompt"
+            name="test_agent", framework="mock", model="gpt-4o", system_prompt="Test prompt"
         )
 
         # Mock factory.create to raise exception
-        with patch.object(factory, 'create', side_effect=ValueError("Invalid configuration")):
+        with patch.object(factory, "create", side_effect=ValueError("Invalid configuration")):
             with pytest.raises(ValueError, match="Invalid configuration"):
                 await provider.create_agent_from_config_source(config_source)
 
@@ -465,7 +459,7 @@ class TestAIAgentProviderCreateAgentFromConfigSource:
         provider = AIAgentProvider()
         factory = AIAgentFactory()
         provider.set_factory(factory)
-        
+
         # This should raise ValueError because framework is not registered
         with pytest.raises(ValueError):
             provider.set_framework("nonexistent_framework")
@@ -488,7 +482,7 @@ class TestAIAgentProviderCreateAgentFromConfigSource:
             temperature=0.1,
             max_tokens=8000,
             top_p=0.5,
-            metadata={"validation": True, "strict": True}
+            metadata={"validation": True, "strict": True},
         )
 
         agent = await provider.create_agent_from_config_source(config_source)
@@ -513,18 +507,12 @@ class TestAIAgentProviderCreateAgentFromConfigSource:
 
         config_source1 = MagicMock()
         config_source1.to_agent_config.return_value = AIAgentConfig(
-            name="agent1",
-            framework="mock",
-            model="gpt-4o",
-            system_prompt="Prompt 1"
+            name="agent1", framework="mock", model="gpt-4o", system_prompt="Prompt 1"
         )
 
         config_source2 = MagicMock()
         config_source2.to_agent_config.return_value = AIAgentConfig(
-            name="agent2",
-            framework="mock",
-            model="claude-3-5-sonnet",
-            system_prompt="Prompt 2"
+            name="agent2", framework="mock", model="claude-3-5-sonnet", system_prompt="Prompt 2"
         )
 
         # Create multiple agents
@@ -559,7 +547,7 @@ class TestAIAgentProviderCreateAgentFromConfigSource:
             name="test_agent",
             framework="different_framework",  # This should be overridden
             model="gpt-4o",
-            system_prompt="Test prompt"
+            system_prompt="Test prompt",
         )
 
         agent = await provider.create_agent_from_config_source(config_source)
@@ -582,7 +570,7 @@ class TestAIAgentProviderCreateAgentFromConfigSource:
             framework="mock",
             model="gpt-4o",
             system_prompt="Tenant-specific prompt",
-            metadata={"tenant_id": "test_tenant", "locale": "en-US"}
+            metadata={"tenant_id": "test_tenant", "locale": "en-US"},
         )
 
         agent = await provider.create_agent_from_config_source(config_source)
@@ -605,7 +593,7 @@ class TestAIAgentProviderCreateAgentFromConfigSource:
             framework="mock",
             model="gpt-4o",
             system_prompt="Minimal prompt",
-            metadata={}  # Empty overrides
+            metadata={},  # Empty overrides
         )
 
         agent = await provider.create_agent_from_config_source(config_source)
