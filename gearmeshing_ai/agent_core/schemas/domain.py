@@ -9,6 +9,9 @@ from pydantic import Field
 
 from .base import BaseSchema
 
+# Import role and capability types from info_provider to avoid duplication
+from gearmeshing_ai.info_provider import AgentRole, CapabilityName
+
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
@@ -38,45 +41,12 @@ class RiskLevel(str, Enum):
     high = "high"  # Critical, expensive, or irreversible operations (e.g. shell exec).
 
 
-class AgentRole(str, Enum):
-    """
-    Standard agent roles/personas.
-
-    These roles determine the default capabilities, system prompts, and permissions
-    assigned to an agent.
-    """
-
-    planner = "planner"
-    market = "market"
-    dev = "dev"
-    dev_lead = "dev_lead"
-    qa = "qa"
-    sre = "sre"
-
-
 class ApprovalDecision(str, Enum):
     """Possible outcomes for an approval request."""
 
     approved = "approved"
     rejected = "rejected"
     expired = "expired"
-
-
-class CapabilityName(str, Enum):
-    """
-    Logical names for built-in capabilities.
-
-    These names are used in plans and policies to refer to executable units of work.
-    """
-
-    web_search = "web_search"
-    web_fetch = "web_fetch"
-    docs_read = "docs_read"
-    summarize = "summarize"
-    mcp_call = "mcp_call"
-    codegen = "codegen"
-    code_execution = "code_execution"
-    shell_exec = "shell_exec"
 
 
 class AgentRunStatus(str, Enum):
