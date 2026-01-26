@@ -329,6 +329,10 @@ class Settings(BaseAISetting):
         default="hardcoded",
         description="Model provider to use (hardcoded, database, or custom entry point name)",
     )
+    gearmeshing_ai_role_provider: str = Field(
+        default="hardcoded",
+        description="Role provider to use (hardcoded, database, or custom entry point name)",
+    )
     gearmeshing_ai_agent_framework: Optional[str] = Field(
         default=None,
         description="Active agent framework (optional, can be set at runtime)",

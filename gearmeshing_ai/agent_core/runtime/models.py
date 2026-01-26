@@ -37,7 +37,7 @@ from ..repos import (
     ToolInvocationRepository,
     UsageRepository,
 )
-from gearmeshing_ai.info_provider import AgentRoleProvider
+from gearmeshing_ai.info_provider import load_role_provider, RoleProvider
 
 
 @dataclass(frozen=True)
@@ -77,7 +77,7 @@ class EngineDeps:
     usage: Optional[UsageRepository] = None
 
     prompt_provider: Optional[PromptProvider] = None
-    role_provider: Optional[AgentRoleProvider] = None
+    role_provider: Optional[RoleProvider] = None
     thought_model: Any | None = None
     mcp_info_provider: Optional[BaseAsyncMCPInfoProvider] = None
     mcp_call: Optional[Callable[[str, str, Dict[str, Any]], Awaitable[Any]]] = None

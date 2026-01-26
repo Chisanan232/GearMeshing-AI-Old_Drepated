@@ -29,18 +29,23 @@ runtime so deployments can swap implementations without changing engine logic.
 from .mcp.schemas.config import MCPConfig
 from .role import (
     AgentRole,
-    AgentRoleProvider,
     CapabilityName,
     CognitiveProfile,
+    DatabaseRoleProvider,
     DEFAULT_ROLE_PROVIDER,
     ROLE_CAPABILITIES,
     ROLE_SPECS,
     RoleDefinition,
     RolePermissions,
+    RoleProvider,
     RoleSpec,
     StaticAgentRoleProvider,
     coerce_role,
+    get_database_role_provider,
+    get_hardcoded_role_provider,
     get_role_spec,
+    load_role_provider,
+    load_role_provider_with_session,
 )
 
 __all__ = [
@@ -48,7 +53,9 @@ __all__ = [
     # Role provider exports
     "AgentRole",
     "CapabilityName",
-    "AgentRoleProvider",
+    "RoleProvider",
+    "HardcodedRoleProvider",
+    "DatabaseRoleProvider",
     "StaticAgentRoleProvider",
     "DEFAULT_ROLE_PROVIDER",
     "RoleDefinition",
@@ -59,4 +66,8 @@ __all__ = [
     "ROLE_CAPABILITIES",
     "coerce_role",
     "get_role_spec",
+    "get_hardcoded_role_provider",
+    "get_database_role_provider",
+    "load_role_provider",
+    "load_role_provider_with_session",
 ]

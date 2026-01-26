@@ -25,7 +25,7 @@ from .capabilities.registry import CapabilityRegistry
 from .policy.global_policy import GlobalPolicy
 from .policy.models import PolicyConfig
 from .policy.provider import PolicyProvider
-from gearmeshing_ai.info_provider import DEFAULT_ROLE_PROVIDER, AgentRoleProvider, AgentRole
+from gearmeshing_ai.info_provider import load_role_provider, AgentRole
 from .runtime import EngineDeps
 from .runtime.engine import AgentEngine
 from .schemas.domain import AgentRun
@@ -60,7 +60,7 @@ def build_agent_registry(
     *,
     base_policy_config: PolicyConfig,
     deps: AgentServiceDeps,
-    role_provider: AgentRoleProvider = DEFAULT_ROLE_PROVIDER,
+    role_provider=None,
     policy_provider: PolicyProvider | None = None,
 ) -> AgentRegistry:
     """
@@ -73,13 +73,18 @@ def build_agent_registry(
     Args:
         base_policy_config: The default policy configuration (baseline safety/tooling).
         deps: Shared dependencies (engine, planner) to be injected into services.
-        role_provider: Provider for resolving role definitions and permissions.
+        role_provider: Optional provider for resolving role definitions and permissions.
+                       If None, uses the loader to resolve from environment.
         policy_provider: Optional provider for dynamic/tenant-specific policies.
 
     Returns:
         A fully populated AgentRegistry ready for use by the Router.
     """
     reg = AgentRegistry()
+
+    # Use the loader if no role provider is specified
+    if role_provider is None:
+        role_provider = load_role_provider()
 
     def _make_factory(_role: str):
         async def _factory(run: AgentRun) -> AgentService:

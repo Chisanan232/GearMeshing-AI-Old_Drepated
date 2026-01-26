@@ -44,7 +44,7 @@ from ..model_provider import async_create_model_for_role
 from ..monitoring_integration import trace_capability_execution
 from ..planning.steps import normalize_plan
 from ..policy.global_policy import GlobalPolicy
-from gearmeshing_ai.info_provider import get_role_spec, AgentRole
+from gearmeshing_ai.info_provider import get_role_spec, AgentRole, load_role_provider
 from ..schemas.domain import (
     AgentEvent,
     AgentEventType,
@@ -314,7 +314,8 @@ class AgentEngine:
             thought_model = self._deps.thought_model
 
             # If no thought model provided, try to create from configuration
-            if thought_model is None and self._deps.role_provider is not None:
+            if thought_model is None:
+                role_provider = self._deps.role_provider or load_role_provider()
                 try:
                     thought_model = await async_create_model_for_role(run.role, tenant_id=run.tenant_id)
                     logger.debug(f"Created thought model for role '{run.role}' from configuration")
@@ -324,11 +325,11 @@ class AgentEngine:
 
             if (
                 self._deps.prompt_provider is not None
-                and self._deps.role_provider is not None
                 and thought_model is not None
             ):
+                role_provider = self._deps.role_provider or load_role_provider()
                 try:
-                    role_def = self._deps.role_provider.get(run.role)
+                    role_def = role_provider.get(run.role)
                     prompt_key = role_def.cognitive.system_prompt_key
                 except Exception:
                     # Fallback to role spec if role provider fails
