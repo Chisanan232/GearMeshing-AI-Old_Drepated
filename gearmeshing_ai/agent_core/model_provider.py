@@ -31,7 +31,10 @@ from pydantic_ai.models.openai import OpenAIResponsesModel
 
 if TYPE_CHECKING:
     from sqlmodel import Session
-    from gearmeshing_ai.info_provider.model.base import ModelProvider as InfoModelProvider
+
+    from gearmeshing_ai.info_provider.model.base import (
+        ModelProvider as InfoModelProvider,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -66,12 +69,14 @@ class ModelProvider:
             DatabaseModelProvider instance for accessing database configuration.
         """
         if self._db_provider is None:
-            from gearmeshing_ai.info_provider.model.provider import DatabaseModelProvider
-            
+            from gearmeshing_ai.info_provider.model.provider import (
+                DatabaseModelProvider,
+            )
+
             # Create a session factory for the DatabaseModelProvider
             def session_factory():
                 return self.db_session
-            
+
             self._db_provider = DatabaseModelProvider(session_factory)
         return self._db_provider
 

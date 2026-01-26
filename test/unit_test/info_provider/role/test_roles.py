@@ -5,10 +5,10 @@ import pytest
 from gearmeshing_ai.info_provider import (
     ROLE_CAPABILITIES,
     ROLE_SPECS,
-    coerce_role,
-    get_role_spec,
     AgentRole,
     CapabilityName,
+    coerce_role,
+    get_role_spec,
 )
 
 

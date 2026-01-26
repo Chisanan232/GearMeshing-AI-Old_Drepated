@@ -26,6 +26,8 @@ from typing import (
     TypedDict,
 )
 
+from gearmeshing_ai.info_provider import RoleProvider
+
 from ...info_provider.mcp.base import BaseAsyncMCPInfoProvider
 from ...info_provider.prompt.base import PromptProvider
 from ..capabilities import CapabilityRegistry
@@ -37,7 +39,6 @@ from ..repos import (
     ToolInvocationRepository,
     UsageRepository,
 )
-from gearmeshing_ai.info_provider import load_role_provider, RoleProvider
 
 
 @dataclass(frozen=True)

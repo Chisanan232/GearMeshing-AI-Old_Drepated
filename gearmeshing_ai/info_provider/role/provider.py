@@ -20,22 +20,20 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from typing import Dict, Iterable, Optional, cast
+from typing import Dict, Optional
 
-from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
 from .base import RoleProvider
 from .models import (
+    DEFAULT_ROLE_DEFINITIONS,
+    ROLE_SPECS,
     AgentRole,
     CapabilityName,
     CognitiveProfile,
     RoleDefinition,
     RolePermissions,
     RoleSpec,
-    DEFAULT_ROLE_DEFINITIONS,
-    ROLE_SPECS,
-    ROLE_CAPABILITIES,
 )
 
 logger = logging.getLogger(__name__)
@@ -43,6 +41,7 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 # PROVIDER IMPLEMENTATIONS
 # ============================================================================
+
 
 class StaticAgentRoleProvider(RoleProvider):
     """
@@ -67,7 +66,7 @@ class StaticAgentRoleProvider(RoleProvider):
                     break
             else:
                 raise KeyError(f"Role not found: {role}")
-        
+
         return self._definitions[key]
 
     def list_roles(self, tenant: Optional[str] = None) -> list[str]:
@@ -82,9 +81,7 @@ class StaticAgentRoleProvider(RoleProvider):
         pass
 
 
-DEFAULT_ROLE_PROVIDER: StaticAgentRoleProvider = StaticAgentRoleProvider(
-    definitions=DEFAULT_ROLE_DEFINITIONS
-)
+DEFAULT_ROLE_PROVIDER: StaticAgentRoleProvider = StaticAgentRoleProvider(definitions=DEFAULT_ROLE_DEFINITIONS)
 
 
 class HardcodedRoleProvider(RoleProvider):
@@ -143,11 +140,10 @@ class HardcodedRoleProvider(RoleProvider):
 
     def refresh(self) -> None:
         """Refresh the provider state.
-        
+
         For static provider, this is a no-op.
         """
         # No-op for static provider
-        pass
 
 
 class DatabaseRoleProvider(RoleProvider):
@@ -185,9 +181,7 @@ class DatabaseRoleProvider(RoleProvider):
             # Try tenant-specific first
             if tenant:
                 stmt = select(AgentConfig).where(
-                    AgentConfig.role_name == role,
-                    AgentConfig.tenant_id == tenant,
-                    AgentConfig.is_active == True
+                    AgentConfig.role_name == role, AgentConfig.tenant_id == tenant, AgentConfig.is_active == True
                 )
                 config = self.session.exec(stmt).first()
                 if config:
@@ -197,7 +191,7 @@ class DatabaseRoleProvider(RoleProvider):
             stmt = select(AgentConfig).where(
                 AgentConfig.role_name == role,
                 AgentConfig.tenant_id.is_(None),  # type: ignore[union-attr]
-                AgentConfig.is_active == True
+                AgentConfig.is_active == True,
             )
             config = self.session.exec(stmt).first()
             if config:
@@ -221,15 +215,14 @@ class DatabaseRoleProvider(RoleProvider):
         """
         try:
             if tenant:
-                stmt = select(AgentConfig.role_name).where(
-                    AgentConfig.tenant_id == tenant,
-                    AgentConfig.is_active == True
-                ).distinct()
+                stmt = (
+                    select(AgentConfig.role_name)
+                    .where(AgentConfig.tenant_id == tenant, AgentConfig.is_active == True)
+                    .distinct()
+                )
             else:
-                stmt = select(AgentConfig.role_name).where(
-                    AgentConfig.is_active == True
-                ).distinct()
-            
+                stmt = select(AgentConfig.role_name).where(AgentConfig.is_active == True).distinct()
+
             results = self.session.exec(stmt).all()
             return list(results)
 
@@ -239,29 +232,32 @@ class DatabaseRoleProvider(RoleProvider):
 
     def _role_config_to_definition(self, role_config) -> RoleDefinition:
         """Convert RoleConfig to RoleDefinition.
-        
+
         Args:
             role_config: RoleConfig from agent_core schemas.
-            
+
         Returns:
             RoleDefinition for info_provider interface.
         """
         from gearmeshing_ai.agent_core.schemas.config import RoleConfig
         from gearmeshing_ai.info_provider.role.models import (
-            AgentRole, CognitiveProfile, RoleDefinition, RolePermissions,
-            CapabilityName
+            AgentRole,
+            CapabilityName,
+            CognitiveProfile,
+            RoleDefinition,
+            RolePermissions,
         )
-        
+
         if not isinstance(role_config, RoleConfig):
             raise ValueError(f"Expected RoleConfig, got {type(role_config)}")
-            
+
         # Convert role name to AgentRole enum
         try:
             agent_role = AgentRole(role_config.role_name)
         except ValueError:
             # If role name not in enum, create a string-based role
             agent_role = AgentRole(role_config.role_name)  # This will still fail but gives clearer error
-            
+
         # Convert capabilities to CapabilityName enum
         allowed_capabilities = set()
         for cap_name in role_config.capabilities:
@@ -271,24 +267,17 @@ class DatabaseRoleProvider(RoleProvider):
                 # Skip unknown capabilities
                 logger.warning(f"Unknown capability: {cap_name}")
                 continue
-        
+
         # Create cognitive profile (using defaults since RoleConfig doesn't have these fields)
         cognitive = CognitiveProfile(
             system_prompt_key=role_config.system_prompt_key or f"{role_config.role_name}/system",
-            done_when=role_config.done_when
+            done_when=role_config.done_when,
         )
-        
+
         # Create permissions
-        permissions = RolePermissions(
-            allowed_capabilities=allowed_capabilities,
-            allowed_tools=set(role_config.tools)
-        )
-        
-        return RoleDefinition(
-            role=agent_role,
-            cognitive=cognitive,
-            permissions=permissions
-        )
+        permissions = RolePermissions(allowed_capabilities=allowed_capabilities, allowed_tools=set(role_config.tools))
+
+        return RoleDefinition(role=agent_role, cognitive=cognitive, permissions=permissions)
 
     def version(self) -> str:
         """Return the version identifier of this provider."""
@@ -296,19 +285,21 @@ class DatabaseRoleProvider(RoleProvider):
 
     def refresh(self) -> None:
         """Refresh the provider state.
-        
+
         For database provider, this updates the version.
         """
         # Update version to indicate refresh
         import time
+
         self._version = f"database-v{int(time.time())}"
 
     def _parse_config(self, config_value: str) -> RoleDefinition:
         """Parse configuration value from JSON to RoleDefinition."""
         import json
+
         try:
             data = json.loads(config_value)
-            
+
             # Convert string capabilities to enum
             capabilities = set()
             for cap in data.get("permissions", {}).get("allowed_capabilities", []):
@@ -316,17 +307,17 @@ class DatabaseRoleProvider(RoleProvider):
                     capabilities.add(CapabilityName(cap))
                 except ValueError:
                     logger.warning(f"Unknown capability: {cap}")
-            
+
             return RoleDefinition(
                 role=AgentRole(data["role"]),
                 cognitive=CognitiveProfile(
                     system_prompt_key=data["cognitive"]["system_prompt_key"],
-                    done_when=data["cognitive"].get("done_when")
+                    done_when=data["cognitive"].get("done_when"),
                 ),
                 permissions=RolePermissions(
                     allowed_capabilities=capabilities,
-                    allowed_tools=set(data.get("permissions", {}).get("allowed_tools", []))
-                )
+                    allowed_tools=set(data.get("permissions", {}).get("allowed_tools", [])),
+                ),
             )
         except Exception as e:
             logger.error(f"Failed to parse role config: {e}")
@@ -436,6 +427,7 @@ class HotReloadRoleWrapper(RoleProvider):
 # ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
+
 
 def coerce_role(role: AgentRole | str) -> AgentRole:
     """Helper to ensure a role is an AgentRole enum member."""

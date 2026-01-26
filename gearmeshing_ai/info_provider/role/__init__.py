@@ -20,12 +20,12 @@ Provider Architecture:
 from .base import RoleProvider
 from .loader import load_role_provider, load_role_provider_with_session
 from .models import (
-    AgentRole,
-    CapabilityName,
-    CognitiveProfile,
     DEFAULT_ROLE_DEFINITIONS,
     ROLE_CAPABILITIES,
     ROLE_SPECS,
+    AgentRole,
+    CapabilityName,
+    CognitiveProfile,
     RoleDefinition,
     RolePermissions,
     RoleSpec,
@@ -33,12 +33,12 @@ from .models import (
     get_role_spec,
 )
 from .provider import (
-    DatabaseRoleProvider,
     DEFAULT_ROLE_PROVIDER,
+    DatabaseRoleProvider,
     HardcodedRoleProvider,
-    StaticAgentRoleProvider,
-    StackedRoleProvider,
     HotReloadRoleWrapper,
+    StackedRoleProvider,
+    StaticAgentRoleProvider,
     get_database_role_provider,
     get_hardcoded_role_provider,
 )

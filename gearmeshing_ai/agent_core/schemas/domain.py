@@ -7,10 +7,10 @@ from uuid import uuid4
 
 from pydantic import Field
 
-from .base import BaseSchema
-
 # Import role and capability types from info_provider to avoid duplication
-from gearmeshing_ai.info_provider import AgentRole, CapabilityName
+from gearmeshing_ai.info_provider import CapabilityName
+
+from .base import BaseSchema
 
 
 def _utc_now() -> datetime:

@@ -25,7 +25,6 @@ from gearmeshing_ai.agent_core.repos.sql import (
     create_engine,
     create_sessionmaker,
 )
-from gearmeshing_ai.info_provider import DEFAULT_ROLE_PROVIDER, AgentRole, CapabilityName
 from gearmeshing_ai.agent_core.runtime import EngineDeps
 from gearmeshing_ai.agent_core.runtime.engine import AgentEngine
 from gearmeshing_ai.agent_core.schemas.domain import (
@@ -34,6 +33,10 @@ from gearmeshing_ai.agent_core.schemas.domain import (
     AgentRunStatus,
     ApprovalDecision,
     RiskLevel,
+)
+from gearmeshing_ai.info_provider import (
+    DEFAULT_ROLE_PROVIDER,
+    CapabilityName,
 )
 from gearmeshing_ai.info_provider.mcp.gateway_api.client import GatewayApiClient
 from gearmeshing_ai.info_provider.mcp.provider import AsyncMCPInfoProvider
@@ -244,14 +247,14 @@ async def test_e2e_role_prompt_provider_is_used_for_thought_step(monkeypatch: py
             agent = _FakeAgent(config)
             await agent.initialize()
             return agent
-        
+
         async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
             # Mock the config source to return an AIAgentConfig object
             from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
-            
+
             # Get the system prompt from the prompt provider (simulating real behavior)
             system_prompt = None
-            if hasattr(config_source, 'prompt_key') and hasattr(config_source, 'prompt_tenant_id'):
+            if hasattr(config_source, "prompt_key") and hasattr(config_source, "prompt_tenant_id"):
                 # Simulate the prompt provider behavior and capture tenant info
                 captured["prompt_provider_tenant"] = config_source.prompt_tenant_id
                 mock_prompts = {
@@ -259,7 +262,7 @@ async def test_e2e_role_prompt_provider_is_used_for_thought_step(monkeypatch: py
                     "planner/system": "PLANNER SYSTEM PROMPT",
                 }
                 system_prompt = mock_prompts.get(config_source.prompt_key, "You are a helpful assistant...")
-            
+
             # Start with base config
             config_dict = {
                 "name": "test-thought",
@@ -271,12 +274,12 @@ async def test_e2e_role_prompt_provider_is_used_for_thought_step(monkeypatch: py
                 "top_p": 0.9,
                 "metadata": {"output_type": dict},
             }
-            
+
             # Apply overrides if present (but not system_prompt since it comes from prompt provider)
             if hasattr(config_source, "overrides") and config_source.overrides:
                 filtered_overrides = {k: v for k, v in config_source.overrides.items() if k != "system_prompt"}
                 config_dict.update(filtered_overrides)
-            
+
             mock_config = AIAgentConfig(**config_dict)
             agent = _FakeAgent(mock_config)
             await agent.initialize()

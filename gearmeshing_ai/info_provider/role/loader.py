@@ -159,6 +159,7 @@ def load_role_provider_with_session(session, builtin: RoleProvider | None = None
     if provider_key == "database":
         try:
             from .database import get_database_role_provider
+
             return get_database_role_provider(session)
         except Exception as exc:  # pragma: no cover - defensive
             _LOGGER.warning(

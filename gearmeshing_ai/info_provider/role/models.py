@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 
 class AgentRole(str, Enum):
     """Enumeration of supported agent roles."""
-    
+
     planner = "planner"
     market = "market"
     dev = "dev"
@@ -26,7 +26,7 @@ class AgentRole(str, Enum):
 
 class CapabilityName(str, Enum):
     """Enumeration of supported capabilities."""
-    
+
     summarize = "summarize"
     docs_read = "docs_read"
     web_search = "web_search"
@@ -39,7 +39,6 @@ class CapabilityName(str, Enum):
 
 class BaseSchema(BaseModel):
     """Base schema for role provider models."""
-    pass
 
 
 class CognitiveProfile(BaseSchema):
@@ -173,6 +172,7 @@ ROLE_CAPABILITIES: Dict[str, Set[CapabilityName]] = {
 # ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
+
 
 def coerce_role(role: AgentRole | str) -> AgentRole:
     """Helper to ensure a role is an AgentRole enum member."""

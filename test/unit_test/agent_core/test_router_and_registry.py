@@ -9,14 +9,6 @@ from gearmeshing_ai.agent_core.agent_registry import AgentRegistry
 from gearmeshing_ai.agent_core.factory import build_agent_registry
 from gearmeshing_ai.agent_core.planning.planner import StructuredPlanner
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
-from gearmeshing_ai.info_provider import (
-    CognitiveProfile,
-    RoleDefinition,
-    RolePermissions,
-    StaticAgentRoleProvider,
-    AgentRole,
-    CapabilityName,
-)
 from gearmeshing_ai.agent_core.router import Router
 from gearmeshing_ai.agent_core.runtime.models import EngineDeps
 from gearmeshing_ai.agent_core.schemas.domain import (
@@ -24,6 +16,14 @@ from gearmeshing_ai.agent_core.schemas.domain import (
     AutonomyProfile,
 )
 from gearmeshing_ai.agent_core.service import AgentServiceDeps
+from gearmeshing_ai.info_provider import (
+    AgentRole,
+    CapabilityName,
+    CognitiveProfile,
+    RoleDefinition,
+    RolePermissions,
+    StaticAgentRoleProvider,
+)
 
 
 @dataclass
