@@ -250,21 +250,33 @@ async def test_e2e_role_prompt_provider_is_used_for_thought_step(monkeypatch: py
             # Mock the config source to return an AIAgentConfig object
             from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
             
+            # Get the system prompt from the prompt provider (simulating real behavior)
+            system_prompt = None
+            if hasattr(config_source, 'prompt_key') and hasattr(config_source, 'prompt_tenant_id'):
+                # Simulate the prompt provider behavior and capture tenant info
+                captured["prompt_provider_tenant"] = config_source.prompt_tenant_id
+                mock_prompts = {
+                    "dev/system": "DEV SYSTEM PROMPT",
+                    "planner/system": "PLANNER SYSTEM PROMPT",
+                }
+                system_prompt = mock_prompts.get(config_source.prompt_key, "You are a helpful assistant...")
+            
             # Start with base config
             config_dict = {
                 "name": "test-thought",
                 "framework": "pydantic_ai",
                 "model": "gpt-4o",
-                "system_prompt": "You are a helpful assistant...",  # Default
+                "system_prompt": system_prompt or "You are a helpful assistant...",
                 "temperature": 0.7,
                 "max_tokens": 4096,
                 "top_p": 0.9,
                 "metadata": {"output_type": dict},
             }
             
-            # Apply overrides if present
+            # Apply overrides if present (but not system_prompt since it comes from prompt provider)
             if hasattr(config_source, "overrides") and config_source.overrides:
-                config_dict.update(config_source.overrides)
+                filtered_overrides = {k: v for k, v in config_source.overrides.items() if k != "system_prompt"}
+                config_dict.update(filtered_overrides)
             
             mock_config = AIAgentConfig(**config_dict)
             agent = _FakeAgent(mock_config)
