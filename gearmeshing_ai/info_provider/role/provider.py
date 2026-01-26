@@ -27,18 +27,15 @@ from sqlmodel import Session, select
 if TYPE_CHECKING:
     from gearmeshing_ai.agent_core.schemas.config import RoleConfig
 
+from .base import RoleProvider
 from .models import (
+    DEFAULT_ROLE_DEFINITIONS,
+    ROLE_SPECS,
     AgentRole,
     CapabilityName,
     CognitiveProfile,
     RoleDefinition,
     RolePermissions,
-)
-
-from .base import RoleProvider
-from .models import (
-    DEFAULT_ROLE_DEFINITIONS,
-    ROLE_SPECS,
     RoleSpec,
 )
 
