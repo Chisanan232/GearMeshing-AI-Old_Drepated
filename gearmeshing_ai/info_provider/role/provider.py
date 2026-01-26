@@ -27,7 +27,7 @@ from sqlmodel import Session, select
 if TYPE_CHECKING:
     from gearmeshing_ai.agent_core.schemas.config import RoleConfig
 
-from gearmeshing_ai.info_provider.role.models import (
+from .models import (
     AgentRole,
     CapabilityName,
     CognitiveProfile,
