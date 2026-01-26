@@ -24,6 +24,15 @@ from typing import Dict, Optional
 
 from sqlmodel import Session, select
 
+from gearmeshing_ai.agent_core.schemas.config import RoleConfig
+from gearmeshing_ai.info_provider.role.models import (
+    AgentRole,
+    CapabilityName,
+    CognitiveProfile,
+    RoleDefinition,
+    RolePermissions,
+)
+
 from .base import RoleProvider
 from .models import (
     DEFAULT_ROLE_DEFINITIONS,
@@ -34,15 +43,6 @@ from .models import (
     RoleDefinition,
     RolePermissions,
     RoleSpec,
-)
-
-from gearmeshing_ai.agent_core.schemas.config import RoleConfig
-from gearmeshing_ai.info_provider.role.models import (
-    AgentRole,
-    CapabilityName,
-    CognitiveProfile,
-    RoleDefinition,
-    RolePermissions,
 )
 
 logger = logging.getLogger(__name__)
