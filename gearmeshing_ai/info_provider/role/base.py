@@ -1,21 +1,21 @@
-"""Core RoleProvider abstract base class used by the role subsystem.
+"""Core RoleProvider protocol used by the role subsystem.
 
 This module defines :class:`RoleProvider`, a small, runtime-checkable
-abstract base class that all role provider implementations are expected to follow.
+protocol that all role provider implementations are expected to follow.
 Concrete providers live in :mod:`gearmeshing_ai.info_provider.role.provider`
 and external/commercial providers are wired in via entry points.
 """
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Protocol, runtime_checkable
 
 from .role_provider import RoleDefinition
 
 
-class RoleProvider(ABC):
-    """Abstract base class for role providers used by GearMeshing-AI.
+@runtime_checkable
+class RoleProvider(Protocol):
+    """Protocol for role providers used by GearMeshing-AI.
 
     The role provider abstraction sits between application code (API
     handlers, agents, workflows) and the concrete storage of role configurations.
@@ -36,7 +36,6 @@ class RoleProvider(ABC):
     or expose sensitive role information through this interface.
     """
 
-    @abstractmethod
     def get(self, role: str, tenant: Optional[str] = None) -> RoleDefinition:
         """Return the role definition for `role`.
 
@@ -44,7 +43,6 @@ class RoleProvider(ABC):
         """
         ...
 
-    @abstractmethod
     def list_roles(self, tenant: Optional[str] = None) -> list[str]:
         """Return a list of available role names.
 
@@ -56,12 +54,10 @@ class RoleProvider(ABC):
         """
         ...
 
-    @abstractmethod
     def version(self) -> str:
         """Return a non-sensitive version identifier for this provider."""
         ...
 
-    @abstractmethod
     def refresh(self) -> None:
         """Refresh internal caches if supported (optional)."""
         ...
