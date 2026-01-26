@@ -325,6 +325,10 @@ class Settings(BaseAISetting):
         default="builtin",
         description="Prompt provider to use (builtin or custom entry point name)",
     )
+    gearmeshing_ai_model_provider: str = Field(
+        default="hardcoded",
+        description="Model provider to use (hardcoded, database, or custom entry point name)",
+    )
     gearmeshing_ai_agent_framework: Optional[str] = Field(
         default=None,
         description="Active agent framework (optional, can be set at runtime)",

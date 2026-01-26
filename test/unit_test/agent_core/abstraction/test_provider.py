@@ -1,6 +1,6 @@
 """Unit tests for AI agent provider."""
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -327,3 +327,277 @@ class TestGlobalProvider:
         # Verify framework was overridden
         assert agent.framework == "mock"
         assert agent.config.framework == "mock"
+
+
+class TestAIAgentProviderCreateAgentFromConfigSource:
+    """Unit tests for AIAgentProvider.create_agent_from_config_source method."""
+
+    @pytest.mark.asyncio
+    async def test_create_agent_from_config_source_success(self):
+        """Test successful agent creation from config source."""
+        # Setup provider
+        provider = AIAgentProvider()
+        factory = AIAgentFactory()
+        factory.register("mock", MockAgent)
+        provider.set_factory(factory)
+        provider.set_framework("mock")
+
+        # Create config source
+        config_source = MagicMock()
+        config_source.to_agent_config.return_value = AIAgentConfig(
+            name="test_agent",
+            framework="mock",
+            model="gpt-4o",
+            system_prompt="You are a helpful assistant.",
+            temperature=0.7,
+            max_tokens=4096,
+            top_p=0.9,
+        )
+
+        # Create agent
+        agent = await provider.create_agent_from_config_source(config_source)
+
+        # Verify
+        assert isinstance(agent, MockAgent)
+        assert agent.config.name == "test_agent"
+        assert agent.config.model == "gpt-4o"
+        assert agent.config.system_prompt == "You are a helpful assistant."
+        assert agent.config.temperature == 0.7
+        assert agent.config.max_tokens == 4096
+        assert agent.config.top_p == 0.9
+
+        # Verify config_source.to_agent_config was called with correct framework
+        config_source.to_agent_config.assert_called_once_with(framework="mock")
+
+    @pytest.mark.asyncio
+    async def test_create_agent_from_config_source_with_cache_disabled(self):
+        """Test agent creation with cache disabled."""
+        provider = AIAgentProvider()
+        factory = AIAgentFactory()
+        factory.register("mock", MockAgent)
+        provider.set_factory(factory)
+        provider.set_framework("mock")
+
+        config_source = MagicMock()
+        config_source.to_agent_config.return_value = AIAgentConfig(
+            name="test_agent", framework="mock", model="gpt-4o", system_prompt="Test prompt"
+        )
+
+        # Create agent with cache disabled
+        with patch.object(factory, "create") as mock_create:
+            mock_agent = MockAgent(AIAgentConfig(name="test", framework="mock", model="test"))
+            mock_create.return_value = mock_agent
+
+            await provider.create_agent_from_config_source(config_source, use_cache=False)
+
+            # Verify create was called with use_cache=False
+            mock_create.assert_called_once()
+            call_kwargs = mock_create.call_args[1]
+            assert call_kwargs["use_cache"] is False
+
+    @pytest.mark.asyncio
+    async def test_create_agent_from_config_source_factory_not_initialized(self):
+        """Test error when factory is not initialized."""
+        provider = AIAgentProvider()
+        # Don't set factory
+
+        config_source = MagicMock()
+
+        with pytest.raises(RuntimeError, match="Factory not initialized"):
+            await provider.create_agent_from_config_source(config_source)
+
+    @pytest.mark.asyncio
+    async def test_create_agent_from_config_source_framework_not_set(self):
+        """Test error when framework is not set."""
+        provider = AIAgentProvider()
+        factory = AIAgentFactory()
+        provider.set_factory(factory)
+        # Don't set framework
+
+        config_source = MagicMock()
+
+        with pytest.raises(RuntimeError, match="Framework not set"):
+            await provider.create_agent_from_config_source(config_source)
+
+    @pytest.mark.asyncio
+    async def test_create_agent_from_config_source_config_source_exception(self):
+        """Test handling of config source to_agent_config exception."""
+        provider = AIAgentProvider()
+        factory = AIAgentFactory()
+        factory.register("mock", MockAgent)
+        provider.set_factory(factory)
+        provider.set_framework("mock")
+
+        config_source = MagicMock()
+        config_source.to_agent_config.side_effect = KeyError("Configuration not found")
+
+        with pytest.raises(KeyError, match="Configuration not found"):
+            await provider.create_agent_from_config_source(config_source)
+
+    @pytest.mark.asyncio
+    async def test_create_agent_from_config_source_factory_create_exception(self):
+        """Test handling of factory create exception."""
+        provider = AIAgentProvider()
+        factory = AIAgentFactory()
+        factory.register("mock", MockAgent)
+        provider.set_factory(factory)
+        provider.set_framework("mock")
+
+        config_source = MagicMock()
+        config_source.to_agent_config.return_value = AIAgentConfig(
+            name="test_agent", framework="mock", model="gpt-4o", system_prompt="Test prompt"
+        )
+
+        # Mock factory.create to raise exception
+        with patch.object(factory, "create", side_effect=ValueError("Invalid configuration")):
+            with pytest.raises(ValueError, match="Invalid configuration"):
+                await provider.create_agent_from_config_source(config_source)
+
+    @pytest.mark.asyncio
+    async def test_create_agent_from_config_source_framework_not_registered(self):
+        """Test error when framework is not registered in factory."""
+        provider = AIAgentProvider()
+        factory = AIAgentFactory()
+        provider.set_factory(factory)
+
+        # This should raise ValueError because framework is not registered
+        with pytest.raises(ValueError):
+            provider.set_framework("nonexistent_framework")
+
+    @pytest.mark.asyncio
+    async def test_create_agent_from_config_source_config_validation(self):
+        """Test that config source is properly validated and converted."""
+        provider = AIAgentProvider()
+        factory = AIAgentFactory()
+        factory.register("mock", MockAgent)
+        provider.set_factory(factory)
+        provider.set_framework("mock")
+
+        config_source = MagicMock()
+        config_source.to_agent_config.return_value = AIAgentConfig(
+            name="validated_agent",
+            framework="mock",
+            model="claude-3-5-sonnet",
+            system_prompt="You are a validation expert.",
+            temperature=0.1,
+            max_tokens=8000,
+            top_p=0.5,
+            metadata={"validation": True, "strict": True},
+        )
+
+        agent = await provider.create_agent_from_config_source(config_source)
+
+        # Verify all config fields are properly passed
+        assert agent.config.name == "validated_agent"
+        assert agent.config.model == "claude-3-5-sonnet"
+        assert agent.config.system_prompt == "You are a validation expert."
+        assert agent.config.temperature == 0.1
+        assert agent.config.max_tokens == 8000
+        assert agent.config.top_p == 0.5
+        assert agent.config.metadata == {"validation": True, "strict": True}
+
+    @pytest.mark.asyncio
+    async def test_create_agent_from_config_source_multiple_calls(self):
+        """Test multiple calls to create_agent_from_config_source."""
+        provider = AIAgentProvider()
+        factory = AIAgentFactory()
+        factory.register("mock", MockAgent)
+        provider.set_factory(factory)
+        provider.set_framework("mock")
+
+        config_source1 = MagicMock()
+        config_source1.to_agent_config.return_value = AIAgentConfig(
+            name="agent1", framework="mock", model="gpt-4o", system_prompt="Prompt 1"
+        )
+
+        config_source2 = MagicMock()
+        config_source2.to_agent_config.return_value = AIAgentConfig(
+            name="agent2", framework="mock", model="claude-3-5-sonnet", system_prompt="Prompt 2"
+        )
+
+        # Create multiple agents
+        agent1 = await provider.create_agent_from_config_source(config_source1)
+        agent2 = await provider.create_agent_from_config_source(config_source2)
+
+        # Verify both agents are created correctly
+        assert agent1.config.name == "agent1"
+        assert agent1.config.model == "gpt-4o"
+        assert agent1.config.system_prompt == "Prompt 1"
+
+        assert agent2.config.name == "agent2"
+        assert agent2.config.model == "claude-3-5-sonnet"
+        assert agent2.config.system_prompt == "Prompt 2"
+
+        # Verify config sources were called correctly
+        config_source1.to_agent_config.assert_called_once_with(framework="mock")
+        config_source2.to_agent_config.assert_called_once_with(framework="mock")
+
+    @pytest.mark.asyncio
+    async def test_create_agent_from_config_source_framework_override(self):
+        """Test that framework in config is overridden by provider framework."""
+        provider = AIAgentProvider()
+        factory = AIAgentFactory()
+        factory.register("mock", MockAgent)
+        provider.set_factory(factory)
+        provider.set_framework("mock")
+
+        config_source = MagicMock()
+        # Config source returns different framework
+        config_source.to_agent_config.return_value = AIAgentConfig(
+            name="test_agent",
+            framework="different_framework",  # This should be overridden
+            model="gpt-4o",
+            system_prompt="Test prompt",
+        )
+
+        agent = await provider.create_agent_from_config_source(config_source)
+
+        # Verify framework was overridden to provider's framework
+        assert agent.config.framework == "mock"
+
+    @pytest.mark.asyncio
+    async def test_create_agent_from_config_source_with_tenant_and_locale(self):
+        """Test agent creation with tenant and locale parameters."""
+        provider = AIAgentProvider()
+        factory = AIAgentFactory()
+        factory.register("mock", MockAgent)
+        provider.set_factory(factory)
+        provider.set_framework("mock")
+
+        config_source = MagicMock()
+        config_source.to_agent_config.return_value = AIAgentConfig(
+            name="tenant_agent",
+            framework="mock",
+            model="gpt-4o",
+            system_prompt="Tenant-specific prompt",
+            metadata={"tenant_id": "test_tenant", "locale": "en-US"},
+        )
+
+        agent = await provider.create_agent_from_config_source(config_source)
+
+        # Verify tenant and locale are preserved in metadata
+        assert agent.config.metadata == {"tenant_id": "test_tenant", "locale": "en-US"}
+
+    @pytest.mark.asyncio
+    async def test_create_agent_from_config_source_empty_overrides(self):
+        """Test agent creation with empty overrides dict."""
+        provider = AIAgentProvider()
+        factory = AIAgentFactory()
+        factory.register("mock", MockAgent)
+        provider.set_factory(factory)
+        provider.set_framework("mock")
+
+        config_source = MagicMock()
+        config_source.to_agent_config.return_value = AIAgentConfig(
+            name="minimal_agent",
+            framework="mock",
+            model="gpt-4o",
+            system_prompt="Minimal prompt",
+            metadata={},  # Empty overrides
+        )
+
+        agent = await provider.create_agent_from_config_source(config_source)
+
+        # Verify agent is created successfully with empty metadata
+        assert agent.config.name == "minimal_agent"
+        assert agent.config.metadata == {}

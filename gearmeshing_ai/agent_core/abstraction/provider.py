@@ -8,6 +8,7 @@ for agent creation and configuration.
 from typing import Optional
 
 from .base import AIAgentConfig
+from .config_source import AgentConfigSource
 from .factory import AIAgentFactory
 
 
@@ -103,11 +104,43 @@ class AIAgentProvider:
             tools=config.tools,
             temperature=config.temperature,
             max_tokens=config.max_tokens,
+            top_p=config.top_p,
             timeout=config.timeout,
             metadata=config.metadata,
         )
 
         return await self._factory.create(config_copy, use_cache=use_cache)
+
+    async def create_agent_from_config_source(self, config_source: AgentConfigSource, use_cache: bool = True):
+        """Create an agent using orchestrated configuration sources.
+
+        This method provides a high-level interface for creating agents by
+        combining model configurations from the ModelProvider system with
+        system prompts from the PromptProvider system.
+
+        Args:
+            config_source: AgentConfigSource with model and prompt configuration keys
+            use_cache: Whether to use cache for agent creation
+
+        Returns:
+            Initialized AIAgentBase instance
+
+        Raises:
+            RuntimeError: If framework or factory not set
+            ValueError: If framework is not registered
+            KeyError: If model or prompt configuration is not found
+        """
+        if self._factory is None:
+            raise RuntimeError("Factory not initialized")
+
+        if self._framework is None:
+            raise RuntimeError("Framework not set. Call set_framework() first.")
+
+        # Convert config source to complete agent configuration
+        agent_config = config_source.to_agent_config(framework=self._framework)
+
+        # Create agent using existing create_agent method
+        return await self.create_agent(agent_config, use_cache=use_cache)
 
     def get_registered_frameworks(self) -> list[str]:
         """Get list of registered frameworks.
