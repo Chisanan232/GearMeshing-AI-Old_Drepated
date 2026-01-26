@@ -35,6 +35,7 @@ class AIAgentConfig(BaseModel):
     tools: List[Dict[str, Any]] = Field(default_factory=list, description="List of tool definitions")
     temperature: float = Field(default=0.7, description="Model temperature for response generation")
     max_tokens: Optional[int] = Field(None, ge=1, description="Maximum tokens for response generation")
+    top_p: Optional[float] = Field(default=0.9, description="Top-p sampling parameter")
     timeout: Optional[float] = Field(None, description="Request timeout in seconds")
     model_settings: Dict[str, Any] = Field(default_factory=dict, description="Framework-specific model configuration")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="AI agent object parameters")
