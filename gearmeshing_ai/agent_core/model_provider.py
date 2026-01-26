@@ -56,9 +56,9 @@ class ModelProvider:
         if db_session is None:
             raise ValueError("db_session is required for ModelProvider")
         self.db_session: Session = db_session
-        self._db_provider: Optional[Any] = None
+        self._db_provider: Optional["ModelProvider"] = None
 
-    def _get_db_provider(self) -> Any:
+    def _get_db_provider(self) -> "ModelProvider":
         """Get or create database configuration provider.
 
         Returns:
