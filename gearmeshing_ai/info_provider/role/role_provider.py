@@ -81,38 +81,6 @@ class RoleDefinition(BaseSchema):
     permissions: RolePermissions
 
 
-class AgentRoleProvider(Protocol):
-    """
-    Protocol for retrieving agent role definitions.
-
-    Allows different sources (static, DB, config) to supply role configurations.
-    """
-
-    def get(self, role: AgentRole | str) -> RoleDefinition:
-        """
-        Retrieve definition for a specific role.
-
-        Args:
-            role: The role identifier.
-
-        Returns:
-            The RoleDefinition object.
-
-        Raises:
-            KeyError: If the role is not found.
-        """
-        ...
-
-    def list_roles(self) -> Iterable[AgentRole]:
-        """
-        List all available roles.
-
-        Returns:
-            An iterable of AgentRole enum members.
-        """
-        ...
-
-
 class StaticAgentRoleProvider:
     """
     Role provider backed by an in-memory dictionary.
