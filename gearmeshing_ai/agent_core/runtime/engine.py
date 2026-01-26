@@ -38,7 +38,7 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.errors import NodeInterrupt
 from langgraph.graph import END, StateGraph
 
-from ..abstraction import AgentConfigSource, AIAgentConfig, get_agent_provider
+from ..abstraction import AgentConfigSource, get_agent_provider
 from ..capabilities.base import CapabilityContext
 from ..model_provider import async_create_model_for_role
 from ..monitoring_integration import trace_capability_execution
@@ -341,7 +341,7 @@ class AgentEngine:
                 if prompt_text is not None:
                     # Use abstraction layer for thought execution
                     provider = get_agent_provider()
-                    
+
                     # Create config source for thought agent
                     config_source = AgentConfigSource(
                         model_config_key="gpt4_default",  # Use default GPT-4 model for thoughts
@@ -353,7 +353,7 @@ class AgentEngine:
                         tenant_id=run.tenant_id,  # Pass tenant for multi-tenancy
                         prompt_tenant_id=run.tenant_id,  # Pass tenant for prompts
                     )
-                    
+
                     agent = await provider.create_agent_from_config_source(config_source, use_cache=True)
                     res = await agent.invoke(
                         input_text=f"thought={thought}\nrole={run.role}\nobjective={run.objective}\nargs={args}"

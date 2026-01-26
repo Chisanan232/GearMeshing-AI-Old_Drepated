@@ -89,10 +89,11 @@ class TestPlannerModelProviderIntegration:
                 agent = _FakeAgent(config)
                 await agent.initialize()
                 return agent
-            
+
             async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
                 # Mock the config source to return an AIAgentConfig object
                 from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
                 mock_config = AIAgentConfig(
                     name="test-planner",
                     framework="pydantic_ai",
@@ -178,10 +179,11 @@ class TestPlannerModelProviderIntegration:
                 agent = _FakeAgent(config)
                 await agent.initialize()
                 return agent
-            
+
             async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
                 # Mock the config source to return an AIAgentConfig object
                 from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
                 mock_config = AIAgentConfig(
                     name="test-planner",
                     framework="pydantic_ai",
@@ -233,10 +235,11 @@ class TestPlannerModelProviderIntegration:
                 agent = _FakeAgent(config)
                 await agent.initialize()
                 return agent
-            
+
             async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
                 # Mock the config source to return an AIAgentConfig object
                 from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
                 mock_config = AIAgentConfig(
                     name="test-planner",
                     framework="pydantic_ai",
@@ -287,10 +290,11 @@ class TestPlannerModelProviderIntegration:
                 agent = _FakeAgent(config)
                 await agent.initialize()
                 return agent
-            
+
             async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
                 # Mock the config source to return an AIAgentConfig object
                 from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
                 mock_config = AIAgentConfig(
                     name="test-planner",
                     framework="pydantic_ai",
@@ -417,10 +421,11 @@ class TestPlannerModelProviderIntegration:
                     agent = _FakeAgent(config)
                     await agent.initialize()
                     return agent
-                
+
                 async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
                     # Mock the config source to return an AIAgentConfig object
                     from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
                     mock_config = AIAgentConfig(
                         name="test-planner",
                         framework="pydantic_ai",
@@ -474,10 +479,11 @@ class TestPlannerModelProviderIntegration:
                     agent = _FakeAgent(config)
                     await agent.initialize()
                     return agent
-                
+
                 async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
                     # Mock the config source to return an AIAgentConfig object
                     from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
                     mock_config = AIAgentConfig(
                         name="test-planner",
                         framework="pydantic_ai",
@@ -591,10 +597,11 @@ class TestPlannerModelProviderIntegration:
                     agent = _FakeAgent(config)
                     await agent.initialize()
                     return agent
-                
+
                 async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
                     # Mock the config source to return an AIAgentConfig object
                     from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
                     mock_config = AIAgentConfig(
                         name="test-planner",
                         framework="pydantic_ai",
@@ -649,10 +656,11 @@ class TestPlannerModelProviderIntegration:
                         agent = _FakeAgent(config)
                         await agent.initialize()
                         return agent
-                    
+
                     async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
                         # Mock the config source to return an AIAgentConfig object
                         from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
                         mock_config = AIAgentConfig(
                             name="test-planner",
                             framework="pydantic_ai",
@@ -707,10 +715,11 @@ class TestPlannerModelProviderIntegration:
                     agent = _FakeAgent(config)
                     await agent.initialize()
                     return agent
-                
+
                 async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
                     # Mock the config source to return an AIAgentConfig object
                     from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
                     mock_config = AIAgentConfig(
                         name="test-planner",
                         framework="pydantic_ai",
@@ -772,10 +781,11 @@ class TestPlannerModelProviderIntegration:
                     agent = _FakeAgent(config)
                     await agent.initialize()
                     return agent
-                
+
                 async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
                     # Mock the config source to return an AIAgentConfig object
                     from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
                     mock_config = AIAgentConfig(
                         name="test-planner",
                         framework="pydantic_ai",
@@ -829,10 +839,11 @@ class TestPlannerModelProviderIntegration:
                     agent = _FakeAgent(config)
                     await agent.initialize()
                     return agent
-                
+
                 async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
                     # Mock the config source to return an AIAgentConfig object
                     from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
                     mock_config = AIAgentConfig(
                         name="test-planner",
                         framework="pydantic_ai",
@@ -883,10 +894,11 @@ class TestPlannerModelProviderIntegration:
                     agent = _FakeAgent(config)
                     await agent.initialize()
                     return agent
-                
+
                 async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
                     # Mock the config source to return an AIAgentConfig object
                     from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
                     mock_config = AIAgentConfig(
                         name="test-planner",
                         framework="pydantic_ai",

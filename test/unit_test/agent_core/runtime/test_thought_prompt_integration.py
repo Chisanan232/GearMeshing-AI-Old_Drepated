@@ -98,11 +98,11 @@ async def test_thought_step_uses_prompt_provider_and_model_when_configured(monke
             agent = _FakeAgent(config)
             await agent.initialize()
             return agent
-        
+
         async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
             # Mock the config source to return an AIAgentConfig object
             from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
-            
+
             # Start with base config
             config_dict = {
                 "name": "test-thought",
@@ -114,11 +114,11 @@ async def test_thought_step_uses_prompt_provider_and_model_when_configured(monke
                 "top_p": 0.9,
                 "metadata": {"output_type": dict},
             }
-            
+
             # Apply overrides if present
-            if hasattr(config_source, 'overrides') and config_source.overrides:
+            if hasattr(config_source, "overrides") and config_source.overrides:
                 config_dict.update(config_source.overrides)
-            
+
             mock_config = AIAgentConfig(**config_dict)
             agent = _FakeAgent(mock_config)
             await agent.initialize()
@@ -185,11 +185,11 @@ async def test_thought_step_prompt_keyerror_uses_fallback_prompt(monkeypatch: py
             agent = _FakeAgent(config)
             await agent.initialize()
             return agent
-        
+
         async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
             # Mock the config source to return an AIAgentConfig object
             from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
-            
+
             # Start with base config
             config_dict = {
                 "name": "test-thought",
@@ -201,11 +201,11 @@ async def test_thought_step_prompt_keyerror_uses_fallback_prompt(monkeypatch: py
                 "top_p": 0.9,
                 "metadata": {"output_type": dict},
             }
-            
+
             # Apply overrides if present
-            if hasattr(config_source, 'overrides') and config_source.overrides:
+            if hasattr(config_source, "overrides") and config_source.overrides:
                 config_dict.update(config_source.overrides)
-            
+
             mock_config = AIAgentConfig(**config_dict)
             agent = _FakeAgent(mock_config)
             await agent.initialize()
@@ -293,11 +293,11 @@ async def test_thought_step_prompt_provider_exception_disables_agent_call(monkey
             agent = _FakeAgent(config)
             await agent.initialize()
             return agent
-        
+
         async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
             # Mock the config source to return an AIAgentConfig object
             from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
-            
+
             # Start with base config
             config_dict = {
                 "name": "test-thought",
@@ -309,11 +309,11 @@ async def test_thought_step_prompt_provider_exception_disables_agent_call(monkey
                 "top_p": 0.9,
                 "metadata": {"output_type": dict},
             }
-            
+
             # Apply overrides if present
-            if hasattr(config_source, 'overrides') and config_source.overrides:
+            if hasattr(config_source, "overrides") and config_source.overrides:
                 config_dict.update(config_source.overrides)
-            
+
             mock_config = AIAgentConfig(**config_dict)
             agent = _FakeAgent(mock_config)
             await agent.initialize()
@@ -385,11 +385,11 @@ async def test_thought_step_non_dict_agent_output_is_wrapped(monkeypatch: pytest
             agent = _FakeAgent(config)
             await agent.initialize()
             return agent
-        
+
         async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
             # Mock the config source to return an AIAgentConfig object
             from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
-            
+
             # Start with base config
             config_dict = {
                 "name": "test-thought",
@@ -401,11 +401,11 @@ async def test_thought_step_non_dict_agent_output_is_wrapped(monkeypatch: pytest
                 "top_p": 0.9,
                 "metadata": {"output_type": dict},
             }
-            
+
             # Apply overrides if present
-            if hasattr(config_source, 'overrides') and config_source.overrides:
+            if hasattr(config_source, "overrides") and config_source.overrides:
                 config_dict.update(config_source.overrides)
-            
+
             mock_config = AIAgentConfig(**config_dict)
             agent = _FakeAgent(mock_config)
             await agent.initialize()

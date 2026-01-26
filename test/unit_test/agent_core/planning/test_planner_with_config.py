@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, List
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -40,10 +39,10 @@ class TestPlannerWithConfigurationSupport:
     async def test_planner_creates_model_from_role(self) -> None:
         """Test planner creates model from role if model not provided."""
         mock_model = MagicMock()
-        
+
         with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
             mock_create.return_value = mock_model
-            
+
             planner = StructuredPlanner(role="dev", tenant_id="acme-corp")
             # Model creation is deferred to plan() method
             assert planner._role == "dev"
@@ -53,7 +52,7 @@ class TestPlannerWithConfigurationSupport:
         """Test planner falls back to None if model creation fails."""
         # Model creation is deferred to plan() method, so constructor doesn't fail
         planner = StructuredPlanner(role="unknown_role")
-        
+
         # Model is None until plan() is called
         assert planner._model is None
 
@@ -61,9 +60,9 @@ class TestPlannerWithConfigurationSupport:
     async def test_planner_with_role_uses_created_model(self) -> None:
         """Test planner uses created model for planning."""
         pytest.importorskip("pydantic_ai")
-        
+
         from gearmeshing_ai.agent_core.abstraction import AIAgentResponse
-        
+
         class _FakeAgent:
             def __init__(self, config: Any) -> None:
                 self.config = config
@@ -88,10 +87,11 @@ class TestPlannerWithConfigurationSupport:
                 agent = _FakeAgent(config)
                 await agent.initialize()
                 return agent
-            
+
             async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
                 # Mock the config source to return an AIAgentConfig object
                 from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
                 mock_config = AIAgentConfig(
                     name="test-planner",
                     framework="pydantic_ai",
@@ -105,18 +105,18 @@ class TestPlannerWithConfigurationSupport:
                 agent = _FakeAgent(mock_config)
                 await agent.initialize()
                 return agent
-        
+
         import gearmeshing_ai.agent_core.planning.planner as planner_mod
-        
+
         with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
             mock_model = MagicMock()
             mock_model.model_name = "test-model"
             mock_create.return_value = mock_model
-            
+
             with patch.object(planner_mod, "get_agent_provider", return_value=_FakeProvider()):
                 planner = StructuredPlanner(role="dev")
                 steps = await planner.plan(objective="test", role="dev")
-                
+
                 assert len(steps) > 0
                 assert steps[0]["capability"] == CapabilityName.web_search
 
@@ -125,10 +125,10 @@ class TestPlannerWithConfigurationSupport:
         """Test planner falls back to deterministic mode if model creation fails."""
         with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_create:
             mock_create.side_effect = ValueError("Role not found")
-            
+
             planner = StructuredPlanner(role="unknown_role")
             steps = await planner.plan(objective="do x", role="dev")
-            
+
             # Should fall back to deterministic mode
             assert steps == [
                 {
@@ -141,10 +141,10 @@ class TestPlannerWithConfigurationSupport:
     def test_planner_with_explicit_model_ignores_role(self) -> None:
         """Test that explicit model ignores role parameter."""
         mock_model = MagicMock()
-        
+
         with patch("gearmeshing_ai.agent_core.model_provider.create_model_for_role") as mock_create:
             planner = StructuredPlanner(model=mock_model, role="dev")
-            
+
             # create_model_for_role should not be called
             mock_create.assert_not_called()
             assert planner._model is mock_model
@@ -154,7 +154,7 @@ class TestPlannerWithConfigurationSupport:
         """Test planner with no model and no role uses fallback."""
         planner = StructuredPlanner(model=None, role=None)
         steps = await planner.plan(objective="do x", role="dev")
-        
+
         assert steps == [
             {
                 "kind": "thought",
@@ -166,7 +166,7 @@ class TestPlannerWithConfigurationSupport:
     def test_planner_tenant_id_passed_to_model_creation(self) -> None:
         """Test that tenant_id is passed to model creation."""
         planner = StructuredPlanner(role="dev", tenant_id="acme-corp")
-        
+
         # Verify tenant_id is stored for later use in plan()
         assert planner._role == "dev"
         assert planner._tenant_id == "acme-corp"

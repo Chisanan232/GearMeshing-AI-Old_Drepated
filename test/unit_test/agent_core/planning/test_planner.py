@@ -56,10 +56,11 @@ async def test_planner_uses_pydantic_ai_agent_and_model_dump(monkeypatch: pytest
             agent = _FakeAgent(config)
             await agent.initialize()
             return agent
-        
+
         async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
             # Mock the config source to return an AIAgentConfig object
             from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
             mock_config = AIAgentConfig(
                 name="test-planner",
                 framework="pydantic_ai",
@@ -132,10 +133,11 @@ async def test_planner_with_testmodel_produces_valid_steps(monkeypatch: pytest.M
             agent = _FakeAgent(config)
             await agent.initialize()
             return agent
-        
+
         async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
             # Mock the config source to return an AIAgentConfig object
             from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
             mock_config = AIAgentConfig(
                 name="test-planner",
                 framework="pydantic_ai",
@@ -206,10 +208,11 @@ async def test_planner_with_functionmodel_returns_expected_plan(monkeypatch: pyt
             agent = _FakeAgent(config)
             await agent.initialize()
             return agent
-        
+
         async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
             # Mock the config source to return an AIAgentConfig object
             from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
             mock_config = AIAgentConfig(
                 name="test-planner",
                 framework="pydantic_ai",

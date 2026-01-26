@@ -35,10 +35,11 @@ async def test_planner_handles_non_list_response_content(monkeypatch: pytest.Mon
             agent = _FakeAgent(config)
             await agent.initialize()
             return agent
-        
+
         async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
             # Mock the config source to return an AIAgentConfig object
             from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
             mock_config = AIAgentConfig(
                 name="test-planner",
                 framework="pydantic_ai",
@@ -102,10 +103,11 @@ async def test_planner_handles_dict_response_content(monkeypatch: pytest.MonkeyP
             agent = _FakeAgent(config)
             await agent.initialize()
             return agent
-        
+
         async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
             # Mock the config source to return an AIAgentConfig object
             from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
             mock_config = AIAgentConfig(
                 name="test-planner",
                 framework="pydantic_ai",
@@ -161,10 +163,11 @@ async def test_planner_handles_string_response_content(monkeypatch: pytest.Monke
             agent = _FakeAgent(config)
             await agent.initialize()
             return agent
-        
+
         async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
             # Mock the config source to return an AIAgentConfig object
             from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
             mock_config = AIAgentConfig(
                 name="test-planner",
                 framework="pydantic_ai",
@@ -221,10 +224,11 @@ async def test_planner_non_list_response_includes_objective_and_role(
             agent = _FakeAgent(config)
             await agent.initialize()
             return agent
-        
+
         async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
             # Mock the config source to return an AIAgentConfig object
             from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
             mock_config = AIAgentConfig(
                 name="test-planner",
                 framework="pydantic_ai",
@@ -281,10 +285,11 @@ async def test_planner_non_list_response_is_serializable(monkeypatch: pytest.Mon
             agent = _FakeAgent(config)
             await agent.initialize()
             return agent
-        
+
         async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
             # Mock the config source to return an AIAgentConfig object
             from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
             mock_config = AIAgentConfig(
                 name="test-planner",
                 framework="pydantic_ai",

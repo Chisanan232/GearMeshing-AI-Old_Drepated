@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from langgraph.checkpoint.memory import MemorySaver
 
 from gearmeshing_ai.agent_core.factory import build_default_registry
+from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
+from gearmeshing_ai.agent_core.policy.models import PolicyConfig
 from gearmeshing_ai.agent_core.runtime import EngineDeps
 from gearmeshing_ai.agent_core.runtime.engine import AgentEngine
-from gearmeshing_ai.agent_core.policy.models import PolicyConfig
-from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
-from gearmeshing_ai.agent_core.schemas.domain import AgentRun, AgentRole
+from gearmeshing_ai.agent_core.schemas.domain import AgentRole, AgentRun
 
 
 class TestEngineWithConfigurationSupport:
@@ -28,10 +28,8 @@ class TestEngineWithConfigurationSupport:
         checkpoints_repo = AsyncMock()
         tool_invocations_repo = AsyncMock()
         role_provider = MagicMock()
-        role_provider.get.return_value = MagicMock(
-            cognitive=MagicMock(system_prompt_key="dev_system_prompt")
-        )
-        
+        role_provider.get.return_value = MagicMock(cognitive=MagicMock(system_prompt_key="dev_system_prompt"))
+
         deps = EngineDeps(
             runs=runs_repo,
             events=events_repo,
@@ -47,10 +45,10 @@ class TestEngineWithConfigurationSupport:
             mcp_call=None,
             checkpointer=MemorySaver(),
         )
-        
+
         policy = GlobalPolicy(config=PolicyConfig())
         engine = AgentEngine(policy=policy, deps=deps)
-        
+
         # Verify engine is created with no thought model
         # Model creation is deferred to _node_execute_next using async_create_model_for_role
         assert engine._deps.thought_model is None
@@ -60,7 +58,7 @@ class TestEngineWithConfigurationSupport:
     async def test_engine_uses_provided_thought_model(self) -> None:
         """Test engine uses provided thought_model if available."""
         mock_thought_model = MagicMock()
-        
+
         deps = EngineDeps(
             runs=AsyncMock(),
             events=AsyncMock(),
@@ -76,10 +74,10 @@ class TestEngineWithConfigurationSupport:
             mcp_call=None,
             checkpointer=MemorySaver(),
         )
-        
+
         policy = GlobalPolicy(config=PolicyConfig())
         engine = AgentEngine(policy=policy, deps=deps)
-        
+
         # Verify that the provided model is used
         assert engine._deps.thought_model is mock_thought_model
 
@@ -88,7 +86,7 @@ class TestEngineWithConfigurationSupport:
         """Test engine handles model creation errors gracefully."""
         runs_repo = AsyncMock()
         events_repo = AsyncMock()
-        
+
         deps = EngineDeps(
             runs=runs_repo,
             events=events_repo,
@@ -104,10 +102,10 @@ class TestEngineWithConfigurationSupport:
             mcp_call=None,
             checkpointer=MemorySaver(),
         )
-        
+
         policy = GlobalPolicy(config=PolicyConfig())
         engine = AgentEngine(policy=policy, deps=deps)
-        
+
         # Engine should be created successfully even if model creation might fail later
         # The error handling happens in _node_execute_next during actual execution
         assert engine is not None
@@ -119,10 +117,8 @@ class TestEngineWithConfigurationSupport:
         runs_repo = AsyncMock()
         events_repo = AsyncMock()
         role_provider = MagicMock()
-        role_provider.get.return_value = MagicMock(
-            cognitive=MagicMock(system_prompt_key="dev_system_prompt")
-        )
-        
+        role_provider.get.return_value = MagicMock(cognitive=MagicMock(system_prompt_key="dev_system_prompt"))
+
         deps = EngineDeps(
             runs=runs_repo,
             events=events_repo,
@@ -138,13 +134,13 @@ class TestEngineWithConfigurationSupport:
             mcp_call=None,
             checkpointer=MemorySaver(),
         )
-        
+
         policy = GlobalPolicy(config=PolicyConfig())
         engine = AgentEngine(policy=policy, deps=deps)
-        
+
         # Create a run with tenant_id
         run = AgentRun(role=AgentRole.dev, objective="test", tenant_id="acme-corp")
-        
+
         # Verify tenant_id is properly set on the run
         # The tenant_id will be passed to async_create_model_for_role during execution
         assert run.tenant_id == "acme-corp"
@@ -171,10 +167,10 @@ class TestEngineModelIntegration:
             mcp_call=None,
             checkpointer=MemorySaver(),
         )
-        
+
         policy = GlobalPolicy(config=PolicyConfig())
         engine = AgentEngine(policy=policy, deps=deps)
-        
+
         # Engine should be created successfully
         assert engine is not None
         assert engine._deps.thought_model is None
@@ -186,7 +182,7 @@ class TestEngineModelIntegration:
         mock_model = MagicMock()
         mock_role_provider = MagicMock()
         mock_prompt_provider = MagicMock()
-        
+
         deps = EngineDeps(
             runs=AsyncMock(),
             events=AsyncMock(),
@@ -202,10 +198,10 @@ class TestEngineModelIntegration:
             mcp_call=None,
             checkpointer=MemorySaver(),
         )
-        
+
         policy = GlobalPolicy(config=PolicyConfig())
         engine = AgentEngine(policy=policy, deps=deps)
-        
+
         # Verify all components are set
         assert engine._deps.thought_model is mock_model
         assert engine._deps.role_provider is mock_role_provider
