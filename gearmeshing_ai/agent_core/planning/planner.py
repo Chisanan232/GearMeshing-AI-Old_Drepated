@@ -26,7 +26,7 @@ The runtime enforces the thought/action split:
 import logging
 from typing import Any, Dict, List, Optional
 
-from ..abstraction import AIAgentConfig, get_agent_provider
+from ..abstraction import AgentConfigSource, get_agent_provider
 from ..monitoring_integration import trace_planning
 from .steps import ActionStep, ThoughtStep
 
@@ -108,18 +108,20 @@ class StructuredPlanner:
         # Use abstraction layer for agent creation and execution
         provider = get_agent_provider()
 
-        config = AIAgentConfig(
-            name=f"planner-{role}",
-            framework="pydantic_ai",
-            model=model.model_name if hasattr(model, "model_name") else str(model),
-            system_prompt=(
-                "You are an expert planner for an autonomous software engineering agent. "
-                "Return a minimal, safe sequence of action steps as JSON."
-            ),
-            metadata={"output_type": List[ActionStep]},
+        # Create config source for planner agent
+        config_source = AgentConfigSource(
+            model_config_key="gpt4_default",  # Use default GPT-4 model for planning
+            prompt_key="dev/system",  # Use developer system prompt for structured planning
+            overrides={
+                "system_prompt": (
+                    "You are an expert planner for an autonomous software engineering agent. "
+                    "Return a minimal, safe sequence of action steps as JSON."
+                ),
+                "output_type": List[ActionStep],
+            },
         )
 
-        agent = await provider.create_agent(config, use_cache=True)
+        agent = await provider.create_agent_from_config_source(config_source, use_cache=True)
 
         response = await agent.invoke(
             input_text=(

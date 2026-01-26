@@ -246,6 +246,31 @@ async def test_e2e_role_prompt_provider_is_used_for_thought_step(monkeypatch: py
             await agent.initialize()
             return agent
 
+        async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
+            # Mock the config source to return an AIAgentConfig object
+            from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
+            # Start with base config
+            config_dict = {
+                "name": "test-thought",
+                "framework": "pydantic_ai",
+                "model": "gpt-4o",
+                "system_prompt": "You are a helpful assistant...",  # Default
+                "temperature": 0.7,
+                "max_tokens": 4096,
+                "top_p": 0.9,
+                "metadata": {"output_type": dict},
+            }
+
+            # Apply overrides if present
+            if hasattr(config_source, "overrides") and config_source.overrides:
+                config_dict.update(config_source.overrides)
+
+            mock_config = AIAgentConfig(**config_dict)
+            agent = _FakeAgent(mock_config)
+            await agent.initialize()
+            return agent
+
     import gearmeshing_ai.agent_core.runtime.engine as engine_mod
 
     monkeypatch.setattr(engine_mod, "get_agent_provider", lambda: _FakeProvider())

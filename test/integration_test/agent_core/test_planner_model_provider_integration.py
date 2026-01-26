@@ -90,6 +90,24 @@ class TestPlannerModelProviderIntegration:
                 await agent.initialize()
                 return agent
 
+            async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
+                # Mock the config source to return an AIAgentConfig object
+                from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
+                mock_config = AIAgentConfig(
+                    name="test-planner",
+                    framework="pydantic_ai",
+                    model="gpt-4o",
+                    system_prompt="You are an expert planner...",
+                    temperature=0.7,
+                    max_tokens=4096,
+                    top_p=0.9,
+                    metadata={"output_type": list},
+                )
+                agent = _FakeAgent(mock_config)
+                await agent.initialize()
+                return agent
+
         with patch("gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()):
             plan = await planner.plan(objective="Test objective", role="dev")
 
@@ -162,6 +180,24 @@ class TestPlannerModelProviderIntegration:
                 await agent.initialize()
                 return agent
 
+            async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
+                # Mock the config source to return an AIAgentConfig object
+                from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
+                mock_config = AIAgentConfig(
+                    name="test-planner",
+                    framework="pydantic_ai",
+                    model="gpt-4o",
+                    system_prompt="You are an expert planner...",
+                    temperature=0.7,
+                    max_tokens=4096,
+                    top_p=0.9,
+                    metadata={"output_type": list},
+                )
+                agent = _FakeAgent(mock_config)
+                await agent.initialize()
+                return agent
+
         with patch("gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()):
             await planner.plan(objective="Test", role="dev")
 
@@ -200,6 +236,24 @@ class TestPlannerModelProviderIntegration:
                 await agent.initialize()
                 return agent
 
+            async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
+                # Mock the config source to return an AIAgentConfig object
+                from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
+                mock_config = AIAgentConfig(
+                    name="test-planner",
+                    framework="pydantic_ai",
+                    model="gpt-4o",
+                    system_prompt="You are an expert planner...",
+                    temperature=0.7,
+                    max_tokens=4096,
+                    top_p=0.9,
+                    metadata={"output_type": list},
+                )
+                agent = _FakeAgent(mock_config)
+                await agent.initialize()
+                return agent
+
         with patch("gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()):
             await planner.plan(objective="Test", role="dev")
 
@@ -234,6 +288,24 @@ class TestPlannerModelProviderIntegration:
         class _FakeProvider:
             async def create_agent(self, config, use_cache: bool = False):
                 agent = _FakeAgent(config)
+                await agent.initialize()
+                return agent
+
+            async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
+                # Mock the config source to return an AIAgentConfig object
+                from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
+                mock_config = AIAgentConfig(
+                    name="test-planner",
+                    framework="pydantic_ai",
+                    model="gpt-4o",
+                    system_prompt="You are an expert planner...",
+                    temperature=0.7,
+                    max_tokens=4096,
+                    top_p=0.9,
+                    metadata={"output_type": list},
+                )
+                agent = _FakeAgent(mock_config)
                 await agent.initialize()
                 return agent
 
@@ -350,6 +422,24 @@ class TestPlannerModelProviderIntegration:
                     await agent.initialize()
                     return agent
 
+                async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
+                    # Mock the config source to return an AIAgentConfig object
+                    from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
+                    mock_config = AIAgentConfig(
+                        name="test-planner",
+                        framework="pydantic_ai",
+                        model="gpt-4o",
+                        system_prompt="You are an expert planner...",
+                        temperature=0.7,
+                        max_tokens=4096,
+                        top_p=0.9,
+                        metadata={"output_type": list},
+                    )
+                    agent = _FakeAgent(mock_config)
+                    await agent.initialize()
+                    return agent
+
             with patch("gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()):
                 await planner.plan(objective="Test", role="dev")
 
@@ -387,6 +477,24 @@ class TestPlannerModelProviderIntegration:
             class _FakeProvider:
                 async def create_agent(self, config, use_cache: bool = False):
                     agent = _FakeAgent(config)
+                    await agent.initialize()
+                    return agent
+
+                async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
+                    # Mock the config source to return an AIAgentConfig object
+                    from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
+                    mock_config = AIAgentConfig(
+                        name="test-planner",
+                        framework="pydantic_ai",
+                        model="gpt-4o",
+                        system_prompt="You are an expert planner...",
+                        temperature=0.7,
+                        max_tokens=4096,
+                        top_p=0.9,
+                        metadata={"output_type": list},
+                    )
+                    agent = _FakeAgent(mock_config)
                     await agent.initialize()
                     return agent
 
@@ -490,6 +598,24 @@ class TestPlannerModelProviderIntegration:
                     await agent.initialize()
                     return agent
 
+                async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
+                    # Mock the config source to return an AIAgentConfig object
+                    from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
+                    mock_config = AIAgentConfig(
+                        name="test-planner",
+                        framework="pydantic_ai",
+                        model="gpt-4o",
+                        system_prompt="You are an expert planner...",
+                        temperature=0.7,
+                        max_tokens=4096,
+                        top_p=0.9,
+                        metadata={"output_type": list},
+                    )
+                    agent = _FakeAgent(mock_config)
+                    await agent.initialize()
+                    return agent
+
             with patch("gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()):
                 await planner.plan(objective="Test", role="dev")
 
@@ -531,6 +657,24 @@ class TestPlannerModelProviderIntegration:
                         await agent.initialize()
                         return agent
 
+                    async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
+                        # Mock the config source to return an AIAgentConfig object
+                        from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
+                        mock_config = AIAgentConfig(
+                            name="test-planner",
+                            framework="pydantic_ai",
+                            model="gpt-4o",
+                            system_prompt="You are an expert planner...",
+                            temperature=0.7,
+                            max_tokens=4096,
+                            top_p=0.9,
+                            metadata={"output_type": list},
+                        )
+                        agent = _FakeAgent(mock_config)
+                        await agent.initialize()
+                        return agent
+
                 with patch(
                     "gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()
                 ):
@@ -569,6 +713,24 @@ class TestPlannerModelProviderIntegration:
             class _FakeProvider:
                 async def create_agent(self, config, use_cache: bool = False):
                     agent = _FakeAgent(config)
+                    await agent.initialize()
+                    return agent
+
+                async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
+                    # Mock the config source to return an AIAgentConfig object
+                    from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
+                    mock_config = AIAgentConfig(
+                        name="test-planner",
+                        framework="pydantic_ai",
+                        model="gpt-4o",
+                        system_prompt="You are an expert planner...",
+                        temperature=0.7,
+                        max_tokens=4096,
+                        top_p=0.9,
+                        metadata={"output_type": list},
+                    )
+                    agent = _FakeAgent(mock_config)
                     await agent.initialize()
                     return agent
 
@@ -620,6 +782,24 @@ class TestPlannerModelProviderIntegration:
                     await agent.initialize()
                     return agent
 
+                async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
+                    # Mock the config source to return an AIAgentConfig object
+                    from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
+                    mock_config = AIAgentConfig(
+                        name="test-planner",
+                        framework="pydantic_ai",
+                        model="gpt-4o",
+                        system_prompt="You are an expert planner...",
+                        temperature=0.7,
+                        max_tokens=4096,
+                        top_p=0.9,
+                        metadata={"output_type": list},
+                    )
+                    agent = _FakeAgent(mock_config)
+                    await agent.initialize()
+                    return agent
+
             with patch("gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()):
                 plan = await planner.plan(objective="", role="dev")
 
@@ -660,6 +840,24 @@ class TestPlannerModelProviderIntegration:
                     await agent.initialize()
                     return agent
 
+                async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
+                    # Mock the config source to return an AIAgentConfig object
+                    from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
+                    mock_config = AIAgentConfig(
+                        name="test-planner",
+                        framework="pydantic_ai",
+                        model="gpt-4o",
+                        system_prompt="You are an expert planner...",
+                        temperature=0.7,
+                        max_tokens=4096,
+                        top_p=0.9,
+                        metadata={"output_type": list},
+                    )
+                    agent = _FakeAgent(mock_config)
+                    await agent.initialize()
+                    return agent
+
             with patch("gearmeshing_ai.agent_core.planning.planner.get_agent_provider", return_value=_FakeProvider()):
                 plan = await planner.plan(objective=long_objective, role="dev")
 
@@ -694,6 +892,24 @@ class TestPlannerModelProviderIntegration:
             class _FakeProvider:
                 async def create_agent(self, config, use_cache: bool = False):
                     agent = _FakeAgent(config)
+                    await agent.initialize()
+                    return agent
+
+                async def create_agent_from_config_source(self, config_source, use_cache: bool = False):
+                    # Mock the config source to return an AIAgentConfig object
+                    from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
+                    mock_config = AIAgentConfig(
+                        name="test-planner",
+                        framework="pydantic_ai",
+                        model="gpt-4o",
+                        system_prompt="You are an expert planner...",
+                        temperature=0.7,
+                        max_tokens=4096,
+                        top_p=0.9,
+                        metadata={"output_type": list},
+                    )
+                    agent = _FakeAgent(mock_config)
                     await agent.initialize()
                     return agent
 

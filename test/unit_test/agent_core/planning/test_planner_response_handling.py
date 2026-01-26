@@ -36,6 +36,24 @@ async def test_planner_handles_non_list_response_content(monkeypatch: pytest.Mon
             await agent.initialize()
             return agent
 
+        async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
+            # Mock the config source to return an AIAgentConfig object
+            from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
+            mock_config = AIAgentConfig(
+                name="test-planner",
+                framework="pydantic_ai",
+                model="gpt-4o",
+                system_prompt="You are an expert planner...",
+                temperature=0.7,
+                max_tokens=4096,
+                top_p=0.9,
+                metadata={"output_type": list},
+            )
+            agent = _FakeAgent(mock_config)
+            await agent.initialize()
+            return agent
+
     import gearmeshing_ai.agent_core.planning.planner as planner_mod
 
     monkeypatch.setattr(planner_mod, "get_agent_provider", lambda: _FakeProvider())
@@ -86,6 +104,24 @@ async def test_planner_handles_dict_response_content(monkeypatch: pytest.MonkeyP
             await agent.initialize()
             return agent
 
+        async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
+            # Mock the config source to return an AIAgentConfig object
+            from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
+            mock_config = AIAgentConfig(
+                name="test-planner",
+                framework="pydantic_ai",
+                model="gpt-4o",
+                system_prompt="You are an expert planner...",
+                temperature=0.7,
+                max_tokens=4096,
+                top_p=0.9,
+                metadata={"output_type": list},
+            )
+            agent = _FakeAgent(mock_config)
+            await agent.initialize()
+            return agent
+
     import gearmeshing_ai.agent_core.planning.planner as planner_mod
 
     monkeypatch.setattr(planner_mod, "get_agent_provider", lambda: _FakeProvider())
@@ -125,6 +161,24 @@ async def test_planner_handles_string_response_content(monkeypatch: pytest.Monke
     class _FakeProvider:
         async def create_agent(self, config: Any, use_cache: bool = False) -> _FakeAgent:
             agent = _FakeAgent(config)
+            await agent.initialize()
+            return agent
+
+        async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
+            # Mock the config source to return an AIAgentConfig object
+            from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
+            mock_config = AIAgentConfig(
+                name="test-planner",
+                framework="pydantic_ai",
+                model="gpt-4o",
+                system_prompt="You are an expert planner...",
+                temperature=0.7,
+                max_tokens=4096,
+                top_p=0.9,
+                metadata={"output_type": list},
+            )
+            agent = _FakeAgent(mock_config)
             await agent.initialize()
             return agent
 
@@ -171,6 +225,24 @@ async def test_planner_non_list_response_includes_objective_and_role(
             await agent.initialize()
             return agent
 
+        async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
+            # Mock the config source to return an AIAgentConfig object
+            from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
+            mock_config = AIAgentConfig(
+                name="test-planner",
+                framework="pydantic_ai",
+                model="gpt-4o",
+                system_prompt="You are an expert planner...",
+                temperature=0.7,
+                max_tokens=4096,
+                top_p=0.9,
+                metadata={"output_type": list},
+            )
+            agent = _FakeAgent(mock_config)
+            await agent.initialize()
+            return agent
+
     import gearmeshing_ai.agent_core.planning.planner as planner_mod
 
     monkeypatch.setattr(planner_mod, "get_agent_provider", lambda: _FakeProvider())
@@ -211,6 +283,24 @@ async def test_planner_non_list_response_is_serializable(monkeypatch: pytest.Mon
     class _FakeProvider:
         async def create_agent(self, config: Any, use_cache: bool = False) -> _FakeAgent:
             agent = _FakeAgent(config)
+            await agent.initialize()
+            return agent
+
+        async def create_agent_from_config_source(self, config_source: Any, use_cache: bool = False) -> _FakeAgent:
+            # Mock the config source to return an AIAgentConfig object
+            from gearmeshing_ai.agent_core.abstraction import AIAgentConfig
+
+            mock_config = AIAgentConfig(
+                name="test-planner",
+                framework="pydantic_ai",
+                model="gpt-4o",
+                system_prompt="You are an expert planner...",
+                temperature=0.7,
+                max_tokens=4096,
+                top_p=0.9,
+                metadata={"output_type": list},
+            )
+            agent = _FakeAgent(mock_config)
             await agent.initialize()
             return agent
 
