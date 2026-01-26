@@ -65,16 +65,16 @@ class TestStaticAgentRoleProvider:
     def test_static_provider_list_roles(self):
         """Test listing all available roles."""
         provider = DEFAULT_ROLE_PROVIDER
-        roles = list(provider.list_roles())
+        roles = provider.list_roles()
         
-        assert AgentRole.dev in roles
-        assert AgentRole.planner in roles
+        assert "dev" in roles
+        assert "planner" in roles
         assert len(roles) >= 2  # At least dev and planner
 
     def test_static_provider_rejects_unknown_role(self):
         """Test that unknown role raises exception."""
         provider = StaticAgentRoleProvider(definitions={})
-        with pytest.raises(ValueError):  # AgentRole(str(role)) will raise ValueError for invalid role
+        with pytest.raises(KeyError):  # Our implementation raises KeyError
             provider.get("missing")
 
     def test_static_provider_rejects_unknown_role_enum(self):
@@ -166,17 +166,15 @@ class TestDatabaseRoleProvider:
         
         # Mock successful tenant-specific query
         mock_config = Mock()
-        mock_config.config_value = json.dumps({
-            "role": "dev",
-            "cognitive": {
-                "system_prompt_key": "dev.system_prompt",
-                "done_when": "task_completed"
-            },
-            "permissions": {
-                "allowed_capabilities": ["docs_read", "codegen"],
-                "allowed_tools": ["editor"]
-            }
-        })
+        # Mock the to_role_config method to return a proper RoleConfig
+        from gearmeshing_ai.agent_core.schemas.config import RoleConfig
+        mock_role_config = Mock(spec=RoleConfig)
+        mock_role_config.role_name = "dev"
+        mock_role_config.system_prompt_key = "dev.system_prompt"
+        mock_role_config.done_when = "task_completed"
+        mock_role_config.capabilities = ["docs_read", "codegen"]
+        mock_role_config.tools = ["editor"]
+        mock_config.to_role_config.return_value = mock_role_config
         
         mock_session.exec.return_value.first.return_value = mock_config
         
@@ -195,11 +193,15 @@ class TestDatabaseRoleProvider:
         
         # Mock tenant query returns None, global query returns config
         mock_config = Mock()
-        mock_config.config_value = json.dumps({
-            "role": "planner",
-            "cognitive": {"system_prompt_key": "planner.prompt"},
-            "permissions": {"allowed_capabilities": ["plan"], "allowed_tools": []}
-        })
+        # Mock the to_role_config method to return a proper RoleConfig
+        from gearmeshing_ai.agent_core.schemas.config import RoleConfig
+        mock_role_config = Mock(spec=RoleConfig)
+        mock_role_config.role_name = "planner"
+        mock_role_config.system_prompt_key = "planner.prompt"
+        mock_role_config.done_when = None
+        mock_role_config.capabilities = ["plan"]
+        mock_role_config.tools = []
+        mock_config.to_role_config.return_value = mock_role_config
         
         # First call (tenant-specific) returns None, second call (global) returns config
         mock_session.exec.return_value.first.side_effect = [None, mock_config]

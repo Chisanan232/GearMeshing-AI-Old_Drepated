@@ -362,7 +362,7 @@ class AgentEngine:
                 except Exception as e:
                     # If prompt provider or agent creation fails, skip thought execution
                     logger.debug(f"Thought execution failed due to prompt provider error: {e}")
-                    output = None
+                    output = {}  # Changed from None to empty dict
 
             await self._deps.events.append(
                 AgentEvent(

@@ -20,7 +20,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from typing import Dict, Iterable, Optional
+from typing import Dict, Iterable, Optional, cast
 
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 # PROVIDER IMPLEMENTATIONS
 # ============================================================================
 
-class StaticAgentRoleProvider:
+class StaticAgentRoleProvider(RoleProvider):
     """
     Role provider backed by an in-memory dictionary.
 
@@ -54,15 +54,32 @@ class StaticAgentRoleProvider:
     def __init__(self, *, definitions: Dict[AgentRole, RoleDefinition]) -> None:
         self._definitions = dict(definitions)
 
-    def get(self, role: AgentRole | str) -> RoleDefinition:
-        if isinstance(role, AgentRole):
-            key = role
-        else:
-            key = AgentRole(str(role))
+    def get(self, role: str, tenant: Optional[str] = None) -> RoleDefinition:
+        # Convert string role to AgentRole
+        try:
+            key = AgentRole(role)
+        except ValueError:
+            # If it's not a valid AgentRole, try to use it as a string key
+            # Look for any role that matches the string value
+            for agent_role in self._definitions:
+                if str(agent_role) == role:
+                    key = agent_role
+                    break
+            else:
+                raise KeyError(f"Role not found: {role}")
+        
         return self._definitions[key]
 
-    def list_roles(self) -> Iterable[AgentRole]:
-        return self._definitions.keys()
+    def list_roles(self, tenant: Optional[str] = None) -> list[str]:
+        # Ignore tenant for static provider, return all roles as strings
+        return [role.value for role in self._definitions.keys()]
+
+    def version(self) -> str:
+        return "static-v1"
+
+    def refresh(self) -> None:
+        # Static provider has no external state to refresh (no-op)
+        pass
 
 
 DEFAULT_ROLE_PROVIDER: StaticAgentRoleProvider = StaticAgentRoleProvider(
@@ -117,7 +134,8 @@ class HardcodedRoleProvider(RoleProvider):
         Returns:
             List of role names.
         """
-        return [str(role) for role in self._provider.list_roles()]
+        # Return the enum string representations for backward compatibility
+        return [f"AgentRole.{role}" for role in self._provider.list_roles()]
 
     def version(self) -> str:
         """Return the version identifier of this provider."""
@@ -167,23 +185,23 @@ class DatabaseRoleProvider(RoleProvider):
             # Try tenant-specific first
             if tenant:
                 stmt = select(AgentConfig).where(
-                    AgentConfig.config_type == "role",
-                    AgentConfig.config_key == role,
-                    AgentConfig.tenant_id == tenant
+                    AgentConfig.role_name == role,
+                    AgentConfig.tenant_id == tenant,
+                    AgentConfig.is_active == True
                 )
                 config = self.session.exec(stmt).first()
                 if config:
-                    return self._parse_config(config.config_value)
+                    return self._role_config_to_definition(config.to_role_config())
 
             # Fallback to global
             stmt = select(AgentConfig).where(
-                AgentConfig.config_type == "role",
-                AgentConfig.config_key == role,
-                AgentConfig.tenant_id.is_(None)
+                AgentConfig.role_name == role,
+                AgentConfig.tenant_id.is_(None),  # type: ignore[union-attr]
+                AgentConfig.is_active == True
             )
             config = self.session.exec(stmt).first()
             if config:
-                return self._parse_config(config.config_value)
+                return self._role_config_to_definition(config.to_role_config())
 
             raise ValueError(f"Role configuration not found: {role}")
 
@@ -203,13 +221,13 @@ class DatabaseRoleProvider(RoleProvider):
         """
         try:
             if tenant:
-                stmt = select(AgentConfig.config_key).where(
-                    AgentConfig.config_type == "role",
-                    AgentConfig.tenant_id == tenant
+                stmt = select(AgentConfig.role_name).where(
+                    AgentConfig.tenant_id == tenant,
+                    AgentConfig.is_active == True
                 ).distinct()
             else:
-                stmt = select(AgentConfig.config_key).where(
-                    AgentConfig.config_type == "role"
+                stmt = select(AgentConfig.role_name).where(
+                    AgentConfig.is_active == True
                 ).distinct()
             
             results = self.session.exec(stmt).all()
@@ -218,6 +236,59 @@ class DatabaseRoleProvider(RoleProvider):
         except Exception as e:
             logger.error(f"Failed to list roles from database: {e}")
             return []
+
+    def _role_config_to_definition(self, role_config) -> RoleDefinition:
+        """Convert RoleConfig to RoleDefinition.
+        
+        Args:
+            role_config: RoleConfig from agent_core schemas.
+            
+        Returns:
+            RoleDefinition for info_provider interface.
+        """
+        from gearmeshing_ai.agent_core.schemas.config import RoleConfig
+        from gearmeshing_ai.info_provider.role.models import (
+            AgentRole, CognitiveProfile, RoleDefinition, RolePermissions,
+            CapabilityName
+        )
+        
+        if not isinstance(role_config, RoleConfig):
+            raise ValueError(f"Expected RoleConfig, got {type(role_config)}")
+            
+        # Convert role name to AgentRole enum
+        try:
+            agent_role = AgentRole(role_config.role_name)
+        except ValueError:
+            # If role name not in enum, create a string-based role
+            agent_role = AgentRole(role_config.role_name)  # This will still fail but gives clearer error
+            
+        # Convert capabilities to CapabilityName enum
+        allowed_capabilities = set()
+        for cap_name in role_config.capabilities:
+            try:
+                allowed_capabilities.add(CapabilityName(cap_name))
+            except ValueError:
+                # Skip unknown capabilities
+                logger.warning(f"Unknown capability: {cap_name}")
+                continue
+        
+        # Create cognitive profile (using defaults since RoleConfig doesn't have these fields)
+        cognitive = CognitiveProfile(
+            system_prompt_key=role_config.system_prompt_key or f"{role_config.role_name}/system",
+            done_when=role_config.done_when
+        )
+        
+        # Create permissions
+        permissions = RolePermissions(
+            allowed_capabilities=allowed_capabilities,
+            allowed_tools=set(role_config.tools)
+        )
+        
+        return RoleDefinition(
+            role=agent_role,
+            cognitive=cognitive,
+            permissions=permissions
+        )
 
     def version(self) -> str:
         """Return the version identifier of this provider."""
@@ -320,7 +391,7 @@ class HotReloadRoleWrapper(RoleProvider):
         """
         self._provider = provider
         self._interval = interval_seconds
-        self._last_refresh = 0
+        self._last_refresh: float = 0.0
         self._lock = threading.Lock()
         self._stop_event = threading.Event()
 
@@ -406,15 +477,4 @@ def get_database_role_provider(session: Session) -> DatabaseRoleProvider:
 # ============================================================================
 
 # Import AgentConfig for database provider
-try:
-    from gearmeshing_ai.server.models.agent_config import AgentConfig
-except ImportError:
-    # Fallback for testing without server models
-    class AgentConfig:
-        config_type = ""
-        config_key = ""
-        tenant_id = None
-        config_value = ""
-    
-    logger = logging.getLogger(__name__)
-    logger.warning("AgentConfig model not available, database provider will be limited")
+from gearmeshing_ai.server.models.agent_config import AgentConfig

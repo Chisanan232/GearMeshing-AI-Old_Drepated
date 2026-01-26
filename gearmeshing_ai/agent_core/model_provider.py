@@ -31,6 +31,7 @@ from pydantic_ai.models.openai import OpenAIResponsesModel
 
 if TYPE_CHECKING:
     from sqlmodel import Session
+    from gearmeshing_ai.info_provider.model.base import ModelProvider as InfoModelProvider
 
 logger = logging.getLogger(__name__)
 
@@ -56,9 +57,9 @@ class ModelProvider:
         if db_session is None:
             raise ValueError("db_session is required for ModelProvider")
         self.db_session: Session = db_session
-        self._db_provider: Optional["ModelProvider"] = None
+        self._db_provider: Optional[InfoModelProvider] = None
 
-    def _get_db_provider(self) -> "ModelProvider":
+    def _get_db_provider(self) -> InfoModelProvider:
         """Get or create database configuration provider.
 
         Returns:
