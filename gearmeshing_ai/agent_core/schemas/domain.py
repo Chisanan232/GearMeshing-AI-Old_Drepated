@@ -216,6 +216,8 @@ class UsageLedgerEntry(BaseSchema):
 # This is called after all imports are resolved
 def _resolve_forward_references():
     """Resolve forward references in models."""
-    # isort: off
-    # isort: on
+    from gearmeshing_ai.info_provider import (  # noqa: F401  # Required for Pydantic forward reference resolution
+        CapabilityName,
+    )
+
     Approval.model_rebuild()
