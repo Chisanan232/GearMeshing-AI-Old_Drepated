@@ -14,6 +14,7 @@ Key Components:
 
 from .base import AIAgentBase, AIAgentConfig, AIAgentResponse
 from .cache import AIAgentCache
+from .config_source import AgentConfigSource
 from .factory import AIAgentFactory
 from .provider import AIAgentProvider, get_agent_provider, set_agent_provider
 
@@ -22,6 +23,7 @@ __all__ = [
     "AIAgentConfig",
     "AIAgentResponse",
     "AIAgentCache",
+    "AgentConfigSource",
     "AIAgentFactory",
     "AIAgentProvider",
     "get_agent_provider",
