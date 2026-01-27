@@ -22,6 +22,7 @@ Modules:
 from . import (
     agent_configs,
     agent_events,
+    agent_runs,
     approvals,
     policies,
     tool_invocations,
@@ -30,6 +31,7 @@ from . import (
 __all__ = [
     "agent_configs",
     "agent_events",
+    "agent_runs",
     "approvals",
     "policies",
     "tool_invocations",
