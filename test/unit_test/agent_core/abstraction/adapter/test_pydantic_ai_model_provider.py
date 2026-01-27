@@ -7,6 +7,7 @@ and related classes to ensure all code paths are tested for real usage scenarios
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
 from gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider import (
@@ -28,7 +29,7 @@ class TestPydanticAIModelInstance:
         """Test initialization with model only."""
         mock_model = MagicMock()
         instance = PydanticAIModelInstance(mock_model)
-        
+
         assert instance.model is mock_model
         assert instance.agent is None
 
@@ -37,7 +38,7 @@ class TestPydanticAIModelInstance:
         mock_model = MagicMock()
         mock_agent = MagicMock()
         instance = PydanticAIModelInstance(mock_model, mock_agent)
-        
+
         assert instance.model is mock_model
         assert instance.agent is mock_agent
 
@@ -49,11 +50,11 @@ class TestPydanticAIModelInstance:
         mock_result = MagicMock()
         mock_result.data = "Generated content"
         mock_agent.run = AsyncMock(return_value=mock_result)
-        
+
         instance = PydanticAIModelInstance(mock_model, mock_agent)
-        
+
         result = await instance.generate("Test prompt")
-        
+
         assert isinstance(result, ModelResponse)
         assert result.content == "Generated content"
         assert result.finish_reason == "stop"
@@ -66,9 +67,9 @@ class TestPydanticAIModelInstance:
         """Test generate method without agent (simplified implementation)."""
         mock_model = MagicMock()
         instance = PydanticAIModelInstance(mock_model)
-        
+
         result = await instance.generate("Test prompt")
-        
+
         assert isinstance(result, ModelResponse)
         assert result.content == "Generated content (simplified implementation)"
         assert result.finish_reason == "stop"
@@ -83,16 +84,11 @@ class TestPydanticAIModelInstance:
         mock_result = MagicMock()
         mock_result.data = "Generated content"
         mock_agent.run = AsyncMock(return_value=mock_result)
-        
+
         instance = PydanticAIModelInstance(mock_model, mock_agent)
-        
-        result = await instance.generate(
-            "Test prompt",
-            max_tokens=1000,
-            temperature=0.5,
-            custom_param="value"
-        )
-        
+
+        result = await instance.generate("Test prompt", max_tokens=1000, temperature=0.5, custom_param="value")
+
         assert isinstance(result, ModelResponse)
         assert result.content == "Generated content"
         mock_agent.run.assert_called_once_with("Test prompt")
@@ -103,13 +99,13 @@ class TestPydanticAIModelInstance:
         mock_model = MagicMock()
         mock_agent = MagicMock()
         mock_agent.run = AsyncMock(side_effect=Exception("Generation failed"))
-        
+
         instance = PydanticAIModelInstance(mock_model, mock_agent)
-        
+
         with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.logger") as mock_logger:
             with pytest.raises(Exception, match="Generation failed"):
                 await instance.generate("Test prompt")
-            
+
             # Verify error was logged
             mock_logger.error.assert_called_once_with("Pydantic AI generation failed: Generation failed")
 
@@ -121,11 +117,11 @@ class TestPydanticAIModelInstance:
         mock_result = MagicMock()
         mock_result.data = {"result": "structured data"}
         mock_agent.run = AsyncMock(return_value=mock_result)
-        
+
         instance = PydanticAIModelInstance(mock_model, mock_agent)
-        
+
         result = await instance.generate_structured("Test prompt", dict)
-        
+
         assert result == {"result": "structured data"}
         mock_agent.run.assert_called_once_with("Test prompt")
 
@@ -134,9 +130,9 @@ class TestPydanticAIModelInstance:
         """Test generate_structured method without agent."""
         mock_model = MagicMock()
         instance = PydanticAIModelInstance(mock_model)
-        
+
         result = await instance.generate_structured("Test prompt", dict)
-        
+
         assert result == {"result": "Structured output (simplified)"}
 
     @pytest.mark.asyncio
@@ -147,17 +143,13 @@ class TestPydanticAIModelInstance:
         mock_result = MagicMock()
         mock_result.data = {"result": "structured data"}
         mock_agent.run = AsyncMock(return_value=mock_result)
-        
+
         instance = PydanticAIModelInstance(mock_model, mock_agent)
-        
+
         result = await instance.generate_structured(
-            "Test prompt",
-            dict,
-            max_tokens=1000,
-            temperature=0.5,
-            custom_param="value"
+            "Test prompt", dict, max_tokens=1000, temperature=0.5, custom_param="value"
         )
-        
+
         assert result == {"result": "structured data"}
         mock_agent.run.assert_called_once_with("Test prompt")
 
@@ -167,15 +159,17 @@ class TestPydanticAIModelInstance:
         mock_model = MagicMock()
         mock_agent = MagicMock()
         mock_agent.run = AsyncMock(side_effect=Exception("Structured generation failed"))
-        
+
         instance = PydanticAIModelInstance(mock_model, mock_agent)
-        
+
         with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.logger") as mock_logger:
             with pytest.raises(Exception, match="Structured generation failed"):
                 await instance.generate_structured("Test prompt", dict)
-            
+
             # Verify error was logged
-            mock_logger.error.assert_called_once_with("Pydantic AI structured generation failed: Structured generation failed")
+            mock_logger.error.assert_called_once_with(
+                "Pydantic AI structured generation failed: Structured generation failed"
+            )
 
 
 class TestPydanticAIModelProvider:
@@ -185,14 +179,14 @@ class TestPydanticAIModelProvider:
         """Test initialization with database session."""
         mock_session = MagicMock()
         provider = PydanticAIModelProvider(mock_session)
-        
+
         assert provider.db_session is mock_session
         assert provider._db_provider is None
 
     def test_init_without_db_session(self) -> None:
         """Test initialization without database session."""
         provider = PydanticAIModelProvider()
-        
+
         assert provider.db_session is None
         assert provider._db_provider is None
 
@@ -206,25 +200,29 @@ class TestPydanticAIModelProvider:
             max_tokens=2048,
             top_p=0.9,
         )
-        
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_api_key = MagicMock()
             mock_api_key.get_secret_value.return_value = "test-api-key"
             mock_settings.ai_provider.openai.api_key = mock_api_key
-            
-            with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.OpenAIResponsesModel") as mock_openai_model:
-                with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.ModelSettings") as mock_model_settings:
+
+            with patch(
+                "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.OpenAIResponsesModel"
+            ) as mock_openai_model:
+                with patch(
+                    "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.ModelSettings"
+                ) as mock_model_settings:
                     mock_settings_instance = MagicMock()
                     mock_model_settings.return_value = mock_settings_instance
                     mock_model_instance = MagicMock()
                     mock_openai_model.return_value = mock_model_instance
-                    
+
                     result = provider.create_model(config)
-                    
+
                     assert isinstance(result, PydanticAIModelInstance)
                     assert result.model is mock_model_instance
                     mock_openai_model.assert_called_once()
-                    
+
                     # Verify ModelSettings was created correctly
                     mock_model_settings.assert_called_once_with(
                         temperature=0.7,
@@ -243,18 +241,20 @@ class TestPydanticAIModelProvider:
             max_tokens=1024,
             top_p=0.8,
         )
-        
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_api_key = MagicMock()
             mock_api_key.get_secret_value.return_value = "test-api-key"
             mock_settings.ai_provider.anthropic.api_key = mock_api_key
-            
-            with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.AnthropicModel") as mock_anthropic_model:
+
+            with patch(
+                "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.AnthropicModel"
+            ) as mock_anthropic_model:
                 mock_model_instance = MagicMock()
                 mock_anthropic_model.return_value = mock_model_instance
-                
+
                 result = provider.create_model(config)
-                
+
                 assert isinstance(result, PydanticAIModelInstance)
                 assert result.model is mock_model_instance
                 mock_anthropic_model.assert_called_once()
@@ -269,18 +269,20 @@ class TestPydanticAIModelProvider:
             max_tokens=3072,
             top_p=0.95,
         )
-        
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_api_key = MagicMock()
             mock_api_key.get_secret_value.return_value = "test-api-key"
             mock_settings.ai_provider.google.api_key = mock_api_key
-            
-            with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.GoogleModel") as mock_google_model:
+
+            with patch(
+                "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.GoogleModel"
+            ) as mock_google_model:
                 mock_model_instance = MagicMock()
                 mock_google_model.return_value = mock_model_instance
-                
+
                 result = provider.create_model(config)
-                
+
                 assert isinstance(result, PydanticAIModelInstance)
                 assert result.model is mock_model_instance
                 mock_google_model.assert_called_once()
@@ -292,7 +294,7 @@ class TestPydanticAIModelProvider:
             provider="unsupported",
             model="test-model",
         )
-        
+
         with pytest.raises(ValueError, match="Unsupported provider: unsupported"):
             provider.create_model(config)
 
@@ -303,10 +305,10 @@ class TestPydanticAIModelProvider:
             provider="openai",
             model="gpt-4o",
         )
-        
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_settings.ai_provider.openai.api_key = None
-            
+
             with pytest.raises(RuntimeError, match="AI_PROVIDER__OPENAI__API_KEY environment variable is not set"):
                 provider._create_openai_model(config)
 
@@ -317,10 +319,10 @@ class TestPydanticAIModelProvider:
             provider="anthropic",
             model="claude-3-5-sonnet-latest",
         )
-        
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_settings.ai_provider.anthropic.api_key = None
-            
+
             with pytest.raises(RuntimeError, match="AI_PROVIDER__ANTHROPIC__API_KEY environment variable is not set"):
                 provider._create_anthropic_model(config)
 
@@ -331,10 +333,10 @@ class TestPydanticAIModelProvider:
             provider="google",
             model="gemini-2.0-flash-exp",
         )
-        
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_settings.ai_provider.google.api_key = None
-            
+
             with pytest.raises(RuntimeError, match="AI_PROVIDER__GOOGLE__API_KEY environment variable is not set"):
                 provider._create_google_model(config)
 
@@ -348,21 +350,25 @@ class TestPydanticAIModelProvider:
             max_tokens=None,  # Should default to 4096
             top_p=0.9,
         )
-        
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_api_key = MagicMock()
             mock_api_key.get_secret_value.return_value = "test-api-key"
             mock_settings.ai_provider.openai.api_key = mock_api_key
-            
-            with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.OpenAIResponsesModel") as mock_openai_model:
-                with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.ModelSettings") as mock_model_settings:
+
+            with patch(
+                "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.OpenAIResponsesModel"
+            ) as mock_openai_model:
+                with patch(
+                    "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.ModelSettings"
+                ) as mock_model_settings:
                     mock_settings_instance = MagicMock()
                     mock_model_settings.return_value = mock_settings_instance
                     mock_model_instance = MagicMock()
                     mock_openai_model.return_value = mock_model_instance
-                    
+
                     provider._create_openai_model(config)
-                    
+
                     # Verify default max_tokens was applied
                     mock_model_settings.assert_called_once_with(
                         temperature=0.7,
@@ -380,21 +386,25 @@ class TestPydanticAIModelProvider:
             max_tokens=None,  # Should default to 4096
             top_p=0.9,
         )
-        
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_api_key = MagicMock()
             mock_api_key.get_secret_value.return_value = "test-api-key"
             mock_settings.ai_provider.anthropic.api_key = mock_api_key
-            
-            with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.AnthropicModel") as mock_anthropic_model:
-                with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.ModelSettings") as mock_model_settings:
+
+            with patch(
+                "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.AnthropicModel"
+            ) as mock_anthropic_model:
+                with patch(
+                    "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.ModelSettings"
+                ) as mock_model_settings:
                     mock_settings_instance = MagicMock()
                     mock_model_settings.return_value = mock_settings_instance
                     mock_model_instance = MagicMock()
                     mock_anthropic_model.return_value = mock_model_instance
-                    
+
                     provider._create_anthropic_model(config)
-                    
+
                     # Verify default max_tokens was applied
                     mock_model_settings.assert_called_once_with(
                         temperature=0.7,
@@ -412,21 +422,25 @@ class TestPydanticAIModelProvider:
             max_tokens=None,  # Should default to 4096
             top_p=0.9,
         )
-        
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_api_key = MagicMock()
             mock_api_key.get_secret_value.return_value = "test-api-key"
             mock_settings.ai_provider.google.api_key = mock_api_key
-            
-            with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.GoogleModel") as mock_google_model:
-                with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.ModelSettings") as mock_model_settings:
+
+            with patch(
+                "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.GoogleModel"
+            ) as mock_google_model:
+                with patch(
+                    "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.ModelSettings"
+                ) as mock_model_settings:
                     mock_settings_instance = MagicMock()
                     mock_model_settings.return_value = mock_settings_instance
                     mock_model_instance = MagicMock()
                     mock_google_model.return_value = mock_model_instance
-                    
+
                     provider._create_google_model(config)
-                    
+
                     # Verify default max_tokens was applied
                     mock_model_settings.assert_called_once_with(
                         temperature=0.7,
@@ -441,16 +455,20 @@ class TestPydanticAIModelProvider:
             provider="openai",
             model="gpt-4o",
         )
-        
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_api_key = MagicMock()
             mock_api_key.get_secret_value.return_value = "test-api-key"
             mock_settings.ai_provider.openai.api_key = mock_api_key
-            
-            with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.OpenAIResponsesModel"):
-                with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.logger") as mock_logger:
+
+            with patch(
+                "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.OpenAIResponsesModel"
+            ):
+                with patch(
+                    "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.logger"
+                ) as mock_logger:
                     provider._create_openai_model(config)
-                    
+
                     # Verify debug message was logged
                     mock_logger.debug.assert_called_once_with("Creating OpenAI model: gpt-4o with Pydantic AI")
 
@@ -461,18 +479,22 @@ class TestPydanticAIModelProvider:
             provider="anthropic",
             model="claude-3-5-sonnet-latest",
         )
-        
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_api_key = MagicMock()
             mock_api_key.get_secret_value.return_value = "test-api-key"
             mock_settings.ai_provider.anthropic.api_key = mock_api_key
-            
+
             with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.AnthropicModel"):
-                with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.logger") as mock_logger:
+                with patch(
+                    "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.logger"
+                ) as mock_logger:
                     provider._create_anthropic_model(config)
-                    
+
                     # Verify debug message was logged
-                    mock_logger.debug.assert_called_once_with("Creating Anthropic model: claude-3-5-sonnet-latest with Pydantic AI")
+                    mock_logger.debug.assert_called_once_with(
+                        "Creating Anthropic model: claude-3-5-sonnet-latest with Pydantic AI"
+                    )
 
     def test_debug_logging_google_model(self) -> None:
         """Test debug logging when creating Google model."""
@@ -481,31 +503,35 @@ class TestPydanticAIModelProvider:
             provider="google",
             model="gemini-2.0-flash-exp",
         )
-        
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_api_key = MagicMock()
             mock_api_key.get_secret_value.return_value = "test-api-key"
             mock_settings.ai_provider.google.api_key = mock_api_key
-            
+
             with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.GoogleModel"):
-                with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.logger") as mock_logger:
+                with patch(
+                    "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.logger"
+                ) as mock_logger:
                     provider._create_google_model(config)
-                    
+
                     # Verify debug message was logged
-                    mock_logger.debug.assert_called_once_with("Creating Google model: gemini-2.0-flash-exp with Pydantic AI")
+                    mock_logger.debug.assert_called_once_with(
+                        "Creating Google model: gemini-2.0-flash-exp with Pydantic AI"
+                    )
 
     def test_get_supported_providers(self) -> None:
         """Test getting list of supported providers."""
         provider = PydanticAIModelProvider()
         result = provider.get_supported_providers()
-        
+
         assert result == ["openai", "anthropic", "google"]
 
     def test_get_supported_models_openai(self) -> None:
         """Test getting supported OpenAI models."""
         provider = PydanticAIModelProvider()
         result = provider.get_supported_models("openai")
-        
+
         expected = ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"]
         assert result == expected
 
@@ -513,7 +539,7 @@ class TestPydanticAIModelProvider:
         """Test getting supported Anthropic models."""
         provider = PydanticAIModelProvider()
         result = provider.get_supported_models("anthropic")
-        
+
         expected = ["claude-3-5-sonnet-latest", "claude-3-5-haiku-latest", "claude-3-opus-latest"]
         assert result == expected
 
@@ -521,14 +547,14 @@ class TestPydanticAIModelProvider:
         """Test getting supported Google models."""
         provider = PydanticAIModelProvider()
         result = provider.get_supported_models("google")
-        
+
         expected = ["gemini-2.0-flash-exp", "gemini-1.5-pro", "gemini-1.5-flash"]
         assert result == expected
 
     def test_get_supported_models_unsupported_provider(self) -> None:
         """Test getting supported models for unsupported provider."""
         provider = PydanticAIModelProvider()
-        
+
         with pytest.raises(ValueError, match="Unsupported provider: unsupported"):
             provider.get_supported_models("unsupported")
 
@@ -542,7 +568,7 @@ class TestPydanticAIModelProvider:
             max_tokens=2048,
             top_p=0.9,
         )
-        
+
         # Should not raise any exception
         provider.validate_config(config)
 
@@ -553,7 +579,7 @@ class TestPydanticAIModelProvider:
             provider="",
             model="gpt-4o",
         )
-        
+
         with pytest.raises(ValueError, match="Provider is required"):
             provider.validate_config(config)
 
@@ -564,7 +590,7 @@ class TestPydanticAIModelProvider:
             provider="openai",
             model="",
         )
-        
+
         with pytest.raises(ValueError, match="Model is required"):
             provider.validate_config(config)
 
@@ -575,7 +601,7 @@ class TestPydanticAIModelProvider:
             provider="unsupported",
             model="test-model",
         )
-        
+
         with pytest.raises(ValueError, match="Unsupported provider: unsupported"):
             provider.validate_config(config)
 
@@ -586,7 +612,7 @@ class TestPydanticAIModelProvider:
             provider="openai",
             model="unsupported-model",
         )
-        
+
         with pytest.raises(ValueError, match="Unsupported model for provider openai: unsupported-model"):
             provider.validate_config(config)
 
@@ -598,7 +624,7 @@ class TestPydanticAIModelProvider:
             model="gpt-4o",
             temperature=-0.1,
         )
-        
+
         with pytest.raises(ValueError, match="Temperature must be between 0 and 2"):
             provider.validate_config(config)
 
@@ -610,17 +636,17 @@ class TestPydanticAIModelProvider:
             model="gpt-4o",
             temperature=2.1,
         )
-        
+
         with pytest.raises(ValueError, match="Temperature must be between 0 and 2"):
             provider.validate_config(config)
 
     def test_validate_config_max_tokens_too_low(self) -> None:
         """Test validation with max_tokens too low."""
         provider = PydanticAIModelProvider()
-        
+
         # Use a direct validation approach since ModelConfig has built-in validation
         from pydantic import ValidationError
-        
+
         with pytest.raises(ValidationError):
             ModelConfig(
                 provider="openai",
@@ -631,7 +657,7 @@ class TestPydanticAIModelProvider:
     def test_validate_config_max_tokens_boundary_values(self) -> None:
         """Test validation with max_tokens boundary values around the minimum."""
         provider = PydanticAIModelProvider()
-        
+
         # Test max_tokens = 1 (should be valid)
         config_valid = ModelConfig(
             provider="openai",
@@ -640,7 +666,7 @@ class TestPydanticAIModelProvider:
         )
         # Should not raise any exception
         provider.validate_config(config_valid)
-        
+
         # Test max_tokens = None (should be valid - optional field)
         config_none = ModelConfig(
             provider="openai",
@@ -649,11 +675,11 @@ class TestPydanticAIModelProvider:
         )
         # Should not raise any exception
         provider.validate_config(config_none)
-        
+
         # Test the validation logic directly by creating a mock config
         # that bypasses Pydantic validation to test the provider's validation
         from unittest.mock import MagicMock
-        
+
         # Create a mock config that simulates max_tokens = 0
         # Note: The validation logic is `if config.max_tokens and config.max_tokens < 1`
         # So max_tokens = 0 should NOT trigger the error (0 is falsy)
@@ -663,25 +689,25 @@ class TestPydanticAIModelProvider:
         mock_config.max_tokens = 0  # 0 is falsy, so validation won't trigger
         mock_config.temperature = 0.7
         mock_config.top_p = 0.9
-        
+
         # This should NOT trigger the error because 0 is falsy
         try:
             provider.validate_config(mock_config)
         except ValueError as e:
             # If it raises an error, it should NOT be about max_tokens
             assert "Max tokens must be at least 1" not in str(e)
-        
+
         # Test with negative value (should trigger error because negative numbers are truthy)
         mock_config.max_tokens = -1  # -1 is truthy, so validation will trigger
         with pytest.raises(ValueError, match="Max tokens must be at least 1"):
             provider.validate_config(mock_config)
-        
+
         # Test with positive value less than 1 (like 0.5)
         # This should trigger error because 0.5 is truthy and < 1
         mock_config.max_tokens = 0.5
         with pytest.raises(ValueError, match="Max tokens must be at least 1"):
             provider.validate_config(mock_config)
-        
+
         # Test with positive value (should pass validation)
         mock_config.max_tokens = 1
         # Should not raise an exception for max_tokens validation
@@ -699,7 +725,7 @@ class TestPydanticAIModelProvider:
             model="gpt-4o",
             top_p=-0.1,
         )
-        
+
         with pytest.raises(ValueError, match="Top-p must be between 0 and 1"):
             provider.validate_config(config)
 
@@ -711,14 +737,14 @@ class TestPydanticAIModelProvider:
             model="gpt-4o",
             top_p=1.1,
         )
-        
+
         with pytest.raises(ValueError, match="Top-p must be between 0 and 1"):
             provider.validate_config(config)
 
     def test_validate_config_none_values_allowed(self) -> None:
         """Test that None values for optional fields are allowed."""
         provider = PydanticAIModelProvider()
-        
+
         # Test that default values are applied when None is passed
         config = ModelConfig(
             provider="openai",
@@ -727,7 +753,7 @@ class TestPydanticAIModelProvider:
             max_tokens=None,  # This is allowed as Optional
             top_p=0.9,  # Use explicit value instead of None
         )
-        
+
         # Should not raise any exception
         provider.validate_config(config)
 
@@ -736,7 +762,7 @@ class TestPydanticAIModelProvider:
         provider = PydanticAIModelProvider()
         primary_config = ModelConfig(provider="openai", model="gpt-4o")
         fallback_config = ModelConfig(provider="anthropic", model="claude-3-5-sonnet-latest")
-        
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             # Set up API keys
             mock_openai_key = MagicMock()
@@ -745,19 +771,25 @@ class TestPydanticAIModelProvider:
             mock_anthropic_key.get_secret_value.return_value = "anthropic-key"
             mock_settings.ai_provider.openai.api_key = mock_openai_key
             mock_settings.ai_provider.anthropic.api_key = mock_anthropic_key
-            
-            with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.OpenAIResponsesModel") as mock_openai:
-                with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.AnthropicModel") as mock_anthropic:
-                    with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.FallbackModel") as mock_fallback:
+
+            with patch(
+                "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.OpenAIResponsesModel"
+            ) as mock_openai:
+                with patch(
+                    "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.AnthropicModel"
+                ) as mock_anthropic:
+                    with patch(
+                        "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.FallbackModel"
+                    ) as mock_fallback:
                         mock_openai_instance = MagicMock()
                         mock_anthropic_instance = MagicMock()
                         mock_fallback_instance = MagicMock()
                         mock_openai.return_value = mock_openai_instance
                         mock_anthropic.return_value = mock_anthropic_instance
                         mock_fallback.return_value = mock_fallback_instance
-                        
+
                         result = provider.create_fallback_model(primary_config, fallback_config)
-                        
+
                         assert isinstance(result, PydanticAIModelInstance)
                         assert result.model is mock_fallback_instance
                         mock_fallback.assert_called_once_with(mock_openai_instance, mock_anthropic_instance)
@@ -767,18 +799,18 @@ class TestPydanticAIModelProvider:
         provider = PydanticAIModelProvider()
         primary_config = ModelConfig(provider="openai", model="gpt-4o")
         fallback_config = ModelConfig(provider="anthropic", model="claude-3-5-sonnet-latest")
-        
+
         # Mock the create_model method to return mock instances
-        with patch.object(provider, 'create_model') as mock_create_model:
+        with patch.object(provider, "create_model") as mock_create_model:
             # Create mock instances without the 'model' attribute to simulate non-Pydantic models
             mock_primary_instance = MagicMock()
             mock_fallback_instance = MagicMock()
             del mock_primary_instance.model  # Remove model attribute
             del mock_fallback_instance.model  # Remove model attribute
             mock_create_model.side_effect = [mock_primary_instance, mock_fallback_instance]
-            
+
             result = provider.create_fallback_model(primary_config, fallback_config)
-            
+
             assert isinstance(result, FallbackModelInstance)
             # Verify create_model was called twice
             assert mock_create_model.call_count == 2
@@ -790,9 +822,9 @@ class TestPydanticAIModelProvider:
         provider = PydanticAIModelProvider()
         primary_config = ModelConfig(provider="openai", model="gpt-4o")
         fallback_config = ModelConfig(provider="anthropic", model="claude-3-5-sonnet-latest")
-        
+
         # Mock the create_model method to return mock instances
-        with patch.object(provider, 'create_model') as mock_create_model:
+        with patch.object(provider, "create_model") as mock_create_model:
             # Create primary model with 'model' attribute, fallback without
             mock_primary_instance = MagicMock()
             mock_fallback_instance = MagicMock()
@@ -800,9 +832,9 @@ class TestPydanticAIModelProvider:
             mock_fallback_instance.model = MagicMock()  # Ensure it has model attribute
             del mock_fallback_instance.model  # Then remove it
             mock_create_model.side_effect = [mock_primary_instance, mock_fallback_instance]
-            
+
             result = provider.create_fallback_model(primary_config, fallback_config)
-            
+
             assert isinstance(result, FallbackModelInstance)
             # Verify create_model was called twice
             assert mock_create_model.call_count == 2
@@ -817,25 +849,25 @@ class TestPydanticAIModelProviderFactory:
         """Test successful provider creation."""
         factory = PydanticAIModelProviderFactory()
         mock_session = MagicMock()
-        
+
         result = factory.create_provider("pydantic_ai", db_session=mock_session)
-        
+
         assert isinstance(result, PydanticAIModelProvider)
         assert result.db_session is mock_session
 
     def test_create_provider_without_db_session(self) -> None:
         """Test provider creation without db session."""
         factory = PydanticAIModelProviderFactory()
-        
+
         result = factory.create_provider("pydantic_ai")
-        
+
         assert isinstance(result, PydanticAIModelProvider)
         assert result.db_session is None
 
     def test_create_provider_unsupported_framework(self) -> None:
         """Test provider creation with unsupported framework."""
         factory = PydanticAIModelProviderFactory()
-        
+
         with pytest.raises(ValueError, match="Unsupported framework: unsupported"):
             factory.create_provider("unsupported")
 
@@ -843,7 +875,7 @@ class TestPydanticAIModelProviderFactory:
         """Test getting supported frameworks."""
         factory = PydanticAIModelProviderFactory()
         result = factory.get_supported_frameworks()
-        
+
         assert result == ["pydantic_ai"]
 
 
@@ -853,7 +885,7 @@ class TestPydanticAIModelProviderEdgeCases:
     def test_case_insensitive_provider_matching(self) -> None:
         """Test that provider matching is case insensitive."""
         provider = PydanticAIModelProvider()
-        
+
         # Test lowercase conversion in create_model method
         # Note: validation is case-sensitive, so we need to use lowercase for validation
         config = ModelConfig(provider="openai", model="gpt-4o")  # Use lowercase
@@ -861,11 +893,13 @@ class TestPydanticAIModelProviderEdgeCases:
             mock_api_key = MagicMock()
             mock_api_key.get_secret_value.return_value = "test-api-key"
             mock_settings.ai_provider.openai.api_key = mock_api_key
-            
-            with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.OpenAIResponsesModel"):
+
+            with patch(
+                "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.OpenAIResponsesModel"
+            ):
                 result = provider.create_model(config)
                 assert isinstance(result, PydanticAIModelInstance)
-        
+
         # Test that the actual matching logic works with case conversion
         # We'll test the internal logic by checking that it converts to lowercase
         config = ModelConfig(provider="anthropic", model="claude-3-5-sonnet-latest")  # Use lowercase
@@ -873,7 +907,7 @@ class TestPydanticAIModelProviderEdgeCases:
             mock_api_key = MagicMock()
             mock_api_key.get_secret_value.return_value = "test-api-key"
             mock_settings.ai_provider.anthropic.api_key = mock_api_key
-            
+
             with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.AnthropicModel"):
                 result = provider.create_model(config)
                 assert isinstance(result, PydanticAIModelInstance)
@@ -882,19 +916,19 @@ class TestPydanticAIModelProviderEdgeCases:
         """Test handling of API key with None secret value."""
         provider = PydanticAIModelProvider()
         config = ModelConfig(provider="openai", model="gpt-4o")
-        
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_api_key = MagicMock()
             mock_api_key.get_secret_value.return_value = None
             mock_settings.ai_provider.openai.api_key = mock_api_key
-            
+
             with pytest.raises(RuntimeError, match="AI_PROVIDER__OPENAI__API_KEY environment variable is not set"):
                 provider._create_openai_model(config)
 
     def test_model_config_boundary_values(self) -> None:
         """Test configuration validation with boundary values."""
         provider = PydanticAIModelProvider()
-        
+
         # Test boundary temperature values
         config = ModelConfig(
             provider="openai",
@@ -902,14 +936,14 @@ class TestPydanticAIModelProviderEdgeCases:
             temperature=0.0,  # Minimum valid
         )
         provider.validate_config(config)  # Should not raise
-        
+
         config = ModelConfig(
             provider="openai",
             model="gpt-4o",
             temperature=2.0,  # Maximum valid
         )
         provider.validate_config(config)  # Should not raise
-        
+
         # Test boundary top-p values
         config = ModelConfig(
             provider="openai",
@@ -917,14 +951,14 @@ class TestPydanticAIModelProviderEdgeCases:
             top_p=0.0,  # Minimum valid
         )
         provider.validate_config(config)  # Should not raise
-        
+
         config = ModelConfig(
             provider="openai",
             model="gpt-4o",
             top_p=1.0,  # Maximum valid
         )
         provider.validate_config(config)  # Should not raise
-        
+
         # Test boundary max_tokens
         config = ModelConfig(
             provider="openai",
@@ -936,17 +970,17 @@ class TestPydanticAIModelProviderEdgeCases:
     def test_all_supported_models_validation(self) -> None:
         """Test that all listed models pass validation."""
         provider = PydanticAIModelProvider()
-        
+
         # Test all OpenAI models
         for model in provider.get_supported_models("openai"):
             config = ModelConfig(provider="openai", model=model)
             provider.validate_config(config)  # Should not raise
-        
+
         # Test all Anthropic models
         for model in provider.get_supported_models("anthropic"):
             config = ModelConfig(provider="anthropic", model=model)
             provider.validate_config(config)  # Should not raise
-        
+
         # Test all Google models
         for model in provider.get_supported_models("google"):
             config = ModelConfig(provider="google", model=model)
@@ -958,9 +992,9 @@ class TestPydanticAIModelProviderEdgeCases:
         mock_model = MagicMock()
         mock_agent = MagicMock()
         mock_agent.run = AsyncMock(side_effect=ValueError("Model error"))
-        
+
         instance = PydanticAIModelInstance(mock_model, mock_agent)
-        
+
         # Should propagate the original error
         with pytest.raises(ValueError, match="Model error"):
             await instance.generate("Test prompt")
@@ -970,15 +1004,19 @@ class TestPydanticAIModelProviderEdgeCases:
         provider = PydanticAIModelProvider()
         primary_config = ModelConfig(provider="openai", model="gpt-4o")
         fallback_config = ModelConfig(provider="anthropic", model="claude-3-5-sonnet-latest")
-        
+
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_openai_key = MagicMock()
             mock_openai_key.get_secret_value.return_value = "openai-key"
             mock_settings.ai_provider.openai.api_key = mock_openai_key
             # Missing Anthropic API key to trigger error
             mock_settings.ai_provider.anthropic.api_key = None
-            
-            with patch("gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.OpenAIResponsesModel"):
+
+            with patch(
+                "gearmeshing_ai.agent_core.abstraction.adapters.pydantic_ai_model_provider.OpenAIResponsesModel"
+            ):
                 # Should raise error when trying to create fallback model
-                with pytest.raises(RuntimeError, match="AI_PROVIDER__ANTHROPIC__API_KEY environment variable is not set"):
+                with pytest.raises(
+                    RuntimeError, match="AI_PROVIDER__ANTHROPIC__API_KEY environment variable is not set"
+                ):
                     provider.create_fallback_model(primary_config, fallback_config)

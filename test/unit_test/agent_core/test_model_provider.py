@@ -8,10 +8,10 @@ import pytest
 
 from gearmeshing_ai.agent_core.model_provider import (
     UnifiedModelProvider,
-    create_model_for_role,
-    get_model_provider,
     async_create_model_for_role,
     async_get_model_provider,
+    create_model_for_role,
+    get_model_provider,
 )
 
 
@@ -274,7 +274,10 @@ class TestModelProvider:
             mock_get_db.return_value = mock_db_provider
 
             # Mock database config
-            from gearmeshing_ai.agent_core.schemas.config import ModelConfig as DbModelConfig
+            from gearmeshing_ai.agent_core.schemas.config import (
+                ModelConfig as DbModelConfig,
+            )
+
             mock_db_config = DbModelConfig(
                 provider="openai",
                 model="gpt-4o",
@@ -305,7 +308,10 @@ class TestModelProvider:
         factory = provider._get_provider_factory()
 
         # Should return PydanticAIModelProviderFactory instance
-        from gearmeshing_ai.agent_core.abstraction.adapters import PydanticAIModelProviderFactory
+        from gearmeshing_ai.agent_core.abstraction.adapters import (
+            PydanticAIModelProviderFactory,
+        )
+
         assert isinstance(factory, PydanticAIModelProviderFactory)
 
     def test_get_provider_factory_unsupported_framework(self) -> None:
@@ -354,8 +360,7 @@ class TestModelProvider:
 
             # Call with None values
             provider.create_fallback_model(
-                "openai", "gpt-4o", "anthropic", "claude-3-5-sonnet",
-                temperature=None, max_tokens=None, top_p=None
+                "openai", "gpt-4o", "anthropic", "claude-3-5-sonnet", temperature=None, max_tokens=None, top_p=None
             )
 
             # Verify defaults were applied to both configs
@@ -371,19 +376,13 @@ class TestModelProvider:
         """Test that ModelConfig parameters are properly validated."""
         mock_session = MagicMock()
         provider = UnifiedModelProvider(db_session=mock_session)
-        
+
         with patch.object(provider._provider, "create_model") as mock_create:
             mock_create.return_value = MagicMock()
-            
+
             # Test with all parameters
-            provider.create_model(
-                "openai", 
-                "gpt-4o", 
-                temperature=0.5, 
-                max_tokens=1000, 
-                top_p=0.8
-            )
-            
+            provider.create_model("openai", "gpt-4o", temperature=0.5, max_tokens=1000, top_p=0.8)
+
             mock_create.assert_called_once()
             config = mock_create.call_args[0][0]
             assert config.provider == "openai"
@@ -396,25 +395,24 @@ class TestModelProvider:
         """Test fallback model config validation."""
         mock_session = MagicMock()
         provider = UnifiedModelProvider(db_session=mock_session)
-        
+
         with patch.object(provider._provider, "create_fallback_model") as mock_create:
             mock_create.return_value = MagicMock()
-            
+
             provider.create_fallback_model(
-                "openai", "gpt-4o", "anthropic", "claude-3-5-sonnet",
-                temperature=0.6, max_tokens=1500, top_p=0.85
+                "openai", "gpt-4o", "anthropic", "claude-3-5-sonnet", temperature=0.6, max_tokens=1500, top_p=0.85
             )
-            
+
             mock_create.assert_called_once()
             primary_config, fallback_config = mock_create.call_args[0]
-            
+
             # Verify primary config
             assert primary_config.provider == "openai"
             assert primary_config.model == "gpt-4o"
             assert primary_config.temperature == 0.6
             assert primary_config.max_tokens == 1500
             assert primary_config.top_p == 0.85
-            
+
             # Verify fallback config
             assert fallback_config.provider == "anthropic"
             assert fallback_config.model == "claude-3-5-sonnet"
@@ -426,18 +424,18 @@ class TestModelProvider:
         """Test that session_factory is properly created in _get_db_provider."""
         mock_session = MagicMock()
         provider = UnifiedModelProvider(db_session=mock_session)
-        
+
         with patch("gearmeshing_ai.info_provider.model.provider.DatabaseModelProvider") as mock_db_provider_class:
             mock_db_provider = MagicMock()
             mock_db_provider_class.return_value = mock_db_provider
-            
+
             # Call _get_db_provider
             provider._get_db_provider()
-            
+
             # Verify DatabaseModelProvider was called with session_factory
             call_args = mock_db_provider_class.call_args[0]
             session_factory = call_args[0]
-            
+
             # Call the session_factory to verify it returns the mock session
             result = session_factory()
             assert result is mock_session
@@ -495,12 +493,12 @@ class TestModelProviderFunctions:
     def test_get_model_provider_with_explicit_framework(self) -> None:
         """Test get_model_provider with explicit framework parameter."""
         mock_session = MagicMock()
-        
+
         with patch("gearmeshing_ai.agent_core.model_provider.UnifiedModelProvider") as mock_provider_class:
             mock_provider_class.return_value = MagicMock()
-            
+
             result = get_model_provider(mock_session, framework="pydantic_ai")
-            
+
             mock_provider_class.assert_called_once_with(mock_session, "pydantic_ai")
             assert result is not None
 
@@ -522,14 +520,14 @@ class TestModelProviderFunctions:
     def test_create_model_for_role_function_with_framework(self) -> None:
         """Test create_model_for_role function with framework parameter."""
         mock_session = MagicMock()
-        
+
         with patch("gearmeshing_ai.agent_core.model_provider.get_model_provider") as mock_get_provider:
             mock_provider = MagicMock()
             mock_get_provider.return_value = mock_provider
             mock_provider.create_model_for_role.return_value = MagicMock()
-            
+
             result = create_model_for_role(mock_session, "dev", tenant_id="acme-corp", framework="pydantic_ai")
-            
+
             mock_get_provider.assert_called_once_with(mock_session, "pydantic_ai")
             mock_provider.create_model_for_role.assert_called_once_with("dev", "acme-corp")
             assert result is not None
@@ -543,34 +541,34 @@ class TestAsyncFunctionsCoverage:
         """Test async_create_model_for_role with PostgreSQL URL."""
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_settings.database.url = "postgresql+asyncpg://user:pass@localhost/db"
-            
+
             with patch("sqlalchemy.create_engine") as mock_create_engine:
                 with patch("sqlmodel.Session") as mock_session_class:
                     with patch("gearmeshing_ai.agent_core.model_provider.get_model_provider") as mock_get_provider:
                         mock_engine = MagicMock()
                         mock_create_engine.return_value = mock_engine
-                        
+
                         mock_session = MagicMock()
                         mock_session_class.return_value = mock_session
-                        
+
                         mock_provider = MagicMock()
                         mock_get_provider.return_value = mock_provider
-                        
+
                         mock_model = MagicMock()
                         mock_provider.create_model_for_role.return_value = mock_model
-                        
+
                         result = await async_create_model_for_role("dev", tenant_id="acme-corp")
-                        
+
                         # Verify URL conversion
                         mock_create_engine.assert_called_once_with("postgresql://user:pass@localhost/db")
-                        
+
                         # Verify provider was called
                         mock_get_provider.assert_called_once_with(mock_session, "pydantic_ai")
                         mock_provider.create_model_for_role.assert_called_once_with("dev", "acme-corp")
-                        
+
                         # Verify session was closed
                         mock_session.close.assert_called_once()
-                        
+
                         assert result is mock_model
 
     @pytest.mark.asyncio
@@ -578,27 +576,27 @@ class TestAsyncFunctionsCoverage:
         """Test async_create_model_for_role with SQLite URL."""
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_settings.database.url = "sqlite+aiosqlite:///test.db"
-            
+
             with patch("sqlalchemy.create_engine") as mock_create_engine:
                 with patch("sqlmodel.Session") as mock_session_class:
                     with patch("gearmeshing_ai.agent_core.model_provider.get_model_provider") as mock_get_provider:
                         mock_engine = MagicMock()
                         mock_create_engine.return_value = mock_engine
-                        
+
                         mock_session = MagicMock()
                         mock_session_class.return_value = mock_session
-                        
+
                         mock_provider = MagicMock()
                         mock_get_provider.return_value = mock_provider
-                        
+
                         mock_model = MagicMock()
                         mock_provider.create_model_for_role.return_value = mock_model
-                        
+
                         result = await async_create_model_for_role("dev")
-                        
+
                         # Verify URL conversion
                         mock_create_engine.assert_called_once_with("sqlite:///test.db")
-                        
+
                         assert result is mock_model
 
     @pytest.mark.asyncio
@@ -606,27 +604,27 @@ class TestAsyncFunctionsCoverage:
         """Test async_create_model_for_role with other database URL."""
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_settings.database.url = "mysql://user:pass@localhost/db"
-            
+
             with patch("sqlalchemy.create_engine") as mock_create_engine:
                 with patch("sqlmodel.Session") as mock_session_class:
                     with patch("gearmeshing_ai.agent_core.model_provider.get_model_provider") as mock_get_provider:
                         mock_engine = MagicMock()
                         mock_create_engine.return_value = mock_engine
-                        
+
                         mock_session = MagicMock()
                         mock_session_class.return_value = mock_session
-                        
+
                         mock_provider = MagicMock()
                         mock_get_provider.return_value = mock_provider
-                        
+
                         mock_model = MagicMock()
                         mock_provider.create_model_for_role.return_value = mock_model
-                        
+
                         result = await async_create_model_for_role("dev")
-                        
+
                         # Verify URL was not modified
                         mock_create_engine.assert_called_once_with("mysql://user:pass@localhost/db")
-                        
+
                         assert result is mock_model
 
     @pytest.mark.asyncio
@@ -634,22 +632,22 @@ class TestAsyncFunctionsCoverage:
         """Test async_create_model_for_role error handling."""
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_settings.database.url = "sqlite+aiosqlite:///test.db"
-            
+
             with patch("sqlalchemy.create_engine") as mock_create_engine:
                 with patch("sqlmodel.Session") as mock_session_class:
                     mock_engine = MagicMock()
                     mock_create_engine.return_value = mock_engine
-                    
+
                     mock_session = MagicMock()
                     mock_session_class.return_value = mock_session
-                    
+
                     # Make get_model_provider raise an error
                     with patch("gearmeshing_ai.agent_core.model_provider.get_model_provider") as mock_get_provider:
                         mock_get_provider.side_effect = ValueError("Role not found")
-                        
+
                         with pytest.raises(ValueError, match="Role not found"):
                             await async_create_model_for_role("nonexistent")
-                        
+
                         # Verify session was still closed
                         mock_session.close.assert_called_once()
 
@@ -658,25 +656,25 @@ class TestAsyncFunctionsCoverage:
         """Test that session is cleaned up even if error occurs during creation."""
         with patch("gearmeshing_ai.server.core.config.settings") as mock_settings:
             mock_settings.database.url = "sqlite+aiosqlite:///test.db"
-            
+
             with patch("sqlalchemy.create_engine") as mock_create_engine:
                 with patch("sqlmodel.Session") as mock_session_class:
                     mock_engine = MagicMock()
                     mock_create_engine.return_value = mock_engine
-                    
+
                     mock_session = MagicMock()
                     mock_session_class.return_value = mock_session
-                    
+
                     # Make session.close raise an error to test finally block
                     mock_session.close.side_effect = RuntimeError("Close error")
-                    
+
                     with patch("gearmeshing_ai.agent_core.model_provider.get_model_provider") as mock_get_provider:
                         mock_get_provider.side_effect = ValueError("Role not found")
-                        
+
                         # The close error will be propagated since finally is outside try
                         with pytest.raises(RuntimeError, match="Close error"):
                             await async_create_model_for_role("nonexistent")
-                        
+
                         # close should still be called despite the error
                         mock_session.close.assert_called_once()
 
@@ -686,8 +684,8 @@ class TestAsyncFunctionsCoverage:
         with patch("gearmeshing_ai.agent_core.model_provider.async_create_model_for_role") as mock_async_create:
             mock_model = MagicMock()
             mock_async_create.return_value = mock_model
-            
+
             result = await async_get_model_provider("dev", tenant_id="acme-corp", framework="pydantic_ai")
-            
+
             mock_async_create.assert_called_once_with("dev", "acme-corp", "pydantic_ai")
             assert result is mock_model
