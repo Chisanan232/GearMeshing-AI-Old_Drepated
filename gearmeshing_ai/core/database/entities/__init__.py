@@ -15,7 +15,6 @@ Modules:
 - policies: Tenant policy configurations
 - usage_ledger: Token and cost accounting
 - agent_configs: Agent configuration management
-- chat_sessions: Chat session and message persistence
 """
 
 from . import (
@@ -23,7 +22,6 @@ from . import (
     agent_events,
     agent_runs,
     approvals,
-    chat_sessions,
     policies,
     tool_invocations,
     usage_ledger,
@@ -34,7 +32,6 @@ __all__ = [
     "agent_events",
     "agent_runs",
     "approvals",
-    "chat_sessions",
     "policies",
     "tool_invocations",
     "usage_ledger",
