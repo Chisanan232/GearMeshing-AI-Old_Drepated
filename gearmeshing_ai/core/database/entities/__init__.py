@@ -18,3 +18,11 @@ Modules:
 - agent_configs: Agent configuration management
 - chat_sessions: Chat session and message persistence
 """
+
+from . import (
+    agent_configs,
+)
+
+__all__ = [
+    "agent_configs",
+]
