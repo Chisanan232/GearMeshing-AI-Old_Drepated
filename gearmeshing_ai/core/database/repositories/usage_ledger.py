@@ -52,8 +52,8 @@ class UsageLedgerRepository(BaseRepository[UsageLedger]):
             UsageLedger instance or None
         """
         stmt = select(UsageLedger).where(UsageLedger.id == usage_id)
-        result = self.session.execute(stmt)
-        return result.scalar_one_or_none()
+        result = self.session.exec(stmt)
+        return result.one_or_none()
     
     async def update(self, usage: UsageLedger) -> UsageLedger:
         """Update an existing usage ledger entry.
@@ -108,8 +108,8 @@ class UsageLedgerRepository(BaseRepository[UsageLedger]):
         
         stmt = QueryBuilder.apply_pagination(stmt, limit, offset)
         
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)
     
     async def get_usage_for_run(self, run_id: str) -> List[UsageLedger]:
         """Get all usage entries for a specific agent run.
@@ -125,8 +125,8 @@ class UsageLedgerRepository(BaseRepository[UsageLedger]):
             .where(UsageLedger.run_id == run_id)
             .order_by(UsageLedger.created_at.asc())  # type: ignore
         )
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)
     
     async def get_usage_for_tenant(self, tenant_id: str) -> List[UsageLedger]:
         """Get all usage entries for a specific tenant.
@@ -142,8 +142,8 @@ class UsageLedgerRepository(BaseRepository[UsageLedger]):
             .where(UsageLedger.tenant_id == tenant_id)
             .order_by(UsageLedger.created_at.desc())  # type: ignore
         )
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)
     
     async def get_total_usage_for_run(self, run_id: str) -> Optional[dict]:
         """Get total token usage and cost for a specific run.
@@ -163,13 +163,13 @@ class UsageLedgerRepository(BaseRepository[UsageLedger]):
             )
             .where(UsageLedger.run_id == run_id)
         )
-        result = self.session.execute(stmt)
+        result = self.session.exec(stmt)
         row = result.first()
-        if row and row.total_tokens:
+        if row and row[0]:
             return {
-                'total_tokens': row.total_tokens,
-                'prompt_tokens': row.prompt_tokens,
-                'completion_tokens': row.completion_tokens,
-                'total_cost': row.total_cost
+                'total_tokens': row[0],
+                'prompt_tokens': row[1],
+                'completion_tokens': row[2],
+                'total_cost': row[3]
             }
         return None

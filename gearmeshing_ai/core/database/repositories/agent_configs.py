@@ -52,8 +52,8 @@ class AgentConfigRepository(BaseRepository[AgentConfig]):
             AgentConfig instance or None
         """
         stmt = select(AgentConfig).where(AgentConfig.id == config_id)
-        result = self.session.execute(stmt)
-        return result.scalar_one_or_none()
+        result = self.session.exec(stmt)
+        return result.one_or_none()
     
     async def get_by_role(
         self,
@@ -78,8 +78,8 @@ class AgentConfigRepository(BaseRepository[AgentConfig]):
         
         stmt = stmt.where(AgentConfig.is_active == True)
         
-        result = self.session.execute(stmt)
-        return result.scalar_one_or_none()
+        result = self.session.exec(stmt)
+        return result.one_or_none()
     
     async def update(self, config: AgentConfig) -> AgentConfig:
         """Update an existing agent configuration.
@@ -142,8 +142,8 @@ class AgentConfigRepository(BaseRepository[AgentConfig]):
         
         stmt = QueryBuilder.apply_pagination(stmt, limit, offset)
         
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)
     
     async def get_active_configs_for_tenant(self, tenant_id: str) -> List[AgentConfig]:
         """Get all active configurations for a tenant.
@@ -161,8 +161,8 @@ class AgentConfigRepository(BaseRepository[AgentConfig]):
             )
             .order_by(AgentConfig.role_name)
         )
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)
     
     async def get_global_configs(self) -> List[AgentConfig]:
         """Get all global (non-tenant) configurations.
@@ -177,8 +177,8 @@ class AgentConfigRepository(BaseRepository[AgentConfig]):
             )
             .order_by(AgentConfig.role_name)
         )
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)
     
     async def deactivate_config(self, config_id: int) -> Optional[AgentConfig]:
         """Deactivate an agent configuration.

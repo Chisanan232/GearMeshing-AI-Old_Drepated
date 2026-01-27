@@ -28,12 +28,14 @@ class TestAgentConfigRepository:
         session.refresh = AsyncMock()
         session.delete = AsyncMock()
         # Make execute return the mock result directly, not a coroutine
-        mock_result = AsyncMock()
+        mock_result = MagicMock()
         # Make scalar_one_or_none return the object directly, not a coroutine
-        mock_result.scalar_one_or_none = MagicMock()
+        mock_result.__iter__ = MagicMock(return_value=iter([]))
+        # Make scalar_one_or_none return the object directly, not a coroutine
+        mock_result.one_or_none = MagicMock()
         mock_result.scalars = MagicMock()
         mock_result.scalars.all = MagicMock()
-        session.execute = AsyncMock(return_value=mock_result)
+        session.exec = MagicMock(return_value=mock_result)
         return session
     
     @pytest.fixture
@@ -64,15 +66,15 @@ class TestAgentConfigRepository:
     async def test_get_by_id_found(self, repository, mock_session, sample_agent_config):
         """Test getting agent configuration by ID when found."""
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalar_one_or_none.return_value = sample_agent_config
+        mock_result = mock_session.exec.return_value
+        mock_result.one_or_none.return_value = sample_agent_config
         
         result = await repository.get_by_id(1)
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         # Don't check isinstance since it's a mock, just check it was called
-        assert mock_session.execute.called
+        assert mock_session.exec.called
         
         # Verify return value
         assert result == sample_agent_config
@@ -80,8 +82,8 @@ class TestAgentConfigRepository:
     async def test_get_by_id_not_found(self, repository, mock_session):
         """Test getting agent configuration by ID when not found."""
         # Mock the query execution to return None
-        mock_result = mock_session.execute.return_value
-        mock_result.scalar_one_or_none.return_value = None
+        mock_result = mock_session.exec.return_value
+        mock_result.one_or_none.return_value = None
         
         result = await repository.get_by_id(999)
         
@@ -90,13 +92,13 @@ class TestAgentConfigRepository:
     async def test_get_by_role_global_config(self, repository, mock_session, sample_agent_config):
         """Test getting global configuration by role name."""
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalar_one_or_none.return_value = sample_agent_config
+        mock_result = mock_session.exec.return_value
+        mock_result.one_or_none.return_value = sample_agent_config
         
         result = await repository.get_by_role("developer")
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == sample_agent_config
@@ -109,13 +111,13 @@ class TestAgentConfigRepository:
         sample_agent_config.tenant_id = "tenant_123"
         
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalar_one_or_none.return_value = sample_agent_config
+        mock_result = mock_session.exec.return_value
+        mock_result.one_or_none.return_value = sample_agent_config
         
         result = await repository.get_by_role("developer", "tenant_123")
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == sample_agent_config
@@ -125,8 +127,8 @@ class TestAgentConfigRepository:
     async def test_get_by_role_not_found(self, repository, mock_session):
         """Test getting configuration by role when not found."""
         # Mock the query execution to return None
-        mock_result = mock_session.execute.return_value
-        mock_result.scalar_one_or_none.return_value = None
+        mock_result = mock_session.exec.return_value
+        mock_result.one_or_none.return_value = None
         
         result = await repository.get_by_role("nonexistent_role")
         
@@ -176,15 +178,15 @@ class TestAgentConfigRepository:
     async def test_list_no_filters(self, repository, mock_session, sample_agent_config):
         """Test listing agent configurations without filters."""
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_agent_config]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_agent_config]))
         
         result = await repository.list()
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         # Don't check isinstance since it's a mock, just check it was called
-        assert mock_session.execute.called
+        assert mock_session.exec.called
         
         # Verify return value
         assert result == [sample_agent_config]
@@ -198,13 +200,13 @@ class TestAgentConfigRepository:
         }
         
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_agent_config]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_agent_config]))
         
         result = await repository.list(filters=filters)
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == [sample_agent_config]
@@ -212,13 +214,13 @@ class TestAgentConfigRepository:
     async def test_list_with_pagination(self, repository, mock_session, sample_agent_config):
         """Test listing agent configurations with pagination."""
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_agent_config]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_agent_config]))
         
         result = await repository.list(limit=10, offset=20)
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == [sample_agent_config]
@@ -229,13 +231,13 @@ class TestAgentConfigRepository:
         sample_agent_config.tenant_id = "tenant_123"
         
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_agent_config]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_agent_config]))
         
         result = await repository.get_active_configs_for_tenant("tenant_123")
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == [sample_agent_config]
@@ -247,13 +249,13 @@ class TestAgentConfigRepository:
         sample_agent_config.tenant_id = None
         
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_agent_config]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_agent_config]))
         
         result = await repository.get_global_configs()
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == [sample_agent_config]
@@ -320,21 +322,21 @@ class TestAgentConfigRepository:
         )
         
         # Test global config retrieval
-        mock_result = mock_session.execute.return_value
-        mock_result.scalar_one_or_none.return_value = global_config
+        mock_result = mock_session.exec.return_value
+        mock_result.one_or_none.return_value = global_config
         
         result = await repository.get_by_role("global_role")
         assert result == global_config
         assert result.tenant_id is None
         
         # Test tenant-specific retrieval
-        mock_result.scalar_one_or_none.return_value = tenant1_config
+        mock_result.one_or_none.return_value = tenant1_config
         result = await repository.get_by_role("tenant_role", "tenant_1")
         assert result == tenant1_config
         assert result.tenant_id == "tenant_1"
         
         # Test different tenant gets different config
-        mock_result.scalar_one_or_none.return_value = tenant2_config
+        mock_result.one_or_none.return_value = tenant2_config
         result = await repository.get_by_role("tenant_role", "tenant_2")
         assert result == tenant2_config
         assert result.tenant_id == "tenant_2"
@@ -378,8 +380,8 @@ class TestAgentConfigRepository:
         )
         
         # Mock list to return only active config
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [active_config]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([active_config]))
         
         result = await repository.list()
         
@@ -409,13 +411,13 @@ class TestAgentConfigRepository:
         
         for filters in test_filters:
             # Mock the query execution
-            mock_result = mock_session.execute.return_value
-            mock_result.scalars.return_value.all.return_value = [sample_agent_config]
+            mock_result = mock_session.exec.return_value
+            mock_result.__iter__ = MagicMock(return_value=iter([sample_agent_config]))
             
             result = await repository.list(filters=filters)
             
             # Verify query was built correctly
-            mock_session.execute.assert_called()
+            mock_session.exec.assert_called()
             
             # Verify return value
             assert result == [sample_agent_config]

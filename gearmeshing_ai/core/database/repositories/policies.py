@@ -52,8 +52,8 @@ class PolicyRepository(BaseRepository[Policy]):
             Policy instance or None
         """
         stmt = select(Policy).where(Policy.id == policy_id)
-        result = self.session.execute(stmt)
-        return result.scalar_one_or_none()
+        result = self.session.exec(stmt)
+        return result.one_or_none()
     
     async def get_by_tenant(self, tenant_id: str) -> Optional[Policy]:
         """Get policy configuration for a specific tenant.
@@ -65,8 +65,8 @@ class PolicyRepository(BaseRepository[Policy]):
             Policy instance or None
         """
         stmt = select(Policy).where(Policy.tenant_id == tenant_id)
-        result = self.session.execute(stmt)
-        return result.scalar_one_or_none()
+        result = self.session.exec(stmt)
+        return result.one_or_none()
     
     async def update(self, policy: Policy) -> Policy:
         """Update an existing policy configuration.
@@ -122,5 +122,5 @@ class PolicyRepository(BaseRepository[Policy]):
         
         stmt = QueryBuilder.apply_pagination(stmt, limit, offset)
         
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)

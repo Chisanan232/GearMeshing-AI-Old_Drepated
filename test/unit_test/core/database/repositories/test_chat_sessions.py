@@ -28,12 +28,14 @@ class TestChatSessionRepository:
         session.refresh = AsyncMock()
         session.delete = AsyncMock()
         # Make execute return the mock result directly, not a coroutine
-        mock_result = AsyncMock()
+        mock_result = MagicMock()
         # Make scalar_one_or_none return the object directly, not a coroutine
-        mock_result.scalar_one_or_none = MagicMock()
+        mock_result.__iter__ = MagicMock(return_value=iter([]))
+        # Make scalar_one_or_none return the object directly, not a coroutine
+        mock_result.one_or_none = MagicMock()
         mock_result.scalars = MagicMock()
         mock_result.scalars.all = MagicMock()
-        session.execute = AsyncMock(return_value=mock_result)
+        session.exec = MagicMock(return_value=mock_result)
         return session
     
     @pytest.fixture
@@ -74,15 +76,15 @@ class TestChatSessionRepository:
     async def test_get_by_id_found(self, repository, mock_session, sample_chat_session):
         """Test getting chat session by ID when found."""
         # Mock the query execution with eager loading
-        mock_result = mock_session.execute.return_value
-        mock_result.scalar_one_or_none.return_value = sample_chat_session
+        mock_result = mock_session.exec.return_value
+        mock_result.one_or_none.return_value = sample_chat_session
         
         result = await repository.get_by_id(1)
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         # Don't check isinstance since it's a mock, just check it was called
-        assert mock_session.execute.called
+        assert mock_session.exec.called
         
         # Verify return value
         assert result == sample_chat_session
@@ -90,8 +92,8 @@ class TestChatSessionRepository:
     async def test_get_by_id_not_found(self, repository, mock_session):
         """Test getting chat session by ID when not found."""
         # Mock the query execution to return None
-        mock_result = mock_session.execute.return_value
-        mock_result.scalar_one_or_none.return_value = None
+        mock_result = mock_session.exec.return_value
+        mock_result.one_or_none.return_value = None
         
         result = await repository.get_by_id(999)
         
@@ -141,15 +143,15 @@ class TestChatSessionRepository:
     async def test_list_sessions_no_filters(self, repository, mock_session, sample_chat_session):
         """Test listing chat sessions without filters."""
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_chat_session]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_chat_session]))
         
         result = await repository.list()
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         # Don't check isinstance since it's a mock, just check it was called
-        assert mock_session.execute.called
+        assert mock_session.exec.called
         
         # Verify return value
         assert result == [sample_chat_session]
@@ -164,13 +166,13 @@ class TestChatSessionRepository:
         }
         
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_chat_session]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_chat_session]))
         
         result = await repository.list(filters=filters)
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == [sample_chat_session]
@@ -178,13 +180,13 @@ class TestChatSessionRepository:
     async def test_list_sessions_with_pagination(self, repository, mock_session, sample_chat_session):
         """Test listing chat sessions with pagination."""
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_chat_session]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_chat_session]))
         
         result = await repository.list(limit=10, offset=20)
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == [sample_chat_session]
@@ -192,13 +194,13 @@ class TestChatSessionRepository:
     async def test_get_sessions_for_tenant(self, repository, mock_session, sample_chat_session):
         """Test getting sessions for a specific tenant."""
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_chat_session]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_chat_session]))
         
         result = await repository.get_sessions_for_tenant("tenant_456")
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == [sample_chat_session]
@@ -206,13 +208,13 @@ class TestChatSessionRepository:
     async def test_get_active_sessions_for_role(self, repository, mock_session, sample_chat_session):
         """Test getting active sessions for a specific agent role."""
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_chat_session]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_chat_session]))
         
         result = await repository.get_active_sessions_for_role("developer")
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == [sample_chat_session]
@@ -275,13 +277,13 @@ class TestChatSessionRepository:
         ]
         
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = messages
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter(messages))
         
         result = await repository.get_messages_for_session(1)
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == messages
@@ -300,13 +302,13 @@ class TestChatSessionRepository:
         ]
         
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = messages[:5]  # Limited to 5
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter(messages[:5]))  # Limited to 5
         
         result = await repository.get_messages_for_session(1, limit=5)
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert len(result) == 5
@@ -336,7 +338,7 @@ class TestChatSessionRepository:
         ]
         
         # Mock the query execution to return messages in order
-        mock_result = mock_session.execute.return_value
+        mock_result = mock_session.exec.return_value
         mock_result.scalars.return_value.all.return_value = messages
         
         result = await repository.get_messages_for_session(1)
@@ -401,13 +403,13 @@ class TestChatSessionRepository:
         
         for filters in test_filters:
             # Mock the query execution
-            mock_result = mock_session.execute.return_value
-            mock_result.scalars.return_value.all.return_value = [sample_chat_session]
+            mock_result = mock_session.exec.return_value
+            mock_result.__iter__ = MagicMock(return_value=iter([sample_chat_session]))
             
             result = await repository.list(filters=filters)
             
             # Verify query was built correctly
-            mock_session.execute.assert_called()
+            mock_session.exec.assert_called()
             
             # Verify return value
             assert result == [sample_chat_session]
@@ -458,8 +460,8 @@ class TestChatSessionRepository:
         )
         
         # Test active sessions query
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [active_session]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([active_session]))
         
         result = await repository.get_active_sessions_for_role("developer")
         

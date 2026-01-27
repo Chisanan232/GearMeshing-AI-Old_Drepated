@@ -29,12 +29,14 @@ class TestAgentRunRepository:
         session.refresh = AsyncMock()
         session.delete = AsyncMock()
         # Make execute return the mock result directly, not a coroutine
-        mock_result = AsyncMock()
+        mock_result = MagicMock()
         # Make scalar_one_or_none return the object directly, not a coroutine
-        mock_result.scalar_one_or_none = MagicMock()
+        mock_result.__iter__ = MagicMock(return_value=iter([]))
+        # Make scalar_one_or_none return the object directly, not a coroutine
+        mock_result.one_or_none = MagicMock()
         mock_result.scalars = MagicMock()
         mock_result.scalars.all = MagicMock()
-        session.execute = AsyncMock(return_value=mock_result)
+        session.exec = MagicMock(return_value=mock_result)
         return session
     
     @pytest.fixture
@@ -77,16 +79,16 @@ class TestAgentRunRepository:
     async def test_get_by_id_found(self, repository, mock_session, sample_agent_run):
         """Test getting agent run by ID when found."""
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalar_one_or_none.return_value = sample_agent_run
+        mock_result = mock_session.exec.return_value
+        mock_result.one_or_none.return_value = sample_agent_run
         
         result = await repository.get_by_id("run_123")
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
-        call_args = mock_session.execute.call_args[0][0]
+        mock_session.exec.assert_called_once()
+        call_args = mock_session.exec.call_args[0][0]
         # Don't check isinstance since it's a mock, just check it was called
-        assert mock_session.execute.called
+        assert mock_session.exec.called
         
         # Verify return value
         assert result == sample_agent_run
@@ -94,8 +96,8 @@ class TestAgentRunRepository:
     async def test_get_by_id_not_found(self, repository, mock_session):
         """Test getting agent run by ID when not found."""
         # Mock the query execution to return None
-        mock_result = mock_session.execute.return_value
-        mock_result.scalar_one_or_none.return_value = None
+        mock_result = mock_session.exec.return_value
+        mock_result.one_or_none.return_value = None
         
         result = await repository.get_by_id("nonexistent_run")
         
@@ -145,15 +147,15 @@ class TestAgentRunRepository:
     async def test_list_no_filters(self, repository, mock_session, sample_agent_run):
         """Test listing agent runs without filters."""
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_agent_run]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_agent_run]))
         
         result = await repository.list()
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         # Don't check isinstance since it's a mock, just check it was called
-        assert mock_session.execute.called
+        assert mock_session.exec.called
         
         # Verify return value
         assert result == [sample_agent_run]
@@ -168,13 +170,13 @@ class TestAgentRunRepository:
         }
         
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_agent_run]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_agent_run]))
         
         result = await repository.list(filters=filters)
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == [sample_agent_run]
@@ -182,13 +184,13 @@ class TestAgentRunRepository:
     async def test_list_with_pagination(self, repository, mock_session, sample_agent_run):
         """Test listing agent runs with pagination."""
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_agent_run]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_agent_run]))
         
         result = await repository.list(limit=10, offset=20)
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == [sample_agent_run]
@@ -227,13 +229,13 @@ class TestAgentRunRepository:
     async def test_get_active_runs_for_tenant(self, repository, mock_session, sample_agent_run):
         """Test getting active runs for a tenant."""
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_agent_run]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_agent_run]))
         
         result = await repository.get_active_runs_for_tenant("tenant_456")
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == [sample_agent_run]
@@ -241,14 +243,14 @@ class TestAgentRunRepository:
     async def test_get_runs_by_status(self, repository, mock_session, sample_agent_run):
         """Test getting runs by status."""
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_agent_run]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_agent_run]))
         
         # Use the list method with status filter instead
         result = await repository.list(filters={"status": "running"})
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == [sample_agent_run]
@@ -256,14 +258,14 @@ class TestAgentRunRepository:
     async def test_get_runs_by_role(self, repository, mock_session, sample_agent_run):
         """Test getting runs by role."""
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_agent_run]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_agent_run]))
         
         # Use the list method with role filter instead
         result = await repository.list(filters={"role": "developer"})
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == [sample_agent_run]
@@ -283,13 +285,13 @@ class TestAgentRunRepository:
             )
             
             # Mock the query execution
-            mock_result = mock_session.execute.return_value
-            mock_result.scalars.return_value.all.return_value = [run]
+            mock_result = mock_session.exec.return_value
+            mock_result.__iter__ = MagicMock(return_value=iter([run]))
             
             result = await repository.list(filters={"tenant_id": tenant_id})
             
             # Verify query was built correctly
-            mock_session.execute.assert_called()
+            mock_session.exec.assert_called()
             
             # Verify return value
             assert result == [run]
@@ -313,13 +315,13 @@ class TestAgentRunRepository:
             )
             
             # Mock the query execution
-            mock_result = mock_session.execute.return_value
-            mock_result.scalars.return_value.all.return_value = [run]
+            mock_result = mock_session.exec.return_value
+            mock_result.__iter__ = MagicMock(return_value=iter([run]))
             
             result = await repository.list(filters={"workspace_id": workspace_id})
             
             # Verify query was built correctly
-            mock_session.execute.assert_called()
+            mock_session.exec.assert_called()
             
             # Verify return value
             assert result == [run]
@@ -370,13 +372,13 @@ class TestAgentRunRepository:
             )
             
             # Mock the query execution
-            mock_result = mock_session.execute.return_value
-            mock_result.scalars.return_value.all.return_value = [run]
+            mock_result = mock_session.exec.return_value
+            mock_result.__iter__ = MagicMock(return_value=iter([run]))
             
             result = await repository.list(filters={"role": role})
             
             # Verify query was built correctly
-            mock_session.execute.assert_called()
+            mock_session.exec.assert_called()
             
             # Verify return value
             assert result == [run]
@@ -400,13 +402,13 @@ class TestAgentRunRepository:
             )
             
             # Mock the query execution
-            mock_result = mock_session.execute.return_value
-            mock_result.scalars.return_value.all.return_value = [run]
+            mock_result = mock_session.exec.return_value
+            mock_result.__iter__ = MagicMock(return_value=iter([run]))
             
             result = await repository.list(filters={"autonomy_profile": profile})
             
             # Verify query was built correctly
-            mock_session.execute.assert_called()
+            mock_session.exec.assert_called()
             
             # Verify return value
             assert result == [run]
@@ -428,13 +430,13 @@ class TestAgentRunRepository:
         
         for filters in complex_filters:
             # Mock the query execution
-            mock_result = mock_session.execute.return_value
-            mock_result.scalars.return_value.all.return_value = [sample_agent_run]
+            mock_result = mock_session.exec.return_value
+            mock_result.__iter__ = MagicMock(return_value=iter([sample_agent_run]))
             
             result = await repository.list(filters=filters)
             
             # Verify query was built correctly
-            mock_session.execute.assert_called()
+            mock_session.exec.assert_called()
             
             # Verify return value
             assert result == [sample_agent_run]
@@ -462,13 +464,13 @@ class TestAgentRunRepository:
             )
             
             # Mock the query execution
-            mock_result = mock_session.execute.return_value
-            mock_result.scalars.return_value.all.return_value = [run]
+            mock_result = mock_session.exec.return_value
+            mock_result.__iter__ = MagicMock(return_value=iter([run]))
             
             result = await repository.list(limit=pagination["limit"], offset=pagination["offset"])
             
             # Verify query was built correctly
-            mock_session.execute.assert_called()
+            mock_session.exec.assert_called()
             
             # Verify return value
             assert result == [run]

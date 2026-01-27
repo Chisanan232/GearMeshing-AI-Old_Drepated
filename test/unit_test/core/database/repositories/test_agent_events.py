@@ -29,12 +29,14 @@ class TestAgentEventRepository:
         session.refresh = AsyncMock()
         session.delete = AsyncMock()
         # Make execute return the mock result directly, not a coroutine
-        mock_result = AsyncMock()
+        mock_result = MagicMock()
         # Make scalar_one_or_none return the object directly, not a coroutine
-        mock_result.scalar_one_or_none = MagicMock()
+        mock_result.__iter__ = MagicMock(return_value=iter([]))
+        # Make scalar_one_or_none return the object directly, not a coroutine
+        mock_result.one_or_none = MagicMock()
         mock_result.scalars = MagicMock()
         mock_result.scalars.all = MagicMock()
-        session.execute = AsyncMock(return_value=mock_result)
+        session.exec = MagicMock(return_value=mock_result)
         return session
     
     @pytest.fixture
@@ -65,15 +67,15 @@ class TestAgentEventRepository:
     async def test_get_by_id_found(self, repository, mock_session, sample_agent_event):
         """Test getting agent event by ID when found."""
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalar_one_or_none.return_value = sample_agent_event
+        mock_result = mock_session.exec.return_value
+        mock_result.one_or_none.return_value = sample_agent_event
         
         result = await repository.get_by_id("test_event_123")
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         # Don't check isinstance since it's a mock, just check it was called
-        assert mock_session.execute.called
+        assert mock_session.exec.called
         
         # Verify return value
         assert result == sample_agent_event
@@ -81,8 +83,8 @@ class TestAgentEventRepository:
     async def test_get_by_id_not_found(self, repository, mock_session):
         """Test getting agent event by ID when not found."""
         # Mock the query execution to return None
-        mock_result = mock_session.execute.return_value
-        mock_result.scalar_one_or_none.return_value = None
+        mock_result = mock_session.exec.return_value
+        mock_result.one_or_none.return_value = None
         
         result = await repository.get_by_id("nonexistent_event")
         
@@ -101,15 +103,15 @@ class TestAgentEventRepository:
     async def test_list_no_filters(self, repository, mock_session, sample_agent_event):
         """Test listing agent events without filters."""
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_agent_event]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_agent_event]))
         
         result = await repository.list()
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         # Don't check isinstance since it's a mock, just check it was called
-        assert mock_session.execute.called
+        assert mock_session.exec.called
         
         # Verify return value
         assert result == [sample_agent_event]
@@ -123,13 +125,13 @@ class TestAgentEventRepository:
         }
         
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_agent_event]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_agent_event]))
         
         result = await repository.list(filters=filters)
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == [sample_agent_event]
@@ -137,13 +139,13 @@ class TestAgentEventRepository:
     async def test_list_with_pagination(self, repository, mock_session, sample_agent_event):
         """Test listing agent events with pagination."""
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_agent_event]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_agent_event]))
         
         result = await repository.list(limit=10, offset=20)
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == [sample_agent_event]
@@ -151,13 +153,13 @@ class TestAgentEventRepository:
     async def test_get_events_for_run(self, repository, mock_session, sample_agent_event):
         """Test getting events for a specific run."""
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_agent_event]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_agent_event]))
         
         result = await repository.get_events_for_run("test_run_123")
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == [sample_agent_event]
@@ -165,13 +167,13 @@ class TestAgentEventRepository:
     async def test_get_events_for_run_with_limit(self, repository, mock_session, sample_agent_event):
         """Test getting events for a run with limit."""
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_agent_event]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_agent_event]))
         
         result = await repository.get_events_for_run("test_run_123", limit=5)
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == [sample_agent_event]
@@ -179,13 +181,13 @@ class TestAgentEventRepository:
     async def test_get_events_by_type(self, repository, mock_session, sample_agent_event):
         """Test getting events by type for a run."""
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_agent_event]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_agent_event]))
         
         result = await repository.get_events_by_type("test_run_123", "step_completed")
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == [sample_agent_event]
@@ -193,13 +195,13 @@ class TestAgentEventRepository:
     async def test_get_events_by_correlation(self, repository, mock_session, sample_agent_event):
         """Test getting events by correlation ID."""
         # Mock the query execution
-        mock_result = mock_session.execute.return_value
-        mock_result.scalars.return_value.all.return_value = [sample_agent_event]
+        mock_result = mock_session.exec.return_value
+        mock_result.__iter__ = MagicMock(return_value=iter([sample_agent_event]))
         
         result = await repository.get_events_by_correlation("correlation_456")
         
         # Verify query was built correctly
-        mock_session.execute.assert_called_once()
+        mock_session.exec.assert_called_once()
         
         # Verify return value
         assert result == [sample_agent_event]
@@ -220,7 +222,7 @@ class TestAgentEventRepository:
             events.append(AgentEvent(**event_data))
         
         # Mock the query execution to return events in order
-        mock_result = mock_session.execute.return_value
+        mock_result = mock_session.exec.return_value
         mock_result.scalars.return_value.all.return_value = events
         
         result = await repository.get_events_for_run("test_run_123")
@@ -303,13 +305,13 @@ class TestAgentEventRepository:
         
         for filters in test_filters:
             # Mock the query execution
-            mock_result = mock_session.execute.return_value
-            mock_result.scalars.return_value.all.return_value = [sample_agent_event]
+            mock_result = mock_session.exec.return_value
+            mock_result.__iter__ = MagicMock(return_value=iter([sample_agent_event]))
             
             result = await repository.list(filters=filters)
             
             # Verify query was built correctly
-            mock_session.execute.assert_called()
+            mock_session.exec.assert_called()
             
             # Verify return value
             assert result == [sample_agent_event]

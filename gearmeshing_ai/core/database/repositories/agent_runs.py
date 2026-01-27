@@ -53,8 +53,8 @@ class AgentRunRepository(BaseRepository[AgentRun]):
         """
         run_id_str = str(run_id)
         stmt = select(AgentRun).where(AgentRun.id == run_id_str)
-        result = self.session.execute(stmt)
-        return result.scalar_one_or_none()
+        result = self.session.exec(stmt)
+        return result.one_or_none()
     
     async def update(self, run: AgentRun) -> AgentRun:
         """Update an existing agent run record.
@@ -111,8 +111,8 @@ class AgentRunRepository(BaseRepository[AgentRun]):
         
         stmt = QueryBuilder.apply_pagination(stmt, limit, offset)
         
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)
     
     async def get_by_tenant_and_status(
         self, 
@@ -133,8 +133,8 @@ class AgentRunRepository(BaseRepository[AgentRun]):
             .where((AgentRun.tenant_id == tenant_id) & (AgentRun.status == status))
             .order_by(AgentRun.created_at.desc())  # type: ignore
         )
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)
     
     async def update_status(self, run_id: str, status: str) -> Optional[AgentRun]:
         """Update the status of an agent run.
@@ -171,5 +171,5 @@ class AgentRunRepository(BaseRepository[AgentRun]):
             )
             .order_by(AgentRun.created_at.desc())  # type: ignore
         )
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)

@@ -9,10 +9,10 @@ from __future__ import annotations
 import os
 import time
 from pathlib import Path
-from typing import AsyncGenerator
+from typing import Generator
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import Session
 from testcontainers.compose import DockerCompose
@@ -71,43 +71,41 @@ def compose_stack(_compose_env):
 
 @pytest.fixture(scope="session")
 def database_url(compose_stack) -> str:
-    """Get async test database URL from test settings."""
+    """Get synchronous test database URL from test settings."""
     postgres_config = test_settings.database.postgres
-    return f"postgresql+asyncpg://{postgres_config.user}:{postgres_config.password.get_secret_value()}@127.0.0.1:{postgres_config.port}/{postgres_config.db}"
+    return f"postgresql://{postgres_config.user}:{postgres_config.password.get_secret_value()}@127.0.0.1:{postgres_config.port}/{postgres_config.db}"
 
 
 @pytest.fixture(scope="function")
-async def postgres_engine(database_url: str) -> AsyncGenerator:
+def postgres_engine(database_url: str) -> Generator:
     """Create PostgreSQL engine for testing."""
-    engine = create_async_engine(database_url, echo=False)
+    engine = create_engine(database_url, echo=False)
     
     # Create all tables
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    Base.metadata.create_all(engine)
     
     try:
         yield engine
     finally:
         # Drop all tables after test
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
-        await engine.dispose()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
 
 
 @pytest.fixture(scope="function")
-async def postgres_session(postgres_engine) -> AsyncGenerator[AsyncSession, None]:
+def postgres_session(postgres_engine) -> Generator[Session, None, None]:
     """Create PostgreSQL session for testing."""
-    async_session = sessionmaker(
+    session_factory = sessionmaker(
         bind=postgres_engine,
-        class_=AsyncSession,
+        class_=Session,
         expire_on_commit=False,
     )
     
-    session = async_session()
+    session = session_factory()
     try:
-        yield session  # type: ignore
+        yield session
     finally:
-        await session.close()  # type: ignore
+        session.close()
 
 
 @pytest.fixture(scope="function")

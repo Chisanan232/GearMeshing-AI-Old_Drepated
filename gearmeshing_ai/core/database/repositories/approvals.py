@@ -51,8 +51,8 @@ class ApprovalRepository(BaseRepository[Approval]):
             Approval instance or None
         """
         stmt = select(Approval).where(Approval.id == approval_id)
-        result = self.session.execute(stmt)
-        return result.scalar_one_or_none()
+        result = self.session.exec(stmt)
+        return result.one_or_none()
     
     async def update(self, approval: Approval) -> Approval:
         """Update an existing approval record.
@@ -107,8 +107,8 @@ class ApprovalRepository(BaseRepository[Approval]):
         
         stmt = QueryBuilder.apply_pagination(stmt, limit, offset)
         
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)
     
     async def get_pending_approvals(self) -> List[Approval]:
         """Get all pending approval requests.
@@ -121,5 +121,5 @@ class ApprovalRepository(BaseRepository[Approval]):
             .where(Approval.decision.is_(None))  # type: ignore
             .order_by(Approval.requested_at.asc())  # type: ignore
         )
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)

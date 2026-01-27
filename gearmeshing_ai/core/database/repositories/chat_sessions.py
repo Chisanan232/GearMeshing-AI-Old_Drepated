@@ -52,8 +52,8 @@ class ChatSessionRepository(BaseRepository[ChatSession]):
             ChatSession instance or None
         """
         stmt = select(ChatSession).where(ChatSession.id == session_id)
-        result = self.session.execute(stmt)
-        return result.scalar_one_or_none()
+        result = self.session.exec(stmt)
+        return result.one_or_none()
     
     async def update(self, session: ChatSession) -> ChatSession:
         """Update an existing chat session.
@@ -109,8 +109,8 @@ class ChatSessionRepository(BaseRepository[ChatSession]):
         
         stmt = QueryBuilder.apply_pagination(stmt, limit, offset)
         
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)
     
     async def get_sessions_for_tenant(self, tenant_id: str) -> List[ChatSession]:
         """Get all sessions for a tenant.
@@ -126,8 +126,8 @@ class ChatSessionRepository(BaseRepository[ChatSession]):
             .where(ChatSession.tenant_id == tenant_id)
             .order_by(ChatSession.updated_at.desc())  # type: ignore
         )
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)
     
     async def get_active_sessions_for_role(self, agent_role: str) -> List[ChatSession]:
         """Get all active sessions for a specific agent role.
@@ -145,8 +145,8 @@ class ChatSessionRepository(BaseRepository[ChatSession]):
             )
             .order_by(ChatSession.updated_at.desc())  # type: ignore
         )
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)
     
     async def add_message(self, session_id: int, message: ChatMessage) -> ChatMessage:
         """Add a message to a chat session.
@@ -193,5 +193,5 @@ class ChatSessionRepository(BaseRepository[ChatSession]):
         if limit:
             stmt = stmt.limit(limit)
         
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)

@@ -54,8 +54,8 @@ class AgentEventRepository(BaseRepository[AgentEvent]):
             AgentEvent instance or None
         """
         stmt = select(AgentEvent).where(AgentEvent.id == event_id)
-        result = self.session.execute(stmt)
-        return result.scalar_one_or_none()
+        result = self.session.exec(stmt)
+        return result.one_or_none()
     
     async def update(self, event: AgentEvent) -> AgentEvent:
         """Update operation not supported for events (append-only).
@@ -96,8 +96,8 @@ class AgentEventRepository(BaseRepository[AgentEvent]):
         
         stmt = QueryBuilder.apply_pagination(stmt, limit, offset)
         
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)
     
     async def get_events_for_run(
         self, 
@@ -122,8 +122,8 @@ class AgentEventRepository(BaseRepository[AgentEvent]):
         if limit:
             stmt = stmt.limit(limit)
         
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)
     
     async def get_events_by_type(
         self, 
@@ -146,8 +146,8 @@ class AgentEventRepository(BaseRepository[AgentEvent]):
             )
             .order_by(AgentEvent.created_at.asc())  # type: ignore
         )
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)
     
     async def get_events_by_correlation(
         self, 
@@ -166,5 +166,5 @@ class AgentEventRepository(BaseRepository[AgentEvent]):
             .where(AgentEvent.correlation_id == correlation_id)
             .order_by(AgentEvent.created_at.asc())  # type: ignore
         )
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)

@@ -51,8 +51,8 @@ class ToolInvocationRepository(BaseRepository[ToolInvocation]):
             ToolInvocation instance or None
         """
         stmt = select(ToolInvocation).where(ToolInvocation.id == invocation_id)
-        result = self.session.execute(stmt)
-        return result.scalar_one_or_none()
+        result = self.session.exec(stmt)
+        return result.one_or_none()
     
     async def update(self, invocation: ToolInvocation) -> ToolInvocation:
         """Update an existing tool invocation record.
@@ -107,8 +107,8 @@ class ToolInvocationRepository(BaseRepository[ToolInvocation]):
         
         stmt = QueryBuilder.apply_pagination(stmt, limit, offset)
         
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)
     
     async def get_invocations_for_run(self, run_id: str) -> List[ToolInvocation]:
         """Get all tool invocations for a specific agent run.
@@ -124,8 +124,8 @@ class ToolInvocationRepository(BaseRepository[ToolInvocation]):
             .where(ToolInvocation.run_id == run_id)
             .order_by(ToolInvocation.created_at.asc())  # type: ignore
         )
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)
     
     async def get_high_risk_invocations(self, risk_level: str = "high") -> List[ToolInvocation]:
         """Get all high-risk tool invocations.
@@ -141,5 +141,5 @@ class ToolInvocationRepository(BaseRepository[ToolInvocation]):
             .where(ToolInvocation.risk == risk_level)
             .order_by(ToolInvocation.created_at.desc())  # type: ignore
         )
-        result = self.session.execute(stmt)
-        return list(result.scalars().all())
+        result = self.session.exec(stmt)
+        return list(result)
