@@ -27,6 +27,7 @@ from . import (
     chat_sessions,
     policies,
     tool_invocations,
+    usage_ledger,
 )
 
 __all__ = [
@@ -37,4 +38,5 @@ __all__ = [
     "chat_sessions",
     "policies",
     "tool_invocations",
+    "usage_ledger",
 ]
