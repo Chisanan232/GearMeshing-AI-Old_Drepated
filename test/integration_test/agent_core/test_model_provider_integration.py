@@ -438,7 +438,7 @@ class TestModelProviderIntegration:
             mock_get_provider.return_value = mock_provider
             mock_provider.create_model_for_role.return_value = MagicMock()
             
-            result = create_model_for_role(mock_db_session, "dev", tenant_id="acme-corp")
+            result = create_model_for_role(mock_db_session, "dev", tenant_id="acme-corp")  # type: ignore[assignment]
             assert result is not None
             mock_get_provider.assert_called_once_with(mock_db_session, "pydantic_ai")
             mock_provider.create_model_for_role.assert_called_once_with("dev", "acme-corp")
