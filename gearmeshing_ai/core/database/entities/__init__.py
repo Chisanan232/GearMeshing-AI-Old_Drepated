@@ -24,6 +24,7 @@ from . import (
     agent_events,
     agent_runs,
     approvals,
+    chat_sessions,
     policies,
     tool_invocations,
 )
@@ -33,6 +34,7 @@ __all__ = [
     "agent_events",
     "agent_runs",
     "approvals",
+    "chat_sessions",
     "policies",
     "tool_invocations",
 ]
