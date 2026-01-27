@@ -5,8 +5,17 @@ allowing them to work with the unified AIAgentBase abstraction.
 
 Available Adapters:
 - PydanticAIAgent: Adapter for Pydantic AI framework
+- PydanticAIModelProvider: Model provider adapter for Pydantic AI framework
 """
 
 from .pydantic_ai import PydanticAIAgent
+from .pydantic_ai_model_provider import (
+    PydanticAIModelProvider,
+    PydanticAIModelProviderFactory,
+)
 
-__all__ = ["PydanticAIAgent"]
+__all__ = [
+    "PydanticAIAgent",
+    "PydanticAIModelProvider",
+    "PydanticAIModelProviderFactory",
+]

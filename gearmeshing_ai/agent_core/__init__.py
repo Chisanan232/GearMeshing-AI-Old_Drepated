@@ -33,9 +33,16 @@ the full run:
 
 from gearmeshing_ai.info_provider import CapabilityName
 
+from .abstraction import (
+    ModelConfig,
+    ModelInstance,
+    ModelProvider,
+    ModelProviderFactory,
+    ModelResponse,
+)
 from .agent_registry import AgentRegistry
 from .model_provider import (
-    ModelProvider,
+    UnifiedModelProvider,
     create_model_for_role,
     get_model_provider,
 )
@@ -59,8 +66,14 @@ __all__ = [
     "RiskLevel",
     "AgentRegistry",
     "Router",
-    # Model provider
+    # Model provider abstractions
+    "ModelConfig",
+    "ModelInstance",
     "ModelProvider",
+    "ModelProviderFactory",
+    "ModelResponse",
+    # Model provider implementation
+    "UnifiedModelProvider",
     "get_model_provider",
     "create_model_for_role",
 ]

@@ -1,33 +1,18 @@
 """
-Model provider for creating LLM instances with database-driven configuration.
+Refactored Model Provider using Abstraction Layer.
 
-This module provides utilities to create language model instances from Pydantic AI framework,
-supporting multiple providers (OpenAI, Anthropic, Google) with configurable parameters
-like temperature, max_tokens, and top_p. All configuration is stored in the database.
+This module provides a unified interface for creating LLM model instances
+using the abstraction layer, supporting multiple AI frameworks through
+a consistent API.
 
-Integration with Abstraction Layer
------------------------------------
-This module works seamlessly with the AI agent abstraction layer defined in
-gearmeshing_ai.agent_core.abstraction. The abstraction layer provides:
-- AIAgentFactory: Factory for creating and managing agent instances
-- AIAgentProvider: Provider for selecting and configuring agents
-- AIAgentConfig: Configuration for agent initialization
-
-The model_provider creates the underlying Pydantic AI models that are wrapped
-by the abstraction layer's adapters (e.g., PydanticAIAdapter).
+This replaces the original Pydantic AI-specific implementation with
+a framework-agnostic approach.
 """
 
 from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING, Optional
-
-from pydantic_ai import ModelSettings
-from pydantic_ai.models import Model
-from pydantic_ai.models.anthropic import AnthropicModel
-from pydantic_ai.models.fallback import FallbackModel
-from pydantic_ai.models.google import GoogleModel
-from pydantic_ai.models.openai import OpenAIResponsesModel
 
 if TYPE_CHECKING:
     from sqlmodel import Session
@@ -36,44 +21,78 @@ if TYPE_CHECKING:
         ModelProvider as InfoModelProvider,
     )
 
+from gearmeshing_ai.agent_core.abstraction import (
+    ModelConfig,
+    ModelInstance,
+    ModelProvider,
+    ModelProviderFactory,
+)
+from gearmeshing_ai.agent_core.abstraction.adapters import (
+    PydanticAIModelProviderFactory,
+)
+
 logger = logging.getLogger(__name__)
 
 
-class ModelProvider:
+class UnifiedModelProvider:
     """
-    Provider for creating LLM model instances from database configuration.
+    Unified model provider that supports multiple AI frameworks.
 
-    Supports multiple AI providers (OpenAI, Anthropic, Google) with
-    configurable model parameters stored in the database.
+    This class acts as a facade over the abstraction layer, providing
+    the same interface as the original ModelProvider but with support
+    for multiple frameworks.
     """
 
-    def __init__(self, db_session: Session) -> None:
+    def __init__(self, db_session: Session, framework: str = "pydantic_ai") -> None:
         """
-        Initialize the model provider.
+        Initialize the unified model provider.
 
         Args:
-            db_session: SQLModel database session for database-driven configuration.
+            db_session: SQLModel database session for database-driven configuration
+            framework: AI framework to use (default: pydantic_ai)
 
         Raises:
-            ValueError: If db_session is not provided.
+            ValueError: If db_session is not provided or framework is unsupported
         """
         if db_session is None:
-            raise ValueError("db_session is required for ModelProvider")
+            raise ValueError("db_session is required for UnifiedModelProvider")
+
         self.db_session: Session = db_session
+        self.framework = framework
         self._db_provider: Optional[InfoModelProvider] = None
+        self._provider: Optional[ModelProvider] = None
+
+        # Initialize the framework-specific provider
+        self._initialize_provider()
+
+    def _initialize_provider(self) -> None:
+        """Initialize the framework-specific model provider."""
+        try:
+            factory = self._get_provider_factory()
+            self._provider = factory.create_provider(self.framework, db_session=self.db_session)
+            logger.debug(f"Initialized model provider for framework: {self.framework}")
+        except Exception as e:
+            logger.error(f"Failed to initialize provider for framework {self.framework}: {e}")
+            raise
+
+    def _get_provider_factory(self) -> ModelProviderFactory:
+        """Get the provider factory for the specified framework."""
+        factories = {
+            "pydantic_ai": PydanticAIModelProviderFactory(),
+        }
+
+        if self.framework not in factories:
+            raise ValueError(f"Unsupported framework: {self.framework}")
+
+        return factories[self.framework]
 
     def _get_db_provider(self) -> InfoModelProvider:
-        """Get or create database configuration provider.
-
-        Returns:
-            DatabaseModelProvider instance for accessing database configuration.
-        """
+        """Get or create database configuration provider."""
         if self._db_provider is None:
             from gearmeshing_ai.info_provider.model.provider import (
                 DatabaseModelProvider,
             )
 
-            # Create a session factory for the DatabaseModelProvider
             def session_factory():
                 return self.db_session
 
@@ -87,12 +106,9 @@ class ModelProvider:
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         top_p: Optional[float] = None,
-    ) -> Model:
+    ) -> ModelInstance:
         """
-        Create an LLM model instance with LangSmith tracing support.
-
-        When LangSmith tracing is enabled, all LLM calls made through this model
-        will be automatically traced and visible in the LangSmith dashboard.
+        Create an LLM model instance using the abstraction layer.
 
         Args:
             provider: Provider name ('openai', 'anthropic', 'google').
@@ -102,166 +118,27 @@ class ModelProvider:
             top_p: Top-p sampling (0.0-1.0). If None, uses config default.
 
         Returns:
-            Model: The created model instance with LangSmith tracing enabled if configured.
+            ModelInstance: The created model instance
 
         Raises:
             ValueError: If provider or model is not supported.
             RuntimeError: If required API keys are not configured.
         """
-        provider_lower = provider.lower()
+        if not self._provider:
+            raise RuntimeError("Model provider not initialized")
 
-        if provider_lower == "openai":
-            return self._create_openai_model(model, temperature, max_tokens, top_p)
-        elif provider_lower == "anthropic":
-            return self._create_anthropic_model(model, temperature, max_tokens, top_p)
-        elif provider_lower == "google":
-            return self._create_google_model(model, temperature, max_tokens, top_p)
-        else:
-            raise ValueError(f"Unsupported provider: {provider}")
-
-    def _create_openai_model(
-        self,
-        model: str,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        top_p: Optional[float] = None,
-    ) -> Model:
-        """Create an OpenAI model instance using Pydantic AI.
-
-        Args:
-            model: Model name (e.g., 'gpt-4o').
-            temperature: Model temperature (0.0-2.0).
-            max_tokens: Maximum output tokens.
-            top_p: Top-p sampling (0.0-1.0).
-
-        Returns:
-            OpenAIResponsesModel instance.
-
-        Raises:
-            RuntimeError: If AI_PROVIDER__OPENAI__API_KEY is not set.
-        """
-        from gearmeshing_ai.server.core.config import settings
-
-        api_key_secret = settings.ai_provider.openai.api_key
-        api_key: Optional[str] = api_key_secret.get_secret_value() if api_key_secret else None
-        if not api_key:
-            raise RuntimeError("AI_PROVIDER__OPENAI__API_KEY environment variable is not set")
-
-        # Use defaults if not provided
-        temperature_val: float = temperature or 0.7
-        max_tokens_val: int = max_tokens or 4096
-        top_p_val: float = top_p or 0.9
-
-        logger.debug(
-            f"Creating OpenAI model: {model} (temp={temperature_val}, max_tokens={max_tokens_val}, top_p={top_p_val})"
+        config = ModelConfig(
+            provider=provider,
+            model=model,
+            temperature=temperature or 0.7,
+            max_tokens=max_tokens,
+            top_p=top_p or 0.9,
         )
 
-        # Create model settings for Pydantic AI
-        model_settings: ModelSettings = ModelSettings(
-            temperature=temperature_val,
-            max_tokens=max_tokens_val,
-            top_p=top_p_val,
-        )
-
-        return OpenAIResponsesModel(model, settings=model_settings)
-
-    def _create_anthropic_model(
-        self,
-        model: str,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        top_p: Optional[float] = None,
-    ) -> Model:
-        """Create an Anthropic (Claude) model instance using Pydantic AI.
-
-        Args:
-            model: Model name (e.g., 'claude-3-5-sonnet').
-            temperature: Model temperature (0.0-2.0).
-            max_tokens: Maximum output tokens.
-            top_p: Top-p sampling (0.0-1.0).
-
-        Returns:
-            AnthropicModel instance.
-
-        Raises:
-            RuntimeError: If AI_PROVIDER__ANTHROPIC__API_KEY is not set.
-        """
-        from gearmeshing_ai.server.core.config import settings
-
-        api_key_secret = settings.ai_provider.anthropic.api_key
-        api_key: Optional[str] = api_key_secret.get_secret_value() if api_key_secret else None
-        if not api_key:
-            raise RuntimeError("AI_PROVIDER__ANTHROPIC__API_KEY environment variable is not set")
-
-        # Use defaults if not provided
-        temperature_val: float = temperature or 0.7
-        max_tokens_val: int = max_tokens or 4096
-        top_p_val: float = top_p or 0.9
-
-        logger.debug(
-            f"Creating Anthropic model: {model} (temp={temperature_val}, max_tokens={max_tokens_val}, top_p={top_p_val})"
-        )
-
-        # Create model settings for Pydantic AI
-        model_settings: ModelSettings = ModelSettings(
-            temperature=temperature_val,
-            max_tokens=max_tokens_val,
-            top_p=top_p_val,
-        )
-
-        return AnthropicModel(model, settings=model_settings)
-
-    def _create_google_model(
-        self,
-        model: str,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        top_p: Optional[float] = None,
-    ) -> Model:
-        """Create a Google (Gemini) model instance using Pydantic AI.
-
-        Args:
-            model: Model name (e.g., 'gemini-2.0-flash').
-            temperature: Model temperature (0.0-2.0).
-            max_tokens: Maximum output tokens.
-            top_p: Top-p sampling (0.0-1.0).
-
-        Returns:
-            GoogleModel instance.
-
-        Raises:
-            RuntimeError: If AI_PROVIDER__GOOGLE__API_KEY is not set.
-        """
-        from gearmeshing_ai.server.core.config import settings
-
-        api_key_secret = settings.ai_provider.google.api_key
-        api_key: Optional[str] = api_key_secret.get_secret_value() if api_key_secret else None
-        if not api_key:
-            raise RuntimeError("AI_PROVIDER__GOOGLE__API_KEY environment variable is not set")
-
-        # Use defaults if not provided
-        temperature_val: float = temperature or 0.7
-        max_tokens_val: int = max_tokens or 4096
-        top_p_val: float = top_p or 0.9
-
-        logger.debug(
-            f"Creating Google model: {model} (temp={temperature_val}, max_tokens={max_tokens_val}, top_p={top_p_val})"
-        )
-
-        # Create model settings for Pydantic AI
-        model_settings: ModelSettings = ModelSettings(
-            temperature=temperature_val,
-            max_tokens=max_tokens_val,
-            top_p=top_p_val,
-        )
-
-        return GoogleModel(model, settings=model_settings)
+        return self._provider.create_model(config)
 
     def get_provider_from_model_name(self, model_name: str) -> str:
-        """Determine the provider from a model name using regex patterns.
-
-        This method integrates with the abstraction layer's model-to-provider
-        identification system to determine which provider a model belongs to.
+        """Determine the provider from a model name using patterns.
 
         Args:
             model_name: The model name (e.g., 'gpt-4o', 'claude-3-opus', 'gemini-2.0-flash').
@@ -272,17 +149,10 @@ class ModelProvider:
         Raises:
             ValueError: If the model name doesn't match any known provider pattern.
         """
-        from gearmeshing_ai.agent_core.abstraction.api_key_validator import (
-            APIKeyValidator,
-        )
+        if not self._provider:
+            raise RuntimeError("Model provider not initialized")
 
-        provider = APIKeyValidator.get_provider_for_model(model_name)
-        if provider is None:
-            raise ValueError(
-                f"Could not determine provider for model '{model_name}'. "
-                f"Supported prefixes: gpt-*, claude-*, gemini-*, grok-*"
-            )
-        return provider.value
+        return self._provider.get_provider_from_model_name(model_name)
 
     def create_fallback_model(
         self,
@@ -293,11 +163,9 @@ class ModelProvider:
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         top_p: Optional[float] = None,
-    ) -> FallbackModel:
+    ) -> ModelInstance:
         """
         Create a fallback model that tries primary model first, then falls back.
-
-        This implements Pydantic AI's FallbackModel pattern for provider/model fallback chains.
 
         Args:
             primary_provider: Primary provider name ('openai', 'anthropic', 'google').
@@ -309,22 +177,34 @@ class ModelProvider:
             top_p: Top-p sampling. If None, uses config default.
 
         Returns:
-            FallbackModel instance with primary and fallback models.
+            ModelInstance: Instance with primary and fallback models.
         """
-        primary: Model = self.create_model(primary_provider, primary_model, temperature, max_tokens, top_p)
-        fallback: Model = self.create_model(fallback_provider, fallback_model, temperature, max_tokens, top_p)
+        if not self._provider:
+            raise RuntimeError("Model provider not initialized")
 
-        logger.debug(
-            f"Creating fallback model: {primary_provider}/{primary_model} -> {fallback_provider}/{fallback_model}"
+        primary_config = ModelConfig(
+            provider=primary_provider,
+            model=primary_model,
+            temperature=temperature or 0.7,
+            max_tokens=max_tokens,
+            top_p=top_p or 0.9,
         )
 
-        return FallbackModel(primary, fallback)
+        fallback_config = ModelConfig(
+            provider=fallback_provider,
+            model=fallback_model,
+            temperature=temperature or 0.7,
+            max_tokens=max_tokens,
+            top_p=top_p or 0.9,
+        )
+
+        return self._provider.create_fallback_model(primary_config, fallback_config)
 
     def create_model_for_role(
         self,
         role: str,
         tenant_id: Optional[str] = None,
-    ) -> Model:
+    ) -> ModelInstance:
         """
         Create a model instance for a specific role.
 
@@ -336,17 +216,20 @@ class ModelProvider:
             tenant_id: Optional tenant identifier for tenant-specific overrides.
 
         Returns:
-            Model: The created model instance.
+            ModelInstance: The created model instance.
 
         Raises:
             ValueError: If role is not found in database configuration.
         """
-        from gearmeshing_ai.agent_core.schemas.config import ModelConfig
+        from gearmeshing_ai.agent_core.schemas.config import (
+            ModelConfig as DbModelConfig,
+        )
 
         db_provider = self._get_db_provider()
-        model_config: ModelConfig = db_provider.get(role, tenant_id)
+        model_config: DbModelConfig = db_provider.get(role, tenant_id)
         logger.debug(f"Creating model for role '{role}': {model_config.model}")
-        return self.create_model(
+
+        config = ModelConfig(
             provider=model_config.provider,
             model=model_config.model,
             temperature=model_config.temperature,
@@ -354,25 +237,45 @@ class ModelProvider:
             top_p=model_config.top_p,
         )
 
+        assert self._provider
+        return self._provider.create_model(config)
 
-def get_model_provider(db_session: Session) -> ModelProvider:
+    def get_supported_providers(self) -> list[str]:
+        """Get list of supported AI providers."""
+        if not self._provider:
+            raise RuntimeError("Model provider not initialized")
+
+        return self._provider.get_supported_providers()
+
+    def get_supported_models(self, provider: str) -> list[str]:
+        """Get list of supported models for a provider."""
+        if not self._provider:
+            raise RuntimeError("Model provider not initialized")
+
+        return self._provider.get_supported_models(provider)
+
+
+# Backward compatibility functions
+def get_model_provider(db_session: Session, framework: str = "pydantic_ai") -> UnifiedModelProvider:
     """
-    Get a model provider instance.
+    Get a unified model provider instance.
 
     Args:
         db_session: SQLModel database session for configuration.
+        framework: AI framework to use (default: pydantic_ai)
 
     Returns:
-        ModelProvider: A model provider instance.
+        UnifiedModelProvider: A model provider instance.
     """
-    return ModelProvider(db_session)
+    return UnifiedModelProvider(db_session, framework)
 
 
 def create_model_for_role(
     db_session: Session,
     role: str,
     tenant_id: Optional[str] = None,
-) -> Model:
+    framework: str = "pydantic_ai",
+) -> ModelInstance:
     """
     Create a model instance for a specific role from database configuration.
 
@@ -380,45 +283,36 @@ def create_model_for_role(
         db_session: SQLModel database session.
         role: Role name (e.g., 'dev', 'qa', 'planner').
         tenant_id: Optional tenant identifier for tenant-specific overrides.
+        framework: AI framework to use (default: pydantic_ai)
 
     Returns:
-        Model: The created Pydantic AI model instance.
+        ModelInstance: The created model instance.
 
     Raises:
         ValueError: If role is not found in database configuration.
-
-    Example:
-        >>> model = create_model_for_role(session, 'dev', tenant_id='acme-corp')
-        >>> agent = Agent(model, system_prompt="You are a developer assistant")
     """
-    provider: ModelProvider = get_model_provider(db_session)
+    provider = get_model_provider(db_session, framework)
     return provider.create_model_for_role(role, tenant_id)
 
 
 async def async_create_model_for_role(
     role: str,
     tenant_id: Optional[str] = None,
-) -> Model:
+    framework: str = "pydantic_ai",
+) -> ModelInstance:
     """
     Create a model instance for a specific role from database configuration (async).
-
-    This is the async-friendly version for use in async contexts like the engine.
-    It automatically handles session creation and cleanup.
 
     Args:
         role: Role name (e.g., 'dev', 'qa', 'planner').
         tenant_id: Optional tenant identifier for tenant-specific overrides.
+        framework: AI framework to use (default: pydantic_ai)
 
     Returns:
-        Model: The created Pydantic AI model instance.
+        ModelInstance: The created model instance.
 
     Raises:
         ValueError: If role is not found in database configuration.
-        RuntimeError: If database session cannot be created.
-
-    Example:
-        >>> model = await async_create_model_for_role('dev', tenant_id='acme-corp')
-        >>> agent = Agent(model, system_prompt="You are a developer assistant")
     """
     from sqlalchemy import create_engine as sync_create_engine
     from sqlmodel import Session
@@ -427,23 +321,19 @@ async def async_create_model_for_role(
 
     try:
         # Create a sync engine and session for model provider
-        # The model provider requires a sync session, so we create one here
-        # Convert async URL to sync URL if needed
         db_url = settings.database.url
         if db_url.startswith("postgresql+asyncpg://"):
-            # Convert async PostgreSQL URL to sync URL
             sync_db_url = db_url.replace("postgresql+asyncpg://", "postgresql://")
         elif db_url.startswith("sqlite+aiosqlite://"):
-            # Convert async SQLite URL to sync URL
             sync_db_url = db_url.replace("sqlite+aiosqlite://", "sqlite://")
         else:
             sync_db_url = db_url
 
         sync_engine = sync_create_engine(sync_db_url)
-
         session = Session(sync_engine)
+
         try:
-            provider: ModelProvider = get_model_provider(session)
+            provider = get_model_provider(session, framework)
             model = provider.create_model_for_role(role, tenant_id)
             logger.debug(f"Created model for role '{role}' in async context")
             return model
@@ -457,26 +347,21 @@ async def async_create_model_for_role(
 async def async_get_model_provider(
     role: str,
     tenant_id: Optional[str] = None,
-) -> Model:
+    framework: str = "pydantic_ai",
+) -> ModelInstance:
     """Get a model for a specific role (async convenience function).
 
     Alias for async_create_model_for_role for consistency with sync version.
 
-    Integration with Abstraction Layer
-    -----------------------------------
-    This function works with the abstraction layer to provide models that can be
-    wrapped by AIAgentFactory and managed by AIAgentProvider. The returned model
-    can be used to create AIAgentConfig instances for agent creation.
-
     Args:
         role: Role name (e.g., 'dev', 'qa', 'planner').
         tenant_id: Optional tenant identifier for tenant-specific overrides.
+        framework: AI framework to use (default: pydantic_ai)
 
     Returns:
-        Model: The created Pydantic AI model instance.
+        ModelInstance: The created model instance.
 
     Raises:
         ValueError: If role is not found in database configuration.
-        RuntimeError: If database session cannot be created.
     """
-    return await async_create_model_for_role(role, tenant_id)
+    return await async_create_model_for_role(role, tenant_id, framework)

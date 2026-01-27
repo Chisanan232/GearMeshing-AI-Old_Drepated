@@ -10,12 +10,20 @@ Key Components:
 - AIAgentProvider: Provider for selecting and configuring agents
 - AIAgentCache: Caching layer for agent instances
 - AIAgentConfig: Configuration for agent initialization
+- ModelProvider: Framework-agnostic model provider abstraction
 """
 
 from .base import AIAgentBase, AIAgentConfig, AIAgentResponse
 from .cache import AIAgentCache
 from .config_source import AgentConfigSource
 from .factory import AIAgentFactory
+from .model_provider import (
+    ModelConfig,
+    ModelInstance,
+    ModelProvider,
+    ModelProviderFactory,
+    ModelResponse,
+)
 from .provider import AIAgentProvider, get_agent_provider, set_agent_provider
 
 __all__ = [
@@ -28,4 +36,10 @@ __all__ = [
     "AIAgentProvider",
     "get_agent_provider",
     "set_agent_provider",
+    # Model provider abstractions
+    "ModelConfig",
+    "ModelInstance",
+    "ModelProvider",
+    "ModelProviderFactory",
+    "ModelResponse",
 ]
