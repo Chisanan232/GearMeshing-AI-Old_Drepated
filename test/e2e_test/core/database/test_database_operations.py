@@ -10,7 +10,7 @@ import asyncio
 from datetime import datetime, timedelta
 
 import pytest
-from sqlalchemy import select
+from sqlmodel import select
 
 from gearmeshing_ai.core.database.entities.agent_runs import AgentRun
 from gearmeshing_ai.core.database.entities.agent_configs import AgentConfig

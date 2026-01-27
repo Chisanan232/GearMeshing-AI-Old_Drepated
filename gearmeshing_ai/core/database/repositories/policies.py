@@ -3,52 +3,95 @@ Policy repository interface and implementation.
 
 This module provides data access operations for tenant policy
 configurations, including policy management and queries.
+Built exclusively on SQLModel for type-safe ORM operations.
 """
 
 from __future__ import annotations
 
-from typing import List, Optional
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from sqlalchemy import Select, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import Session, select
 
 from ..entities.policies import Policy
-from .base import BaseRepository
+from .base import BaseRepository, QueryBuilder
 
 
 class PolicyRepository(BaseRepository[Policy]):
-    """Repository for policy data access operations."""
+    """Repository for policy data access operations using SQLModel."""
+    
+    def __init__(self, session: Session) -> None:
+        """Initialize repository with database session.
+        
+        Args:
+            session: SQLModel Session for database operations
+        """
+        super().__init__(session, Policy)
     
     async def create(self, policy: Policy) -> Policy:
-        """Create a new policy configuration."""
+        """Create a new policy configuration.
+        
+        Args:
+            policy: Policy SQLModel instance
+            
+        Returns:
+            Persisted Policy with generated fields
+        """
         self.session.add(policy)
         await self.session.commit()
         await self.session.refresh(policy)
         return policy
     
-    async def get_by_id(self, policy_id: str) -> Optional[Policy]:
-        """Get policy by its ID."""
+    async def get_by_id(self, policy_id: str | int) -> Optional[Policy]:
+        """Get policy by its ID.
+        
+        Args:
+            policy_id: Policy ID
+            
+        Returns:
+            Policy instance or None
+        """
         stmt = select(Policy).where(Policy.id == policy_id)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
     
     async def get_by_tenant(self, tenant_id: str) -> Optional[Policy]:
-        """Get policy configuration for a specific tenant."""
+        """Get policy configuration for a specific tenant.
+        
+        Args:
+            tenant_id: Tenant identifier
+            
+        Returns:
+            Policy instance or None
+        """
         stmt = select(Policy).where(Policy.tenant_id == tenant_id)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
     
     async def update(self, policy: Policy) -> Policy:
-        """Update an existing policy configuration."""
-        from datetime import datetime
+        """Update an existing policy configuration.
+        
+        Args:
+            policy: Policy instance with updated fields
+            
+        Returns:
+            Updated Policy instance
+        """
         policy.updated_at = datetime.utcnow()
         self.session.add(policy)
         await self.session.commit()
         await self.session.refresh(policy)
         return policy
     
-    async def delete(self, policy_id: str) -> bool:
-        """Delete policy by its ID."""
+    async def delete(self, policy_id: str | int) -> bool:
+        """Delete policy by its ID.
+        
+        Args:
+            policy_id: Policy ID to delete
+            
+        Returns:
+            True if deleted, False if not found
+        """
         policy = await self.get_by_id(policy_id)
         if policy:
             await self.session.delete(policy)
@@ -60,19 +103,24 @@ class PolicyRepository(BaseRepository[Policy]):
         self,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        filters: Optional[dict] = None
+        filters: Optional[Dict[str, Any]] = None
     ) -> List[Policy]:
-        """List policies with optional pagination and filtering."""
+        """List policies with optional pagination and filtering.
+        
+        Args:
+            limit: Maximum records to return
+            offset: Records to skip
+            filters: Field filters (tenant_id)
+            
+        Returns:
+            List of Policy instances
+        """
         stmt = select(Policy).order_by(Policy.tenant_id)
         
         if filters:
-            if filters.get("tenant_id"):
-                stmt = stmt.where(Policy.tenant_id == filters["tenant_id"])
+            stmt = QueryBuilder.apply_filters(stmt, Policy, filters)
         
-        if limit:
-            stmt = stmt.limit(limit)
-        if offset:
-            stmt = stmt.offset(offset)
+        stmt = QueryBuilder.apply_pagination(stmt, limit, offset)
         
         result = await self.session.execute(stmt)
         return list(result.scalars().all())

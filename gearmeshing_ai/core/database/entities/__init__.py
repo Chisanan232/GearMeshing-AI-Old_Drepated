@@ -12,7 +12,6 @@ Modules:
 - agent_events: Event stream for agent runs  
 - tool_invocations: Tool execution records
 - approvals: Approval workflow management
-- checkpoints: LangGraph state checkpoints
 - policies: Tenant policy configurations
 - usage_ledger: Token and cost accounting
 - agent_configs: Agent configuration management

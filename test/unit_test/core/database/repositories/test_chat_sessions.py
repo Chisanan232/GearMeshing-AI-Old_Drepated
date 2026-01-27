@@ -10,7 +10,7 @@ from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from sqlalchemy import select
+from sqlmodel import select
 
 from gearmeshing_ai.core.database.entities.chat_sessions import ChatSession, ChatMessage, MessageRole
 from gearmeshing_ai.core.database.repositories.chat_sessions import ChatSessionRepository

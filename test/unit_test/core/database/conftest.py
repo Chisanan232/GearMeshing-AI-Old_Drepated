@@ -55,8 +55,11 @@ async def in_memory_session(
         expire_on_commit=False,
     )
     
-    async with async_session() as session:
+    session = async_session()  # type: AsyncSession
+    try:
         yield session
+    finally:
+        await session.close()
 
 
 @pytest.fixture(scope="function")
