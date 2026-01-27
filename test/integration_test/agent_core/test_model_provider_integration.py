@@ -53,21 +53,21 @@ class TestModelProviderIntegration:
 
         with patch.object(provider._provider, "create_model") as mock_create:
             mock_create.return_value = MagicMock()
-            
+
             result = provider.create_model("openai", "gpt-4o", temperature=0.5)
-            
+
             mock_create.assert_called_once()
             assert result is not None
 
     def test_create_model_with_explicit_framework(self, mock_db_session):
         """Test UnifiedModelProvider with explicit framework selection."""
         provider = UnifiedModelProvider(db_session=mock_db_session, framework="pydantic_ai")
-        
+
         with patch.object(provider._provider, "create_model") as mock_create:
             mock_create.return_value = MagicMock()
-            
+
             result = provider.create_model("openai", "gpt-4o")
-            
+
             mock_create.assert_called_once()
             assert result is not None
 
@@ -77,7 +77,7 @@ class TestModelProviderIntegration:
 
         with patch.object(provider._provider, "create_model") as mock_create:
             mock_create.side_effect = RuntimeError("Provider error")
-            
+
             with pytest.raises(RuntimeError, match="Provider error"):
                 provider.create_model("openai", "gpt-4o")
 
@@ -87,9 +87,9 @@ class TestModelProviderIntegration:
 
         with patch.object(provider, "create_model_for_role") as mock_create_role:
             mock_create_role.return_value = MagicMock()
-            
+
             result = provider.create_model_for_role("dev", tenant_id="acme-corp")
-            
+
             mock_create_role.assert_called_once_with("dev", tenant_id="acme-corp")
             assert result is not None
 
@@ -99,9 +99,9 @@ class TestModelProviderIntegration:
 
         with patch.object(provider._provider, "get_supported_providers") as mock_supported:
             mock_supported.return_value = ["openai", "anthropic", "google"]
-            
+
             result = provider.get_supported_providers()
-            
+
             assert result == ["openai", "anthropic", "google"]
             mock_supported.assert_called_once()
 
@@ -111,9 +111,9 @@ class TestModelProviderIntegration:
 
         with patch.object(provider._provider, "get_supported_models") as mock_models:
             mock_models.return_value = ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"]
-            
+
             result = provider.get_supported_models("openai")
-            
+
             assert result == ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"]
             mock_models.assert_called_once_with("openai")
 
@@ -123,11 +123,9 @@ class TestModelProviderIntegration:
 
         with patch.object(provider._provider, "create_fallback_model") as mock_fallback:
             mock_fallback.return_value = MagicMock()
-            
-            result = provider.create_fallback_model(
-                "openai", "gpt-4o", "anthropic", "claude-3-5-sonnet"
-            )
-            
+
+            result = provider.create_fallback_model("openai", "gpt-4o", "anthropic", "claude-3-5-sonnet")
+
             mock_fallback.assert_called_once()
             assert result is not None
 
@@ -137,9 +135,9 @@ class TestModelProviderIntegration:
 
         with patch.object(provider._provider, "get_provider_from_model_name") as mock_get_provider:
             mock_get_provider.return_value = "openai"
-            
+
             result = provider.get_provider_from_model_name("gpt-4o")
-            
+
             assert result == "openai"
             mock_get_provider.assert_called_once_with("gpt-4o")
 
@@ -147,9 +145,9 @@ class TestModelProviderIntegration:
         """Test get_model_provider factory function integration."""
         with patch("gearmeshing_ai.agent_core.model_provider.UnifiedModelProvider") as mock_provider_class:
             mock_provider_class.return_value = MagicMock()
-            
+
             result = get_model_provider(mock_db_session)
-            
+
             mock_provider_class.assert_called_once_with(mock_db_session, "pydantic_ai")
             assert result is not None
 
@@ -159,9 +157,9 @@ class TestModelProviderIntegration:
             mock_provider = MagicMock()
             mock_get_provider.return_value = mock_provider
             mock_provider.create_model_for_role.return_value = MagicMock()
-            
+
             result = create_model_for_role(mock_db_session, "dev", tenant_id="acme-corp")
-            
+
             mock_get_provider.assert_called_once_with(mock_db_session, "pydantic_ai")
             mock_provider.create_model_for_role.assert_called_once_with("dev", "acme-corp")
             assert result is not None
@@ -173,7 +171,7 @@ class TestModelProviderIntegration:
         # Test ValueError from abstraction layer
         with patch.object(provider._provider, "create_model") as mock_create:
             mock_create.side_effect = ValueError("Invalid provider")
-            
+
             with pytest.raises(ValueError, match="Invalid provider"):
                 provider.create_model("invalid", "model")
 
@@ -182,7 +180,7 @@ class TestModelProviderIntegration:
         # Test default framework
         provider_default = UnifiedModelProvider(db_session=mock_db_session)
         assert provider_default.framework == "pydantic_ai"
-        
+
         # Test explicit framework
         provider_explicit = UnifiedModelProvider(db_session=mock_db_session, framework="pydantic_ai")
         assert provider_explicit.framework == "pydantic_ai"
@@ -195,21 +193,15 @@ class TestModelProviderIntegration:
     def test_model_config_parameter_passing(self, mock_db_session):
         """Test that ModelConfig parameters are correctly passed to abstraction layer."""
         from gearmeshing_ai.agent_core.abstraction import ModelConfig
-        
+
         provider = UnifiedModelProvider(db_session=mock_db_session)
-        
+
         with patch.object(provider._provider, "create_model") as mock_create:
             mock_create.return_value = MagicMock()
-            
+
             # Create model with all parameters
-            provider.create_model(
-                "openai", 
-                "gpt-4o", 
-                temperature=0.7, 
-                max_tokens=2048, 
-                top_p=0.9
-            )
-            
+            provider.create_model("openai", "gpt-4o", temperature=0.7, max_tokens=2048, top_p=0.9)
+
             # Verify ModelConfig was created correctly
             mock_create.assert_called_once()
             call_args = mock_create.call_args[0][0]
@@ -223,7 +215,7 @@ class TestModelProviderIntegration:
     def test_provider_lazy_initialization(self, mock_db_session):
         """Test that abstraction layer provider is properly initialized."""
         provider = UnifiedModelProvider(db_session=mock_db_session)
-        
+
         # Provider should be initialized on construction
         assert provider._provider is not None
         assert hasattr(provider._provider, "create_model")
