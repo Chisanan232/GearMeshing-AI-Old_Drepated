@@ -238,6 +238,7 @@ class UnifiedModelProvider:
             top_p=model_config.top_p,
         )
         
+        assert self._provider
         return self._provider.create_model(config)
     
     def get_supported_providers(self) -> list[str]:
