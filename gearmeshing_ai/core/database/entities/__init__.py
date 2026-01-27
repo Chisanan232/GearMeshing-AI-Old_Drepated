@@ -23,10 +23,12 @@ from . import (
     agent_configs,
     approvals,
     policies,
+    tool_invocations,
 )
 
 __all__ = [
     "agent_configs",
     "approvals",
     "policies",
+    "tool_invocations",
 ]
