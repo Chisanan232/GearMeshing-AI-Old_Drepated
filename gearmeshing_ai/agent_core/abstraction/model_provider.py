@@ -176,7 +176,7 @@ class ModelProvider(ABC):
         Raises:
             ValueError: If provider cannot be determined
         """
-        from ..api_key_validator import APIKeyValidator
+        from .api_key_validator import APIKeyValidator
 
         provider = APIKeyValidator.get_provider_for_model(model_name)
         if provider is None:
