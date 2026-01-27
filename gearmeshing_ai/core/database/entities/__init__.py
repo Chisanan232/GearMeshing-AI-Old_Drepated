@@ -21,10 +21,12 @@ Modules:
 
 from . import (
     agent_configs,
+    approvals,
     policies,
 )
 
 __all__ = [
     "agent_configs",
+    "approvals",
     "policies",
 ]
