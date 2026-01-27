@@ -37,9 +37,9 @@ class TestModelProvider:
 
         with patch.object(provider._provider, "create_model") as mock_create:
             mock_create.return_value = MagicMock()
-            
+
             result = provider.create_model("openai", "gpt-4o", temperature=0.5, max_tokens=2048, top_p=0.8)
-            
+
             mock_create.assert_called_once()
             assert result is not None
 
@@ -50,7 +50,7 @@ class TestModelProvider:
 
         with patch.object(provider._provider, "create_model") as mock_create:
             mock_create.side_effect = RuntimeError("Provider error")
-            
+
             with pytest.raises(RuntimeError, match="Provider error"):
                 provider.create_model("openai", "gpt-4o")
 
@@ -75,16 +75,15 @@ class TestModelProvider:
 
     def test_create_model_for_role_with_database(self) -> None:
         """Test create_model_for_role with database configuration."""
-        from gearmeshing_ai.agent_core.schemas.config import ModelConfig
 
         mock_session = MagicMock()
         provider = UnifiedModelProvider(db_session=mock_session)
 
         with patch.object(provider, "create_model_for_role") as mock_create_role:
             mock_create_role.return_value = MagicMock()
-            
+
             result = provider.create_model_for_role("dev", tenant_id="acme-corp")
-            
+
             mock_create_role.assert_called_once_with("dev", tenant_id="acme-corp")
             assert result is not None
 
@@ -95,9 +94,9 @@ class TestModelProvider:
 
         with patch.object(provider._provider, "get_supported_providers") as mock_supported:
             mock_supported.return_value = ["openai", "anthropic", "google"]
-            
+
             result = provider.get_supported_providers()
-            
+
             assert result == ["openai", "anthropic", "google"]
             mock_supported.assert_called_once()
 
@@ -108,9 +107,9 @@ class TestModelProvider:
 
         with patch.object(provider._provider, "get_supported_models") as mock_models:
             mock_models.return_value = ["gpt-4o", "gpt-4-turbo"]
-            
+
             result = provider.get_supported_models("openai")
-            
+
             assert result == ["gpt-4o", "gpt-4-turbo"]
             mock_models.assert_called_once_with("openai")
 
@@ -121,11 +120,9 @@ class TestModelProvider:
 
         with patch.object(provider._provider, "create_fallback_model") as mock_fallback:
             mock_fallback.return_value = MagicMock()
-            
-            result = provider.create_fallback_model(
-                "openai", "gpt-4o", "anthropic", "claude-3-5-sonnet"
-            )
-            
+
+            result = provider.create_fallback_model("openai", "gpt-4o", "anthropic", "claude-3-5-sonnet")
+
             mock_fallback.assert_called_once()
             assert result is not None
 
@@ -136,20 +133,20 @@ class TestModelProvider:
 
         with patch.object(provider._provider, "get_provider_from_model_name") as mock_get_provider:
             mock_get_provider.return_value = "openai"
-            
+
             result = provider.get_provider_from_model_name("gpt-4o")
-            
+
             assert result == "openai"
             mock_get_provider.assert_called_once_with("gpt-4o")
 
     def test_framework_selection(self) -> None:
         """Test framework selection in UnifiedModelProvider."""
         mock_session = MagicMock()
-        
+
         # Test default framework
         provider = UnifiedModelProvider(db_session=mock_session)
         assert provider.framework == "pydantic_ai"
-        
+
         # Test explicit framework
         provider_explicit = UnifiedModelProvider(db_session=mock_session, framework="pydantic_ai")
         assert provider_explicit.framework == "pydantic_ai"
@@ -157,7 +154,7 @@ class TestModelProvider:
     def test_unsupported_framework_raises_error(self) -> None:
         """Test that unsupported framework raises ValueError."""
         mock_session = MagicMock()
-        
+
         with pytest.raises(ValueError, match="Unsupported framework"):
             UnifiedModelProvider(db_session=mock_session, framework="unsupported_framework")
 
@@ -449,7 +446,7 @@ class TestModelProvider:
         """Test that UnifiedModelProvider properly integrates with abstraction layer."""
         mock_session = MagicMock()
         provider = UnifiedModelProvider(db_session=mock_session)
-        
+
         # Verify that the provider is initialized
         assert provider._provider is not None
         assert hasattr(provider._provider, "create_model")
@@ -458,19 +455,19 @@ class TestModelProvider:
     def test_model_config_creation(self) -> None:
         """Test that ModelConfig is created correctly."""
         from gearmeshing_ai.agent_core.abstraction import ModelConfig
-        
+
         mock_session = MagicMock()
         provider = UnifiedModelProvider(db_session=mock_session)
-        
+
         with patch.object(provider._provider, "create_model") as mock_create:
             mock_create.return_value = MagicMock()
-            
+
             # This should create a ModelConfig internally
             provider.create_model("openai", "gpt-4o", temperature=0.7, max_tokens=2048)
-            
+
             # Verify the abstraction layer was called
             mock_create.assert_called_once()
-            
+
             # Check the arguments passed to the abstraction layer
             call_args = mock_create.call_args[0][0]  # First positional argument
             assert isinstance(call_args, ModelConfig)
@@ -486,12 +483,12 @@ class TestModelProviderFunctions:
     def test_get_model_provider_function(self) -> None:
         """Test get_model_provider function."""
         mock_session = MagicMock()
-        
+
         with patch("gearmeshing_ai.agent_core.model_provider.UnifiedModelProvider") as mock_provider_class:
             mock_provider_class.return_value = MagicMock()
-            
+
             result = get_model_provider(mock_session)
-            
+
             mock_provider_class.assert_called_once_with(mock_session, "pydantic_ai")
             assert result is not None
 
@@ -510,14 +507,14 @@ class TestModelProviderFunctions:
     def test_create_model_for_role_function(self) -> None:
         """Test create_model_for_role function."""
         mock_session = MagicMock()
-        
+
         with patch("gearmeshing_ai.agent_core.model_provider.get_model_provider") as mock_get_provider:
             mock_provider = MagicMock()
             mock_get_provider.return_value = mock_provider
             mock_provider.create_model_for_role.return_value = MagicMock()
-            
+
             result = create_model_for_role(mock_session, "dev", tenant_id="acme-corp")
-            
+
             mock_get_provider.assert_called_once_with(mock_session, "pydantic_ai")
             mock_provider.create_model_for_role.assert_called_once_with("dev", "acme-corp")
             assert result is not None
