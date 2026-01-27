@@ -38,8 +38,8 @@ class ChatSessionRepository(BaseRepository[ChatSession]):
             Persisted ChatSession with generated fields
         """
         self.session.add(session)
-        await self.session.commit()
-        await self.session.refresh(session)
+        self.session.commit()
+        self.session.refresh(session)
         return session
     
     async def get_by_id(self, session_id: str | int) -> Optional[ChatSession]:
@@ -52,7 +52,7 @@ class ChatSessionRepository(BaseRepository[ChatSession]):
             ChatSession instance or None
         """
         stmt = select(ChatSession).where(ChatSession.id == session_id)
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return result.scalar_one_or_none()
     
     async def update(self, session: ChatSession) -> ChatSession:
@@ -66,8 +66,8 @@ class ChatSessionRepository(BaseRepository[ChatSession]):
         """
         session.updated_at = datetime.utcnow()
         self.session.add(session)
-        await self.session.commit()
-        await self.session.refresh(session)
+        self.session.commit()
+        self.session.refresh(session)
         return session
     
     async def delete(self, session_id: str | int) -> bool:
@@ -81,8 +81,8 @@ class ChatSessionRepository(BaseRepository[ChatSession]):
         """
         session = await self.get_by_id(session_id)
         if session:
-            await self.session.delete(session)
-            await self.session.commit()
+            self.session.delete(session)
+            self.session.commit()
             return True
         return False
     
@@ -102,14 +102,14 @@ class ChatSessionRepository(BaseRepository[ChatSession]):
         Returns:
             List of ChatSession instances
         """
-        stmt = select(ChatSession).order_by(ChatSession.updated_at.desc())
+        stmt = select(ChatSession).order_by(ChatSession.updated_at.desc())  # type: ignore
         
         if filters:
             stmt = QueryBuilder.apply_filters(stmt, ChatSession, filters)
         
         stmt = QueryBuilder.apply_pagination(stmt, limit, offset)
         
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return list(result.scalars().all())
     
     async def get_sessions_for_tenant(self, tenant_id: str) -> List[ChatSession]:
@@ -124,9 +124,9 @@ class ChatSessionRepository(BaseRepository[ChatSession]):
         stmt = (
             select(ChatSession)
             .where(ChatSession.tenant_id == tenant_id)
-            .order_by(ChatSession.updated_at.desc())
+            .order_by(ChatSession.updated_at.desc())  # type: ignore
         )
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return list(result.scalars().all())
     
     async def get_active_sessions_for_role(self, agent_role: str) -> List[ChatSession]:
@@ -143,9 +143,9 @@ class ChatSessionRepository(BaseRepository[ChatSession]):
             .where(
                 (ChatSession.agent_role == agent_role) & (ChatSession.is_active == True)
             )
-            .order_by(ChatSession.updated_at.desc())
+            .order_by(ChatSession.updated_at.desc())  # type: ignore
         )
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return list(result.scalars().all())
     
     async def add_message(self, session_id: int, message: ChatMessage) -> ChatMessage:
@@ -166,8 +166,8 @@ class ChatSessionRepository(BaseRepository[ChatSession]):
         if session:
             session.updated_at = datetime.utcnow()
         
-        await self.session.commit()
-        await self.session.refresh(message)
+        self.session.commit()
+        self.session.refresh(message)
         return message
     
     async def get_messages_for_session(
@@ -187,11 +187,11 @@ class ChatSessionRepository(BaseRepository[ChatSession]):
         stmt = (
             select(ChatMessage)
             .where(ChatMessage.session_id == session_id)
-            .order_by(ChatMessage.created_at.asc())
+            .order_by(ChatMessage.created_at.asc())  # type: ignore
         )
         
         if limit:
             stmt = stmt.limit(limit)
         
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return list(result.scalars().all())

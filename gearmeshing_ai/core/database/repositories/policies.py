@@ -38,8 +38,8 @@ class PolicyRepository(BaseRepository[Policy]):
             Persisted Policy with generated fields
         """
         self.session.add(policy)
-        await self.session.commit()
-        await self.session.refresh(policy)
+        self.session.commit()
+        self.session.refresh(policy)
         return policy
     
     async def get_by_id(self, policy_id: str | int) -> Optional[Policy]:
@@ -52,7 +52,7 @@ class PolicyRepository(BaseRepository[Policy]):
             Policy instance or None
         """
         stmt = select(Policy).where(Policy.id == policy_id)
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return result.scalar_one_or_none()
     
     async def get_by_tenant(self, tenant_id: str) -> Optional[Policy]:
@@ -65,7 +65,7 @@ class PolicyRepository(BaseRepository[Policy]):
             Policy instance or None
         """
         stmt = select(Policy).where(Policy.tenant_id == tenant_id)
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return result.scalar_one_or_none()
     
     async def update(self, policy: Policy) -> Policy:
@@ -79,8 +79,8 @@ class PolicyRepository(BaseRepository[Policy]):
         """
         policy.updated_at = datetime.utcnow()
         self.session.add(policy)
-        await self.session.commit()
-        await self.session.refresh(policy)
+        self.session.commit()
+        self.session.refresh(policy)
         return policy
     
     async def delete(self, policy_id: str | int) -> bool:
@@ -94,8 +94,8 @@ class PolicyRepository(BaseRepository[Policy]):
         """
         policy = await self.get_by_id(policy_id)
         if policy:
-            await self.session.delete(policy)
-            await self.session.commit()
+            self.session.delete(policy)
+            self.session.commit()
             return True
         return False
     
@@ -122,5 +122,5 @@ class PolicyRepository(BaseRepository[Policy]):
         
         stmt = QueryBuilder.apply_pagination(stmt, limit, offset)
         
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return list(result.scalars().all())

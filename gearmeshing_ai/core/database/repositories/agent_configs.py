@@ -38,8 +38,8 @@ class AgentConfigRepository(BaseRepository[AgentConfig]):
             Persisted AgentConfig with generated fields
         """
         self.session.add(config)
-        await self.session.commit()
-        await self.session.refresh(config)
+        self.session.commit()
+        self.session.refresh(config)
         return config
     
     async def get_by_id(self, config_id: str | int) -> Optional[AgentConfig]:
@@ -52,7 +52,7 @@ class AgentConfigRepository(BaseRepository[AgentConfig]):
             AgentConfig instance or None
         """
         stmt = select(AgentConfig).where(AgentConfig.id == config_id)
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return result.scalar_one_or_none()
     
     async def get_by_role(
@@ -74,11 +74,11 @@ class AgentConfigRepository(BaseRepository[AgentConfig]):
         if tenant_id:
             stmt = stmt.where(AgentConfig.tenant_id == tenant_id)
         else:
-            stmt = stmt.where(AgentConfig.tenant_id.is_(None))
+            stmt = stmt.where(AgentConfig.tenant_id.is_(None))  # type: ignore
         
         stmt = stmt.where(AgentConfig.is_active == True)
         
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return result.scalar_one_or_none()
     
     async def update(self, config: AgentConfig) -> AgentConfig:
@@ -92,8 +92,8 @@ class AgentConfigRepository(BaseRepository[AgentConfig]):
         """
         config.updated_at = datetime.utcnow()
         self.session.add(config)
-        await self.session.commit()
-        await self.session.refresh(config)
+        self.session.commit()
+        self.session.refresh(config)
         return config
     
     async def delete(self, config_id: str | int) -> bool:
@@ -107,8 +107,8 @@ class AgentConfigRepository(BaseRepository[AgentConfig]):
         """
         config = await self.get_by_id(config_id)
         if config:
-            await self.session.delete(config)
-            await self.session.commit()
+            self.session.delete(config)
+            self.session.commit()
             return True
         return False
     
@@ -138,11 +138,11 @@ class AgentConfigRepository(BaseRepository[AgentConfig]):
                 stmt = stmt.where(AgentConfig.model_provider == filters["model_provider"])
             # Handle role_name with ILIKE for partial matching
             if filters.get("role_name"):
-                stmt = stmt.where(AgentConfig.role_name.ilike(f"%{filters['role_name']}%"))
+                stmt = stmt.where(AgentConfig.role_name.ilike(f"%{filters['role_name']}%"))  # type: ignore
         
         stmt = QueryBuilder.apply_pagination(stmt, limit, offset)
         
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return list(result.scalars().all())
     
     async def get_active_configs_for_tenant(self, tenant_id: str) -> List[AgentConfig]:
@@ -161,7 +161,7 @@ class AgentConfigRepository(BaseRepository[AgentConfig]):
             )
             .order_by(AgentConfig.role_name)
         )
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return list(result.scalars().all())
     
     async def get_global_configs(self) -> List[AgentConfig]:
@@ -173,11 +173,11 @@ class AgentConfigRepository(BaseRepository[AgentConfig]):
         stmt = (
             select(AgentConfig)
             .where(
-                (AgentConfig.tenant_id.is_(None)) & (AgentConfig.is_active == True)
+                (AgentConfig.tenant_id.is_(None)) & (AgentConfig.is_active == True)  # type: ignore
             )
             .order_by(AgentConfig.role_name)
         )
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return list(result.scalars().all())
     
     async def deactivate_config(self, config_id: int) -> Optional[AgentConfig]:

@@ -38,8 +38,8 @@ class AgentRunRepository(BaseRepository[AgentRun]):
             Persisted AgentRun with generated fields
         """
         self.session.add(run)
-        await self.session.commit()
-        await self.session.refresh(run)
+        self.session.commit()
+        self.session.refresh(run)
         return run
     
     async def get_by_id(self, run_id: str | int) -> Optional[AgentRun]:
@@ -53,7 +53,7 @@ class AgentRunRepository(BaseRepository[AgentRun]):
         """
         run_id_str = str(run_id)
         stmt = select(AgentRun).where(AgentRun.id == run_id_str)
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return result.scalar_one_or_none()
     
     async def update(self, run: AgentRun) -> AgentRun:
@@ -67,8 +67,8 @@ class AgentRunRepository(BaseRepository[AgentRun]):
         """
         run.updated_at = datetime.utcnow()
         self.session.add(run)
-        await self.session.commit()
-        await self.session.refresh(run)
+        self.session.commit()
+        self.session.refresh(run)
         return run
     
     async def delete(self, run_id: str | int) -> bool:
@@ -83,8 +83,8 @@ class AgentRunRepository(BaseRepository[AgentRun]):
         run_id_str = str(run_id)
         run = await self.get_by_id(run_id_str)
         if run:
-            await self.session.delete(run)
-            await self.session.commit()
+            self.session.delete(run)
+            self.session.commit()
             return True
         return False
     
@@ -104,14 +104,14 @@ class AgentRunRepository(BaseRepository[AgentRun]):
         Returns:
             List of AgentRun instances
         """
-        stmt = select(AgentRun).order_by(AgentRun.created_at.desc())
+        stmt = select(AgentRun).order_by(AgentRun.created_at.desc())  # type: ignore
         
         if filters:
             stmt = QueryBuilder.apply_filters(stmt, AgentRun, filters)
         
         stmt = QueryBuilder.apply_pagination(stmt, limit, offset)
         
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return list(result.scalars().all())
     
     async def get_by_tenant_and_status(
@@ -131,9 +131,9 @@ class AgentRunRepository(BaseRepository[AgentRun]):
         stmt = (
             select(AgentRun)
             .where((AgentRun.tenant_id == tenant_id) & (AgentRun.status == status))
-            .order_by(AgentRun.created_at.desc())
+            .order_by(AgentRun.created_at.desc())  # type: ignore
         )
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return list(result.scalars().all())
     
     async def update_status(self, run_id: str, status: str) -> Optional[AgentRun]:
@@ -150,8 +150,8 @@ class AgentRunRepository(BaseRepository[AgentRun]):
         if run:
             run.status = status
             run.updated_at = datetime.utcnow()
-            await self.session.commit()
-            await self.session.refresh(run)
+            self.session.commit()
+            self.session.refresh(run)
         return run
     
     async def get_active_runs_for_tenant(self, tenant_id: str) -> List[AgentRun]:
@@ -167,9 +167,9 @@ class AgentRunRepository(BaseRepository[AgentRun]):
         stmt = (
             select(AgentRun)
             .where(
-                (AgentRun.tenant_id == tenant_id) & (AgentRun.status.in_(active_statuses))
+                (AgentRun.tenant_id == tenant_id) & (AgentRun.status.in_(active_statuses))  # type: ignore
             )
-            .order_by(AgentRun.created_at.desc())
+            .order_by(AgentRun.created_at.desc())  # type: ignore
         )
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return list(result.scalars().all())

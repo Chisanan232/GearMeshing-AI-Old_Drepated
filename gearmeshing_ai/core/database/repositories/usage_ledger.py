@@ -38,8 +38,8 @@ class UsageLedgerRepository(BaseRepository[UsageLedger]):
             Persisted UsageLedger with generated fields
         """
         self.session.add(usage)
-        await self.session.commit()
-        await self.session.refresh(usage)
+        self.session.commit()
+        self.session.refresh(usage)
         return usage
     
     async def get_by_id(self, usage_id: str | int) -> Optional[UsageLedger]:
@@ -52,7 +52,7 @@ class UsageLedgerRepository(BaseRepository[UsageLedger]):
             UsageLedger instance or None
         """
         stmt = select(UsageLedger).where(UsageLedger.id == usage_id)
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return result.scalar_one_or_none()
     
     async def update(self, usage: UsageLedger) -> UsageLedger:
@@ -65,8 +65,8 @@ class UsageLedgerRepository(BaseRepository[UsageLedger]):
             Updated UsageLedger instance
         """
         self.session.add(usage)
-        await self.session.commit()
-        await self.session.refresh(usage)
+        self.session.commit()
+        self.session.refresh(usage)
         return usage
     
     async def delete(self, usage_id: str | int) -> bool:
@@ -80,8 +80,8 @@ class UsageLedgerRepository(BaseRepository[UsageLedger]):
         """
         usage = await self.get_by_id(usage_id)
         if usage:
-            await self.session.delete(usage)
-            await self.session.commit()
+            self.session.delete(usage)
+            self.session.commit()
             return True
         return False
     
@@ -101,14 +101,14 @@ class UsageLedgerRepository(BaseRepository[UsageLedger]):
         Returns:
             List of UsageLedger instances
         """
-        stmt = select(UsageLedger).order_by(UsageLedger.created_at.desc())
+        stmt = select(UsageLedger).order_by(UsageLedger.created_at.desc())  # type: ignore
         
         if filters:
             stmt = QueryBuilder.apply_filters(stmt, UsageLedger, filters)
         
         stmt = QueryBuilder.apply_pagination(stmt, limit, offset)
         
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return list(result.scalars().all())
     
     async def get_usage_for_run(self, run_id: str) -> List[UsageLedger]:
@@ -123,9 +123,9 @@ class UsageLedgerRepository(BaseRepository[UsageLedger]):
         stmt = (
             select(UsageLedger)
             .where(UsageLedger.run_id == run_id)
-            .order_by(UsageLedger.created_at.asc())
+            .order_by(UsageLedger.created_at.asc())  # type: ignore
         )
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return list(result.scalars().all())
     
     async def get_usage_for_tenant(self, tenant_id: str) -> List[UsageLedger]:
@@ -140,9 +140,9 @@ class UsageLedgerRepository(BaseRepository[UsageLedger]):
         stmt = (
             select(UsageLedger)
             .where(UsageLedger.tenant_id == tenant_id)
-            .order_by(UsageLedger.created_at.desc())
+            .order_by(UsageLedger.created_at.desc())  # type: ignore
         )
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return list(result.scalars().all())
     
     async def get_total_usage_for_run(self, run_id: str) -> Optional[dict]:
@@ -163,7 +163,7 @@ class UsageLedgerRepository(BaseRepository[UsageLedger]):
             )
             .where(UsageLedger.run_id == run_id)
         )
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         row = result.first()
         if row and row.total_tokens:
             return {

@@ -40,8 +40,8 @@ class AgentEventRepository(BaseRepository[AgentEvent]):
             Persisted AgentEvent with generated fields
         """
         self.session.add(event)
-        await self.session.commit()
-        await self.session.refresh(event)
+        self.session.commit()
+        self.session.refresh(event)
         return event
     
     async def get_by_id(self, event_id: str | int) -> Optional[AgentEvent]:
@@ -54,7 +54,7 @@ class AgentEventRepository(BaseRepository[AgentEvent]):
             AgentEvent instance or None
         """
         stmt = select(AgentEvent).where(AgentEvent.id == event_id)
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return result.scalar_one_or_none()
     
     async def update(self, event: AgentEvent) -> AgentEvent:
@@ -89,14 +89,14 @@ class AgentEventRepository(BaseRepository[AgentEvent]):
         Returns:
             List of AgentEvent instances
         """
-        stmt = select(AgentEvent).order_by(AgentEvent.created_at.desc())
+        stmt = select(AgentEvent).order_by(AgentEvent.created_at.desc())  # type: ignore
         
         if filters:
             stmt = QueryBuilder.apply_filters(stmt, AgentEvent, filters)
         
         stmt = QueryBuilder.apply_pagination(stmt, limit, offset)
         
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return list(result.scalars().all())
     
     async def get_events_for_run(
@@ -116,13 +116,13 @@ class AgentEventRepository(BaseRepository[AgentEvent]):
         stmt = (
             select(AgentEvent)
             .where(AgentEvent.run_id == run_id)
-            .order_by(AgentEvent.created_at.asc())
+            .order_by(AgentEvent.created_at.asc())  # type: ignore
         )
         
         if limit:
             stmt = stmt.limit(limit)
         
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return list(result.scalars().all())
     
     async def get_events_by_type(
@@ -144,9 +144,9 @@ class AgentEventRepository(BaseRepository[AgentEvent]):
             .where(
                 (AgentEvent.run_id == run_id) & (AgentEvent.type == event_type)
             )
-            .order_by(AgentEvent.created_at.asc())
+            .order_by(AgentEvent.created_at.asc())  # type: ignore
         )
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return list(result.scalars().all())
     
     async def get_events_by_correlation(
@@ -164,7 +164,7 @@ class AgentEventRepository(BaseRepository[AgentEvent]):
         stmt = (
             select(AgentEvent)
             .where(AgentEvent.correlation_id == correlation_id)
-            .order_by(AgentEvent.created_at.asc())
+            .order_by(AgentEvent.created_at.asc())  # type: ignore
         )
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return list(result.scalars().all())

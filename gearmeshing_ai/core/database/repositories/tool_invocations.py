@@ -37,8 +37,8 @@ class ToolInvocationRepository(BaseRepository[ToolInvocation]):
             Persisted ToolInvocation with generated fields
         """
         self.session.add(invocation)
-        await self.session.commit()
-        await self.session.refresh(invocation)
+        self.session.commit()
+        self.session.refresh(invocation)
         return invocation
     
     async def get_by_id(self, invocation_id: str | int) -> Optional[ToolInvocation]:
@@ -51,7 +51,7 @@ class ToolInvocationRepository(BaseRepository[ToolInvocation]):
             ToolInvocation instance or None
         """
         stmt = select(ToolInvocation).where(ToolInvocation.id == invocation_id)
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return result.scalar_one_or_none()
     
     async def update(self, invocation: ToolInvocation) -> ToolInvocation:
@@ -64,8 +64,8 @@ class ToolInvocationRepository(BaseRepository[ToolInvocation]):
             Updated ToolInvocation instance
         """
         self.session.add(invocation)
-        await self.session.commit()
-        await self.session.refresh(invocation)
+        self.session.commit()
+        self.session.refresh(invocation)
         return invocation
     
     async def delete(self, invocation_id: str | int) -> bool:
@@ -79,8 +79,8 @@ class ToolInvocationRepository(BaseRepository[ToolInvocation]):
         """
         invocation = await self.get_by_id(invocation_id)
         if invocation:
-            await self.session.delete(invocation)
-            await self.session.commit()
+            self.session.delete(invocation)
+            self.session.commit()
             return True
         return False
     
@@ -100,14 +100,14 @@ class ToolInvocationRepository(BaseRepository[ToolInvocation]):
         Returns:
             List of ToolInvocation instances
         """
-        stmt = select(ToolInvocation).order_by(ToolInvocation.created_at.desc())
+        stmt = select(ToolInvocation).order_by(ToolInvocation.created_at.desc())  # type: ignore
         
         if filters:
             stmt = QueryBuilder.apply_filters(stmt, ToolInvocation, filters)
         
         stmt = QueryBuilder.apply_pagination(stmt, limit, offset)
         
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return list(result.scalars().all())
     
     async def get_invocations_for_run(self, run_id: str) -> List[ToolInvocation]:
@@ -122,9 +122,9 @@ class ToolInvocationRepository(BaseRepository[ToolInvocation]):
         stmt = (
             select(ToolInvocation)
             .where(ToolInvocation.run_id == run_id)
-            .order_by(ToolInvocation.created_at.asc())
+            .order_by(ToolInvocation.created_at.asc())  # type: ignore
         )
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return list(result.scalars().all())
     
     async def get_high_risk_invocations(self, risk_level: str = "high") -> List[ToolInvocation]:
@@ -139,7 +139,7 @@ class ToolInvocationRepository(BaseRepository[ToolInvocation]):
         stmt = (
             select(ToolInvocation)
             .where(ToolInvocation.risk == risk_level)
-            .order_by(ToolInvocation.created_at.desc())
+            .order_by(ToolInvocation.created_at.desc())  # type: ignore
         )
-        result = await self.session.execute(stmt)
+        result = self.session.execute(stmt)
         return list(result.scalars().all())

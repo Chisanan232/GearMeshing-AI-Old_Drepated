@@ -14,6 +14,7 @@ from typing import AsyncGenerator
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
+from sqlmodel import Session
 from testcontainers.compose import DockerCompose
 
 from gearmeshing_ai.core.database.base import Base
@@ -102,11 +103,11 @@ async def postgres_session(postgres_engine) -> AsyncGenerator[AsyncSession, None
         expire_on_commit=False,
     )
     
-    session = async_session()  # type: AsyncSession
+    session = async_session()
     try:
-        yield session
+        yield session  # type: ignore
     finally:
-        await session.close()
+        await session.close()  # type: ignore
 
 
 @pytest.fixture(scope="function")
