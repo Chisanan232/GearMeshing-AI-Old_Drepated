@@ -13,7 +13,7 @@ import pytest
 
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
 from gearmeshing_ai.agent_core.repos.interfaces import EventRepository
-from gearmeshing_ai.agent_core.schemas.domain import (
+from gearmeshing_ai.core.models.domain import (
     AgentEvent,
     AgentEventType,
     AgentRun,
@@ -376,7 +376,7 @@ class TestOrchestratorApprovalManagement:
     @pytest.mark.asyncio
     async def test_get_pending_approvals(self, mock_orchestrator: OrchestratorService) -> None:
         """Test getting pending approvals."""
-        from gearmeshing_ai.agent_core.schemas.domain import RiskLevel
+        from gearmeshing_ai.core.models.domain import RiskLevel
         from gearmeshing_ai.info_provider import CapabilityName
 
         approvals: List[Approval] = [
@@ -406,7 +406,7 @@ class TestOrchestratorApprovalManagement:
     @pytest.mark.asyncio
     async def test_submit_approval_approved(self, mock_orchestrator: OrchestratorService) -> None:
         """Test submitting an approved decision."""
-        from gearmeshing_ai.agent_core.schemas.domain import (
+        from gearmeshing_ai.core.models.domain import (
             ApprovalDecision,
             RiskLevel,
         )
@@ -460,7 +460,7 @@ class TestOrchestratorApprovalManagement:
     @pytest.mark.asyncio
     async def test_submit_approval_rejected(self, mock_orchestrator: OrchestratorService) -> None:
         """Test submitting a rejected decision."""
-        from gearmeshing_ai.agent_core.schemas.domain import (
+        from gearmeshing_ai.core.models.domain import (
             ApprovalDecision,
             RiskLevel,
         )

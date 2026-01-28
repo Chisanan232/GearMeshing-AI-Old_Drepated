@@ -17,7 +17,7 @@ from sqlmodel import Field, SQLModel
 from ..base import Base
 
 if TYPE_CHECKING:
-    from gearmeshing_ai.agent_core.schemas.config import ModelConfig, RoleConfig
+    from gearmeshing_ai.core.models.config import ModelConfig, RoleConfig
 
 
 class AgentConfigBase(Base):

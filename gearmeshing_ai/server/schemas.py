@@ -11,7 +11,7 @@ from typing import Any, Dict, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
-from gearmeshing_ai.agent_core.schemas.domain import ApprovalDecision, AutonomyProfile
+from gearmeshing_ai.core.models.domain import ApprovalDecision, AutonomyProfile
 
 
 class RunCreate(BaseModel):

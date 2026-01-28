@@ -20,7 +20,7 @@ from gearmeshing_ai.agent_core.capabilities.builtin import (
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
 from gearmeshing_ai.agent_core.runtime.models import EngineDeps
-from gearmeshing_ai.agent_core.schemas.domain import AgentRun
+from gearmeshing_ai.core.models.domain import AgentRun
 
 
 @dataclass

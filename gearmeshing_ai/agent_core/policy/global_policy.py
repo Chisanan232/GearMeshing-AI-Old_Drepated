@@ -25,8 +25,8 @@ import re
 from typing import Any, Dict, Optional
 
 from gearmeshing_ai.info_provider import CapabilityName
+from gearmeshing_ai.core.models.domain import RiskLevel
 
-from ..schemas.domain import RiskLevel
 from .models import PolicyConfig, PolicyDecision, risk_from_kind, risk_requires_approval
 
 _SECRET_PATTERNS = (

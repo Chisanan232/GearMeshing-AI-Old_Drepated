@@ -47,7 +47,7 @@ from .model_provider import (
     get_model_provider,
 )
 from .router import Router
-from .schemas.domain import (
+from gearmeshing_ai.core.models.domain import (
     AgentEvent,
     AgentRun,
     Approval,

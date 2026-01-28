@@ -15,7 +15,7 @@ import pytest
 
 from gearmeshing_ai.agent_core.capabilities.base import CapabilityResult
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
-from gearmeshing_ai.agent_core.schemas.domain import RiskLevel
+from gearmeshing_ai.core.models.domain import RiskLevel
 
 
 @pytest.fixture(scope="session")
@@ -194,7 +194,7 @@ def sample_agent_run() -> Any:
     import uuid
     from datetime import datetime, timezone
 
-    from gearmeshing_ai.agent_core.schemas.domain import AgentRun, AgentRunStatus
+    from gearmeshing_ai.core.models.domain import AgentRun, AgentRunStatus
 
     return AgentRun(
         id=str(uuid.uuid4()),

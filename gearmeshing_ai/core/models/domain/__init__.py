@@ -28,6 +28,7 @@ from .models import (
     Checkpoint,
     ToolInvocation,
     UsageLedgerEntry,
+    _resolve_forward_references,
 )
 
 __all__ = [
@@ -42,4 +43,5 @@ __all__ = [
     "UsageLedgerEntry",
     "AgentRunStatus",
     "AgentEventType",
+    "_resolve_forward_references",
 ]

@@ -31,7 +31,7 @@ from .planning.planner import StructuredPlanner
 from .policy.models import PolicyConfig
 from .policy.provider import PolicyProvider
 from .runtime import EngineDeps
-from .schemas.domain import AgentRun
+from gearmeshing_ai.core.models.domain import AgentRun
 
 logger = logging.getLogger(__name__)
 

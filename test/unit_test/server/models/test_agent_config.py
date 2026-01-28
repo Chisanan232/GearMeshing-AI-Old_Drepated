@@ -14,7 +14,7 @@ from typing import Generator
 import pytest
 from sqlmodel import Session, create_engine
 
-from gearmeshing_ai.agent_core.schemas.config import ModelConfig, RoleConfig
+from gearmeshing_ai.core.models.config import ModelConfig, RoleConfig
 from gearmeshing_ai.server.models.agent_config import (
     AgentConfig,
     AgentConfigCreate,

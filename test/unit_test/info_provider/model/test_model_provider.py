@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from gearmeshing_ai.agent_core.schemas.config import ModelConfig
+from gearmeshing_ai.core.models.config import ModelConfig
 from gearmeshing_ai.info_provider.model.base import ModelProvider
 from gearmeshing_ai.info_provider.model.provider import (
     _BUILTIN_MODEL_CONFIGS,

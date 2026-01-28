@@ -28,7 +28,7 @@ from datetime import datetime
 from typing import Optional, Protocol
 
 from ..policy.models import PolicyConfig
-from ..schemas.domain import (
+from gearmeshing_ai.core.models.domain import (
     AgentEvent,
     AgentRun,
     Approval,

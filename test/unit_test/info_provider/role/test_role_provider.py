@@ -32,6 +32,7 @@ from gearmeshing_ai.info_provider.role.provider import (
     get_hardcoded_role_provider,
     get_role_spec,
 )
+from gearmeshing_ai.core.models.config import ModelConfig, RoleConfig
 
 
 class TestStaticAgentRoleProvider:
@@ -166,7 +167,7 @@ class TestDatabaseRoleProvider:
         # Mock successful tenant-specific query
         mock_config = Mock()
         # Mock the to_role_config method to return a proper RoleConfig
-        from gearmeshing_ai.agent_core.schemas.config import RoleConfig
+        from gearmeshing_ai.core.models.config import RoleConfig
 
         mock_role_config = Mock(spec=RoleConfig)
         mock_role_config.role_name = "dev"
@@ -194,7 +195,7 @@ class TestDatabaseRoleProvider:
         # Mock tenant query returns None, global query returns config
         mock_config = Mock()
         # Mock the to_role_config method to return a proper RoleConfig
-        from gearmeshing_ai.agent_core.schemas.config import RoleConfig
+        from gearmeshing_ai.core.models.config import RoleConfig
 
         mock_role_config = Mock(spec=RoleConfig)
         mock_role_config.role_name = "planner"

@@ -16,7 +16,7 @@ from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
 from gearmeshing_ai.agent_core.runtime.engine import AgentEngine
 from gearmeshing_ai.agent_core.runtime.models import EngineDeps, _GraphState
-from gearmeshing_ai.agent_core.schemas.domain import (
+from gearmeshing_ai.core.models.domain import (
     AgentEvent,
     AgentEventType,
     AgentRun,

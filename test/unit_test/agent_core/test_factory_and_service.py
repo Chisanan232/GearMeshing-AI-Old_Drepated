@@ -11,7 +11,7 @@ from gearmeshing_ai.agent_core.planning import StructuredPlanner
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
 from gearmeshing_ai.agent_core.policy.provider import StaticPolicyProvider
 from gearmeshing_ai.agent_core.runtime import EngineDeps
-from gearmeshing_ai.agent_core.schemas.domain import AgentRun
+from gearmeshing_ai.core.models.domain import AgentRun
 from gearmeshing_ai.agent_core.service import AgentService, AgentServiceDeps
 from gearmeshing_ai.info_provider import AgentRole, CapabilityName
 

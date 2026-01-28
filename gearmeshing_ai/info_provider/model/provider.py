@@ -23,7 +23,7 @@ import time
 from typing import Dict, Optional
 
 # Import ModelConfig for type hints
-from gearmeshing_ai.agent_core.schemas.config import ModelConfig
+from gearmeshing_ai.core.models.config import ModelConfig
 
 from .base import ModelProvider
 

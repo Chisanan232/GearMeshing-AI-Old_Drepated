@@ -25,7 +25,7 @@ from gearmeshing_ai.agent_core.repos.sql import (
 )
 from gearmeshing_ai.agent_core.runtime import EngineDeps
 from gearmeshing_ai.agent_core.runtime.engine import AgentEngine
-from gearmeshing_ai.agent_core.schemas.domain import (
+from gearmeshing_ai.core.models.domain import (
     AgentRun,
     AgentRunStatus,
 )

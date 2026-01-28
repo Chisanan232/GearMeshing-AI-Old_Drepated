@@ -16,7 +16,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from gearmeshing_ai.agent_core.schemas.domain import UsageLedgerEntry
+from gearmeshing_ai.core.models.domain import UsageLedgerEntry
 
 pytestmark = pytest.mark.asyncio
 

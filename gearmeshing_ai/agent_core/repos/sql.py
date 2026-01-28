@@ -38,8 +38,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from ..policy.models import PolicyConfig
-from ..schemas.domain import (
+from gearmeshing_ai.core.models.domain import (
     AgentEvent,
     AgentRun,
     Approval,
@@ -47,6 +46,8 @@ from ..schemas.domain import (
     ToolInvocation,
     UsageLedgerEntry,
 )
+
+from ..policy.models import PolicyConfig
 from .interfaces import (
     ApprovalRepository,
     CheckpointRepository,
@@ -159,7 +160,7 @@ class SqlRunRepository(RunRepository):
             row = await s.get(RunRow, run_id)
             if row is None:
                 return None
-            from gearmeshing_ai.agent_core.schemas.domain import (
+            from gearmeshing_ai.core.models.domain import (
                 AgentRunStatus,
                 AutonomyProfile,
             )
@@ -199,7 +200,7 @@ class SqlRunRepository(RunRepository):
             result = await s.execute(stmt)
             rows = result.scalars().all()
 
-            from gearmeshing_ai.agent_core.schemas.domain import (
+            from gearmeshing_ai.core.models.domain import (
                 AgentRunStatus,
                 AutonomyProfile,
             )
@@ -264,7 +265,7 @@ class SqlEventRepository(EventRepository):
             result = await s.execute(stmt)
             rows = result.scalars().all()
 
-            from gearmeshing_ai.agent_core.schemas.domain import AgentEventType
+            from gearmeshing_ai.core.models.domain import AgentEventType
 
             return [
                 AgentEvent(
@@ -325,7 +326,7 @@ class SqlApprovalRepository(ApprovalRepository):
             row = await s.get(ApprovalRow, approval_id)
             if row is None:
                 return None
-            from gearmeshing_ai.agent_core.schemas.domain import (
+            from gearmeshing_ai.core.models.domain import (
                 ApprovalDecision,
                 RiskLevel,
             )
@@ -382,7 +383,7 @@ class SqlApprovalRepository(ApprovalRepository):
             result = await s.execute(stmt)
             rows = result.scalars().all()
 
-            from gearmeshing_ai.agent_core.schemas.domain import (
+            from gearmeshing_ai.core.models.domain import (
                 ApprovalDecision,
                 RiskLevel,
             )

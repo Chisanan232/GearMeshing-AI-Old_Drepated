@@ -22,7 +22,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
-from gearmeshing_ai.agent_core.schemas.domain import (
+from gearmeshing_ai.core.models.domain import (
     AgentEvent,
     AgentRun,
     AgentRunStatus,
@@ -106,7 +106,7 @@ async def create_run(run_in: RunCreate, orchestrator: OrchestratorDep, backgroun
     # The domain AgentRun class in agent_core/schemas/domain.py does NOT have input_payload.
     # However, for now we will just pass what matches.
 
-    from gearmeshing_ai.agent_core.schemas.domain import AutonomyProfile
+    from gearmeshing_ai.core.models.domain import AutonomyProfile
 
     autonomy = AutonomyProfile(run_in.autonomy_profile) if run_in.autonomy_profile else AutonomyProfile.balanced
     logger.debug(f"Autonomy profile set to: {autonomy}")

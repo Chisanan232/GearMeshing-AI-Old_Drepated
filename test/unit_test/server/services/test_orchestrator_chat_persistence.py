@@ -16,7 +16,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from gearmeshing_ai.agent_core.schemas.domain import AgentEvent
+from gearmeshing_ai.core.models.domain import AgentEvent
 from gearmeshing_ai.server.schemas import (
     ApprovalRequestData,
     ApprovalResolutionData,

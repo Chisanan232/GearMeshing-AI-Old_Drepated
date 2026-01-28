@@ -15,7 +15,7 @@ from gearmeshing_ai.agent_core.repos.sql import (
     create_sessionmaker,
 )
 from gearmeshing_ai.agent_core.runtime import EngineDeps
-from gearmeshing_ai.agent_core.schemas.domain import AgentRun
+from gearmeshing_ai.core.models.domain import AgentRun
 from gearmeshing_ai.agent_core.service import AgentService, AgentServiceDeps
 
 

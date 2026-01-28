@@ -11,7 +11,7 @@ from gearmeshing_ai.agent_core.planning.planner import StructuredPlanner
 from gearmeshing_ai.agent_core.policy.models import PolicyConfig
 from gearmeshing_ai.agent_core.router import Router
 from gearmeshing_ai.agent_core.runtime.models import EngineDeps
-from gearmeshing_ai.agent_core.schemas.domain import (
+from gearmeshing_ai.core.models.domain import (
     AgentRun,
     AutonomyProfile,
 )

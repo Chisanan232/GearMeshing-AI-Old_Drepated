@@ -16,7 +16,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from gearmeshing_ai.agent_core.schemas.domain import AgentRun, AgentRunStatus
+from gearmeshing_ai.core.models.domain import AgentRun, AgentRunStatus
 from gearmeshing_ai.server.models.chat_session import ChatSession
 from gearmeshing_ai.server.schemas import (
     ApprovalRequestData,

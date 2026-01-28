@@ -146,3 +146,19 @@ class UsageLedgerEntry(BaseSchema):
     cost_usd: Optional[float] = None
 
     created_at: datetime = Field(default_factory=_utc_now)
+
+
+def _resolve_forward_references() -> None:
+    """
+    Resolve forward references in models after all imports are complete.
+
+    This function is called after all imports are resolved to ensure that
+    forward references (like CapabilityName in Approval) are properly resolved.
+    """
+    try:
+        from gearmeshing_ai.info_provider import CapabilityName  # noqa: F401
+
+        Approval.model_rebuild()
+    except ImportError:
+        # If CapabilityName is not available, skip rebuilding
+        pass

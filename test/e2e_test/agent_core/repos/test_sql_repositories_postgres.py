@@ -19,7 +19,7 @@ from gearmeshing_ai.agent_core.repos.sql import (
     create_engine,
     create_sessionmaker,
 )
-from gearmeshing_ai.agent_core.schemas.domain import (
+from gearmeshing_ai.core.models.domain import (
     AgentEvent,
     AgentEventType,
     AgentRun,

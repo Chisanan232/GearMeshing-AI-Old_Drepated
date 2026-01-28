@@ -12,7 +12,7 @@ from gearmeshing_ai.agent_core.policy.models import PolicyConfig
 from gearmeshing_ai.agent_core.policy.provider import DatabasePolicyProvider
 from gearmeshing_ai.agent_core.repos.interfaces import EventRepository
 from gearmeshing_ai.agent_core.repos.sql import SqlRepoBundle, build_sql_repos
-from gearmeshing_ai.agent_core.schemas.domain import (
+from gearmeshing_ai.core.models.domain import (
     AgentEvent,
     AgentEventType,
     AgentRun,

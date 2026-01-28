@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Optional
 from sqlmodel import Column, DateTime, Field, SQLModel
 
 if TYPE_CHECKING:
-    from gearmeshing_ai.agent_core.schemas.config import ModelConfig, RoleConfig
+    from gearmeshing_ai.core.models.config import ModelConfig, RoleConfig
 
 
 class AgentConfigBase(SQLModel):
@@ -63,7 +63,7 @@ class AgentConfig(AgentConfigBase, table=True):
         Returns:
             ModelConfig domain model with provider and parameters.
         """
-        from gearmeshing_ai.agent_core.schemas.config import ModelConfig
+        from gearmeshing_ai.core.models.config import ModelConfig
 
         return ModelConfig(
             provider=self.model_provider,
@@ -79,7 +79,7 @@ class AgentConfig(AgentConfigBase, table=True):
         Returns:
             RoleConfig domain model with complete role settings.
         """
-        from gearmeshing_ai.agent_core.schemas.config import RoleConfig
+        from gearmeshing_ai.core.models.config import RoleConfig
 
         capabilities: list[str] = json.loads(self.capabilities) if self.capabilities else []
         tools: list[str] = json.loads(self.tools) if self.tools else []

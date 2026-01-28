@@ -130,7 +130,7 @@ async def client_with_mocked_runs_fixture(test_engine, session: AsyncSession) ->
     create_run, get_run, list_runs, and cancel_run methods.
     """
     from gearmeshing_ai.agent_core.repos.sql import build_sql_repos
-    from gearmeshing_ai.agent_core.schemas.domain import AgentRun, AgentRunStatus
+    from gearmeshing_ai.core.models.domain import AgentRun, AgentRunStatus
     from gearmeshing_ai.server.core.database import get_session
     from gearmeshing_ai.server.main import app
     from gearmeshing_ai.server.services.orchestrator import get_orchestrator

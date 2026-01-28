@@ -29,7 +29,7 @@ from .policy.models import PolicyConfig
 from .policy.provider import PolicyProvider
 from .runtime import EngineDeps
 from .runtime.engine import AgentEngine
-from .schemas.domain import AgentRun
+from gearmeshing_ai.core.models.domain import AgentRun
 from .service import AgentService, AgentServiceDeps
 
 

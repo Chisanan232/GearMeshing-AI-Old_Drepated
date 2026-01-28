@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING, Dict, Optional
 from sqlmodel import Session, select
 
 if TYPE_CHECKING:
-    from gearmeshing_ai.agent_core.schemas.config import RoleConfig
+    from gearmeshing_ai.core.models.config import RoleConfig
 
 from .base import RoleProvider
 from .models import (
