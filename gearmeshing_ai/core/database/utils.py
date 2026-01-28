@@ -27,17 +27,6 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from .base import Base
-from .async_repositories_complete import (
-    AsyncAgentEventRepository,
-    AsyncAgentRunRepository,
-    AsyncApprovalRepository,
-    AsyncCheckpointRepository,
-    AsyncPolicyRepository,
-    AsyncSqlRepoBundle,
-    AsyncToolInvocationRepository,
-    AsyncUsageRepository,
-    build_async_sql_repos,
-)
 
 
 def create_engine(db_url: str) -> AsyncEngine:
@@ -89,38 +78,3 @@ def _utc_now_naive() -> datetime:
         Current UTC datetime without timezone info
     """
     return datetime.now(timezone.utc)
-
-
-@dataclass(frozen=True)
-class SqlRepoBundle:
-    """Convenience bundle of all SQL repositories for dependency injection."""
-
-    runs: AsyncAgentRunRepository
-    events: AsyncAgentEventRepository
-    approvals: AsyncApprovalRepository
-    checkpoints: AsyncCheckpointRepository
-    tool_invocations: AsyncToolInvocationRepository
-    usage: AsyncUsageRepository
-    policies: AsyncPolicyRepository
-
-
-async def build_sql_repos(*, session_factory: async_sessionmaker[AsyncSession]) -> SqlRepoBundle:
-    """Build a ``SqlRepoBundle`` from a session factory.
-    
-    Args:
-        session_factory: Async session factory for creating sessions
-        
-    Returns:
-        Bundle containing all repository instances
-    """
-    # Create a session to initialize repositories
-    async with session_factory() as session:
-        return SqlRepoBundle(
-            runs=AsyncAgentRunRepository(session),
-            events=AsyncAgentEventRepository(session),
-            approvals=AsyncApprovalRepository(session),
-            checkpoints=AsyncCheckpointRepository(session),
-            tool_invocations=AsyncToolInvocationRepository(session),
-            usage=AsyncUsageRepository(session),
-            policies=AsyncPolicyRepository(session),
-        )
