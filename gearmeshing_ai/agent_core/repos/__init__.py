@@ -35,9 +35,9 @@ from .interfaces import (
     CheckpointRepository,
     EventRepository,
     RunRepository,
-    ToolInvocationRepository,
     UsageRepository,
 )
+from gearmeshing_ai.core.database.repositories.tool_invocations import ToolInvocationRepository
 
 __all__ = [
     "RunRepository",
