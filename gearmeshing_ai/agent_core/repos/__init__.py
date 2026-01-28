@@ -31,13 +31,13 @@ atomically.
 """
 
 from .interfaces import (
-    ApprovalRepository,
     CheckpointRepository,
     EventRepository,
     RunRepository,
     UsageRepository,
 )
 from gearmeshing_ai.core.database.repositories.tool_invocations import ToolInvocationRepository
+from gearmeshing_ai.core.database.repositories.approvals import ApprovalRepository
 
 __all__ = [
     "RunRepository",

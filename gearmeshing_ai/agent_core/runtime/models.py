@@ -32,13 +32,13 @@ from ...info_provider.mcp.base import BaseAsyncMCPInfoProvider
 from ...info_provider.prompt.base import PromptProvider
 from ..capabilities import CapabilityRegistry
 from ..repos import (
-    ApprovalRepository,
     CheckpointRepository,
     EventRepository,
     RunRepository,
     UsageRepository,
 )
 from gearmeshing_ai.core.database.repositories.tool_invocations import ToolInvocationRepository
+from gearmeshing_ai.core.database.repositories.approvals import ApprovalRepository
 
 
 @dataclass(frozen=True)
