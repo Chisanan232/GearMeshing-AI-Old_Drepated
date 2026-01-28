@@ -28,7 +28,7 @@ from typing import Any, Dict, List, Optional
 
 from ..abstraction import AgentConfigSource, get_agent_provider
 from ..monitoring_integration import trace_planning
-from .steps import ActionStep, ThoughtStep
+from gearmeshing_ai.core.models.domain.planning import ActionStep, ThoughtStep
 
 logger = logging.getLogger(__name__)
 

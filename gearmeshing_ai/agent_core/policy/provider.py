@@ -6,8 +6,7 @@ from typing import Dict, Protocol
 
 from ..repos.interfaces import PolicyRepository
 from gearmeshing_ai.core.models.domain import AgentRun
-
-from .models import PolicyConfig
+from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 
 logger = logging.getLogger(__name__)
 

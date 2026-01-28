@@ -18,7 +18,7 @@ are later consumed by ``gearmeshing_ai.agent_core.runtime.AgentEngine``.
 """
 
 from .planner import StructuredPlanner
-from .steps import ActionStep, PlanStep, ThoughtStep, normalize_plan
+from gearmeshing_ai.core.models.domain.planning import ActionStep, PlanStep, ThoughtStep, normalize_plan
 
 __all__ = [
     "ActionStep",

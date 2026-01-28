@@ -23,7 +23,7 @@ and redaction.
 """
 
 from .global_policy import GlobalPolicy
-from .models import (
+from gearmeshing_ai.core.models.domain.policy import (
     ApprovalPolicy,
     BudgetPolicy,
     PolicyConfig,
