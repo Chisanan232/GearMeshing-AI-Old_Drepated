@@ -8,12 +8,12 @@ from testcontainers.postgres import PostgresContainer
 from gearmeshing_ai.agent_core.factory import build_default_registry
 from gearmeshing_ai.agent_core.planning.planner import StructuredPlanner
 from gearmeshing_ai.core.models.domain.policy import PolicyConfig
-from gearmeshing_ai.agent_core.repos.sql import (
-    build_sql_repos,
+from gearmeshing_ai.core.database import (
     create_all,
     create_engine,
     create_sessionmaker,
 )
+from gearmeshing_ai.agent_core.repos.sql import build_sql_repos
 from gearmeshing_ai.agent_core.runtime import EngineDeps
 from gearmeshing_ai.core.models.domain import AgentRun
 from gearmeshing_ai.agent_core.service import AgentService, AgentServiceDeps

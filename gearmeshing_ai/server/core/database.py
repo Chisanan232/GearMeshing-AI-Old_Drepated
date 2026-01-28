@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 # Import Base here to ensure it's available for table creation
 from gearmeshing_ai.agent_core.repos.models import Base  # noqa: E402, F401
-from gearmeshing_ai.agent_core.repos.sql import create_engine, create_sessionmaker
+from gearmeshing_ai.core.database import create_engine, create_sessionmaker
 from gearmeshing_ai.server.core.config import settings
 
 # Create global engine and session factory using agent_core utilities

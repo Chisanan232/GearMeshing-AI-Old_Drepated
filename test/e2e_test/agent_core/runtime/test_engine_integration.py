@@ -17,12 +17,12 @@ from gearmeshing_ai.agent_core.capabilities.registry import CapabilityRegistry
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
 from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 from gearmeshing_ai.agent_core.repos.models import EventRow, ToolInvocationRow
-from gearmeshing_ai.agent_core.repos.sql import (
-    build_sql_repos,
+from gearmeshing_ai.core.database import (
     create_all,
     create_engine,
     create_sessionmaker,
 )
+from gearmeshing_ai.agent_core.repos.sql import build_sql_repos
 from gearmeshing_ai.agent_core.runtime import EngineDeps
 from gearmeshing_ai.agent_core.runtime.engine import AgentEngine
 from gearmeshing_ai.core.models.domain import (

@@ -10,7 +10,7 @@ from gearmeshing_ai.agent_core.factory import build_default_registry
 from gearmeshing_ai.agent_core.planning.planner import StructuredPlanner
 from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 from gearmeshing_ai.agent_core.policy.provider import DatabasePolicyProvider
-from gearmeshing_ai.agent_core.repos.interfaces import EventRepository
+from gearmeshing_ai.core.database.repositories.agent_events import AgentEventRepository as EventRepository
 from gearmeshing_ai.agent_core.repos.sql import SqlRepoBundle, build_sql_repos
 from gearmeshing_ai.core.models.domain import (
     AgentEvent,
