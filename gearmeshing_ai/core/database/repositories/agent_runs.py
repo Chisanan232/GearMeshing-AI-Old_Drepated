@@ -141,6 +141,15 @@ class AgentRunRepository(BaseRepository[AgentRun]):
         """Get run by ID (alias for get_by_id to match old interface)."""
         return await self.get_by_id(run_id)
     
+    async def update_status(self, run_id: str, *, status: str) -> None:
+        """Update the status of an existing run."""
+        run = await self.get_by_id(run_id)
+        if run:
+            run.status = status
+            run.updated_at = _utc_now_naive()
+            self.session.add(run)
+            self.session.commit()
+    
     async def list_by_tenant(
         self, 
         tenant_id: Optional[str] = None, 

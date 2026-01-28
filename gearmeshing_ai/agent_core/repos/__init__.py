@@ -33,11 +33,11 @@ atomically.
 from .interfaces import (
     CheckpointRepository,
     EventRepository,
-    RunRepository,
     UsageRepository,
 )
 from gearmeshing_ai.core.database.repositories.tool_invocations import ToolInvocationRepository
 from gearmeshing_ai.core.database.repositories.approvals import ApprovalRepository
+from gearmeshing_ai.core.database.repositories.agent_runs import AgentRunRepository as RunRepository
 
 __all__ = [
     "RunRepository",
