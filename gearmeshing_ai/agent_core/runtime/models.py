@@ -33,12 +33,12 @@ from ...info_provider.prompt.base import PromptProvider
 from ..capabilities import CapabilityRegistry
 from ..repos import (
     CheckpointRepository,
-    EventRepository,
     UsageRepository,
 )
 from gearmeshing_ai.core.database.repositories.tool_invocations import ToolInvocationRepository
 from gearmeshing_ai.core.database.repositories.approvals import ApprovalRepository
 from gearmeshing_ai.core.database.repositories.agent_runs import AgentRunRepository as RunRepository
+from gearmeshing_ai.core.database.repositories.agent_events import AgentEventRepository as EventRepository
 
 
 @dataclass(frozen=True)
