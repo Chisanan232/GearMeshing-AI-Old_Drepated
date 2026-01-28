@@ -8,12 +8,14 @@ Built exclusively on SQLModel for type-safe ORM operations.
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from sqlmodel import Session, select
 
 from ..entities.policies import Policy
+from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 from .base import BaseRepository, QueryBuilder, AsyncQueryBuilder, _utc_now_naive
 
 
@@ -124,3 +126,52 @@ class PolicyRepository(BaseRepository[Policy]):
         
         result = self.session.exec(stmt)
         return list(result)
+    
+    # Match the old interface first
+    async def get(self, tenant_id: str) -> Optional[PolicyConfig]:
+        """Get policy config by tenant ID (backward compatibility wrapper).
+        
+        This method wraps get_by_tenant() to maintain compatibility with
+        the old agent_core/repos PolicyRepository interface.
+        
+        Args:
+            tenant_id: The tenant identifier
+            
+        Returns:
+            PolicyConfig object if found, None otherwise
+        """
+        policy = await self.get_by_tenant(tenant_id)
+        if policy is None:
+            return None
+        return PolicyConfig.model_validate(policy.config)
+    
+    # Match the old interface first
+    async def update(self, tenant_id: str, config: PolicyConfig) -> None:
+        """Update or create policy config (backward compatibility wrapper).
+        
+        This method wraps the standard update() to maintain compatibility with
+        the old agent_core/repos PolicyRepository interface.
+        
+        Args:
+            tenant_id: The tenant identifier
+            config: The new PolicyConfig object
+        """
+        # Get existing policy or create new one
+        policy = await self.get_by_tenant(tenant_id)
+        
+        if policy is None:
+            policy = Policy(
+                id=str(uuid.uuid4()),
+                tenant_id=tenant_id,
+                config=config.model_dump(mode="json"),
+                created_at=_utc_now_naive(),
+                updated_at=_utc_now_naive()
+            )
+            self.session.add(policy)
+        else:
+            policy.config = config.model_dump(mode="json")
+            policy.updated_at = _utc_now_naive()
+            self.session.add(policy)
+        
+        self.session.commit()
+        self.session.refresh(policy)
