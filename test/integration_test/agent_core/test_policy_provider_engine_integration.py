@@ -17,7 +17,7 @@ from gearmeshing_ai.agent_core.policy.provider import (
     DatabasePolicyProvider,
     StaticPolicyProvider,
 )
-from gearmeshing_ai.agent_core.repos.interfaces import PolicyRepository
+from gearmeshing_ai.core.database.repositories.policies import PolicyRepository
 from gearmeshing_ai.agent_core.runtime.models import EngineDeps
 from gearmeshing_ai.core.models.domain import (
     AgentRun,
