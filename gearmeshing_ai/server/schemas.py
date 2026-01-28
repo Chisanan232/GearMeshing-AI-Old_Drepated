@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from gearmeshing_ai.agent_core.policy.models import PolicyConfig
+from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 from gearmeshing_ai.core.models.domain import ApprovalDecision, AutonomyProfile
 
 

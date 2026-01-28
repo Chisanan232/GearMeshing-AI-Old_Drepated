@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from testcontainers.postgres import PostgresContainer
 
-from gearmeshing_ai.agent_core.policy.models import PolicyConfig
+from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 from gearmeshing_ai.agent_core.repos.sql import (
     SqlRepoBundle,
     build_sql_repos,

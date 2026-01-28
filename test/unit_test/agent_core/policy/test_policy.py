@@ -5,7 +5,7 @@ import json
 import pytest
 
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
-from gearmeshing_ai.agent_core.policy.models import PolicyConfig, ToolRiskKind
+from gearmeshing_ai.core.models.domain.policy import PolicyConfig, ToolRiskKind
 from gearmeshing_ai.core.models.domain import (
     AutonomyProfile,
     RiskLevel,

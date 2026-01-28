@@ -28,7 +28,7 @@ import logging
 from dataclasses import dataclass
 
 from .planning.planner import StructuredPlanner
-from .policy.models import PolicyConfig
+from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 from .policy.provider import PolicyProvider
 from .runtime import EngineDeps
 from gearmeshing_ai.core.models.domain import AgentRun

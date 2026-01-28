@@ -9,7 +9,7 @@ from langgraph.checkpoint.memory import MemorySaver
 
 from gearmeshing_ai.agent_core.factory import build_engine
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
-from gearmeshing_ai.agent_core.policy.models import (
+from gearmeshing_ai.core.models.domain.policy import (
     ApprovalPolicy,
     PolicyConfig,
     SafetyPolicy,

@@ -27,7 +27,7 @@ These interfaces intentionally mirror the engine’s audit needs:
 from datetime import datetime
 from typing import Optional, Protocol
 
-from ..policy.models import PolicyConfig
+from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 from gearmeshing_ai.core.models.domain import (
     AgentEvent,
     AgentRun,

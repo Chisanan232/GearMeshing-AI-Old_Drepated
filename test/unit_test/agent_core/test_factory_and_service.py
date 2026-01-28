@@ -8,7 +8,7 @@ from langgraph.checkpoint.memory import MemorySaver
 
 from gearmeshing_ai.agent_core.factory import build_default_registry, build_engine
 from gearmeshing_ai.agent_core.planning import StructuredPlanner
-from gearmeshing_ai.agent_core.policy.models import PolicyConfig
+from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 from gearmeshing_ai.agent_core.policy.provider import StaticPolicyProvider
 from gearmeshing_ai.agent_core.runtime import EngineDeps
 from gearmeshing_ai.core.models.domain import AgentRun

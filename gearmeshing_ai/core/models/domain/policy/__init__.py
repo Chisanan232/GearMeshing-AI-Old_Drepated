@@ -1,10 +1,9 @@
-"""Policy configuration models.
+"""Policy configuration models for agent policy enforcement.
 
-This module re-exports policy models from the centralized core.models.domain package
-for backward compatibility. New code should import directly from core.models.domain.policy.
+This module defines the domain models for agent policy configuration.
 """
 
-from gearmeshing_ai.core.models.domain.policy import (
+from .models import (
     ApprovalPolicy,
     BudgetPolicy,
     PolicyConfig,

@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from gearmeshing_ai.agent_core.policy.models import (
+from gearmeshing_ai.core.models.domain.policy import (
     ApprovalPolicy,
     PolicyConfig,
     SafetyPolicy,

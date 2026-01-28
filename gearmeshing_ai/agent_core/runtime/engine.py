@@ -48,7 +48,7 @@ from ..abstraction import AgentConfigSource, get_agent_provider
 from ..capabilities.base import CapabilityContext
 from ..model_provider import async_create_model_for_role
 from ..monitoring_integration import trace_capability_execution
-from ..planning.steps import normalize_plan
+from gearmeshing_ai.core.models.domain.planning import normalize_plan
 from ..policy.global_policy import GlobalPolicy
 from gearmeshing_ai.core.models.domain import (
     AgentEvent,

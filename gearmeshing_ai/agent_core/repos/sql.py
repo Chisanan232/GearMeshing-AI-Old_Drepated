@@ -47,7 +47,7 @@ from gearmeshing_ai.core.models.domain import (
     UsageLedgerEntry,
 )
 
-from ..policy.models import PolicyConfig
+from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 from .interfaces import (
     ApprovalRepository,
     CheckpointRepository,

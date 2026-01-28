@@ -25,7 +25,7 @@ from .capabilities.builtin import (
 )
 from .capabilities.registry import CapabilityRegistry
 from .policy.global_policy import GlobalPolicy
-from .policy.models import PolicyConfig
+from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 from .policy.provider import PolicyProvider
 from .runtime import EngineDeps
 from .runtime.engine import AgentEngine
