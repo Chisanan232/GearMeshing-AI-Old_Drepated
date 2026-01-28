@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 from sqlmodel import Session, select
 
 from ..entities.approvals import Approval
-from .base import BaseRepository, QueryBuilder
+from .base import BaseRepository, QueryBuilder, AsyncQueryBuilder, _utc_now_naive
 
 
 class ApprovalRepository(BaseRepository[Approval]):
@@ -123,3 +123,24 @@ class ApprovalRepository(BaseRepository[Approval]):
         )
         result = self.session.exec(stmt)
         return list(result)
+    
+    # Methods to match old interface
+    async def get(self, approval_id: str) -> Optional[Approval]:
+        """Retrieve an approval by ID."""
+        return await self.get_by_id(approval_id)
+    
+    async def resolve(self, approval_id: str, *, decision: str, decided_by: str | None) -> None:
+        """Update an approval with a decision."""
+        approval = await self.get_by_id(approval_id)
+        if approval:
+            approval.decision = decision
+            approval.decided_by = decided_by
+            approval.decided_at = _utc_now_naive()
+            await self.session.commit()
+    
+    async def list_by_run(self, run_id: str, pending_only: bool = True) -> List[Approval]:
+        """List approvals for a run."""
+        filters = {"run_id": run_id}
+        if pending_only:
+            filters["decision"] = None  # Only pending approvals
+        return await self.list(filters=filters)

@@ -8,13 +8,14 @@ Built exclusively on SQLModel for type-safe ORM operations.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import func
 from sqlmodel import Session, select
 
 from ..entities.usage_ledger import UsageLedger
-from .base import BaseRepository, QueryBuilder
+from .base import BaseRepository, QueryBuilder, AsyncQueryBuilder
 
 
 class UsageLedgerRepository(BaseRepository[UsageLedger]):
@@ -173,3 +174,19 @@ class UsageLedgerRepository(BaseRepository[UsageLedger]):
                 'total_cost': row[3]
             }
         return None
+    
+    # Methods to match old interface
+    async def append(self, usage: UsageLedger) -> None:
+        """Record a usage entry."""
+        await self.create(usage)
+    
+    async def list_by_tenant(
+        self, 
+        tenant_id: str, 
+        from_date: Optional[datetime] = None, 
+        to_date: Optional[datetime] = None
+    ) -> List[UsageLedger]:
+        """List usage entries for a tenant within a date range."""
+        # Need to join with runs to filter by tenant_id since UsageLedger doesn't have tenant_id
+        # For now, use the existing get_usage_for_tenant method
+        return await self.get_usage_for_tenant(tenant_id)

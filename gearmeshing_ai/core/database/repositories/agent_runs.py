@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 from sqlmodel import Session, select
 
 from ..entities.agent_runs import AgentRun
-from .base import BaseRepository, QueryBuilder
+from .base import BaseRepository, QueryBuilder, AsyncQueryBuilder, _utc_now_naive
 
 
 class AgentRunRepository(BaseRepository[AgentRun]):
@@ -136,40 +136,17 @@ class AgentRunRepository(BaseRepository[AgentRun]):
         result = self.session.exec(stmt)
         return list(result)
     
-    async def update_status(self, run_id: str, status: str) -> Optional[AgentRun]:
-        """Update the status of an agent run.
-        
-        Args:
-            run_id: Run ID to update
-            status: New status value
-            
-        Returns:
-            Updated AgentRun or None if not found
-        """
-        run = await self.get_by_id(run_id)
-        if run:
-            run.status = status
-            run.updated_at = datetime.utcnow()
-            self.session.commit()
-            self.session.refresh(run)
-        return run
+    # Methods to match old interface
+    async def get(self, run_id: str) -> Optional[AgentRun]:
+        """Get run by ID (alias for get_by_id to match old interface)."""
+        return await self.get_by_id(run_id)
     
-    async def get_active_runs_for_tenant(self, tenant_id: str) -> List[AgentRun]:
-        """Get all active runs for a tenant.
-        
-        Args:
-            tenant_id: Tenant identifier
-            
-        Returns:
-            List of active AgentRun instances
-        """
-        active_statuses = ["running", "paused"]
-        stmt = (
-            select(AgentRun)
-            .where(
-                (AgentRun.tenant_id == tenant_id) & (AgentRun.status.in_(active_statuses))  # type: ignore
-            )
-            .order_by(AgentRun.created_at.desc())  # type: ignore
-        )
-        result = self.session.exec(stmt)
-        return list(result)
+    async def list_by_tenant(
+        self, 
+        tenant_id: Optional[str] = None, 
+        limit: int = 100, 
+        offset: int = 0
+    ) -> List[AgentRun]:
+        """List runs, optionally filtered by tenant."""
+        filters = {"tenant_id": tenant_id} if tenant_id else None
+        return await self.list(limit=limit, offset=offset, filters=filters)

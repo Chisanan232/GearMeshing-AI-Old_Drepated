@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 from sqlmodel import Session, select
 
 from ..entities.agent_events import AgentEvent
-from .base import BaseRepository, QueryBuilder
+from .base import BaseRepository, QueryBuilder, AsyncQueryBuilder
 
 
 class AgentEventRepository(BaseRepository[AgentEvent]):
@@ -168,3 +168,12 @@ class AgentEventRepository(BaseRepository[AgentEvent]):
         )
         result = self.session.exec(stmt)
         return list(result)
+    
+    # Methods to match old interface
+    async def append(self, event: AgentEvent) -> None:
+        """Append a new event to the store."""
+        await self.create(event)
+    
+    async def list_by_run(self, run_id: str, limit: int = 100) -> List[AgentEvent]:
+        """List events for a specific run."""
+        return await self.get_events_for_run(run_id, limit)

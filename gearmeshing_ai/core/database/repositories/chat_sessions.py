@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 from sqlmodel import Session, select
 
 from ..entities.chat_sessions import ChatSession, ChatMessage
-from .base import BaseRepository, QueryBuilder
+from .base import BaseRepository, QueryBuilder, AsyncQueryBuilder, _utc_now_naive
 
 
 class ChatSessionRepository(BaseRepository[ChatSession]):
@@ -64,7 +64,7 @@ class ChatSessionRepository(BaseRepository[ChatSession]):
         Returns:
             Updated ChatSession instance
         """
-        session.updated_at = datetime.utcnow()
+        session.updated_at = _utc_now_naive()
         self.session.add(session)
         self.session.commit()
         self.session.refresh(session)
@@ -195,3 +195,93 @@ class ChatSessionRepository(BaseRepository[ChatSession]):
         
         result = self.session.exec(stmt)
         return list(result)
+    
+    # Chat persistence service methods
+    async def get_or_create_session(
+        self,
+        run_id: str,
+        tenant_id: str,
+        agent_role: str,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> ChatSession:
+        """Get existing chat session for a run or create a new one."""
+        # Check if session already exists
+        stmt = select(ChatSession).where(ChatSession.run_id == run_id)
+        result = await self.session.exec(stmt)
+        existing_session = result.one_or_none()
+
+        if existing_session:
+            return existing_session
+
+        # Create new session
+        new_session = ChatSession(
+            run_id=run_id,
+            tenant_id=tenant_id,
+            agent_role=agent_role,
+            title=title or f"Chat - {agent_role}",
+            description=description or f"Chat history for run {run_id}",
+            is_active=True,
+        )
+        return await self.create(new_session)
+    
+    async def add_user_message(
+        self,
+        session_id: int,
+        content: str,
+        metadata: Optional[dict] = None,
+    ) -> ChatMessage:
+        """Add a user message to the chat session."""
+        import json
+        
+        message = ChatMessage(
+            session_id=session_id,
+            role="user",
+            content=content,
+            message_metadata=json.dumps(metadata) if metadata else None,
+        )
+        
+        # Add message and update session timestamp
+        await self.session.add(message)
+        
+        session = await self.get_by_id(session_id)
+        if session:
+            session.updated_at = _utc_now_naive()
+        
+        await self.session.commit()
+        await self.session.refresh(message)
+        return message
+    
+    async def add_agent_message(
+        self,
+        session_id: int,
+        content: str,
+        event_type: Optional[str] = None,
+        event_category: Optional[str] = None,
+        metadata: Optional[dict] = None,
+    ) -> ChatMessage:
+        """Add an agent message to the chat session."""
+        import json
+        
+        # Combine metadata with event information
+        full_metadata = metadata or {}
+        full_metadata["event_type"] = event_type
+        full_metadata["event_category"] = event_category
+
+        message = ChatMessage(
+            session_id=session_id,
+            role="assistant",
+            content=content,
+            message_metadata=json.dumps(full_metadata) if full_metadata else None,
+        )
+        
+        # Add message and update session timestamp
+        await self.session.add(message)
+        
+        session = await self.get_by_id(session_id)
+        if session:
+            session.updated_at = _utc_now_naive()
+        
+        await self.session.commit()
+        await self.session.refresh(message)
+        return message

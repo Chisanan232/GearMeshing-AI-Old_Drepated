@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 from sqlmodel import Session, select
 
 from ..entities.policies import Policy
-from .base import BaseRepository, QueryBuilder
+from .base import BaseRepository, QueryBuilder, AsyncQueryBuilder, _utc_now_naive
 
 
 class PolicyRepository(BaseRepository[Policy]):
@@ -77,7 +77,7 @@ class PolicyRepository(BaseRepository[Policy]):
         Returns:
             Updated Policy instance
         """
-        policy.updated_at = datetime.utcnow()
+        policy.updated_at = _utc_now_naive()
         self.session.add(policy)
         self.session.commit()
         self.session.refresh(policy)

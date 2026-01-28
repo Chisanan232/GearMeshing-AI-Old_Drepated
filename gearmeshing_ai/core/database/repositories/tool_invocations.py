@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 from sqlmodel import Session, select
 
 from ..entities.tool_invocations import ToolInvocation
-from .base import BaseRepository, QueryBuilder
+from .base import BaseRepository, QueryBuilder, AsyncQueryBuilder
 
 
 class ToolInvocationRepository(BaseRepository[ToolInvocation]):
@@ -143,3 +143,8 @@ class ToolInvocationRepository(BaseRepository[ToolInvocation]):
         )
         result = self.session.exec(stmt)
         return list(result)
+    
+    # Methods to match old interface
+    async def append(self, invocation: ToolInvocation) -> None:
+        """Log a tool invocation."""
+        await self.create(invocation)
