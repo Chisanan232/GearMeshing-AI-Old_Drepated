@@ -148,6 +148,8 @@ class ThinkingData(BaseModel):
     the run. Includes the thought content, sequence index, and timing information.
     """
 
+    model_config = ConfigDict(populate_by_name=True)
+
     thought: Optional[str] = Field(
         default=None,
         description="The content of the thought or reasoning step.",
@@ -164,9 +166,6 @@ class ThinkingData(BaseModel):
         description="The ISO 8601 timestamp when this thought was executed.",
         examples=["2025-12-24T22:00:00Z"],
     )
-
-    class Config:
-        populate_by_name = True
 
 
 class ThinkingOutputData(BaseModel):
@@ -392,6 +391,10 @@ class SSEEventData(BaseModel):
     - Enriched fields based on event type (thinking, operation, etc.)
     """
 
+    model_config = ConfigDict(
+        json_encoders={datetime: lambda v: v.isoformat() if v else None}
+    )
+
     id: Optional[str] = Field(
         default=None, description="The unique identifier for this event.", examples=["evt-123", "evt-abc-def-456"]
     )
@@ -449,9 +452,6 @@ class SSEEventData(BaseModel):
         default=None, description="Enriched run failure data (populated for run.failed events)."
     )
 
-    class Config:
-        json_encoders = {datetime: lambda v: v.isoformat() if v else None}
-
 
 class SSEResponse(BaseModel):
     """
@@ -460,10 +460,11 @@ class SSEResponse(BaseModel):
     Wraps the event data for streaming responses.
     """
 
-    data: SSEEventData = Field(..., description="The enriched event data to be streamed to the client.")
+    model_config = ConfigDict(
+        json_encoders={datetime: lambda v: v.isoformat() if v else None}
+    )
 
-    class Config:
-        json_encoders = {datetime: lambda v: v.isoformat() if v else None}
+    data: SSEEventData = Field(..., description="The enriched event data to be streamed to the client.")
 
 
 class KeepAliveEvent(BaseModel):
@@ -472,14 +473,15 @@ class KeepAliveEvent(BaseModel):
     Sent periodically when no events are available to prevent client timeout.
     """
 
+    model_config = ConfigDict(
+        json_encoders={datetime: lambda v: v.isoformat() if v else None}
+    )
+
     comment: str = Field(
         default="keep-alive",
         description="A fixed comment indicating this is a keep-alive message.",
         examples=["keep-alive"],
     )
-
-    class Config:
-        json_encoders = {datetime: lambda v: v.isoformat() if v else None}
 
 
 class ErrorEvent(BaseModel):
@@ -487,6 +489,10 @@ class ErrorEvent(BaseModel):
 
     Sent when an error occurs during event streaming.
     """
+
+    model_config = ConfigDict(
+        json_encoders={datetime: lambda v: v.isoformat() if v else None}
+    )
 
     error: str = Field(
         ...,
@@ -498,6 +504,3 @@ class ErrorEvent(BaseModel):
         description="Additional details or context about the error.",
         examples=["Connection refused at 192.168.1.1:5432", "Request timed out after 30 seconds"],
     )
-
-    class Config:
-        json_encoders = {datetime: lambda v: v.isoformat() if v else None}

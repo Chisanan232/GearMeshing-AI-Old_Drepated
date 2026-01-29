@@ -12,7 +12,7 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class MessageRole(str, Enum):
@@ -26,6 +26,8 @@ class MessageRole(str, Enum):
 class ChatSessionRead(BaseModel):
     """Schema for reading chat session from API."""
 
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     title: str = Field(description="Chat session title")
     description: Optional[str] = Field(default=None, description="Chat session description")
@@ -35,9 +37,6 @@ class ChatSessionRead(BaseModel):
     is_active: bool = Field(description="Whether session is active")
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class ChatSessionCreate(BaseModel):
@@ -63,6 +62,8 @@ class ChatSessionUpdate(BaseModel):
 class ChatMessageRead(BaseModel):
     """Schema for reading chat message from API."""
 
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     session_id: int = Field(description="Chat session ID")
     role: MessageRole = Field(description="Message sender role")
@@ -70,9 +71,6 @@ class ChatMessageRead(BaseModel):
     token_count: Optional[int] = Field(default=None, description="Token count for this message")
     model_used: Optional[str] = Field(default=None, description="Model used for assistant messages")
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class ChatMessageCreate(BaseModel):

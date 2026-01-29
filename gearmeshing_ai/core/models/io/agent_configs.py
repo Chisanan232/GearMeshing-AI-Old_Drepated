@@ -11,11 +11,13 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AgentConfigRead(BaseModel):
     """Schema for reading agent configuration from API."""
+
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     role_name: str = Field(description="Role identifier (e.g., 'dev', 'planner')")
@@ -35,9 +37,6 @@ class AgentConfigRead(BaseModel):
     tenant_id: Optional[str] = Field(default=None, description="Tenant-specific override")
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class AgentConfigCreate(BaseModel):

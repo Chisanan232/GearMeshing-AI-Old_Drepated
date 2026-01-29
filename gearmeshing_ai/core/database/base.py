@@ -7,12 +7,11 @@ all entities in the centralized database layer using SQLModel.
 
 from __future__ import annotations
 
+from pydantic import ConfigDict
 from sqlmodel import SQLModel
 
 
 class Base(SQLModel):
     """Base class for all SQLModel entities."""
     
-    class Config:
-        """Pydantic configuration for all models."""
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
