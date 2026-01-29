@@ -11,19 +11,17 @@ from sqlalchemy.ext.asyncio import (
 )
 from testcontainers.postgres import PostgresContainer
 
-from gearmeshing_ai.agent_core.repos.models import (
-    ApprovalRow,
-    CheckpointRow,
-    EventRow,
-    RunRow,
-    ToolInvocationRow,
-    UsageRow,
-)
 from gearmeshing_ai.core.database import (
     create_all,
     create_engine,
     create_sessionmaker,
 )
+from gearmeshing_ai.core.database.entities.approvals import Approval as ApprovalRow
+from gearmeshing_ai.core.database.entities.agent_events import AgentEvent as EventRow
+from gearmeshing_ai.core.database.entities.agent_runs import AgentRun as RunRow
+from gearmeshing_ai.core.database.entities.checkpoints import Checkpoint as CheckpointRow
+from gearmeshing_ai.core.database.entities.tool_invocations import ToolInvocation as ToolInvocationRow
+from gearmeshing_ai.core.database.entities.usage_ledger import UsageLedger as UsageRow
 from gearmeshing_ai.core.database.repositories.bundle import build_sql_repos
 from gearmeshing_ai.core.models.domain import (
     AgentEvent,

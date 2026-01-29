@@ -53,7 +53,7 @@ async def test_engine():
     """Create a test database engine once per session."""
     from sqlmodel import SQLModel
 
-    from gearmeshing_ai.agent_core.repos.models import Base as AgentCoreBase
+    from gearmeshing_ai.core.database.base import Base as AgentCoreBase
 
     engine = create_async_engine(
         TEST_DATABASE_URL,
@@ -64,10 +64,17 @@ async def test_engine():
     # Import core database entities to register them with SQLModel
     import gearmeshing_ai.core.database.entities.agent_configs  # noqa: F401
     import gearmeshing_ai.core.database.entities.chat_sessions  # noqa: F401
+    import gearmeshing_ai.core.database.entities.agent_runs  # noqa: F401
+    import gearmeshing_ai.core.database.entities.agent_events  # noqa: F401
+    import gearmeshing_ai.core.database.entities.tool_invocations  # noqa: F401
+    import gearmeshing_ai.core.database.entities.approvals  # noqa: F401
+    import gearmeshing_ai.core.database.entities.checkpoints  # noqa: F401
+    import gearmeshing_ai.core.database.entities.policies  # noqa: F401
+    import gearmeshing_ai.core.database.entities.usage_ledger  # noqa: F401
 
     # Create tables using both agent_core and core database entities
     async with engine.begin() as conn:
-        # Create agent_core tables
+        # Create agent_core and core database entity tables
         await conn.run_sync(AgentCoreBase.metadata.create_all)
         # Create core database entity tables
         await conn.run_sync(SQLModel.metadata.create_all)

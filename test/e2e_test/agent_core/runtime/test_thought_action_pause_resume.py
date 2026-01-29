@@ -9,7 +9,8 @@ from testcontainers.postgres import PostgresContainer
 from gearmeshing_ai.agent_core.factory import build_default_registry
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
 from gearmeshing_ai.core.models.domain.policy import PolicyConfig
-from gearmeshing_ai.agent_core.repos.models import EventRow, ToolInvocationRow
+from gearmeshing_ai.core.database.entities.agent_events import AgentEvent as EventRow
+from gearmeshing_ai.core.database.entities.tool_invocations import ToolInvocation as ToolInvocationRow
 from gearmeshing_ai.core.database import (
     create_all,
     create_engine,

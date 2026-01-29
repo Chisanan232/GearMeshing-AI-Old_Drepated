@@ -17,7 +17,7 @@ from gearmeshing_ai.agent_core.capabilities.base import (
 from gearmeshing_ai.agent_core.capabilities.registry import CapabilityRegistry
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
 from gearmeshing_ai.core.models.domain.policy import PolicyConfig
-from gearmeshing_ai.agent_core.repos.models import ToolInvocationRow
+from gearmeshing_ai.core.database.entities.tool_invocations import ToolInvocation as ToolInvocationRow
 from gearmeshing_ai.core.database import (
     create_all,
     create_engine,
