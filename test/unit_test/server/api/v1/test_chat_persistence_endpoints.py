@@ -15,12 +15,12 @@ from datetime import datetime
 from gearmeshing_ai.core.database.entities.chat_sessions import (
     ChatMessage,
     ChatSession,
-    MessageRole,
 )
-from gearmeshing_ai.core.database.schemas.chat_sessions import (
+from gearmeshing_ai.core.models.io.chat_sessions import (
     ChatMessageCreate,
     ChatSessionCreate,
     ChatSessionUpdate,
+    MessageRole,
 )
 
 

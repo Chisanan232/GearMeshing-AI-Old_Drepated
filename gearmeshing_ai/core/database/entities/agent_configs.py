@@ -4,6 +4,10 @@ Agent configuration entity models.
 This module contains the database entity for agent configuration management.
 Agent configurations define roles, model settings, capabilities, and tool
 access for different agent types.
+
+Entities:
+- AgentConfigBase: Base fields for agent configuration
+- AgentConfig: Persistent agent configuration in database
 """
 
 from __future__ import annotations

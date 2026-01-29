@@ -4,13 +4,19 @@ Chat session entity models.
 This module contains the database entities for chat session and message
 persistence. Chat sessions represent conversations with AI agents,
 including message history and metadata.
+
+Entities:
+- MessageRole: Enum for message sender roles
+- ChatSessionBase: Base fields for chat session
+- ChatSession: Persistent chat session in database
+- ChatMessage: Individual message within a chat session
 """
 
 from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import Optional
 
 from sqlmodel import Field, Relationship, SQLModel
 

@@ -21,7 +21,7 @@ from gearmeshing_ai.core.database.entities.chat_sessions import (
     ChatMessage,
     ChatSession,
 )
-from gearmeshing_ai.core.database.schemas.chat_sessions import (
+from gearmeshing_ai.core.models.io.chat_sessions import (
     ChatHistoryRead,
     ChatMessageCreate,
     ChatMessageRead,
