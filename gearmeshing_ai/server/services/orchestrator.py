@@ -22,7 +22,7 @@ from gearmeshing_ai.core.models.domain import (
 )
 from gearmeshing_ai.agent_core.service import AgentService, AgentServiceDeps
 from gearmeshing_ai.core.logging_config import get_logger
-from gearmeshing_ai.server.core.database import async_session_maker, checkpointer_pool
+from gearmeshing_ai.core.database import async_session_maker, checkpointer_pool
 from gearmeshing_ai.server.schemas import (
     ApprovalRequestData,
     ApprovalResolutionData,

@@ -32,7 +32,7 @@ def agent_configs_setup(compose_stack):
     engine = create_engine(sync_db_url)
 
     # Import the SQLModel tables
-    from gearmeshing_ai.server.models.agent_config import AgentConfig
+    from gearmeshing_ai.core.database.entities.agent_configs import AgentConfig
 
     # Insert test agent configurations
     with Session(engine) as session:

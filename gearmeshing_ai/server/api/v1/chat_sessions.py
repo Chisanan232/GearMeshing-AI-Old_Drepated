@@ -16,13 +16,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from gearmeshing_ai.server.core.database import get_session
-from gearmeshing_ai.server.models.chat_session import (
-    ChatHistoryRead,
+from gearmeshing_ai.core.database import get_session
+from gearmeshing_ai.core.database.entities.chat_sessions import (
     ChatMessage,
+    ChatSession,
+)
+from gearmeshing_ai.core.database.schemas.chat_sessions import (
+    ChatHistoryRead,
     ChatMessageCreate,
     ChatMessageRead,
-    ChatSession,
     ChatSessionCreate,
     ChatSessionRead,
     ChatSessionUpdate,

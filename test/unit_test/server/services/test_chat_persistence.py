@@ -18,7 +18,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from gearmeshing_ai.server.models.chat_session import (
+from gearmeshing_ai.core.database.entities.chat_sessions import (
     ChatSession,
     MessageRole,
 )

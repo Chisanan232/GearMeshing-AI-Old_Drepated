@@ -12,13 +12,15 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from gearmeshing_ai.server.models.chat_session import (
+from gearmeshing_ai.core.database.entities.chat_sessions import (
     ChatMessage,
-    ChatMessageCreate,
     ChatSession,
+    MessageRole,
+)
+from gearmeshing_ai.core.database.schemas.chat_sessions import (
+    ChatMessageCreate,
     ChatSessionCreate,
     ChatSessionUpdate,
-    MessageRole,
 )
 
 

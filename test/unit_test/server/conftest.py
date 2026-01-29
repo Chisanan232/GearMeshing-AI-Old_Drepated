@@ -61,14 +61,15 @@ async def test_engine():
         poolclass=StaticPool,
     )
 
-    # Import server models to register them with SQLModel
-    import gearmeshing_ai.server.models.agent_config  # noqa: F401
+    # Import core database entities to register them with SQLModel
+    import gearmeshing_ai.core.database.entities.agent_configs  # noqa: F401
+    import gearmeshing_ai.core.database.entities.chat_sessions  # noqa: F401
 
-    # Create tables using both agent_core and server models
+    # Create tables using both agent_core and core database entities
     async with engine.begin() as conn:
         # Create agent_core tables
         await conn.run_sync(AgentCoreBase.metadata.create_all)
-        # Create server model tables
+        # Create core database entity tables
         await conn.run_sync(SQLModel.metadata.create_all)
 
     yield engine
@@ -89,7 +90,7 @@ async def session_fixture(test_engine) -> AsyncGenerator[AsyncSession, None]:
 async def client_fixture(test_engine, session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """Create an async HTTP client with mocked lifespan and overridden dependencies."""
     from gearmeshing_ai.core.database.repositories.bundle import build_sql_repos_from_session
-    from gearmeshing_ai.server.core.database import get_session
+    from gearmeshing_ai.core.database import get_session
     from gearmeshing_ai.server.main import app
     from gearmeshing_ai.server.services.orchestrator import get_orchestrator
 
@@ -131,7 +132,7 @@ async def client_with_mocked_runs_fixture(test_engine, session: AsyncSession) ->
     """
     from gearmeshing_ai.core.database.repositories.bundle import build_sql_repos_from_session
     from gearmeshing_ai.core.models.domain import AgentRun, AgentRunStatus
-    from gearmeshing_ai.server.core.database import get_session
+    from gearmeshing_ai.core.database import get_session
     from gearmeshing_ai.server.main import app
     from gearmeshing_ai.server.services.orchestrator import get_orchestrator
 

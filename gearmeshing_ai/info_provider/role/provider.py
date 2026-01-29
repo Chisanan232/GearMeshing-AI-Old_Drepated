@@ -460,4 +460,4 @@ def get_database_role_provider(session: Session) -> DatabaseRoleProvider:
 # ============================================================================
 
 # Import AgentConfig for database provider
-from gearmeshing_ai.server.models.agent_config import AgentConfig
+from gearmeshing_ai.core.database.entities.agent_configs import AgentConfig

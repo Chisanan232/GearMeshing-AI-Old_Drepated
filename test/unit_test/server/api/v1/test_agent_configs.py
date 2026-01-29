@@ -18,8 +18,8 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from gearmeshing_ai.server.api.v1 import agent_configs
-from gearmeshing_ai.server.models.agent_config import (
-    AgentConfig,
+from gearmeshing_ai.core.database.entities.agent_configs import AgentConfig
+from gearmeshing_ai.core.database.schemas.agent_configs import (
     AgentConfigCreate,
     AgentConfigUpdate,
 )

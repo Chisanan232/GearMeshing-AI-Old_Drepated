@@ -19,10 +19,12 @@ See TestDirectFunctionCalls class documentation for why direct calls are necessa
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from gearmeshing_ai.server.models.chat_session import (
+from gearmeshing_ai.core.database.entities.chat_sessions import (
     ChatMessage,
-    ChatMessageCreate,
     ChatSession,
+)
+from gearmeshing_ai.core.database.schemas.chat_sessions import (
+    ChatMessageCreate,
     ChatSessionCreate,
     ChatSessionUpdate,
 )

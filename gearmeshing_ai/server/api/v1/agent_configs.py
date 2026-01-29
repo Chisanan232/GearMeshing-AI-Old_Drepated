@@ -14,9 +14,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from gearmeshing_ai.core.logging_config import get_logger
-from gearmeshing_ai.server.core.database import get_session
-from gearmeshing_ai.server.models.agent_config import (
-    AgentConfig,
+from gearmeshing_ai.core.database import get_session
+from gearmeshing_ai.core.database.entities.agent_configs import AgentConfig
+from gearmeshing_ai.core.database.schemas.agent_configs import (
     AgentConfigCreate,
     AgentConfigRead,
     AgentConfigUpdate,
