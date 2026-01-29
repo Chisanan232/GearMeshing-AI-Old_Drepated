@@ -13,7 +13,7 @@ from gearmeshing_ai.core.database import (
     create_engine,
     create_sessionmaker,
 )
-from gearmeshing_ai.agent_core.repos.sql import build_sql_repos
+from gearmeshing_ai.core.database.repositories.bundle import build_sql_repos
 from gearmeshing_ai.agent_core.runtime import EngineDeps
 from gearmeshing_ai.core.models.domain import AgentRun
 from gearmeshing_ai.agent_core.service import AgentService, AgentServiceDeps
@@ -28,7 +28,7 @@ async def test_full_agent_run_with_real_persistence() -> None:
         engine = create_engine(db_url)
         await create_all(engine)
         session_factory = create_sessionmaker(engine)
-        repos = build_sql_repos(session_factory=session_factory)
+        repos = await build_sql_repos(session_factory=session_factory)
 
         async with AsyncConnectionPool(conninfo=pool_url, min_size=1, max_size=1, kwargs={"autocommit": True}) as pool:
             checkpointer = AsyncPostgresSaver(pool)

@@ -24,7 +24,7 @@ from gearmeshing_ai.core.database import (
     create_engine,
     create_sessionmaker,
 )
-from gearmeshing_ai.agent_core.repos.sql import build_sql_repos
+from gearmeshing_ai.core.database.repositories.bundle import build_sql_repos
 from gearmeshing_ai.core.models.domain import (
     AgentEvent,
     AgentEventType,
@@ -59,9 +59,9 @@ def session_factory(engine: AsyncEngine):
     return create_sessionmaker(engine)
 
 
-@pytest.fixture
-def repos(session_factory):
-    return build_sql_repos(session_factory=session_factory)
+@pytest_asyncio.fixture
+async def repos(session_factory):
+    return await build_sql_repos(session_factory=session_factory)
 
 
 @pytest_asyncio.fixture

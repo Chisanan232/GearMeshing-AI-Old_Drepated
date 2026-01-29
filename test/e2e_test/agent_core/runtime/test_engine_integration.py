@@ -22,7 +22,7 @@ from gearmeshing_ai.core.database import (
     create_engine,
     create_sessionmaker,
 )
-from gearmeshing_ai.agent_core.repos.sql import build_sql_repos
+from gearmeshing_ai.core.database.repositories.bundle import build_sql_repos
 from gearmeshing_ai.agent_core.runtime import EngineDeps
 from gearmeshing_ai.agent_core.runtime.engine import AgentEngine
 from gearmeshing_ai.core.models.domain import (
@@ -48,7 +48,7 @@ async def test_engine_multi_step_happy_path_executes_all_steps_and_finishes() ->
         engine = create_engine(db_url)
         await create_all(engine)
         session_factory = create_sessionmaker(engine)
-        repos = build_sql_repos(session_factory=session_factory)
+        repos = await build_sql_repos(session_factory=session_factory)
 
         async with AsyncConnectionPool(conninfo=pool_url, min_size=1, max_size=1, kwargs={"autocommit": True}) as pool:
             checkpointer = AsyncPostgresSaver(pool)
@@ -113,7 +113,7 @@ async def test_engine_empty_plan_happy_path_finishes_immediately() -> None:
         engine = create_engine(db_url)
         await create_all(engine)
         session_factory = create_sessionmaker(engine)
-        repos = build_sql_repos(session_factory=session_factory)
+        repos = await build_sql_repos(session_factory=session_factory)
 
         async with AsyncConnectionPool(conninfo=pool_url, min_size=1, max_size=1, kwargs={"autocommit": True}) as pool:
             checkpointer = AsyncPostgresSaver(pool)
@@ -161,7 +161,7 @@ async def test_engine_blocked_capability_results_in_failed_run() -> None:
         engine = create_engine(db_url)
         await create_all(engine)
         session_factory = create_sessionmaker(engine)
-        repos = build_sql_repos(session_factory=session_factory)
+        repos = await build_sql_repos(session_factory=session_factory)
 
         async with AsyncConnectionPool(conninfo=pool_url, min_size=1, max_size=1, kwargs={"autocommit": True}) as pool:
             checkpointer = AsyncPostgresSaver(pool)
@@ -206,7 +206,7 @@ async def test_engine_too_large_args_results_in_failed_run() -> None:
         engine = create_engine(db_url)
         await create_all(engine)
         session_factory = create_sessionmaker(engine)
-        repos = build_sql_repos(session_factory=session_factory)
+        repos = await build_sql_repos(session_factory=session_factory)
 
         async with AsyncConnectionPool(conninfo=pool_url, min_size=1, max_size=1, kwargs={"autocommit": True}) as pool:
             checkpointer = AsyncPostgresSaver(pool)

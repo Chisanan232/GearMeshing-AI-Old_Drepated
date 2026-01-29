@@ -23,7 +23,7 @@ from gearmeshing_ai.core.database import (
     create_engine,
     create_sessionmaker,
 )
-from gearmeshing_ai.agent_core.repos.sql import build_sql_repos
+from gearmeshing_ai.core.database.repositories.bundle import build_sql_repos
 from gearmeshing_ai.agent_core.runtime import EngineDeps
 from gearmeshing_ai.agent_core.runtime.engine import AgentEngine
 from gearmeshing_ai.core.models.domain import (
@@ -67,7 +67,7 @@ async def test_eval_end_to_end_graph_happy_path_selects_and_runs_tools() -> None
         engine = create_engine(db_url)
         await create_all(engine)
         session_factory = create_sessionmaker(engine)
-        repos = build_sql_repos(session_factory=session_factory)
+        repos = await build_sql_repos(session_factory=session_factory)
 
         reg = CapabilityRegistry()
         reg.register(_DeterministicSummarize())

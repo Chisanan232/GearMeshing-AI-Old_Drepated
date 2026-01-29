@@ -88,7 +88,7 @@ async def session_fixture(test_engine) -> AsyncGenerator[AsyncSession, None]:
 @pytest_asyncio.fixture(name="client")
 async def client_fixture(test_engine, session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """Create an async HTTP client with mocked lifespan and overridden dependencies."""
-    from gearmeshing_ai.agent_core.repos.sql import build_sql_repos
+    from gearmeshing_ai.core.database.repositories.bundle import build_sql_repos_from_session
     from gearmeshing_ai.server.core.database import get_session
     from gearmeshing_ai.server.main import app
     from gearmeshing_ai.server.services.orchestrator import get_orchestrator
@@ -104,8 +104,8 @@ async def client_fixture(test_engine, session: AsyncSession) -> AsyncGenerator[A
         from gearmeshing_ai.server.services.orchestrator import OrchestratorService
 
         orchestrator = OrchestratorService()
-        # Replace the repos with ones using the test session factory
-        orchestrator.repos = build_sql_repos(session_factory=test_async_session_maker)
+        # Replace the repos with ones using the test session
+        orchestrator.repos = build_sql_repos_from_session(session=session)
         return orchestrator
 
     app.dependency_overrides[get_session] = get_session_override
@@ -129,7 +129,7 @@ async def client_with_mocked_runs_fixture(test_engine, session: AsyncSession) ->
     This fixture prevents actual agent execution by mocking the orchestrator's
     create_run, get_run, list_runs, and cancel_run methods.
     """
-    from gearmeshing_ai.agent_core.repos.sql import build_sql_repos
+    from gearmeshing_ai.core.database.repositories.bundle import build_sql_repos_from_session
     from gearmeshing_ai.core.models.domain import AgentRun, AgentRunStatus
     from gearmeshing_ai.server.core.database import get_session
     from gearmeshing_ai.server.main import app
@@ -150,7 +150,7 @@ async def client_with_mocked_runs_fixture(test_engine, session: AsyncSession) ->
         from gearmeshing_ai.server.services.orchestrator import OrchestratorService
 
         orchestrator = OrchestratorService()
-        orchestrator.repos = build_sql_repos(session_factory=test_async_session_maker)
+        orchestrator.repos = build_sql_repos_from_session(session=session)
 
         # Mock create_run to avoid actual execution
         async def mock_create_run(run: AgentRun) -> AgentRun:

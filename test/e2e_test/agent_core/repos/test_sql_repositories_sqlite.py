@@ -32,7 +32,7 @@ from gearmeshing_ai.core.database import (
     create_engine,
     create_sessionmaker,
 )
-from gearmeshing_ai.agent_core.repos.sql import (
+from gearmeshing_ai.core.database.repositories.bundle import (
     SqlRepoBundle,
     build_sql_repos,
 )
@@ -65,7 +65,7 @@ async def db_engine():
 async def repos(db_engine) -> SqlRepoBundle:
     """Create repository bundle with in-memory database."""
     session_factory = create_sessionmaker(db_engine)
-    return build_sql_repos(session_factory=session_factory)
+    return await build_sql_repos(session_factory=session_factory)
 
 
 class TestRunRepository:
