@@ -99,5 +99,47 @@ class AgentConfig(AgentConfigBase, table=True):
         """Set autonomy profiles from a list."""
         self.autonomy_profiles = json.dumps(autonomy_profiles)
     
+    def to_model_config(self) -> ModelConfig:
+        """Convert AgentConfig to ModelConfig domain model.
+
+        Returns:
+            ModelConfig domain model with provider and parameters.
+        """
+        from gearmeshing_ai.core.models.config import ModelConfig
+
+        return ModelConfig(
+            provider=self.model_provider,
+            model=self.model_name,
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+            top_p=self.top_p,
+        )
+
+    def to_role_config(self) -> RoleConfig:
+        """Convert AgentConfig to RoleConfig domain model.
+
+        Returns:
+            RoleConfig domain model with complete role settings.
+        """
+        from gearmeshing_ai.core.models.config import RoleConfig
+
+        capabilities: List[str] = self.get_capabilities_list()
+        tools: List[str] = self.get_tools_list()
+        autonomy_profiles: List[str] = self.get_autonomy_profiles_list()
+
+        model_config: ModelConfig = self.to_model_config()
+
+        return RoleConfig(
+            role_name=self.role_name,
+            display_name=self.display_name,
+            description=self.description,
+            system_prompt_key=self.system_prompt_key,
+            model=model_config,
+            capabilities=capabilities,
+            tools=tools,
+            autonomy_profiles=autonomy_profiles,
+            done_when=self.done_when,
+        )
+
     def __repr__(self) -> str:
         return f"AgentConfig(role={self.role_name}, provider={self.model_provider}, model={self.model_name})"
