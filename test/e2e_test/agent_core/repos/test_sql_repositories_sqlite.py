@@ -26,15 +26,16 @@ def patched_process(self, type_, **kw):
 
 SQLiteTypeCompiler.process = patched_process  # type: ignore[method-assign]
 
-from gearmeshing_ai.agent_core.policy.models import PolicyConfig
-from gearmeshing_ai.agent_core.repos.sql import (
-    SqlRepoBundle,
-    build_sql_repos,
+from gearmeshing_ai.core.database import (
     create_all,
     create_engine,
     create_sessionmaker,
 )
-from gearmeshing_ai.agent_core.schemas.domain import (
+from gearmeshing_ai.core.database.repositories.bundle import (
+    SqlRepoBundle,
+    build_sql_repos,
+)
+from gearmeshing_ai.core.models.domain import (
     AgentEvent,
     AgentEventType,
     AgentRun,
@@ -47,6 +48,7 @@ from gearmeshing_ai.agent_core.schemas.domain import (
     ToolInvocation,
     UsageLedgerEntry,
 )
+from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 from gearmeshing_ai.info_provider import CapabilityName
 
 
@@ -63,7 +65,7 @@ async def db_engine():
 async def repos(db_engine) -> SqlRepoBundle:
     """Create repository bundle with in-memory database."""
     session_factory = create_sessionmaker(db_engine)
-    return build_sql_repos(session_factory=session_factory)
+    return await build_sql_repos(session_factory=session_factory)
 
 
 class TestRunRepository:

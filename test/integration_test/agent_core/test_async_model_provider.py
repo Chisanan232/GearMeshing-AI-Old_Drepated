@@ -20,8 +20,8 @@ class TestAsyncModelProvider:
     @patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
     async def test_async_create_model_for_role(self):
         """Test async_create_model_for_role creates model successfully."""
-        with patch("gearmeshing_ai.agent_core.repos.sql.create_engine") as mock_engine:
-            with patch("gearmeshing_ai.server.core.database.create_sessionmaker") as mock_sessionmaker:
+        with patch("gearmeshing_ai.core.database.create_engine") as mock_engine:
+            with patch("gearmeshing_ai.core.database.create_sessionmaker") as mock_sessionmaker:
                 # Mock engine and session
                 mock_engine_instance = MagicMock()
                 mock_engine.return_value = mock_engine_instance
@@ -53,8 +53,8 @@ class TestAsyncModelProvider:
     @patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
     async def test_async_create_model_for_role_without_tenant(self):
         """Test async_create_model_for_role without tenant_id."""
-        with patch("gearmeshing_ai.agent_core.repos.sql.create_engine") as mock_engine:
-            with patch("gearmeshing_ai.server.core.database.create_sessionmaker") as mock_sessionmaker:
+        with patch("gearmeshing_ai.core.database.create_engine") as mock_engine:
+            with patch("gearmeshing_ai.core.database.create_sessionmaker") as mock_sessionmaker:
                 mock_engine_instance = MagicMock()
                 mock_engine.return_value = mock_engine_instance
 
@@ -79,8 +79,8 @@ class TestAsyncModelProvider:
     @pytest.mark.asyncio
     async def test_async_create_model_for_role_missing_config(self):
         """Test async_create_model_for_role raises when config not found."""
-        with patch("gearmeshing_ai.agent_core.repos.sql.create_engine") as mock_engine:
-            with patch("gearmeshing_ai.server.core.database.create_sessionmaker") as mock_sessionmaker:
+        with patch("gearmeshing_ai.core.database.create_engine") as mock_engine:
+            with patch("gearmeshing_ai.core.database.create_sessionmaker") as mock_sessionmaker:
                 mock_engine_instance = MagicMock()
                 mock_engine.return_value = mock_engine_instance
 
@@ -103,8 +103,8 @@ class TestAsyncModelProvider:
     @patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
     async def test_async_get_model_provider(self):
         """Test async_get_model_provider alias function."""
-        with patch("gearmeshing_ai.agent_core.repos.sql.create_engine") as mock_engine:
-            with patch("gearmeshing_ai.server.core.database.create_sessionmaker") as mock_sessionmaker:
+        with patch("gearmeshing_ai.core.database.create_engine") as mock_engine:
+            with patch("gearmeshing_ai.core.database.create_sessionmaker") as mock_sessionmaker:
                 mock_engine_instance = MagicMock()
                 mock_engine.return_value = mock_engine_instance
 
@@ -153,8 +153,8 @@ class TestAsyncModelProvider:
     @pytest.mark.asyncio
     async def test_async_create_model_for_role_error_propagation(self):
         """Test async_create_model_for_role propagates errors correctly."""
-        with patch("gearmeshing_ai.agent_core.repos.sql.create_engine") as mock_engine:
-            with patch("gearmeshing_ai.server.core.database.create_sessionmaker") as mock_sessionmaker:
+        with patch("gearmeshing_ai.core.database.create_engine") as mock_engine:
+            with patch("gearmeshing_ai.core.database.create_sessionmaker") as mock_sessionmaker:
                 mock_engine_instance = MagicMock()
                 mock_engine.return_value = mock_engine_instance
 

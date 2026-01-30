@@ -22,7 +22,7 @@ import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 
-from gearmeshing_ai.agent_core.schemas.domain import (
+from gearmeshing_ai.core.models.domain import (
     AgentRun,
     AgentRunStatus,
     AutonomyProfile,
@@ -380,7 +380,7 @@ class TestDirectFunctionCalls:
         - result is a list: Proves the orchestrator call was awaited
         - len(result) >= 0: Proves events were returned
         """
-        from gearmeshing_ai.agent_core.schemas.domain import AgentEvent, AgentEventType
+        from gearmeshing_ai.core.models.domain import AgentEvent, AgentEventType
         from gearmeshing_ai.server.api.v1 import runs
 
         # Mock orchestrator

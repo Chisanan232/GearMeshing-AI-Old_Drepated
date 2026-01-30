@@ -16,7 +16,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from gearmeshing_ai.agent_core.schemas.domain import AgentEvent
+from gearmeshing_ai.core.models.domain import AgentEvent
 from gearmeshing_ai.server.schemas import (
     ApprovalRequestData,
     ApprovalResolutionData,
@@ -32,7 +32,7 @@ from gearmeshing_ai.server.services.orchestrator import OrchestratorService
 def mock_orchestrator():
     """Create a mock orchestrator with mocked dependencies."""
     with (
-        patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"),
+        patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos_from_session"),
         patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"),
         patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"),
         patch("gearmeshing_ai.server.services.orchestrator.AgentService"),
@@ -530,7 +530,7 @@ class TestOrchestratorStreamEventsCallbackIntegration:
     async def test_stream_events_invokes_callback_with_operation_event(self):
         """Test stream_events actually invokes callback for operation events (lines 200-210)."""
         with (
-            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"),
+            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos_from_session"),
             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"),
             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"),
             patch("gearmeshing_ai.server.services.orchestrator.AgentService"),
@@ -614,7 +614,7 @@ class TestOrchestratorStreamEventsCallbackIntegration:
     async def test_stream_events_callback_receives_formatted_display_text(self):
         """Test callback receives formatted display_text from _format_event_for_chat (line 201)."""
         with (
-            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"),
+            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos_from_session"),
             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"),
             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"),
             patch("gearmeshing_ai.server.services.orchestrator.AgentService"),
@@ -688,7 +688,7 @@ class TestOrchestratorStreamEventsCallbackIntegration:
     async def test_stream_events_skips_callback_when_display_text_empty(self):
         """Test callback is not invoked when display_text is empty (line 202)."""
         with (
-            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"),
+            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos_from_session"),
             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"),
             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"),
             patch("gearmeshing_ai.server.services.orchestrator.AgentService"),
@@ -754,7 +754,7 @@ class TestOrchestratorStreamEventsCallbackIntegration:
     async def test_stream_events_callback_exception_handled_gracefully(self):
         """Test callback exception is caught and logged (lines 203-210)."""
         with (
-            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"),
+            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos_from_session"),
             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"),
             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"),
             patch("gearmeshing_ai.server.services.orchestrator.AgentService"),
@@ -824,7 +824,7 @@ class TestOrchestratorStreamEventsCallbackIntegration:
     async def test_stream_events_callback_receives_correct_parameters(self):
         """Test callback receives correct run_id, display_text, and event_type (lines 204-207)."""
         with (
-            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"),
+            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos_from_session"),
             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"),
             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"),
             patch("gearmeshing_ai.server.services.orchestrator.AgentService"),
@@ -900,7 +900,7 @@ class TestOrchestratorStreamEventsCallbackIntegration:
     async def test_stream_events_with_none_callback_parameter(self):
         """Test stream_events handles None callback gracefully (line 200)."""
         with (
-            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"),
+            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos_from_session"),
             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"),
             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"),
             patch("gearmeshing_ai.server.services.orchestrator.AgentService"),

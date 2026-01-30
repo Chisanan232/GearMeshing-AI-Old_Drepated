@@ -3,9 +3,9 @@ from __future__ import annotations
 import pytest
 from langgraph.checkpoint.memory import MemorySaver
 
-from gearmeshing_ai.agent_core.policy.models import PolicyConfig
 from gearmeshing_ai.agent_core.policy.provider import StaticPolicyProvider
-from gearmeshing_ai.agent_core.schemas.domain import AgentRun, AutonomyProfile
+from gearmeshing_ai.core.models.domain import AgentRun, AutonomyProfile
+from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 
 
 @pytest.mark.asyncio

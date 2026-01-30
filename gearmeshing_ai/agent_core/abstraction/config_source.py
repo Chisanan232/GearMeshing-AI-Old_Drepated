@@ -11,7 +11,7 @@ from typing import Any, Dict, Optional
 from pydantic import BaseModel, Field
 
 from gearmeshing_ai.agent_core.abstraction.base import AIAgentConfig
-from gearmeshing_ai.agent_core.schemas.config import ModelConfig
+from gearmeshing_ai.core.models.config import ModelConfig
 
 
 class AgentConfigSource(BaseModel):

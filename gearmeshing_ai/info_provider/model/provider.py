@@ -23,7 +23,7 @@ import time
 from typing import Dict, Optional
 
 # Import ModelConfig for type hints
-from gearmeshing_ai.agent_core.schemas.config import ModelConfig
+from gearmeshing_ai.core.models.config import ModelConfig
 
 from .base import ModelProvider
 
@@ -145,7 +145,7 @@ class DatabaseModelProvider(ModelProvider):
         """
         with self._db_session_factory() as session:
             # Import here to avoid circular imports
-            from gearmeshing_ai.server.models.agent_config import AgentConfig
+            from gearmeshing_ai.core.database.entities.agent_configs import AgentConfig
 
             # Query for active configuration
             query = session.query(AgentConfig).filter(AgentConfig.role_name == name, AgentConfig.is_active == True)

@@ -15,7 +15,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from gearmeshing_ai.agent_core.schemas.domain import ApprovalDecision
+from gearmeshing_ai.core.models.domain import ApprovalDecision
 from gearmeshing_ai.server.schemas import ApprovalSubmit
 
 pytestmark = pytest.mark.asyncio

@@ -22,7 +22,6 @@ if TYPE_CHECKING:
     )
 
 from gearmeshing_ai.agent_core.abstraction import (
-    ModelConfig,
     ModelInstance,
     ModelProvider,
     ModelProviderFactory,
@@ -30,6 +29,7 @@ from gearmeshing_ai.agent_core.abstraction import (
 from gearmeshing_ai.agent_core.abstraction.adapters import (
     PydanticAIModelProviderFactory,
 )
+from gearmeshing_ai.core.models.config import ModelConfig
 
 logger = logging.getLogger(__name__)
 
@@ -221,9 +221,7 @@ class UnifiedModelProvider:
         Raises:
             ValueError: If role is not found in database configuration.
         """
-        from gearmeshing_ai.agent_core.schemas.config import (
-            ModelConfig as DbModelConfig,
-        )
+        from gearmeshing_ai.core.models.config import ModelConfig as DbModelConfig
 
         db_provider = self._get_db_provider()
         model_config: DbModelConfig = db_provider.get(role, tenant_id)

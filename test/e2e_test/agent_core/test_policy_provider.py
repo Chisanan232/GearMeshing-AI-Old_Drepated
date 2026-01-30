@@ -9,26 +9,26 @@ from langgraph.checkpoint.memory import MemorySaver
 
 from gearmeshing_ai.agent_core.factory import build_engine
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
-from gearmeshing_ai.agent_core.policy.models import (
-    ApprovalPolicy,
-    PolicyConfig,
-    SafetyPolicy,
-    ToolPolicy,
-)
 from gearmeshing_ai.agent_core.policy.provider import (
     DatabasePolicyProvider,
     StaticPolicyProvider,
     async_get_policy_config,
 )
-from gearmeshing_ai.agent_core.repos.interfaces import PolicyRepository
 from gearmeshing_ai.agent_core.runtime.models import EngineDeps
-from gearmeshing_ai.agent_core.schemas.domain import (
+from gearmeshing_ai.agent_core.service import AgentService, AgentServiceDeps
+from gearmeshing_ai.core.database.repositories.policies import PolicyRepository
+from gearmeshing_ai.core.models.domain import (
     AgentRun,
     AgentRunStatus,
     AutonomyProfile,
     RiskLevel,
 )
-from gearmeshing_ai.agent_core.service import AgentService, AgentServiceDeps
+from gearmeshing_ai.core.models.domain.policy import (
+    ApprovalPolicy,
+    PolicyConfig,
+    SafetyPolicy,
+    ToolPolicy,
+)
 from gearmeshing_ai.info_provider import CapabilityName
 
 

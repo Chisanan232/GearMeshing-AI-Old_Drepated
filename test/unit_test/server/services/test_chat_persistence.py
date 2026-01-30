@@ -18,7 +18,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from gearmeshing_ai.server.models.chat_session import (
+from gearmeshing_ai.core.database.entities.chat_sessions import (
     ChatSession,
     MessageRole,
 )
@@ -167,7 +167,7 @@ class TestOrchestratorEventFormatting:
         from gearmeshing_ai.server.services.orchestrator import OrchestratorService
 
         with (
-            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"),
+            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos_from_session"),
             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"),
             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"),
             patch("gearmeshing_ai.server.services.orchestrator.AgentService"),
@@ -386,7 +386,7 @@ class TestStreamEventsWithChatPersistence:
         from gearmeshing_ai.server.services.orchestrator import OrchestratorService
 
         with (
-            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"),
+            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos_from_session"),
             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"),
             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"),
             patch("gearmeshing_ai.server.services.orchestrator.AgentService"),
@@ -441,7 +441,7 @@ class TestStreamEventsWithChatPersistence:
         from gearmeshing_ai.server.services.orchestrator import OrchestratorService
 
         with (
-            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"),
+            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos_from_session"),
             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"),
             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"),
             patch("gearmeshing_ai.server.services.orchestrator.AgentService"),
@@ -490,7 +490,7 @@ class TestStreamEventsWithChatPersistence:
         from gearmeshing_ai.server.services.orchestrator import OrchestratorService
 
         with (
-            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos"),
+            patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos_from_session"),
             patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver"),
             patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider"),
             patch("gearmeshing_ai.server.services.orchestrator.AgentService"),

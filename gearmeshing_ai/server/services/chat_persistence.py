@@ -14,7 +14,7 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from gearmeshing_ai.server.models.chat_session import (
+from gearmeshing_ai.core.database.entities.chat_sessions import (
     ChatMessage,
     ChatSession,
     MessageRole,

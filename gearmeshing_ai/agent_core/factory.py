@@ -10,6 +10,8 @@ allowing advanced deployments to provide their own registry, policy
 configuration, and dependency bundles.
 """
 
+from gearmeshing_ai.core.models.domain import AgentRun
+from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 from gearmeshing_ai.info_provider import AgentRole, load_role_provider
 
 from .agent_registry import AgentRegistry
@@ -25,11 +27,9 @@ from .capabilities.builtin import (
 )
 from .capabilities.registry import CapabilityRegistry
 from .policy.global_policy import GlobalPolicy
-from .policy.models import PolicyConfig
 from .policy.provider import PolicyProvider
 from .runtime import EngineDeps
 from .runtime.engine import AgentEngine
-from .schemas.domain import AgentRun
 from .service import AgentService, AgentServiceDeps
 
 

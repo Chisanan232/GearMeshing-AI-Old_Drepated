@@ -22,7 +22,7 @@ TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 @pytest.fixture(scope="function")
 def mock_settings():
     """Mock settings with test database URL."""
-    with patch("gearmeshing_ai.server.core.database.settings") as mock:
+    with patch("gearmeshing_ai.server.core.config.settings") as mock:
         mock.database_url = TEST_DATABASE_URL
         mock.enable_database = True
         yield mock
@@ -39,7 +39,9 @@ def mock_settings_no_db():
 @pytest.fixture(scope="function")
 async def test_engine_fixture():
     """Create a test database engine for lifespan tests."""
-    from gearmeshing_ai.agent_core.repos.models import Base
+    from sqlmodel import SQLModel
+
+    from gearmeshing_ai.core.database.base import Base
 
     engine = create_async_engine(
         TEST_DATABASE_URL,
@@ -47,9 +49,21 @@ async def test_engine_fixture():
         poolclass=StaticPool,
     )
 
+    # Import core database entities to register them with SQLModel
+    import gearmeshing_ai.core.database.entities.agent_configs  # noqa: F401
+    import gearmeshing_ai.core.database.entities.agent_events  # noqa: F401
+    import gearmeshing_ai.core.database.entities.agent_runs  # noqa: F401
+    import gearmeshing_ai.core.database.entities.approvals  # noqa: F401
+    import gearmeshing_ai.core.database.entities.chat_sessions  # noqa: F401
+    import gearmeshing_ai.core.database.entities.checkpoints  # noqa: F401
+    import gearmeshing_ai.core.database.entities.policies  # noqa: F401
+    import gearmeshing_ai.core.database.entities.tool_invocations  # noqa: F401
+    import gearmeshing_ai.core.database.entities.usage_ledger  # noqa: F401
+
     # Create tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(SQLModel.metadata.create_all)
 
     yield engine
 
@@ -265,10 +279,10 @@ class TestDatabaseInitialization:
 
     async def test_init_db_with_real_engine(self, test_engine_fixture):
         """Test init_db with a real async engine."""
-        from gearmeshing_ai.server.core.database import init_db
+        from gearmeshing_ai.core.database import init_db
 
         # Replace the global engine temporarily
-        with patch("gearmeshing_ai.server.core.database.engine", test_engine_fixture):
+        with patch("gearmeshing_ai.core.database.engine", test_engine_fixture):
             # Call init_db
             await init_db()
 
@@ -290,13 +304,13 @@ class TestDatabaseInitialization:
 
     async def test_get_session_returns_async_session(self, test_engine_fixture):
         """Test that get_session returns a valid AsyncSession."""
-        from gearmeshing_ai.server.core.database import get_session
+        from gearmeshing_ai.core.database import get_session
 
         # Create a test session factory
         async_session_maker = sessionmaker(test_engine_fixture, class_=AsyncSession, expire_on_commit=False)
 
         with patch(
-            "gearmeshing_ai.server.core.database.async_session_maker",
+            "gearmeshing_ai.core.database.async_session_maker",
             async_session_maker,
         ):
             async for session in get_session():
@@ -308,13 +322,13 @@ class TestDatabaseInitialization:
 
     async def test_engine_is_async_engine(self):
         """Test that the global engine is an AsyncEngine."""
-        from gearmeshing_ai.server.core.database import engine
+        from gearmeshing_ai.core.database import engine
 
         assert isinstance(engine, AsyncEngine)
 
     async def test_async_session_maker_is_callable(self):
         """Test that async_session_maker is callable and returns AsyncSession."""
-        from gearmeshing_ai.server.core.database import async_session_maker
+        from gearmeshing_ai.core.database import async_session_maker
 
         assert callable(async_session_maker)
 
@@ -396,12 +410,12 @@ class TestApplicationStartup:
 
     async def test_database_connection_after_startup(self, test_engine_fixture):
         """Test that database connection is available after startup."""
-        from gearmeshing_ai.server.core.database import get_session
+        from gearmeshing_ai.core.database import get_session
 
         async_session_maker = sessionmaker(test_engine_fixture, class_=AsyncSession, expire_on_commit=False)
 
         with patch(
-            "gearmeshing_ai.server.core.database.async_session_maker",
+            "gearmeshing_ai.core.database.async_session_maker",
             async_session_maker,
         ):
             async for session in get_session():

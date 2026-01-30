@@ -22,14 +22,15 @@ the engine such as risk classification, allow/deny decisions, approval gating,
 and redaction.
 """
 
-from .global_policy import GlobalPolicy
-from .models import (
+from gearmeshing_ai.core.models.domain.policy import (
     ApprovalPolicy,
     BudgetPolicy,
     PolicyConfig,
     SafetyPolicy,
     ToolPolicy,
 )
+
+from .global_policy import GlobalPolicy
 from .provider import PolicyProvider, StaticPolicyProvider
 
 __all__ = [
