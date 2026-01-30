@@ -13,5 +13,5 @@ from sqlmodel import SQLModel
 
 class Base(SQLModel):
     """Base class for all SQLModel entities."""
-    
+
     model_config = ConfigDict(arbitrary_types_allowed=True)

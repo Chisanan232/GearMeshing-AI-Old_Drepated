@@ -11,7 +11,6 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from testcontainers.postgres import PostgresContainer
 
-from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 from gearmeshing_ai.core.database import (
     create_all,
     create_engine,
@@ -34,6 +33,7 @@ from gearmeshing_ai.core.models.domain import (
     ToolInvocation,
     UsageLedgerEntry,
 )
+from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 from gearmeshing_ai.info_provider import CapabilityName
 
 

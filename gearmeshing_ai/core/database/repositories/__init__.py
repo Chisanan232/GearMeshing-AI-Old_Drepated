@@ -14,7 +14,7 @@ All repositories are built on SQLModel for:
 Modules:
 - base: BaseRepository interface and QueryBuilder utilities
 - agent_runs: Agent run repository operations
-- agent_events: Event stream repository operations  
+- agent_events: Event stream repository operations
 - tool_invocations: Tool execution repository operations
 - approvals: Approval workflow repository operations
 - policies: Policy configuration repository operations

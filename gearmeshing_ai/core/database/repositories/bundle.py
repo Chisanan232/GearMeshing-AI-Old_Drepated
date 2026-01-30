@@ -16,8 +16,8 @@ from .agent_configs import AgentConfigRepository
 from .agent_events import AgentEventRepository
 from .agent_runs import AgentRunRepository
 from .approvals import ApprovalRepository
-from .checkpoints import CheckpointRepository
 from .chat_sessions import ChatSessionRepository
+from .checkpoints import CheckpointRepository
 from .policies import PolicyRepository
 from .tool_invocations import ToolInvocationRepository
 from .usage_ledger import UsageLedgerRepository
@@ -40,10 +40,10 @@ class SqlRepoBundle:
 
 async def build_sql_repos(*, session_factory: async_sessionmaker[AsyncSession]) -> SqlRepoBundle:
     """Build a SqlRepoBundle from a session factory.
-    
+
     Args:
         session_factory: Async session factory for creating sessions
-        
+
     Returns:
         Bundle containing all repository instances
     """
@@ -58,16 +58,20 @@ async def build_sql_repos(*, session_factory: async_sessionmaker[AsyncSession]) 
             usage=UsageLedgerRepository(session),
             policies=PolicyRepository(session),
             chat_sessions=ChatSessionRepository(session),
-            agent_configs=AgentConfigRepository(session) if hasattr(session, 'bind') and 'agent_configs' in str(session.bind.url) else None,
+            agent_configs=(
+                AgentConfigRepository(session)
+                if hasattr(session, "bind") and "agent_configs" in str(session.bind.url)
+                else None
+            ),
         )
 
 
 def build_sql_repos_from_session(*, session: AsyncSession) -> SqlRepoBundle:
     """Build a SqlRepoBundle from an existing session.
-    
+
     Args:
         session: Existing async session
-        
+
     Returns:
         Bundle containing all repository instances
     """
@@ -80,5 +84,9 @@ def build_sql_repos_from_session(*, session: AsyncSession) -> SqlRepoBundle:
         usage=UsageLedgerRepository(session),
         policies=PolicyRepository(session),
         chat_sessions=ChatSessionRepository(session),
-        agent_configs=AgentConfigRepository(session) if hasattr(session, 'bind') and 'agent_configs' in str(session.bind.url) else None,
+        agent_configs=(
+            AgentConfigRepository(session)
+            if hasattr(session, "bind") and "agent_configs" in str(session.bind.url)
+            else None
+        ),
     )

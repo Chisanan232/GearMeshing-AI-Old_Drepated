@@ -27,11 +27,12 @@ the engine and does not contain policy logic itself.
 import logging
 from dataclasses import dataclass
 
-from .planning.planner import StructuredPlanner
+from gearmeshing_ai.core.models.domain import AgentRun
 from gearmeshing_ai.core.models.domain.policy import PolicyConfig
+
+from .planning.planner import StructuredPlanner
 from .policy.provider import PolicyProvider
 from .runtime import EngineDeps
-from gearmeshing_ai.core.models.domain import AgentRun
 
 logger = logging.getLogger(__name__)
 

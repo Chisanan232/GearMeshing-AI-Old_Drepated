@@ -26,7 +26,6 @@ def patched_process(self, type_, **kw):
 
 SQLiteTypeCompiler.process = patched_process  # type: ignore[method-assign]
 
-from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 from gearmeshing_ai.core.database import (
     create_all,
     create_engine,
@@ -49,6 +48,7 @@ from gearmeshing_ai.core.models.domain import (
     ToolInvocation,
     UsageLedgerEntry,
 )
+from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 from gearmeshing_ai.info_provider import CapabilityName
 
 

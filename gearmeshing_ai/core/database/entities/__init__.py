@@ -9,7 +9,7 @@ and table relationships. Each module represents either:
 
 Modules:
 - agent_runs: Agent run lifecycle and metadata
-- agent_events: Event stream for agent runs  
+- agent_events: Event stream for agent runs
 - tool_invocations: Tool execution records
 - approvals: Approval workflow management
 - policies: Tenant policy configurations

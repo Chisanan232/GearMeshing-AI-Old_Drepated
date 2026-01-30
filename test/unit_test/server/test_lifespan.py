@@ -39,8 +39,9 @@ def mock_settings_no_db():
 @pytest.fixture(scope="function")
 async def test_engine_fixture():
     """Create a test database engine for lifespan tests."""
-    from gearmeshing_ai.core.database.base import Base
     from sqlmodel import SQLModel
+
+    from gearmeshing_ai.core.database.base import Base
 
     engine = create_async_engine(
         TEST_DATABASE_URL,
@@ -50,13 +51,13 @@ async def test_engine_fixture():
 
     # Import core database entities to register them with SQLModel
     import gearmeshing_ai.core.database.entities.agent_configs  # noqa: F401
-    import gearmeshing_ai.core.database.entities.chat_sessions  # noqa: F401
-    import gearmeshing_ai.core.database.entities.agent_runs  # noqa: F401
     import gearmeshing_ai.core.database.entities.agent_events  # noqa: F401
-    import gearmeshing_ai.core.database.entities.tool_invocations  # noqa: F401
+    import gearmeshing_ai.core.database.entities.agent_runs  # noqa: F401
     import gearmeshing_ai.core.database.entities.approvals  # noqa: F401
+    import gearmeshing_ai.core.database.entities.chat_sessions  # noqa: F401
     import gearmeshing_ai.core.database.entities.checkpoints  # noqa: F401
     import gearmeshing_ai.core.database.entities.policies  # noqa: F401
+    import gearmeshing_ai.core.database.entities.tool_invocations  # noqa: F401
     import gearmeshing_ai.core.database.entities.usage_ledger  # noqa: F401
 
     # Create tables

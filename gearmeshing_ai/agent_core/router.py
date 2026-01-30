@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .agent_registry import AgentRegistry
 from gearmeshing_ai.core.models.domain import AgentRun
+
+from .agent_registry import AgentRegistry
 from .service import AgentService
 
 

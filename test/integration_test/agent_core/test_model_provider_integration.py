@@ -234,9 +234,7 @@ class TestModelProviderIntegration:
             mock_get_db.return_value = mock_db_provider
 
             # Mock database config
-            from gearmeshing_ai.core.models.config import (
-                ModelConfig as DbModelConfig,
-            )
+            from gearmeshing_ai.core.models.config import ModelConfig as DbModelConfig
 
             mock_db_config = DbModelConfig(
                 provider="openai",
@@ -291,9 +289,7 @@ class TestModelProviderIntegration:
             mock_get_db.return_value = mock_db_provider
 
             # Mock database config
-            from gearmeshing_ai.core.models.config import (
-                ModelConfig as DbModelConfig,
-            )
+            from gearmeshing_ai.core.models.config import ModelConfig as DbModelConfig
 
             mock_db_config = DbModelConfig(
                 provider="openai",

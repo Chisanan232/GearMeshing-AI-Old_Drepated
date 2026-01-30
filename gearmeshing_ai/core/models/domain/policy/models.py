@@ -6,9 +6,9 @@ from typing import Optional
 
 from pydantic import Field
 
-from gearmeshing_ai.info_provider import CapabilityName
 from gearmeshing_ai.core.models.base import BaseSchema
 from gearmeshing_ai.core.models.domain import AutonomyProfile, RiskLevel
+from gearmeshing_ai.info_provider import CapabilityName
 
 
 class ToolRiskKind(str, Enum):

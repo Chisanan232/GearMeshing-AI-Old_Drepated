@@ -17,8 +17,14 @@ The planner itself does not execute tools; it only emits structured steps that
 are later consumed by ``gearmeshing_ai.agent_core.runtime.AgentEngine``.
 """
 
+from gearmeshing_ai.core.models.domain.planning import (
+    ActionStep,
+    PlanStep,
+    ThoughtStep,
+    normalize_plan,
+)
+
 from .planner import StructuredPlanner
-from gearmeshing_ai.core.models.domain.planning import ActionStep, PlanStep, ThoughtStep, normalize_plan
 
 __all__ = [
     "ActionStep",

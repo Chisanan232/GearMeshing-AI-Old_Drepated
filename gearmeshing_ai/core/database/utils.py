@@ -15,9 +15,7 @@ Functions:
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Optional
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -35,10 +33,10 @@ def create_engine(db_url: str) -> AsyncEngine:
     The helper normalizes Postgres URLs to ensure the async driver is used.
     For example, it rewrites ``postgresql://`` and other variants to
     ``postgresql+asyncpg://``.
-    
+
     Args:
         db_url: Database connection URL
-        
+
     Returns:
         Configured AsyncEngine instance
     """
@@ -48,10 +46,10 @@ def create_engine(db_url: str) -> AsyncEngine:
 
 def create_sessionmaker(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
     """Create an ``async_sessionmaker`` with safe defaults for this project.
-    
+
     Args:
         engine: Async SQLAlchemy engine
-        
+
     Returns:
         Configured async session factory
     """
@@ -63,7 +61,7 @@ async def create_all(engine: AsyncEngine) -> None:
 
     This is mainly intended for tests and local development.
     Production should use Alembic migrations instead.
-    
+
     Args:
         engine: Async SQLAlchemy engine
     """
@@ -73,7 +71,7 @@ async def create_all(engine: AsyncEngine) -> None:
 
 def _utc_now_naive() -> datetime:
     """Get current UTC datetime as naive datetime.
-    
+
     Returns:
         Current UTC datetime without timezone info
     """

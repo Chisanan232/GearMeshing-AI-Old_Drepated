@@ -63,13 +63,13 @@ async def test_engine():
 
     # Import core database entities to register them with SQLModel
     import gearmeshing_ai.core.database.entities.agent_configs  # noqa: F401
-    import gearmeshing_ai.core.database.entities.chat_sessions  # noqa: F401
-    import gearmeshing_ai.core.database.entities.agent_runs  # noqa: F401
     import gearmeshing_ai.core.database.entities.agent_events  # noqa: F401
-    import gearmeshing_ai.core.database.entities.tool_invocations  # noqa: F401
+    import gearmeshing_ai.core.database.entities.agent_runs  # noqa: F401
     import gearmeshing_ai.core.database.entities.approvals  # noqa: F401
+    import gearmeshing_ai.core.database.entities.chat_sessions  # noqa: F401
     import gearmeshing_ai.core.database.entities.checkpoints  # noqa: F401
     import gearmeshing_ai.core.database.entities.policies  # noqa: F401
+    import gearmeshing_ai.core.database.entities.tool_invocations  # noqa: F401
     import gearmeshing_ai.core.database.entities.usage_ledger  # noqa: F401
 
     # Create tables using both agent_core and core database entities
@@ -96,8 +96,10 @@ async def session_fixture(test_engine) -> AsyncGenerator[AsyncSession, None]:
 @pytest_asyncio.fixture(name="client")
 async def client_fixture(test_engine, session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """Create an async HTTP client with mocked lifespan and overridden dependencies."""
-    from gearmeshing_ai.core.database.repositories.bundle import build_sql_repos_from_session
     from gearmeshing_ai.core.database import get_session
+    from gearmeshing_ai.core.database.repositories.bundle import (
+        build_sql_repos_from_session,
+    )
     from gearmeshing_ai.server.main import app
     from gearmeshing_ai.server.services.orchestrator import get_orchestrator
 
@@ -137,9 +139,11 @@ async def client_with_mocked_runs_fixture(test_engine, session: AsyncSession) ->
     This fixture prevents actual agent execution by mocking the orchestrator's
     create_run, get_run, list_runs, and cancel_run methods.
     """
-    from gearmeshing_ai.core.database.repositories.bundle import build_sql_repos_from_session
-    from gearmeshing_ai.core.models.domain import AgentRun, AgentRunStatus
     from gearmeshing_ai.core.database import get_session
+    from gearmeshing_ai.core.database.repositories.bundle import (
+        build_sql_repos_from_session,
+    )
+    from gearmeshing_ai.core.models.domain import AgentRun, AgentRunStatus
     from gearmeshing_ai.server.main import app
     from gearmeshing_ai.server.services.orchestrator import get_orchestrator
 

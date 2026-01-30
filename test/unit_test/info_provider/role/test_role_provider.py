@@ -32,7 +32,6 @@ from gearmeshing_ai.info_provider.role.provider import (
     get_hardcoded_role_provider,
     get_role_spec,
 )
-from gearmeshing_ai.core.models.config import ModelConfig, RoleConfig
 
 
 class TestStaticAgentRoleProvider:

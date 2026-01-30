@@ -9,7 +9,13 @@ from uuid import uuid4
 from pydantic import Field
 
 from ..base import BaseSchema
-from .enums import AgentEventType, AgentRunStatus, ApprovalDecision, AutonomyProfile, RiskLevel
+from .enums import (
+    AgentEventType,
+    AgentRunStatus,
+    ApprovalDecision,
+    AutonomyProfile,
+    RiskLevel,
+)
 
 if TYPE_CHECKING:
     from gearmeshing_ai.info_provider import CapabilityName

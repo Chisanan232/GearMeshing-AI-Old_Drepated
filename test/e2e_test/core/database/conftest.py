@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 import time
 from pathlib import Path
+from test.settings import test_settings
 from typing import Generator
 
 import pytest
@@ -18,7 +19,6 @@ from sqlmodel import Session
 from testcontainers.compose import DockerCompose
 
 from gearmeshing_ai.core.database.base import Base
-from test.settings import test_settings
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
@@ -42,11 +42,13 @@ def _compose_env():
     try:
         yield
     finally:
-        for k in list({
-            "DATABASE__POSTGRES__DB",
-            "DATABASE__POSTGRES__USER", 
-            "DATABASE__POSTGRES__PASSWORD",
-        }):
+        for k in list(
+            {
+                "DATABASE__POSTGRES__DB",
+                "DATABASE__POSTGRES__USER",
+                "DATABASE__POSTGRES__PASSWORD",
+            }
+        ):
             if k in prev:
                 os.environ[k] = prev[k]
             else:
@@ -80,10 +82,10 @@ def database_url(compose_stack) -> str:
 def postgres_engine(database_url: str) -> Generator:
     """Create PostgreSQL engine for testing."""
     engine = create_engine(database_url, echo=False)
-    
+
     # Create all tables
     Base.metadata.create_all(engine)
-    
+
     try:
         yield engine
     finally:
@@ -100,7 +102,7 @@ def postgres_session(postgres_engine) -> Generator[Session, None, None]:
         class_=Session,
         expire_on_commit=False,
     )
-    
+
     session = session_factory()
     try:
         yield session
@@ -112,6 +114,7 @@ def postgres_session(postgres_engine) -> Generator[Session, None, None]:
 def sample_agent_run_data() -> dict:
     """Sample agent run data for testing."""
     from datetime import datetime
+
     return {
         "id": "e2e_test_run_123",
         "tenant_id": "e2e_tenant_456",

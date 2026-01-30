@@ -13,7 +13,6 @@ from typing import AsyncGenerator, Generator
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from sqlmodel import Session
 
 from gearmeshing_ai.core.database.base import Base
 
@@ -34,11 +33,11 @@ async def in_memory_engine() -> AsyncGenerator:
         echo=False,
         future=True,
     )
-    
+
     # Create all tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    
+
     try:
         yield engine
     finally:
@@ -46,16 +45,14 @@ async def in_memory_engine() -> AsyncGenerator:
 
 
 @pytest.fixture(scope="function")
-async def in_memory_session(
-    in_memory_engine
-) -> AsyncGenerator[AsyncSession, None]:
+async def in_memory_session(in_memory_engine) -> AsyncGenerator[AsyncSession, None]:
     """Create in-memory SQLite session for testing."""
     async_session = sessionmaker(
         bind=in_memory_engine,
         class_=AsyncSession,
         expire_on_commit=False,
     )
-    
+
     session = async_session()
     try:
         yield session  # type: ignore
@@ -140,7 +137,7 @@ def sample_policy_data() -> dict:
             "allowed_capabilities": ["code_generation", "analysis"],
             "approval_required": True,
             "max_tokens_per_request": 4096,
-            "allowed_models": ["gpt-4o", "claude-3-sonnet"]
+            "allowed_models": ["gpt-4o", "claude-3-sonnet"],
         },
     }
 

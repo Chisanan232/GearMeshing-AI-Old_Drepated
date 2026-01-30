@@ -11,8 +11,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from gearmeshing_ai.core.models.domain.policy import PolicyConfig
-from gearmeshing_ai.core.database.repositories.agent_events import AgentEventRepository as EventRepository
+from gearmeshing_ai.core.database.repositories.agent_events import (
+    AgentEventRepository as EventRepository,
+)
 from gearmeshing_ai.core.models.domain import (
     AgentEvent,
     AgentEventType,
@@ -21,6 +22,7 @@ from gearmeshing_ai.core.models.domain import (
     Approval,
     UsageLedgerEntry,
 )
+from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 from gearmeshing_ai.server.schemas import (
     KeepAliveEvent,
     SSEResponse,

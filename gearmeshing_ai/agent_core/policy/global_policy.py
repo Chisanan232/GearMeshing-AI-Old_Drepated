@@ -24,9 +24,14 @@ import json
 import re
 from typing import Any, Dict, Optional
 
-from gearmeshing_ai.info_provider import CapabilityName
 from gearmeshing_ai.core.models.domain import RiskLevel
-from gearmeshing_ai.core.models.domain.policy import PolicyConfig, PolicyDecision, risk_from_kind, risk_requires_approval
+from gearmeshing_ai.core.models.domain.policy import (
+    PolicyConfig,
+    PolicyDecision,
+    risk_from_kind,
+    risk_requires_approval,
+)
+from gearmeshing_ai.info_provider import CapabilityName
 
 _SECRET_PATTERNS = (
     re.compile(r"sk-[A-Za-z0-9]{10,}"),

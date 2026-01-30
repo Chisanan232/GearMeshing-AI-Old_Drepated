@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import AsyncGenerator
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from gearmeshing_ai.server.core.config import settings
 
@@ -45,4 +45,3 @@ async def init_db():
     # This function is kept for backward compatibility but does nothing.
     # Attempting to call create_all() here would fail with "CREATE INDEX CONCURRENTLY
     # cannot run inside a transaction block" since Alembic already created indexes.
-    pass

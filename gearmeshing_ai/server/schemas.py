@@ -10,8 +10,8 @@ from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 from gearmeshing_ai.core.models.domain import ApprovalDecision, AutonomyProfile
+from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 
 
 class RunCreate(BaseModel):
@@ -391,9 +391,7 @@ class SSEEventData(BaseModel):
     - Enriched fields based on event type (thinking, operation, etc.)
     """
 
-    model_config = ConfigDict(
-        json_encoders={datetime: lambda v: v.isoformat() if v else None}
-    )
+    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat() if v else None})
 
     id: Optional[str] = Field(
         default=None, description="The unique identifier for this event.", examples=["evt-123", "evt-abc-def-456"]
@@ -460,9 +458,7 @@ class SSEResponse(BaseModel):
     Wraps the event data for streaming responses.
     """
 
-    model_config = ConfigDict(
-        json_encoders={datetime: lambda v: v.isoformat() if v else None}
-    )
+    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat() if v else None})
 
     data: SSEEventData = Field(..., description="The enriched event data to be streamed to the client.")
 
@@ -473,9 +469,7 @@ class KeepAliveEvent(BaseModel):
     Sent periodically when no events are available to prevent client timeout.
     """
 
-    model_config = ConfigDict(
-        json_encoders={datetime: lambda v: v.isoformat() if v else None}
-    )
+    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat() if v else None})
 
     comment: str = Field(
         default="keep-alive",
@@ -490,9 +484,7 @@ class ErrorEvent(BaseModel):
     Sent when an error occurs during event streaming.
     """
 
-    model_config = ConfigDict(
-        json_encoders={datetime: lambda v: v.isoformat() if v else None}
-    )
+    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat() if v else None})
 
     error: str = Field(
         ...,
