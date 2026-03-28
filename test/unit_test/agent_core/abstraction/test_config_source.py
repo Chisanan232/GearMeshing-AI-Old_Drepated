@@ -12,7 +12,7 @@ import pytest
 
 from gearmeshing_ai.agent_core.abstraction.base import AIAgentConfig
 from gearmeshing_ai.agent_core.abstraction.config_source import AgentConfigSource
-from gearmeshing_ai.agent_core.schemas.config import ModelConfig
+from gearmeshing_ai.core.models.config import ModelConfig
 
 
 class TestAgentConfigSource:

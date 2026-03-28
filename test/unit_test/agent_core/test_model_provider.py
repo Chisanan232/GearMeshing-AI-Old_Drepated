@@ -274,9 +274,7 @@ class TestModelProvider:
             mock_get_db.return_value = mock_db_provider
 
             # Mock database config
-            from gearmeshing_ai.agent_core.schemas.config import (
-                ModelConfig as DbModelConfig,
-            )
+            from gearmeshing_ai.core.models.config import ModelConfig as DbModelConfig
 
             mock_db_config = DbModelConfig(
                 provider="openai",

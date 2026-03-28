@@ -26,9 +26,10 @@ The runtime enforces the thought/action split:
 import logging
 from typing import Any, Dict, List, Optional
 
+from gearmeshing_ai.core.models.domain.planning import ActionStep, ThoughtStep
+
 from ..abstraction import AgentConfigSource, get_agent_provider
 from ..monitoring_integration import trace_planning
-from .steps import ActionStep, ThoughtStep
 
 logger = logging.getLogger(__name__)
 

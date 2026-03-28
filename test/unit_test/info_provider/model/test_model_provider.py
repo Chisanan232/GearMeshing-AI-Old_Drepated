@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from gearmeshing_ai.agent_core.schemas.config import ModelConfig
+from gearmeshing_ai.core.models.config import ModelConfig
 from gearmeshing_ai.info_provider.model.base import ModelProvider
 from gearmeshing_ai.info_provider.model.provider import (
     _BUILTIN_MODEL_CONFIGS,
@@ -86,7 +86,7 @@ class TestDatabaseModelProvider:
         assert provider._db_session_factory == mock_session_factory
         assert provider._version == "db-v1"
 
-    @patch("gearmeshing_ai.server.models.agent_config.AgentConfig")
+    @patch("gearmeshing_ai.core.database.entities.agent_configs.AgentConfig")
     def test_get_config_success(self, mock_agent_config_class):
         """Test successful configuration retrieval."""
         # Setup mock
@@ -118,7 +118,7 @@ class TestDatabaseModelProvider:
         mock_session.query.assert_called_once_with(mock_agent_config_class)
         assert mock_query.filter.call_count == 2  # First call with role_name+is_active, second with tenant_id
 
-    @patch("gearmeshing_ai.server.models.agent_config.AgentConfig")
+    @patch("gearmeshing_ai.core.database.entities.agent_configs.AgentConfig")
     def test_get_config_not_found(self, mock_agent_config_class):
         """Test configuration not found raises KeyError."""
         mock_session = MagicMock()

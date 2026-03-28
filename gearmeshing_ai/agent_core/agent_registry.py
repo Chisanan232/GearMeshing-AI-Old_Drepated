@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Awaitable, Callable, Dict
 
-from .schemas.domain import AgentRun
+from gearmeshing_ai.core.models.domain import AgentRun
+
 from .service import AgentService
 
 AgentServiceFactory = Callable[[AgentRun], Awaitable[AgentService]]

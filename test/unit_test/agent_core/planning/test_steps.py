@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from gearmeshing_ai.agent_core.planning.steps import normalize_plan
+from gearmeshing_ai.core.models.domain.planning import normalize_plan
 from gearmeshing_ai.info_provider import CapabilityName
 
 

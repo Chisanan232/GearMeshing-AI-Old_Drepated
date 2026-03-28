@@ -8,11 +8,18 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from gearmeshing_ai.agent_core.factory import build_default_registry
 from gearmeshing_ai.agent_core.planning.planner import StructuredPlanner
-from gearmeshing_ai.agent_core.policy.models import PolicyConfig
 from gearmeshing_ai.agent_core.policy.provider import DatabasePolicyProvider
-from gearmeshing_ai.agent_core.repos.interfaces import EventRepository
-from gearmeshing_ai.agent_core.repos.sql import SqlRepoBundle, build_sql_repos
-from gearmeshing_ai.agent_core.schemas.domain import (
+from gearmeshing_ai.agent_core.service import AgentService, AgentServiceDeps
+from gearmeshing_ai.core.database import async_session_maker, checkpointer_pool
+from gearmeshing_ai.core.database.repositories.agent_events import (
+    AgentEventRepository as EventRepository,
+)
+from gearmeshing_ai.core.database.repositories.bundle import (
+    SqlRepoBundle,
+    build_sql_repos_from_session,
+)
+from gearmeshing_ai.core.logging_config import get_logger
+from gearmeshing_ai.core.models.domain import (
     AgentEvent,
     AgentEventType,
     AgentRun,
@@ -20,9 +27,7 @@ from gearmeshing_ai.agent_core.schemas.domain import (
     Approval,
     UsageLedgerEntry,
 )
-from gearmeshing_ai.agent_core.service import AgentService, AgentServiceDeps
-from gearmeshing_ai.core.logging_config import get_logger
-from gearmeshing_ai.server.core.database import async_session_maker, checkpointer_pool
+from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 from gearmeshing_ai.server.schemas import (
     ApprovalRequestData,
     ApprovalResolutionData,
@@ -76,8 +81,26 @@ class OrchestratorService:
         # Keep references to background tasks to prevent premature GC
         self.background_tasks: set[asyncio.Task] = set()
 
-        # Build base repositories
-        base_repos = build_sql_repos(session_factory=async_session_maker)
+        # Build base repositories using synchronous builder with a session
+        # Note: We use build_sql_repos_from_session since __init__ cannot be async
+        # The session will be properly managed by the repository implementations
+        # Create a temporary session for repository initialization
+        # This session is used only for repository setup, not for actual operations
+        import asyncio
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop is not None:
+            # We're in an async context, create session asynchronously
+            session = loop.run_until_complete(async_session_maker())
+        else:
+            # We're in a sync context, use a new event loop
+            session = asyncio.run(async_session_maker().__aenter__())
+
+        base_repos = build_sql_repos_from_session(session=session)
 
         # Store checkpointer pool for lazy initialization
         # AsyncPostgresSaver requires an event loop at instantiation, so we defer creation

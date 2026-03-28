@@ -11,9 +11,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from gearmeshing_ai.agent_core.policy.models import PolicyConfig
-from gearmeshing_ai.agent_core.repos.interfaces import EventRepository
-from gearmeshing_ai.agent_core.schemas.domain import (
+from gearmeshing_ai.core.database.repositories.agent_events import (
+    AgentEventRepository as EventRepository,
+)
+from gearmeshing_ai.core.models.domain import (
     AgentEvent,
     AgentEventType,
     AgentRun,
@@ -21,6 +22,7 @@ from gearmeshing_ai.agent_core.schemas.domain import (
     Approval,
     UsageLedgerEntry,
 )
+from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 from gearmeshing_ai.server.schemas import (
     KeepAliveEvent,
     SSEResponse,
@@ -39,7 +41,7 @@ class TestOrchestratorServiceInitialization:
     @patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider")
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
-    @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
+    @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos_from_session")
     @patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver")
     @patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool")
     @patch("gearmeshing_ai.server.services.orchestrator.build_default_registry")
@@ -62,7 +64,7 @@ class TestOrchestratorServiceInitialization:
     @patch("gearmeshing_ai.server.services.orchestrator.DatabasePolicyProvider")
     @patch("gearmeshing_ai.server.services.orchestrator.StructuredPlanner")
     @patch("gearmeshing_ai.server.services.orchestrator.AgentServiceDeps")
-    @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos")
+    @patch("gearmeshing_ai.server.services.orchestrator.build_sql_repos_from_session")
     @patch("gearmeshing_ai.server.services.orchestrator.AsyncPostgresSaver")
     @patch("gearmeshing_ai.server.services.orchestrator.checkpointer_pool")
     @patch("gearmeshing_ai.server.services.orchestrator.build_default_registry")
@@ -376,7 +378,7 @@ class TestOrchestratorApprovalManagement:
     @pytest.mark.asyncio
     async def test_get_pending_approvals(self, mock_orchestrator: OrchestratorService) -> None:
         """Test getting pending approvals."""
-        from gearmeshing_ai.agent_core.schemas.domain import RiskLevel
+        from gearmeshing_ai.core.models.domain import RiskLevel
         from gearmeshing_ai.info_provider import CapabilityName
 
         approvals: List[Approval] = [
@@ -406,7 +408,7 @@ class TestOrchestratorApprovalManagement:
     @pytest.mark.asyncio
     async def test_submit_approval_approved(self, mock_orchestrator: OrchestratorService) -> None:
         """Test submitting an approved decision."""
-        from gearmeshing_ai.agent_core.schemas.domain import (
+        from gearmeshing_ai.core.models.domain import (
             ApprovalDecision,
             RiskLevel,
         )
@@ -460,7 +462,7 @@ class TestOrchestratorApprovalManagement:
     @pytest.mark.asyncio
     async def test_submit_approval_rejected(self, mock_orchestrator: OrchestratorService) -> None:
         """Test submitting a rejected decision."""
-        from gearmeshing_ai.agent_core.schemas.domain import (
+        from gearmeshing_ai.core.models.domain import (
             ApprovalDecision,
             RiskLevel,
         )

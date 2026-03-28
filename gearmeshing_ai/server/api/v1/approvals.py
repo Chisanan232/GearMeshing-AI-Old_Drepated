@@ -9,7 +9,7 @@ from typing import List
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
-from gearmeshing_ai.agent_core.schemas.domain import Approval, ApprovalDecision
+from gearmeshing_ai.core.models.domain import Approval, ApprovalDecision
 from gearmeshing_ai.server.schemas import ApprovalSubmit
 from gearmeshing_ai.server.services.deps import OrchestratorDep
 

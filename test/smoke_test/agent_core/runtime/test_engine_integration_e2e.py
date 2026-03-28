@@ -26,7 +26,7 @@ from gearmeshing_ai.agent_core.model_provider import async_create_model_for_role
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
 from gearmeshing_ai.agent_core.runtime.engine import AgentEngine
 from gearmeshing_ai.agent_core.runtime.models import EngineDeps
-from gearmeshing_ai.agent_core.schemas.domain import (
+from gearmeshing_ai.core.models.domain import (
     AgentEventType,
     AgentRun,
     AgentRunStatus,

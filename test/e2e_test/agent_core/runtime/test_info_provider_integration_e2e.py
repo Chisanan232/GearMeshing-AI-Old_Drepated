@@ -13,27 +13,27 @@ from testcontainers.postgres import PostgresContainer
 
 from gearmeshing_ai.agent_core.factory import build_default_registry
 from gearmeshing_ai.agent_core.policy.global_policy import GlobalPolicy
-from gearmeshing_ai.agent_core.policy.models import PolicyConfig
-from gearmeshing_ai.agent_core.repos.models import (
-    ApprovalRow,
-    EventRow,
-    ToolInvocationRow,
-)
-from gearmeshing_ai.agent_core.repos.sql import (
-    build_sql_repos,
+from gearmeshing_ai.agent_core.runtime import EngineDeps
+from gearmeshing_ai.agent_core.runtime.engine import AgentEngine
+from gearmeshing_ai.core.database import (
     create_all,
     create_engine,
     create_sessionmaker,
 )
-from gearmeshing_ai.agent_core.runtime import EngineDeps
-from gearmeshing_ai.agent_core.runtime.engine import AgentEngine
-from gearmeshing_ai.agent_core.schemas.domain import (
+from gearmeshing_ai.core.database.entities.agent_events import AgentEvent as EventRow
+from gearmeshing_ai.core.database.entities.approvals import Approval as ApprovalRow
+from gearmeshing_ai.core.database.entities.tool_invocations import (
+    ToolInvocation as ToolInvocationRow,
+)
+from gearmeshing_ai.core.database.repositories.bundle import build_sql_repos
+from gearmeshing_ai.core.models.domain import (
     AgentEventType,
     AgentRun,
     AgentRunStatus,
     ApprovalDecision,
     RiskLevel,
 )
+from gearmeshing_ai.core.models.domain.policy import PolicyConfig
 from gearmeshing_ai.info_provider import (
     DEFAULT_ROLE_PROVIDER,
     CapabilityName,
@@ -314,7 +314,7 @@ async def test_e2e_role_prompt_provider_is_used_for_thought_step(monkeypatch: py
         engine = create_engine(db_url)
         await create_all(engine)
         session_factory = create_sessionmaker(engine)
-        repos = build_sql_repos(session_factory=session_factory)
+        repos = await build_sql_repos(session_factory=session_factory)
 
         async with AsyncConnectionPool(conninfo=pool_url, min_size=1, max_size=1, kwargs={"autocommit": True}) as pool:
             checkpointer = AsyncPostgresSaver(pool)
@@ -397,7 +397,7 @@ async def test_e2e_mcp_call_uses_real_strategy_metadata_for_risk_and_approval_ga
         engine = create_engine(db_url)
         await create_all(engine)
         session_factory = create_sessionmaker(engine)
-        repos = build_sql_repos(session_factory=session_factory)
+        repos = await build_sql_repos(session_factory=session_factory)
 
         async with AsyncConnectionPool(conninfo=pool_url, min_size=1, max_size=1, kwargs={"autocommit": True}) as pool:
             checkpointer = AsyncPostgresSaver(pool)

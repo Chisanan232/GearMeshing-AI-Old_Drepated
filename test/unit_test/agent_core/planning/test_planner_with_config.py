@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from gearmeshing_ai.agent_core.planning import (
+from gearmeshing_ai.core.models.domain.planning import (
     ActionStep,
     StructuredPlanner,
 )

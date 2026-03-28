@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from gearmeshing_ai.agent_core.repos.sql import create_engine
+from gearmeshing_ai.core.database import create_engine
 
 
 @pytest.mark.asyncio

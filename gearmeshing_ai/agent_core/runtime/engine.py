@@ -38,6 +38,17 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.errors import NodeInterrupt
 from langgraph.graph import END, StateGraph
 
+from gearmeshing_ai.core.models.domain import (
+    AgentEvent,
+    AgentEventType,
+    AgentRun,
+    AgentRunStatus,
+    Approval,
+    ApprovalDecision,
+    ToolInvocation,
+    UsageLedgerEntry,
+)
+from gearmeshing_ai.core.models.domain.planning import normalize_plan
 from gearmeshing_ai.info_provider import (
     CapabilityName,
     get_role_spec,
@@ -48,18 +59,7 @@ from ..abstraction import AgentConfigSource, get_agent_provider
 from ..capabilities.base import CapabilityContext
 from ..model_provider import async_create_model_for_role
 from ..monitoring_integration import trace_capability_execution
-from ..planning.steps import normalize_plan
 from ..policy.global_policy import GlobalPolicy
-from ..schemas.domain import (
-    AgentEvent,
-    AgentEventType,
-    AgentRun,
-    AgentRunStatus,
-    Approval,
-    ApprovalDecision,
-    ToolInvocation,
-    UsageLedgerEntry,
-)
 from .models import EngineDeps, _GraphState
 
 logger = logging.getLogger(__name__)
