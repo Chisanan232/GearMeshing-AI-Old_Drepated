@@ -69,7 +69,7 @@ Repository = "https://github.com/Chisanan232/GearMeshing-AI"
 [dependency-groups]
 # Dependencies for the development
 dev = [
-    "pytest>=9.0.2",
+    "pytest>=9.0.3",
     "pytest-asyncio>=1.3.0",
     "pytest-cov>=7.0.0",
     "pytest-rerunfailures>=16.1",
