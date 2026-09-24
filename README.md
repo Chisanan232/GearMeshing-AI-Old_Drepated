@@ -1,3 +1,30 @@
+> ## 🗄️ Archived — 2026-09-24
+>
+> This repository is **archived and read-only**, and is no longer maintained.
+>
+> It is the deprecated version of GearMeshing-AI. Its successor,
+> [GearMeshing-AI](https://github.com/Chisanan232/GearMeshing-AI), has **also been
+> archived** — so no actively maintained successor exists.
+>
+> ### ⚠️ Security notice
+>
+> This repository has **open Dependabot security alerts, including critical-severity
+> ones, that will not be remediated**. Treat the code here as unmaintained and do
+> not deploy it or use it as a dependency.
+>
+> ### Unfinished work
+>
+> Pull request [#213](https://github.com/Chisanan232/GearMeshing-AI-Old_Drepated/pull/213)
+> — a substantial rework of the persistence layer and data models — was closed
+> unmerged when this repository was archived. The work is preserved on the branch
+> `develop/src-code` and remains readable, but the redesign was never completed.
+> All other open pull requests were dependency updates, also closed unmerged.
+>
+> The documentation site linked from this repository's description is no longer
+> served.
+
+---
+
 # Your lib name
 
 ## Overview
